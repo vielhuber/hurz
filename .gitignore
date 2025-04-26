@@ -1,0 +1,5 @@
+/venv
+/tmp
+/models
+/data
+/.env
