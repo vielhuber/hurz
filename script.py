@@ -55,6 +55,7 @@ load_dotenv()
 
 pocketoption_asset = "AUDCAD_otc"
 pocketoption_demo = 1
+active_model = "XGBoost"
 
 # Einstellungen laden
 if os.path.exists("tmp/settings.json"):
@@ -63,11 +64,12 @@ if os.path.exists("tmp/settings.json"):
             einstellungen = json.load(f)
             pocketoption_asset = einstellungen.get("asset", pocketoption_asset)
             pocketoption_demo = einstellungen.get("demo", pocketoption_demo)
+            active_model = einstellungen.get("model", active_model)
     except Exception as e:
         print("⚠️ Fehler beim  Laden der Einstellungen:", e)
 
 filename_historic_data = "data/historic_data_" + pocketoption_asset + ".csv"
-filename_model = "models/model_" + pocketoption_asset + ".json"
+filename_model = "models/model_" + active_model + "_" + pocketoption_asset + ".json"
 
 _ws_connection = None
 stop_thread = False
@@ -295,14 +297,14 @@ async def ws_receive_loop(ws):
                     decoded = message.decode("utf-8")
                     data = json.loads(decoded)
 
-                    if not os.path.exists("data/live__data_balance.json"):
+                    if not os.path.exists("data/live_data_balance.json"):
                         with open(
-                            "data/live__data_balance.json", "w", encoding="utf-8"
+                            "data/live_data_balance.json", "w", encoding="utf-8"
                         ) as f:
                             json.dump([], f)
 
                     with open(
-                        "data/live__data_balance.json", "w", encoding="utf-8"
+                        "data/live_data_balance.json", "w", encoding="utf-8"
                     ) as file:
                         file.write(str(data["balance"]))
                     binary_expected_event = None
@@ -310,14 +312,12 @@ async def ws_receive_loop(ws):
                 elif binary_expected_event == "updateOpenedDeals":
                     decoded = message.decode("utf-8")
                     data = json.loads(decoded)
-                    if not os.path.exists("data/live__data_deals.json"):
+                    if not os.path.exists("data/live_data_deals.json"):
                         with open(
-                            "data/live__data_deals.json", "w", encoding="utf-8"
+                            "data/live_data_deals.json", "w", encoding="utf-8"
                         ) as f:
                             json.dump([], f)
-                    with open(
-                        "data/live__data_deals.json", "r+", encoding="utf-8"
-                    ) as f:
+                    with open("data/live_data_deals.json", "r+", encoding="utf-8") as f:
                         try:
                             vorhandene_deals = json.load(f)
                         except json.JSONDecodeError:
@@ -345,14 +345,12 @@ async def ws_receive_loop(ws):
                     decoded = message.decode("utf-8")
                     data = json.loads(decoded)
 
-                    if not os.path.exists("data/live__data_deals.json"):
+                    if not os.path.exists("data/live_data_deals.json"):
                         with open(
-                            "data/live__data_deals.json", "w", encoding="utf-8"
+                            "data/live_data_deals.json", "w", encoding="utf-8"
                         ) as f:
                             json.dump([], f)
-                    with open(
-                        "data/live__data_deals.json", "r+", encoding="utf-8"
-                    ) as f:
+                    with open("data/live_data_deals.json", "r+", encoding="utf-8") as f:
                         try:
                             vorhandene_deals = json.load(f)
                         except json.JSONDecodeError:
@@ -382,14 +380,12 @@ async def ws_receive_loop(ws):
                     data = json.loads(decoded)
                     print(data)
 
-                    if not os.path.exists("data/live__data_deals.json"):
+                    if not os.path.exists("data/live_data_deals.json"):
                         with open(
-                            "data/live__data_deals.json", "w", encoding="utf-8"
+                            "data/live_data_deals.json", "w", encoding="utf-8"
                         ) as f:
                             json.dump([], f)
-                    with open(
-                        "data/live__data_deals.json", "r+", encoding="utf-8"
-                    ) as f:
+                    with open("data/live_data_deals.json", "r+", encoding="utf-8") as f:
                         try:
                             vorhandene_deals = json.load(f)
                         except json.JSONDecodeError:
@@ -411,14 +407,12 @@ async def ws_receive_loop(ws):
                     data = json.loads(decoded)
                     print(data)
 
-                    if not os.path.exists("data/live__data_deals.json"):
+                    if not os.path.exists("data/live_data_deals.json"):
                         with open(
-                            "data/live__data_deals.json", "w", encoding="utf-8"
+                            "data/live_data_deals.json", "w", encoding="utf-8"
                         ) as f:
                             json.dump([], f)
-                    with open(
-                        "data/live__data_deals.json", "r+", encoding="utf-8"
-                    ) as f:
+                    with open("data/live_data_deals.json", "r+", encoding="utf-8") as f:
                         try:
                             vorhandene_deals = json.load(f)
                         except json.JSONDecodeError:
@@ -489,7 +483,7 @@ async def send_order(asset, amount, action, duration):
 
 def run_back_and_forwardtest(filename):
 
-    n = 100  # Anzahl der Vorhersageversuche (100 Tests, d.h. ca. 8h nach vorne und 8h nach hinten)
+    n = 100  # Anzahl der Vorhersageversuche (100 Tests, d.h. ca. 100 Sekunden nach vorne und 100 Sekunden nach hinten)
     window = 300  # Größe des Input-Fensters (300 Sekunden = 5 Minuten), muss genauso groß sein wie beim Training
     horizon = (
         60  # Vorhersagehorizont (60 Sekunden), muss genauso groß sein wie beim Training
@@ -501,7 +495,7 @@ def run_back_and_forwardtest(filename):
     start = df.iloc[1]["Zeitpunkt"]
     ende = df.iloc[-1]["Zeitpunkt"]
     # Mittelpunkt berechnen
-    startzeit = start + (ende - start) / 2
+    startzeit = start + ((ende - start) / 2)
     print("Startzeit (Mitte):", startzeit)
 
     # daten begrenzen
@@ -518,7 +512,7 @@ def run_back_and_forwardtest(filename):
     start_index = df_backtest[df_backtest["Zeitpunkt"] < startzeit].last_valid_index()
     if start_index is None or start_index < window + horizon:
         print("⚠️ Nicht genug Daten.")
-        return
+        # return
     back_erfolge = 0
     gesamt_back = 0
     i = 0
@@ -526,6 +520,7 @@ def run_back_and_forwardtest(filename):
         ziel = start_index - i
         ende = ziel - horizon
         start = ende - window
+
         if start < 0:
             break
 
@@ -542,15 +537,34 @@ def run_back_and_forwardtest(filename):
 
         letzter_wert = fenster[-1]
 
-        print(prognose, letzter_wert)
-
+        hit = False
         if (prognose > letzter_wert and zielwert > letzter_wert) or (
             prognose < letzter_wert and zielwert < letzter_wert
         ):
+            hit = True
             back_erfolge += 1
         gesamt_back += 1
 
-        print("PROGNOSE", i)
+        if i == 0 or i == 1 or i == n - 1:
+            with open("tmp/debug_backtest.txt", "a", encoding="utf-8") as f:
+                f.write(f"Backtest Step {i}\n")
+                f.write(f"  start index : {start}\n")
+                f.write(f"  end index   : {ende}\n")
+                f.write(f"  ziel index  : {ziel}\n")
+                f.write(f"  start zeitpunkt : {df_backtest.iloc[start]['Zeitpunkt']}\n")
+                f.write(f"  ende zeitpunkt : {df_backtest.iloc[ende]['Zeitpunkt']}\n")
+                f.write(f"  ziel zeitpunkt : {df_backtest.iloc[ziel]['Zeitpunkt']}\n")
+                f.write(f"  start wert : {df_backtest.iloc[start]['Wert']}\n")
+                f.write(f"  ende wert : {df_backtest.iloc[ende]['Wert']}\n")
+                f.write(f"  letzter_wert : {letzter_wert}\n")
+                f.write(f"  ziel wert : {df_backtest.iloc[ziel]['Wert']}\n")
+                f.write(f"  prognose : {prognose}\n")
+                f.write(f"  hit : {hit}\n")
+                f.write(f"  fenster len : {len(fenster)}\n")
+                f.write(f"  fenster: {fenster.tolist()}\n")
+                f.write("\n")
+
+        # print("PROGNOSE", i, letzter_wert, zielwert, prognose, hit)
 
     # --- Forwardtest ---
     print("✅ Starte Forwardtest")
@@ -559,14 +573,15 @@ def run_back_and_forwardtest(filename):
     ].first_valid_index()
     if start_index is None:
         print("⚠️ Nicht genug Daten.")
-        return
+        # return
     forward_erfolge = 0
     gesamt_forward = 0
     i = 0
     for i in range(n):
-        start = start_index + i * horizon
+        start = start_index + i
         ende = start + window
         ziel = ende + horizon
+
         if ziel >= len(df_forwardtest):
             break
 
@@ -583,15 +598,40 @@ def run_back_and_forwardtest(filename):
 
         letzter_wert = fenster[-1]
 
-        print(prognose, letzter_wert)
-
+        hit = False
         if (prognose > letzter_wert and zielwert > letzter_wert) or (
             prognose < letzter_wert and zielwert < letzter_wert
         ):
+            hit = True
             forward_erfolge += 1
         gesamt_forward += 1
 
-        print("PROGNOSE", i)
+        if i == 0 or i == 1 or i == n - 1:
+            with open("tmp/debug_forwardtest.txt", "a", encoding="utf-8") as f:
+                f.write(f"Backtest Step {i}\n")
+                f.write(f"  start index : {start}\n")
+                f.write(f"  end index   : {ende}\n")
+                f.write(f"  ziel index  : {ziel}\n")
+                f.write(
+                    f"  start zeitpunkt : {df_forwardtest.iloc[start]['Zeitpunkt']}\n"
+                )
+                f.write(
+                    f"  ende zeitpunkt : {df_forwardtest.iloc[ende]['Zeitpunkt']}\n"
+                )
+                f.write(
+                    f"  ziel zeitpunkt : {df_forwardtest.iloc[ziel]['Zeitpunkt']}\n"
+                )
+                f.write(f"  start wert : {df_forwardtest.iloc[start]['Wert']}\n")
+                f.write(f"  ende wert : {df_forwardtest.iloc[ende]['Wert']}\n")
+                f.write(f"  letzter_wert : {letzter_wert}\n")
+                f.write(f"  ziel wert : {df_forwardtest.iloc[ziel]['Wert']}\n")
+                f.write(f"  prognose : {prognose}\n")
+                f.write(f"  hit : {hit}\n")
+                f.write(f"  fenster len : {len(fenster)}\n")
+                f.write(f"  fenster: {fenster.tolist()}\n")
+                f.write("\n")
+
+        # print("PROGNOSE", i, letzter_wert, zielwert, prognose, hit)
 
     return pd.DataFrame(
         [
@@ -611,6 +651,200 @@ def run_back_and_forwardtest(filename):
                     round((forward_erfolge / gesamt_forward) * 100, 2)
                     if gesamt_forward
                     else 0
+                ),
+            },
+        ]
+    )
+
+
+def run_fulltest_fast(filename):
+
+    window = 300  # Größe des Input-Fensters (300 Sekunden = 5 Minuten), muss genauso groß sein wie beim Training
+    horizon = (
+        60  # Vorhersagehorizont (60 Sekunden), muss genauso groß sein wie beim Training
+    )
+
+    df = pd.read_csv(filename)
+    df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
+
+    # model laden
+    model = xgb.XGBRegressor(tree_method="hist", device="cuda")
+    model.load_model(filename_model)
+    model.get_booster().set_param({"device": "cuda"})
+
+    # --- Fulltest ---
+    print("✅ Starte Fulltest")
+
+    start_index = 0
+    i = 0
+
+    X_test = []
+    zielwerte = []
+    letzte_werte = []
+
+    while True:
+        start = start_index + i
+        ende = start + window
+        ziel = ende + horizon
+
+        if ziel >= len(df):
+            break
+
+        fenster = df.iloc[start:ende]["Wert"].astype(float).values
+        zielwert = float(df.iloc[ziel]["Wert"])
+        letzter_wert = fenster[-1]
+
+        if i == 0 or i == 1 or ziel == len(df) - 1:
+            with open("tmp/debug_fulltest.txt", "a", encoding="utf-8") as f:
+                f.write(f"Step {i}\n")
+                f.write(f"  start index : {start}\n")
+                f.write(f"  end index   : {ende}\n")
+                f.write(f"  ziel index  : {ziel}\n")
+                f.write(f"  start zeitpunkt : {df.iloc[start]['Zeitpunkt']}\n")
+                f.write(f"  ende zeitpunkt : {df.iloc[ende]['Zeitpunkt']}\n")
+                f.write(f"  ziel zeitpunkt : {df.iloc[ziel]['Zeitpunkt']}\n")
+                f.write(f"  start wert : {df.iloc[start]['Wert']}\n")
+                f.write(f"  ende wert : {df.iloc[ende]['Wert']}\n")
+                f.write(f"  letzter_wert : {letzter_wert}\n")
+                f.write(f"  ziel wert : {df.iloc[ziel]['Wert']}\n")
+                f.write(f"  fenster len : {len(fenster)}\n")
+                f.write(f"  fenster: {fenster.tolist()}\n")
+                f.write("\n")
+
+        if len(fenster) == window:
+            X_test.append(fenster)
+            zielwerte.append(zielwert)
+            letzte_werte.append(letzter_wert)
+
+        i += 1
+
+    # ✅ Prediction in einem Rutsch (schnell!)
+    X_df = pd.DataFrame(X_test)
+    X_gpu = cp.asarray(X_df)
+    prognosen = model.get_booster().inplace_predict(X_gpu)
+
+    # ✅ Auswertung
+    full_erfolge = 0
+    gesamt_full = len(prognosen)
+
+    for i in range(gesamt_full):
+        hit = False
+        if (prognosen[i] > letzte_werte[i] and zielwerte[i] > letzte_werte[i]) or (
+            prognosen[i] < letzte_werte[i] and zielwerte[i] < letzte_werte[i]
+        ):
+            full_erfolge += 1
+            hit = True
+        if i == 0 or i == 1 or i == len(prognosen) - 1:
+            with open("tmp/debug_fulltest.txt", "a", encoding="utf-8") as f:
+                f.write(f"Step {i}\n")
+                f.write(f"  letzter wert : {letzte_werte[i]}\n")
+                f.write(f"  zielwert : {zielwerte[i]}\n")
+                f.write(f"  prognose : {prognosen[i]}\n")
+                f.write(f"  hit : {hit}\n")
+                f.write("\n")
+
+    return pd.DataFrame(
+        [
+            {
+                "Typ": "Fulltest",
+                "Erfolge": full_erfolge,
+                "Gesamt": gesamt_full,
+                "Erfolgsquote (%)": (
+                    round((full_erfolge / gesamt_full) * 100, 2) if gesamt_full else 0
+                ),
+            },
+        ]
+    )
+
+
+def run_fulltest(filename):
+
+    window = 300  # Größe des Input-Fensters (300 Sekunden = 5 Minuten), muss genauso groß sein wie beim Training
+    horizon = (
+        60  # Vorhersagehorizont (60 Sekunden), muss genauso groß sein wie beim Training
+    )
+
+    df = pd.read_csv(filename)
+    df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
+
+    # model laden
+    model = xgb.XGBRegressor(tree_method="hist", device="cuda")
+    model.load_model(filename_model)
+    model.get_booster().set_param({"device": "cuda"})
+
+    # --- Fulltest ---
+    print("✅ Starte Fulltest")
+    start_index = 0
+    full_erfolge = 0
+    gesamt_full = 0
+    i = 0
+    while True:
+        start = start_index + i
+        ende = start + window
+        ziel = ende + horizon
+
+        if ziel >= len(df):
+            break
+
+        fenster = df.iloc[start:ende]["Wert"].astype(float).values
+        zielwert = float(df.iloc[ziel]["Wert"])
+        if len(fenster) != window:
+            continue
+
+        X_df = pd.DataFrame(
+            [fenster]
+        )  # ✅ Wichtig: korrekte Struktur (1 Zeile, 300 Spalten)
+        X_gpu = cp.asarray(X_df)
+        prognose = model.get_booster().inplace_predict(X_gpu)[0]
+
+        letzter_wert = fenster[-1]
+
+        hit = False
+        if (prognose > letzter_wert and zielwert > letzter_wert) or (
+            prognose < letzter_wert and zielwert < letzter_wert
+        ):
+            hit = True
+            full_erfolge += 1
+        gesamt_full += 1
+
+        if i == 0 or i == 1 or i == len(df) - 1:
+            with open("tmp/debug_fulltest.txt", "a", encoding="utf-8") as f:
+                f.write(f"Step {i}\n")
+                f.write(f"  start index : {start}\n")
+                f.write(f"  end index   : {ende}\n")
+                f.write(f"  ziel index  : {ziel}\n")
+                f.write(f"  start zeitpunkt : {df.iloc[start]['Zeitpunkt']}\n")
+                f.write(f"  ende zeitpunkt : {df.iloc[ende]['Zeitpunkt']}\n")
+                f.write(f"  ziel zeitpunkt : {df.iloc[ziel]['Zeitpunkt']}\n")
+                f.write(f"  start wert : {df.iloc[start]['Wert']}\n")
+                f.write(f"  ende wert : {df.iloc[ende]['Wert']}\n")
+                f.write(f"  letzter_wert : {letzter_wert}\n")
+                f.write(f"  ziel wert : {df.iloc[ziel]['Wert']}\n")
+                f.write(f"  prognose : {prognose}\n")
+                f.write(f"  hit : {hit}\n")
+                f.write(f"  fenster len : {len(fenster)}\n")
+                f.write(f"  fenster: {fenster.tolist()}\n")
+                f.write("\n")
+
+        print(
+            "PROGNOSE",
+            i,
+            df.iloc[start]["Zeitpunkt"],
+            letzter_wert,
+            zielwert,
+            prognose,
+            hit,
+        )
+        i += 1
+
+    return pd.DataFrame(
+        [
+            {
+                "Typ": "Fulltest",
+                "Erfolge": full_erfolge,
+                "Gesamt": gesamt_full,
+                "Erfolgsquote (%)": (
+                    round((full_erfolge / gesamt_full) * 100, 2) if gesamt_full else 0
                 ),
             },
         ]
@@ -820,18 +1054,18 @@ async def printLiveStats():
     listener_thread = threading.Thread(target=listen_for_exit, daemon=True)
     listener_thread.start()
 
-    live__data_balance = 42
-    live__data_deals = []
+    live_data_balance = 42
+    live_data_deals = []
 
     try:
         while not stop_thread:
 
-            if os.path.exists("data/live__data_balance.json"):
-                with open("data/live__data_balance.json", "r", encoding="utf-8") as f:
-                    live__data_balance = f.read().strip()
-            if os.path.exists("data/live__data_deals.json"):
-                with open("data/live__data_deals.json", "r", encoding="utf-8") as f:
-                    live__data_deals = json.load(f)
+            if os.path.exists("data/live_data_balance.json"):
+                with open("data/live_data_balance.json", "r", encoding="utf-8") as f:
+                    live_data_balance = f.read().strip()
+            if os.path.exists("data/live_data_deals.json"):
+                with open("data/live_data_deals.json", "r", encoding="utf-8") as f:
+                    live_data_deals = json.load(f)
 
             headers = [
                 "ID",
@@ -851,7 +1085,7 @@ async def printLiveStats():
             ]
 
             live_data_deals_output = tabulate(
-                live__data_deals[:10], headers=headers, tablefmt="plain"
+                live_data_deals[:10], headers=headers, tablefmt="plain"
             )
 
             prozent = 0
@@ -859,7 +1093,7 @@ async def printLiveStats():
                 len(
                     [
                         deal
-                        for deal in live__data_deals
+                        for deal in live_data_deals
                         if deal[len(deal) - 1] == "closed"
                     ]
                 )
@@ -871,7 +1105,7 @@ async def printLiveStats():
                             deal2
                             for deal2 in [
                                 deal
-                                for deal in live__data_deals
+                                for deal in live_data_deals
                                 if deal[len(deal) - 1] == "closed"
                             ][:10]
                             if float(deal2[3].replace("$", "")) > 0
@@ -880,7 +1114,7 @@ async def printLiveStats():
                     / len(
                         [
                             deal
-                            for deal in live__data_deals
+                            for deal in live_data_deals
                             if deal[len(deal) - 1] == "closed"
                         ][:10]
                     )
@@ -892,7 +1126,7 @@ async def printLiveStats():
             print("###############################################")
             print(f'LIVE-DATEN - {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
             print()
-            print(f"Balance: {live__data_balance}")
+            print(f"Balance: {live_data_balance}")
             print()
             print(f"Gewinnrate (letzte 10 Trades):")
             print(f"{prozent:.1f}%")
@@ -942,81 +1176,86 @@ def printDiagrams():
     plt.show()
 
 
-def loadWithGboost(filename):
+def trainActiveModel(filename):
 
     print(f"✅ Starte Training")
 
-    # CSV-Datei laden
-    df = pd.read_csv(filename)
+    if active_model == "XQBoost":
 
-    # Zeit umwandeln (optional, falls benötigt)
-    df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"], errors="coerce")
+        # CSV-Datei laden
+        df = pd.read_csv(filename)
 
-    # Werte für XGBoost vorbereiten
-    X = df[["Wert"]].values  # Features (erweitere nach Bedarf)
-    y = df["Wert"].shift(-1).ffill().values  # Zielvariable (Beispiel)
+        # Zeit umwandeln (optional, falls benötigt)
+        df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"], errors="coerce")
 
-    # Sliding-Window Features erstellen
-    window_size = 300  # 5 Minuten Fenster bei 1 Wert pro Sekunde
-    forecast_horizon = 60  # 1 Minute Vorhersage
-    X, y = [], []
-    for i in range(len(df) - window_size - forecast_horizon):
-        window = df["Wert"].iloc[i : i + window_size].values
-        target = df["Wert"].iloc[i + window_size + forecast_horizon]
-        X.append(window)
-        y.append(target)
-    X = pd.DataFrame(X)
-    y = pd.Series(y)
+        # Werte für XGBoost vorbereiten
+        X = df[["Wert"]].values  # Features (erweitere nach Bedarf)
+        y = df["Wert"].shift(-1).ffill().values  # Zielvariable (Beispiel)
 
-    # 🔑 GPU-Daten explizit erzeugen (CuPy)
-    X_gpu = cp.asarray(X.values)
-    y_gpu = cp.asarray(y.values)
+        # Sliding-Window Features erstellen
+        window_size = 300  # 5 Minuten Fenster bei 1 Wert pro Sekunde
+        forecast_horizon = 60  # 1 Minute Vorhersage
+        X, y = [], []
+        for i in range(len(df) - window_size - forecast_horizon):
+            window = df["Wert"].iloc[i : i + window_size].values
+            target = df["Wert"].iloc[i + window_size + forecast_horizon]
+            X.append(window)
+            y.append(target)
+        X = pd.DataFrame(X)
+        y = pd.Series(y)
 
-    # XGBoost Modell trainieren
-    model = xgb.XGBRegressor(
-        n_estimators=200,  # ❗NORMAL 500! Mehr Entscheidungsbäume
-        max_depth=2,  # ❗NORMAL 6! Größere Baumtiefe
-        learning_rate=0.005,  # Langsamere Anpassung
-        subsample=0.8,  # Stichprobe von Daten pro Baum
-        colsample_bytree=0.8,  # Teilmenge Features pro Baum
-        tree_method="hist",  # GPU-Training (falls möglich)
-        device="cuda",  # ❗❗❗USE GPU FOR SPEED!
-        verbosity=1,
-    )
+        # 🔑 GPU-Daten explizit erzeugen (CuPy)
+        X_gpu = cp.asarray(X.values)
+        y_gpu = cp.asarray(y.values)
 
-    model.fit(X_gpu, y_gpu, eval_set=[(X_gpu, y_gpu)], verbose=True)
+        # XGBoost Modell trainieren
+        model = xgb.XGBRegressor(
+            n_estimators=400,  # ❗NORMAL 500! Mehr Entscheidungsbäume
+            max_depth=5,  # ❗NORMAL 6! Größere Baumtiefe
+            learning_rate=0.02,  # Langsamere Anpassung
+            subsample=0.8,  # Stichprobe von Daten pro Baum
+            colsample_bytree=0.8,  # Teilmenge Features pro Baum
+            tree_method="hist",  # GPU-Training (falls möglich)
+            device="cuda",  # ❗❗❗USE GPU FOR SPEED!
+            verbosity=1,
+        )
 
-    # print('✅ model.fit abgeschlossen')
+        model.fit(X_gpu, y_gpu, eval_set=[(X_gpu, y_gpu)], verbose=True)
 
-    # Zurück zur CPU für die Ausgabe der Scores und cross_val_score (funktioniert nur mit CPU!)
-    X_cpu = X_gpu.get()
-    y_cpu = y_gpu.get()
+        # print('✅ model.fit abgeschlossen')
 
-    # print('✅ Starte model.score')
+        # Zurück zur CPU für die Ausgabe der Scores und cross_val_score (funktioniert nur mit CPU!)
+        X_cpu = X_gpu.get()
+        y_cpu = y_gpu.get()
 
-    # set to cpu (needed for further functions)
-    model.set_params(device="cpu")
+        # print('✅ Starte model.score')
 
-    # Check, ob Modelltrainierung grundsätzlich erfolgreich war
-    print("R²-Score:", model.score(X_cpu, y_cpu))
+        # set to cpu (needed for further functions)
+        model.set_params(device="cpu")
 
-    # print('✅ Beende model.score')
-    # print('✅ Starte cross_val_score')
+        # Check, ob Modelltrainierung grundsätzlich erfolgreich war
+        print(f"✅ R²-Score auf Trainingsdaten: {model.score(X_cpu, y_cpu):.4f}")
 
-    # Prüfe Cross-Validation (optional, aber empfohlen)
-    tscv = TimeSeriesSplit(n_splits=5)
-    # cv_scores = cross_val_score(model, X_cpu, y_cpu, cv=3)
-    cv_scores = cross_val_score(model, X_cpu, y_cpu, cv=tscv)
-    print("CV-Score Durchschnitt:", cv_scores.mean())
+        tscv = TimeSeriesSplit(n_splits=5)
+        cv_scores = cross_val_score(model, X_cpu, y_cpu, cv=tscv)
+        print(f"✅ Cross-Validation-Score (5 Splits): {cv_scores.mean():.4f}")
+        # 6. Beispielvorhersagen
+        preds = model.predict(X_cpu[:5])
+        print("📈 Beispiel-Predictions:")
+        for idx, (true_val, pred_val) in enumerate(zip(y_cpu[:5], preds)):
+            print(f"  [{idx}] Echt: {true_val:.5f} / Prognose: {pred_val:.5f}")
 
-    # Beispiel-Vorhersage
-    print("Test-Vorhersagen:", model.predict(X_cpu[:5]))
+        # reset to cuda
+        model.set_params(device="cuda")
 
-    # reset to cuda
-    model.set_params(device="cuda")
+        # save model
+        model.save_model(filename_model)
 
-    # save model
-    model.save_model(filename_model)
+    if active_model == "random":
+
+        # save model
+        with open(filename_model, "w", encoding="utf-8") as f:
+            json.dump([], f)
 
 
 async def hauptmenu():
@@ -1026,7 +1265,7 @@ async def hauptmenu():
         if os.path.exists(filename_historic_data):
             timestamp = os.path.getmtime(filename_historic_data)
             datum = datetime.fromtimestamp(timestamp).strftime("%d.%m.%Y %H:%M:%S")
-            option1 += " (Letzte Änderung...: " + datum + ")"
+            option1 += " (Letzte Änderung: " + datum + ")"
         else:
             option1 += " (Daten nicht vorhanden)"
 
@@ -1038,29 +1277,33 @@ async def hauptmenu():
         else:
             option2 += " (Daten nicht vorhanden)"
 
-        option3 = "Diagramm zeichnen"
+        option3 = "Backtest/Forwardtest durchführen"
 
-        option4 = "Backtest/Forwardtest durchführen"
+        option4 = "Fulltest durchführen"
 
-        option5 = "Kaufoption tätigen"
+        option5 = "Fulltest durchführen (schnell)"
 
-        option6 = "Live-Status ansehen"
+        option6 = "Diagramm zeichnen"
 
-        option7 = "Währung/Demomodus verändern"
+        option7 = "Kaufoption tätigen"
 
-        option8 = "Programm verlassen"
+        option8 = "Live-Status ansehen"
 
-        live__data_balance = 0
-        if os.path.exists("data/live__data_balance.json"):
-            with open("data/live__data_balance.json", "r", encoding="utf-8") as f:
-                live__data_balance = f.read().strip()
+        option9 = "Währung/Demomodus verändern"
+
+        option10 = "Programm verlassen"
+
+        live_data_balance = 0
+        if os.path.exists("data/live_data_balance.json"):
+            with open("data/live_data_balance.json", "r", encoding="utf-8") as f:
+                live_data_balance = f.read().strip()
 
         time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         questions = [
             inquirer.List(
                 "auswahl",
-                message=f"### Zeit: {time} /// Kontostand: {live__data_balance} /// Status WS: {'ja' if _ws_connection is not None else 'nein'} /// Währung: {pocketoption_asset} /// Demo-Modus: {pocketoption_demo} ###",
+                message=f"### Zeit: {time} /// Kontostand: {live_data_balance} /// Status WS: {'ja' if _ws_connection is not None else 'nein'} /// Model: {active_model} /// Währung: {pocketoption_asset} /// Demo-Modus: {pocketoption_demo} ###",
                 choices=[
                     option1,
                     option2,
@@ -1070,6 +1313,8 @@ async def hauptmenu():
                     option6,
                     option7,
                     option8,
+                    option9,
+                    option10,
                 ],
             ),
         ]
@@ -1082,40 +1327,52 @@ async def hauptmenu():
 
         if stop_event.is_set():
             break
+
         if antworten is None:
             print("❌ Auswahl wurde abgebrochen. Programm wird beendet.")
             return
+
         if antworten["auswahl"] == option1:
             await pocketoption_ws(24 * 60, filename_historic_data)  # 24 hours
             await asyncio.sleep(3)
 
         elif antworten["auswahl"] == option2:
-            loadWithGboost(filename_historic_data)
+            trainActiveModel(filename_historic_data)
             await asyncio.sleep(5)
 
         elif antworten["auswahl"] == option3:
-            printDiagrams()
-            await asyncio.sleep(5)
-
-        elif antworten["auswahl"] == option4:
             report = run_back_and_forwardtest(filename_historic_data)
             print(report)
             await asyncio.sleep(5)
 
+        elif antworten["auswahl"] == option4:
+            report = run_fulltest(filename_historic_data)
+            print(report)
+            await asyncio.sleep(5)
+
         elif antworten["auswahl"] == option5:
-            await pocketoption_ws(5, "tmp_live_data.csv")  # 5 minutes
-            await asyncio.sleep(3)
-            await doBuySellOrder("tmp_live_data.csv")
+            report = run_fulltest_fast(filename_historic_data)
+            print(report)
             await asyncio.sleep(5)
 
         elif antworten["auswahl"] == option6:
+            printDiagrams()
+            await asyncio.sleep(5)
+
+        elif antworten["auswahl"] == option7:
+            await pocketoption_ws(5, "tmp/tmp_live_data.csv")  # 5 minutes
+            await asyncio.sleep(0)
+            await doBuySellOrder("tmp/tmp_live_data.csv")
+            await asyncio.sleep(5)
+
+        elif antworten["auswahl"] == option8:
             await printLiveStats()
             await asyncio.sleep(1)
 
-        elif antworten["auswahl"] == option7:
+        elif antworten["auswahl"] == option9:
             await auswahl_menue()
 
-        elif antworten["auswahl"] == option8:
+        elif antworten["auswahl"] == option10:
             print("Programm wird beendet.")
             stop_event.set()
             for t in asyncio.all_tasks():
@@ -1170,7 +1427,7 @@ async def shutdown():
 
 
 async def auswahl_menue():
-    global pocketoption_asset, pocketoption_demo
+    global pocketoption_asset, pocketoption_demo, active_model
 
     asset_frage = [
         inquirer.List(
@@ -1211,6 +1468,19 @@ async def auswahl_menue():
             ],
         )
     ]
+    model_frage = [
+        inquirer.List(
+            "model",
+            message="KI-Modell?",
+            choices=[
+                (
+                    (f"[x]" if active_model == "XQBoost" else "[ ]") + " XQBoost",
+                    "XQBoost",
+                ),
+                ((f"[x]" if active_model == "random" else "[ ]") + " random", "random"),
+            ],
+        )
+    ]
 
     auswahl_asset = await asyncio.get_event_loop().run_in_executor(
         None, lambda: inquirer.prompt(asset_frage)
@@ -1218,10 +1488,14 @@ async def auswahl_menue():
     auswahl_demo = await asyncio.get_event_loop().run_in_executor(
         None, lambda: inquirer.prompt(demo_frage)
     )
+    auswahl_model = await asyncio.get_event_loop().run_in_executor(
+        None, lambda: inquirer.prompt(model_frage)
+    )
 
-    if auswahl_asset and auswahl_demo:
+    if auswahl_asset and auswahl_demo and auswahl_model:
         neues_asset = auswahl_asset["asset"]
         neuer_demo = auswahl_demo["demo"]
+        neues_model = auswahl_model["model"]
 
         print("🔁 Starte neu...")
         restart = False
@@ -1229,18 +1503,25 @@ async def auswahl_menue():
             restart = True
         pocketoption_asset = neues_asset
         pocketoption_demo = neuer_demo
+        active_model = neues_model
 
         # Datei aktualisieren
         global filename_historic_data
         global filename_model
         filename_historic_data = "data/historic_data_" + pocketoption_asset + ".csv"
-        filename_model = "models/model_" + pocketoption_asset + ".json"
+        filename_model = (
+            "models/model_" + active_model + "_" + pocketoption_asset + ".json"
+        )
 
         # Einstellungen speichern
         try:
             with open("tmp/settings.json", "w", encoding="utf-8") as f:
                 json.dump(
-                    {"asset": pocketoption_asset, "demo": pocketoption_demo},
+                    {
+                        "asset": pocketoption_asset,
+                        "demo": pocketoption_demo,
+                        "model": active_model,
+                    },
                     f,
                     indent=2,
                 )
