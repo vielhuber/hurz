@@ -6,11 +6,14 @@ import time
 import zlib
 import msgpack
 from datetime import datetime
+import pygame
 import pandas as pd
 import xgboost as xgb
 from sklearn.model_selection import cross_val_score
 import random
 import inquirer
+import atexit
+import os
 import os
 from datetime import datetime
 import pandas as pd
@@ -56,6 +59,9 @@ load_dotenv()
 pocketoption_asset = "AUDCAD_otc"
 pocketoption_demo = 1
 active_model = "XGBoost"
+trade_amount = 15
+trade_repeat = 10
+trade_distance = 30
 
 # Einstellungen laden
 if os.path.exists("tmp/settings.json"):
@@ -65,6 +71,9 @@ if os.path.exists("tmp/settings.json"):
             pocketoption_asset = einstellungen.get("asset", pocketoption_asset)
             pocketoption_demo = einstellungen.get("demo", pocketoption_demo)
             active_model = einstellungen.get("model", active_model)
+            trade_amount = einstellungen.get("trade_amount", trade_amount)
+            trade_repeat = einstellungen.get("trade_repeat", trade_repeat)
+            trade_distance = einstellungen.get("trade_distance", trade_distance)
     except Exception as e:
         print("⚠️ Fehler beim  Laden der Einstellungen:", e)
 
@@ -329,6 +338,7 @@ async def ws_receive_loop(ws):
                             if eintrag[len(eintrag) - 1] != "open"
                         ]
                         # add all
+                        print(data)
                         vorhandene_deals.extend(format_deals(data, "open"))
                         # sort
                         vorhandene_deals.sort(
@@ -481,183 +491,7 @@ async def send_order(asset, amount, action, duration):
     print(f"📤 Order gesendet: {order_payload}")
 
 
-def run_back_and_forwardtest(filename):
-
-    n = 100  # Anzahl der Vorhersageversuche (100 Tests, d.h. ca. 100 Sekunden nach vorne und 100 Sekunden nach hinten)
-    window = 300  # Größe des Input-Fensters (300 Sekunden = 5 Minuten), muss genauso groß sein wie beim Training
-    horizon = (
-        60  # Vorhersagehorizont (60 Sekunden), muss genauso groß sein wie beim Training
-    )
-
-    df = pd.read_csv(filename)
-    df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
-    # Zweite und letzte Zeitstempel extrahieren
-    start = df.iloc[1]["Zeitpunkt"]
-    ende = df.iloc[-1]["Zeitpunkt"]
-    # Mittelpunkt berechnen
-    startzeit = start + ((ende - start) / 2)
-    print("Startzeit (Mitte):", startzeit)
-
-    # daten begrenzen
-    df_backtest = df[df["Zeitpunkt"] < startzeit].copy().reset_index(drop=True)
-    df_forwardtest = df[df["Zeitpunkt"] >= startzeit].copy().reset_index(drop=True)
-
-    # model laden
-    model = xgb.XGBRegressor(tree_method="hist", device="cuda")
-    model.load_model(filename_model)
-    model.get_booster().set_param({"device": "cuda"})
-
-    # --- Backtest ---
-    print("✅ Starte Backtest")
-    start_index = df_backtest[df_backtest["Zeitpunkt"] < startzeit].last_valid_index()
-    if start_index is None or start_index < window + horizon:
-        print("⚠️ Nicht genug Daten.")
-        # return
-    back_erfolge = 0
-    gesamt_back = 0
-    i = 0
-    for i in range(n):
-        ziel = start_index - i
-        ende = ziel - horizon
-        start = ende - window
-
-        if start < 0:
-            break
-
-        fenster = df_backtest.iloc[start:ende]["Wert"].astype(float).values
-        zielwert = float(df_backtest.iloc[ziel]["Wert"])
-        if len(fenster) != window:
-            continue
-
-        X_df = pd.DataFrame(
-            [fenster]
-        )  # ✅ Wichtig: korrekte Struktur (1 Zeile, 300 Spalten)
-        X_gpu = cp.asarray(X_df)
-        prognose = model.get_booster().inplace_predict(X_gpu)[0]
-
-        letzter_wert = fenster[-1]
-
-        hit = False
-        if (prognose > letzter_wert and zielwert > letzter_wert) or (
-            prognose < letzter_wert and zielwert < letzter_wert
-        ):
-            hit = True
-            back_erfolge += 1
-        gesamt_back += 1
-
-        if i == 0 or i == 1 or i == n - 1:
-            with open("tmp/debug_backtest.txt", "a", encoding="utf-8") as f:
-                f.write(f"Backtest Step {i}\n")
-                f.write(f"  start index : {start}\n")
-                f.write(f"  end index   : {ende}\n")
-                f.write(f"  ziel index  : {ziel}\n")
-                f.write(f"  start zeitpunkt : {df_backtest.iloc[start]['Zeitpunkt']}\n")
-                f.write(f"  ende zeitpunkt : {df_backtest.iloc[ende]['Zeitpunkt']}\n")
-                f.write(f"  ziel zeitpunkt : {df_backtest.iloc[ziel]['Zeitpunkt']}\n")
-                f.write(f"  start wert : {df_backtest.iloc[start]['Wert']}\n")
-                f.write(f"  ende wert : {df_backtest.iloc[ende]['Wert']}\n")
-                f.write(f"  letzter_wert : {letzter_wert}\n")
-                f.write(f"  ziel wert : {df_backtest.iloc[ziel]['Wert']}\n")
-                f.write(f"  prognose : {prognose}\n")
-                f.write(f"  hit : {hit}\n")
-                f.write(f"  fenster len : {len(fenster)}\n")
-                f.write(f"  fenster: {fenster.tolist()}\n")
-                f.write("\n")
-
-        # print("PROGNOSE", i, letzter_wert, zielwert, prognose, hit)
-
-    # --- Forwardtest ---
-    print("✅ Starte Forwardtest")
-    start_index = df_forwardtest[
-        df_forwardtest["Zeitpunkt"] >= startzeit
-    ].first_valid_index()
-    if start_index is None:
-        print("⚠️ Nicht genug Daten.")
-        # return
-    forward_erfolge = 0
-    gesamt_forward = 0
-    i = 0
-    for i in range(n):
-        start = start_index + i
-        ende = start + window
-        ziel = ende + horizon
-
-        if ziel >= len(df_forwardtest):
-            break
-
-        fenster = df_forwardtest.iloc[start:ende]["Wert"].astype(float).values
-        zielwert = float(df_forwardtest.iloc[ziel]["Wert"])
-        if len(fenster) != window:
-            continue
-
-        X_df = pd.DataFrame(
-            [fenster]
-        )  # ✅ Wichtig: korrekte Struktur (1 Zeile, 300 Spalten)
-        X_gpu = cp.asarray(X_df)
-        prognose = model.get_booster().inplace_predict(X_gpu)[0]
-
-        letzter_wert = fenster[-1]
-
-        hit = False
-        if (prognose > letzter_wert and zielwert > letzter_wert) or (
-            prognose < letzter_wert and zielwert < letzter_wert
-        ):
-            hit = True
-            forward_erfolge += 1
-        gesamt_forward += 1
-
-        if i == 0 or i == 1 or i == n - 1:
-            with open("tmp/debug_forwardtest.txt", "a", encoding="utf-8") as f:
-                f.write(f"Backtest Step {i}\n")
-                f.write(f"  start index : {start}\n")
-                f.write(f"  end index   : {ende}\n")
-                f.write(f"  ziel index  : {ziel}\n")
-                f.write(
-                    f"  start zeitpunkt : {df_forwardtest.iloc[start]['Zeitpunkt']}\n"
-                )
-                f.write(
-                    f"  ende zeitpunkt : {df_forwardtest.iloc[ende]['Zeitpunkt']}\n"
-                )
-                f.write(
-                    f"  ziel zeitpunkt : {df_forwardtest.iloc[ziel]['Zeitpunkt']}\n"
-                )
-                f.write(f"  start wert : {df_forwardtest.iloc[start]['Wert']}\n")
-                f.write(f"  ende wert : {df_forwardtest.iloc[ende]['Wert']}\n")
-                f.write(f"  letzter_wert : {letzter_wert}\n")
-                f.write(f"  ziel wert : {df_forwardtest.iloc[ziel]['Wert']}\n")
-                f.write(f"  prognose : {prognose}\n")
-                f.write(f"  hit : {hit}\n")
-                f.write(f"  fenster len : {len(fenster)}\n")
-                f.write(f"  fenster: {fenster.tolist()}\n")
-                f.write("\n")
-
-        # print("PROGNOSE", i, letzter_wert, zielwert, prognose, hit)
-
-    return pd.DataFrame(
-        [
-            {
-                "Typ": "Backtest",
-                "Erfolge": back_erfolge,
-                "Gesamt": gesamt_back,
-                "Erfolgsquote (%)": (
-                    round((back_erfolge / gesamt_back) * 100, 2) if gesamt_back else 0
-                ),
-            },
-            {
-                "Typ": "Forwardtest",
-                "Erfolge": forward_erfolge,
-                "Gesamt": gesamt_forward,
-                "Erfolgsquote (%)": (
-                    round((forward_erfolge / gesamt_forward) * 100, 2)
-                    if gesamt_forward
-                    else 0
-                ),
-            },
-        ]
-    )
-
-
-def run_fulltest_fast(filename):
+def run_fulltest_fast(filename, startzeit=None, endzeit=None):
 
     window = 300  # Größe des Input-Fensters (300 Sekunden = 5 Minuten), muss genauso groß sein wie beim Training
     horizon = (
@@ -667,15 +501,26 @@ def run_fulltest_fast(filename):
     df = pd.read_csv(filename)
     df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
 
-    # model laden
-    model = xgb.XGBRegressor(tree_method="hist", device="cuda")
-    model.load_model(filename_model)
-    model.get_booster().set_param({"device": "cuda"})
+    # zeitraum bestimmen
+    if startzeit is not None:
+        startzeit = pd.to_datetime(startzeit)
+        start_index = df[df["Zeitpunkt"] >= startzeit].first_valid_index()
+    else:
+        start_index = 0
+
+    if endzeit is not None:
+        endzeit = pd.to_datetime(endzeit)
+        end_index = df[df["Zeitpunkt"] <= endzeit].last_valid_index()
+    else:
+        end_index = len(df) - 1
+
+    if start_index is None or end_index is None or end_index <= start_index:
+        print("⚠️ Ungültiger Zeitbereich für Fulltest.")
+        return
 
     # --- Fulltest ---
     print("✅ Starte Fulltest")
 
-    start_index = 0
     i = 0
 
     X_test = []
@@ -687,14 +532,14 @@ def run_fulltest_fast(filename):
         ende = start + window
         ziel = ende + horizon
 
-        if ziel >= len(df):
+        if ziel > end_index:
             break
 
         fenster = df.iloc[start:ende]["Wert"].astype(float).values
         zielwert = float(df.iloc[ziel]["Wert"])
         letzter_wert = fenster[-1]
 
-        if i == 0 or i == 1 or ziel == len(df) - 1:
+        if i == 0 or i == 1 or ziel == end_index:
             with open("tmp/debug_fulltest.txt", "a", encoding="utf-8") as f:
                 f.write(f"Step {i}\n")
                 f.write(f"  start index : {start}\n")
@@ -718,10 +563,19 @@ def run_fulltest_fast(filename):
 
         i += 1
 
-    # ✅ Prediction in einem Rutsch (schnell!)
-    X_df = pd.DataFrame(X_test)
-    X_gpu = cp.asarray(X_df)
-    prognosen = model.get_booster().inplace_predict(X_gpu)
+    if active_model == "XGBoost":
+        # ✅ Prediction in einem Rutsch (schnell!)
+        # model laden
+        model = xgb.XGBRegressor(tree_method="hist", device="cuda")
+        model.load_model(filename_model)
+        model.get_booster().set_param({"device": "cuda"})
+        X_df = pd.DataFrame(X_test)
+        X_gpu = cp.asarray(X_df)
+        prognosen = model.get_booster().inplace_predict(X_gpu)
+    if active_model == "random":
+        prognosen = []
+        for i in range(len(X_test)):
+            prognosen.append(letzte_werte[i] + random.uniform(-0.1, 0.1))
 
     # ✅ Auswertung
     full_erfolge = 0
@@ -742,100 +596,6 @@ def run_fulltest_fast(filename):
                 f.write(f"  prognose : {prognosen[i]}\n")
                 f.write(f"  hit : {hit}\n")
                 f.write("\n")
-
-    return pd.DataFrame(
-        [
-            {
-                "Typ": "Fulltest",
-                "Erfolge": full_erfolge,
-                "Gesamt": gesamt_full,
-                "Erfolgsquote (%)": (
-                    round((full_erfolge / gesamt_full) * 100, 2) if gesamt_full else 0
-                ),
-            },
-        ]
-    )
-
-
-def run_fulltest(filename):
-
-    window = 300  # Größe des Input-Fensters (300 Sekunden = 5 Minuten), muss genauso groß sein wie beim Training
-    horizon = (
-        60  # Vorhersagehorizont (60 Sekunden), muss genauso groß sein wie beim Training
-    )
-
-    df = pd.read_csv(filename)
-    df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
-
-    # model laden
-    model = xgb.XGBRegressor(tree_method="hist", device="cuda")
-    model.load_model(filename_model)
-    model.get_booster().set_param({"device": "cuda"})
-
-    # --- Fulltest ---
-    print("✅ Starte Fulltest")
-    start_index = 0
-    full_erfolge = 0
-    gesamt_full = 0
-    i = 0
-    while True:
-        start = start_index + i
-        ende = start + window
-        ziel = ende + horizon
-
-        if ziel >= len(df):
-            break
-
-        fenster = df.iloc[start:ende]["Wert"].astype(float).values
-        zielwert = float(df.iloc[ziel]["Wert"])
-        if len(fenster) != window:
-            continue
-
-        X_df = pd.DataFrame(
-            [fenster]
-        )  # ✅ Wichtig: korrekte Struktur (1 Zeile, 300 Spalten)
-        X_gpu = cp.asarray(X_df)
-        prognose = model.get_booster().inplace_predict(X_gpu)[0]
-
-        letzter_wert = fenster[-1]
-
-        hit = False
-        if (prognose > letzter_wert and zielwert > letzter_wert) or (
-            prognose < letzter_wert and zielwert < letzter_wert
-        ):
-            hit = True
-            full_erfolge += 1
-        gesamt_full += 1
-
-        if i == 0 or i == 1 or i == len(df) - 1:
-            with open("tmp/debug_fulltest.txt", "a", encoding="utf-8") as f:
-                f.write(f"Step {i}\n")
-                f.write(f"  start index : {start}\n")
-                f.write(f"  end index   : {ende}\n")
-                f.write(f"  ziel index  : {ziel}\n")
-                f.write(f"  start zeitpunkt : {df.iloc[start]['Zeitpunkt']}\n")
-                f.write(f"  ende zeitpunkt : {df.iloc[ende]['Zeitpunkt']}\n")
-                f.write(f"  ziel zeitpunkt : {df.iloc[ziel]['Zeitpunkt']}\n")
-                f.write(f"  start wert : {df.iloc[start]['Wert']}\n")
-                f.write(f"  ende wert : {df.iloc[ende]['Wert']}\n")
-                f.write(f"  letzter_wert : {letzter_wert}\n")
-                f.write(f"  ziel wert : {df.iloc[ziel]['Wert']}\n")
-                f.write(f"  prognose : {prognose}\n")
-                f.write(f"  hit : {hit}\n")
-                f.write(f"  fenster len : {len(fenster)}\n")
-                f.write(f"  fenster: {fenster.tolist()}\n")
-                f.write("\n")
-
-        print(
-            "PROGNOSE",
-            i,
-            df.iloc[start]["Zeitpunkt"],
-            letzter_wert,
-            zielwert,
-            prognose,
-            hit,
-        )
-        i += 1
 
     return pd.DataFrame(
         [
@@ -929,14 +689,7 @@ async def pocketoption_ws(time_back_in_minutes, filename):
 
 
 async def doBuySellOrder(filename):
-    print("Kaufoption wird getätigt (noch nicht implementiert).")
-
-    # load model
-    model = xgb.XGBRegressor(tree_method="hist", device="cuda")
-    model.load_model(filename_model)
-
-    # Wichtig: Booster explizit auf GPU setzen
-    model.get_booster().set_param({"device": "cuda"})
+    print("Kaufoption wird getätigt.")
 
     # Live-Daten laden (bereits 5 Minuten gesammelt)
     df = pd.read_csv(filename)
@@ -960,15 +713,25 @@ async def doBuySellOrder(filename):
     # Wichtig: exakte Struktur wie beim Training (DataFrame und nicht nur flatten)
     X_df = pd.DataFrame([X])  # ✅ Wichtig: korrekte Struktur (1 Zeile, 300 Spalten)
 
-    # GPU-Optimierung (optional, empfohlen für Geschwindigkeit)
-    X_gpu = cp.asarray(X_df)
-
-    # Prognose durchführen
-    # prediction = model.predict(X_gpu).get()
-    prediction = model.get_booster().inplace_predict(X_gpu)
-
     # Aktueller Kurs (letzter Wert)
     aktueller_kurs = X[-1]
+
+    # Prognose durchführen
+    if active_model == "XGBoost":
+        # GPU-Optimierung (optional, empfohlen für Geschwindigkeit)
+        X_gpu = cp.asarray(X_df)
+        # load model
+        model = xgb.XGBRegressor(tree_method="hist", device="cuda")
+        model.load_model(filename_model)
+        # Wichtig: Booster explizit auf GPU setzen
+        model.get_booster().set_param({"device": "cuda"})
+        # prediction = model.predict(X_gpu).get()
+        prediction = model.get_booster().inplace_predict(X_gpu)
+        print(prediction)
+        prediction = prediction[0]
+
+    if active_model == "random":
+        prediction = aktueller_kurs + random.uniform(-0.1, 0.1)
 
     # Ergebnis anzeigen
     # print(f"📈 Prognose für nächste Minute: {prediction[0]:.5f}")
@@ -977,22 +740,23 @@ async def doBuySellOrder(filename):
     if pocketoption_demo == 0:
         duration = 60
     else:
-        duration = 5
+        duration = 60
 
     # Kaufentscheidung treffen (Beispiel)
-    # if prediction[0] > aktueller_kurs:
-    if random.random() < 0.5:
+    if prediction > aktueller_kurs:
         print(
-            f"✅ CALL-Option (steigend) kaufen! Prognose: {prediction[0]:.5f} > aktueller Kurs: {aktueller_kurs:.5f}"
+            f"✅ CALL-Option (steigend) kaufen! Prognose: {prediction:.5f} > aktueller Kurs: {aktueller_kurs:.5f}"
         )
         await send_order(
-            pocketoption_asset, amount=10, action="call", duration=duration
+            pocketoption_asset, amount=trade_amount, action="call", duration=duration
         )
     else:
         print(
-            f"✅ PUT-Option (fallend) kaufen! Prognose: {prediction[0]:.5f} <= aktueller Kurs: {aktueller_kurs:.5f}"
+            f"✅ PUT-Option (fallend) kaufen! Prognose: {prediction:.5f} <= aktueller Kurs: {aktueller_kurs:.5f}"
         )
-        await send_order(pocketoption_asset, amount=10, action="put", duration=duration)
+        await send_order(
+            pocketoption_asset, amount=trade_amount, action="put", duration=duration
+        )
 
 
 def format_deals(data, type):
@@ -1020,7 +784,7 @@ def format_deals(data, type):
                     ).strftime("%d.%m.%y %H:%M:%S"),
                     # datetime.fromtimestamp(deal.get('closeTimestamp')).strftime("%Y-%m-%d %H:%M:%S"),
                     f"{deal.get('amount')}$",
-                    f"{deal.get('profit')}$",
+                    f"{deal.get('profit')}$" if type == "closed" else "???",
                     # f"{deal.get('percentProfit')} %",
                     # f"{deal.get('percentLoss')} %",
                     # deal.get('openPrice'),
@@ -1057,6 +821,10 @@ async def printLiveStats():
     live_data_balance = 42
     live_data_deals = []
 
+    all_count_last = None
+    win_count_last = None
+    loose_count_last = None
+
     try:
         while not stop_thread:
 
@@ -1083,6 +851,37 @@ async def printLiveStats():
                 "Ergebnis",
                 "Status",
             ]
+
+            # play sound
+            all_count = len(live_data_deals)
+            win_count = 0
+            loose_count = 0
+            for deal in live_data_deals:
+                if deal[len(deal) - 2] == "WIN":
+                    win_count += 1
+                elif deal[len(deal) - 2] == "LOSE":
+                    loose_count += 1
+            if all_count_last is not None and all_count != all_count_last:
+                pygame.init()
+                pygame.mixer.init()
+                pygame.mixer.music.load("assets/deal-open.mp3")
+                pygame.mixer.music.play()
+                print("🦄 Sound abspielen")
+            if win_count_last is not None and win_count != win_count_last:
+                pygame.init()
+                pygame.mixer.init()
+                pygame.mixer.music.load("assets/deal-win.mp3")
+                pygame.mixer.music.play()
+                print("🦄 Sound abspielen")
+            if loose_count_last is not None and loose_count != loose_count_last:
+                pygame.init()
+                pygame.mixer.init()
+                pygame.mixer.music.load("assets/deal-loose.mp3")
+                pygame.mixer.music.play()
+                print("🦄 Sound abspielen")
+            all_count_last = all_count
+            win_count_last = win_count
+            loose_count_last = loose_count
 
             live_data_deals_output = tabulate(
                 live_data_deals[:10], headers=headers, tablefmt="plain"
@@ -1180,7 +979,7 @@ def trainActiveModel(filename):
 
     print(f"✅ Starte Training")
 
-    if active_model == "XQBoost":
+    if active_model == "XGBoost":
 
         # CSV-Datei laden
         df = pd.read_csv(filename)
@@ -1277,21 +1076,23 @@ async def hauptmenu():
         else:
             option2 += " (Daten nicht vorhanden)"
 
-        option3 = "Backtest/Forwardtest durchführen"
+        option3 = "Fulltest durchführen (schnell)"
+        if not os.path.exists(filename_model):
+            option3 += " (nicht möglich)"
 
-        option4 = "Fulltest durchführen"
+        option4 = "Diagramm zeichnen"
+        if not os.path.exists(filename_historic_data):
+            option4 += " (nicht möglich)"
 
-        option5 = "Fulltest durchführen (schnell)"
+        option5 = "Kaufoption tätigen"
+        if not os.path.exists(filename_model):
+            option5 += " (nicht möglich)"
 
-        option6 = "Diagramm zeichnen"
+        option6 = "Live-Status ansehen"
 
-        option7 = "Kaufoption tätigen"
+        option7 = "Einstellungen ändern"
 
-        option8 = "Live-Status ansehen"
-
-        option9 = "Währung/Demomodus verändern"
-
-        option10 = "Programm verlassen"
+        option8 = "Programm verlassen"
 
         live_data_balance = 0
         if os.path.exists("data/live_data_balance.json"):
@@ -1303,7 +1104,7 @@ async def hauptmenu():
         questions = [
             inquirer.List(
                 "auswahl",
-                message=f"### Zeit: {time} /// Kontostand: {live_data_balance} /// Status WS: {'ja' if _ws_connection is not None else 'nein'} /// Model: {active_model} /// Währung: {pocketoption_asset} /// Demo-Modus: {pocketoption_demo} ###",
+                message=f"### Zeit: {time} /// Kontostand: {live_data_balance} /// Status WS: {'ja' if _ws_connection is not None else 'nein'} /// Model: {active_model} /// Währung: {pocketoption_asset} /// Demo-Modus: {pocketoption_demo} /// Trades: {trade_amount}$/x{trade_repeat}/{trade_distance}s ###",
                 choices=[
                     option1,
                     option2,
@@ -1313,8 +1114,6 @@ async def hauptmenu():
                     option6,
                     option7,
                     option8,
-                    option9,
-                    option10,
                 ],
             ),
         ]
@@ -1340,39 +1139,42 @@ async def hauptmenu():
             trainActiveModel(filename_historic_data)
             await asyncio.sleep(5)
 
-        elif antworten["auswahl"] == option3:
-            report = run_back_and_forwardtest(filename_historic_data)
+        elif antworten["auswahl"] == option3 and os.path.exists(filename_model):
+            report = run_fulltest_fast(filename_historic_data, None, None)
             print(report)
             await asyncio.sleep(5)
 
-        elif antworten["auswahl"] == option4:
-            report = run_fulltest(filename_historic_data)
-            print(report)
-            await asyncio.sleep(5)
-
-        elif antworten["auswahl"] == option5:
-            report = run_fulltest_fast(filename_historic_data)
-            print(report)
-            await asyncio.sleep(5)
-
-        elif antworten["auswahl"] == option6:
+        elif antworten["auswahl"] == option4 and os.path.exists(filename_historic_data):
             printDiagrams()
             await asyncio.sleep(5)
 
-        elif antworten["auswahl"] == option7:
-            await pocketoption_ws(5, "tmp/tmp_live_data.csv")  # 5 minutes
-            await asyncio.sleep(0)
-            await doBuySellOrder("tmp/tmp_live_data.csv")
-            await asyncio.sleep(5)
+        elif antworten["auswahl"] == option5 and os.path.exists(filename_model):
 
-        elif antworten["auswahl"] == option8:
+            for i in range(trade_repeat):
+                print(f"🚀 Orderdurchlauf {i+1}/{trade_repeat}")
+
+                await pocketoption_ws(10, "tmp/tmp_live_data.csv")  # 10 minutes
+                await asyncio.sleep(0)
+                report = run_fulltest_fast("tmp/tmp_live_data.csv", None, None)
+                print(report)
+                await asyncio.sleep(0)
+                await doBuySellOrder("tmp/tmp_live_data.csv")
+                await asyncio.sleep(0)
+
+                if i < trade_repeat - 1:
+                    print(
+                        f"⏳ Warte {trade_distance} Sekunden, bevor die nächste Order folgt..."
+                    )
+                    await asyncio.sleep(trade_distance)
+
+        elif antworten["auswahl"] == option6:
             await printLiveStats()
             await asyncio.sleep(1)
 
-        elif antworten["auswahl"] == option9:
+        elif antworten["auswahl"] == option7:
             await auswahl_menue()
 
-        elif antworten["auswahl"] == option10:
+        elif antworten["auswahl"] == option8:
             print("Programm wird beendet.")
             stop_event.set()
             for t in asyncio.all_tasks():
@@ -1425,9 +1227,17 @@ async def shutdown():
         except Exception as e:
             print("⚠️ Fehler beim Schließen:", e)
 
+    # fix console
+    os.system("stty sane")
+
 
 async def auswahl_menue():
-    global pocketoption_asset, pocketoption_demo, active_model
+    global pocketoption_asset
+    global pocketoption_demo
+    global active_model
+    global trade_amount
+    global trade_repeat
+    global trade_distance
 
     asset_frage = [
         inquirer.List(
@@ -1474,8 +1284,8 @@ async def auswahl_menue():
             message="KI-Modell?",
             choices=[
                 (
-                    (f"[x]" if active_model == "XQBoost" else "[ ]") + " XQBoost",
-                    "XQBoost",
+                    (f"[x]" if active_model == "XGBoost" else "[ ]") + " XGBoost",
+                    "XGBoost",
                 ),
                 ((f"[x]" if active_model == "random" else "[ ]") + " random", "random"),
             ],
@@ -1492,10 +1302,43 @@ async def auswahl_menue():
         None, lambda: inquirer.prompt(model_frage)
     )
 
+    try:
+        os.system("cls" if os.name == "nt" else "clear")
+        auswahl_trade_amount_input = input("Einsatz in $? (Standard: 15): ").strip()
+        auswahl_trade_amount = (
+            int(auswahl_trade_amount_input) if auswahl_trade_amount_input else 15
+        )
+    except ValueError:
+        print("⚠️ Ungültige Eingabe, Standardwert 15 wird verwendet.")
+        auswahl_trade_amount = 15
+
+    try:
+        os.system("cls" if os.name == "nt" else "clear")
+        auswahl_trade_repeat_input = input("Wiederholungen? (Standard: 10): ").strip()
+        auswahl_trade_repeat = (
+            int(auswahl_trade_repeat_input) if auswahl_trade_repeat_input else 10
+        )
+    except ValueError:
+        print("⚠️ Ungültige Eingabe, Standardwert 10 wird verwendet.")
+        auswahl_trade_repeat = 10
+
+    try:
+        os.system("cls" if os.name == "nt" else "clear")
+        auswahl_trade_distance_input = input("Abstand in s? (Standard: 30): ").strip()
+        auswahl_trade_distance = (
+            int(auswahl_trade_distance_input) if auswahl_trade_distance_input else 30
+        )
+    except ValueError:
+        print("⚠️ Ungültige Eingabe, Standardwert 30 wird verwendet.")
+        auswahl_trade_distance = 30
+
     if auswahl_asset and auswahl_demo and auswahl_model:
         neues_asset = auswahl_asset["asset"]
         neuer_demo = auswahl_demo["demo"]
         neues_model = auswahl_model["model"]
+        neues_trade_amount = auswahl_trade_amount
+        neues_trade_repeat = auswahl_trade_repeat
+        neues_trade_distance = auswahl_trade_distance
 
         print("🔁 Starte neu...")
         restart = False
@@ -1504,6 +1347,9 @@ async def auswahl_menue():
         pocketoption_asset = neues_asset
         pocketoption_demo = neuer_demo
         active_model = neues_model
+        trade_amount = neues_trade_amount
+        trade_repeat = neues_trade_repeat
+        trade_distance = neues_trade_distance
 
         # Datei aktualisieren
         global filename_historic_data
@@ -1521,6 +1367,9 @@ async def auswahl_menue():
                         "asset": pocketoption_asset,
                         "demo": pocketoption_demo,
                         "model": active_model,
+                        "trade_amount": trade_amount,
+                        "trade_repeat": trade_repeat,
+                        "trade_distance": trade_distance,
                     },
                     f,
                     indent=2,

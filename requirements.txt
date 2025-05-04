@@ -3,6 +3,7 @@ inquirer
 keyboard
 msgpack_python
 pandas
+pygame
 plotext
 prompt_toolkit
 python-dotenv
