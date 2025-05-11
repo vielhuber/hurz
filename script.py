@@ -584,14 +584,26 @@ def run_fulltest_fast(filename, startzeit=None, endzeit=None):
         prognosen = model.get_booster().inplace_predict(X_gpu)
 
     if active_model == "XGBoost (Trend)":
-        # ✅ Prediction in einem Rutsch (schnell!)
-        # model laden
-        model = xgb.XGBRegressor(tree_method="hist", device="cuda")
+        # ✅ Model laden
+        model = xgb.XGBClassifier(tree_method="hist", device="cuda")
         model.load_model(filename_model)
         model.get_booster().set_param({"device": "cuda"})
-        X_df = pd.DataFrame(X_test)
+
+        # ✅ Input vorbereiten
+        X_df = pd.DataFrame(X_test)  # z. B. 2D: [[300 Werte], [300 Werte], ...]
+
+        # ✅ CuPy-Konvertierung
         X_gpu = cp.asarray(X_df)
-        prognosen = model.get_booster().inplace_predict(X_gpu)
+
+        # ✅ Wahrscheinlichkeiten (BUY) vorhersagen
+        probs = model.get_booster().inplace_predict(X_gpu)  # ergibt Werte zwischen 0–1
+
+        # ✅ Optional: Threshold bei 0.5 (oder anpassbar)
+        prognosen = (probs > 0.5).astype(int)  # 1 = BUY, 0 = SELL
+
+        # ✅ Debug-Ausgabe (optional)
+        # for i, (prob, pred) in enumerate(zip(probs[:5], predictions[:5])):
+        # print(f"[{i}] BUY-Wahrscheinlichkeit: {prob:.3f} → Entscheidung: {'BUY' if pred == 1 else 'SELL'}")
 
     if active_model == "random":
         prognosen = []
@@ -604,11 +616,29 @@ def run_fulltest_fast(filename, startzeit=None, endzeit=None):
 
     for i in range(gesamt_full):
         hit = False
-        if (prognosen[i] > letzte_werte[i] and zielwerte[i] > letzte_werte[i]) or (
-            prognosen[i] < letzte_werte[i] and zielwerte[i] < letzte_werte[i]
-        ):
-            full_erfolge += 1
-            hit = True
+
+        if active_model == "XGBoost (Values)":
+            if (prognosen[i] > letzte_werte[i] and zielwerte[i] > letzte_werte[i]) or (
+                prognosen[i] < letzte_werte[i] and zielwerte[i] < letzte_werte[i]
+            ):
+                full_erfolge += 1
+                hit = True
+
+        if active_model == "XGBoost (Trend)":
+            richtung = (
+                1 if zielwerte[i] > letzte_werte[i] else 0
+            )  # 1 = Kurs steigt = BUY
+            if prognosen[i] == richtung:
+                full_erfolge += 1
+                hit = True
+
+        if active_model == "random":
+            if (prognosen[i] > letzte_werte[i] and zielwerte[i] > letzte_werte[i]) or (
+                prognosen[i] < letzte_werte[i] and zielwerte[i] < letzte_werte[i]
+            ):
+                full_erfolge += 1
+                hit = True
+
         if i == 0 or i == 1 or i == len(prognosen) - 1:
             with open("tmp/debug_fulltest.txt", "a", encoding="utf-8") as f:
                 f.write(f"Step {i}\n")
@@ -737,6 +767,8 @@ async def doBuySellOrder(filename):
     # Aktueller Kurs (letzter Wert)
     aktueller_kurs = X[-1]
 
+    doCall = None
+
     # Prognose durchführen
     if active_model == "XGBoost (Values)":
         # GPU-Optimierung (optional, empfohlen für Geschwindigkeit)
@@ -750,25 +782,26 @@ async def doBuySellOrder(filename):
         prediction = model.get_booster().inplace_predict(X_gpu)
         print(prediction)
         prediction = prediction[0]
+        doCall = prediction > aktueller_kurs
 
     if active_model == "XGBoost (Trend)":
         # GPU-Optimierung (optional, empfohlen für Geschwindigkeit)
         X_gpu = cp.asarray(X_df)
-        # load model
-        model = xgb.XGBRegressor(tree_method="hist", device="cuda")
+        # Modell laden
+        model = xgb.XGBClassifier(tree_method="hist", device="cuda")
         model.load_model(filename_model)
-        # Wichtig: Booster explizit auf GPU setzen
+        # Booster auf GPU setzen
         model.get_booster().set_param({"device": "cuda"})
-        # prediction = model.predict(X_gpu).get()
-        prediction = model.get_booster().inplace_predict(X_gpu)
-        print(prediction)
-        prediction = prediction[0]
+        # Wahrscheinlichkeiten vorhersagen (z. B. Wahrscheinlichkeit für "BUY")
+        probs = model.get_booster().inplace_predict(X_gpu)
+        prediction = probs[0]  # z. B. 0.81 = Wahrscheinlichkeit für BUY
+        print(f"📊 BUY-Wahrscheinlichkeit: {prediction:.3f}")
+        threshold = 0.5
+        doCall = prediction > threshold
 
     if active_model == "random":
         prediction = aktueller_kurs + random.uniform(-0.1, 0.1)
-
-    # Ergebnis anzeigen
-    # print(f"📈 Prognose für nächste Minute: {prediction[0]:.5f}")
+        doCall = prediction > aktueller_kurs
 
     # dauer
     if pocketoption_demo == 0:
@@ -777,17 +810,14 @@ async def doBuySellOrder(filename):
         duration = 60
 
     # Kaufentscheidung treffen (Beispiel)
-    if prediction > aktueller_kurs:
-        print(
-            f"✅ CALL-Option (steigend) kaufen! Prognose: {prediction:.5f} > aktueller Kurs: {aktueller_kurs:.5f}"
-        )
+    print(f"📈 Entscheidung: {'CALL' if doCall else 'PUT'}")
+    if doCall:
+        print(f"✅ CALL-Option (steigend) kaufen!")
         await send_order(
             pocketoption_asset, amount=trade_amount, action="call", duration=duration
         )
     else:
-        print(
-            f"✅ PUT-Option (fallend) kaufen! Prognose: {prediction:.5f} <= aktueller Kurs: {aktueller_kurs:.5f}"
-        )
+        print(f"✅ PUT-Option (fallend) kaufen!")
         await send_order(
             pocketoption_asset, amount=trade_amount, action="put", duration=duration
         )
@@ -936,7 +966,7 @@ async def printLiveStats():
                 close_ts = local.localize(naiv).astimezone(pytz.utc)
                 now = datetime.now(pytz.utc)
                 diff = int((close_ts - now).total_seconds())
-                diff = diff - 5  # puffer
+                diff = diff - 2  # puffer
                 if diff > 0:
                     deal[3] = f"{diff}s"
                 else:
@@ -1045,10 +1075,6 @@ def trainActiveModel(filename):
 
         # Zeit umwandeln (optional, falls benötigt)
         df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"], errors="coerce")
-
-        # Werte für XGBoost vorbereiten
-        X = df[["Wert"]].values  # Features (erweitere nach Bedarf)
-        y = df["Wert"].shift(-1).ffill().values  # Zielvariable (Beispiel)
 
         # Sliding-Window Features erstellen
         window_size = 300  # 5 Minuten Fenster bei 1 Wert pro Sekunde
@@ -1191,11 +1217,11 @@ def trainActiveModel(filename):
 async def hauptmenu():
     while True and not stop_event.is_set():
 
-        option1 = "Historische Daten laden."
+        option1 = "Historische Daten laden"
         if os.path.exists(filename_historic_data):
             timestamp = os.path.getmtime(filename_historic_data)
             datum = datetime.fromtimestamp(timestamp).strftime("%d.%m.%Y %H:%M:%S")
-            option1 += " (Letzte Änderung: " + datum + ")"
+            option1 += " (Änderung: " + datum + ")"
         else:
             option1 += " (Daten nicht vorhanden)"
 
@@ -1203,7 +1229,7 @@ async def hauptmenu():
         if os.path.exists(filename_model):
             timestamp = os.path.getmtime(filename_model)
             datum = datetime.fromtimestamp(timestamp).strftime("%d.%m.%Y %H:%M:%S")
-            option2 += " (Letzte Änderung: " + datum + ")"
+            option2 += " (Änderung: " + datum + ")"
         else:
             option2 += " (Daten nicht vorhanden)"
 
@@ -1235,12 +1261,20 @@ async def hauptmenu():
             .replace("X", ".")
         )
 
-        time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        time = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
 
         questions = [
             inquirer.List(
                 "auswahl",
-                message=f"### Zeit: {time} /// Kontostand: {live_data_balance_formatted} $ /// Status WS: {'ja' if _ws_connection is not None else 'nein'} /// Model: {active_model} /// Währung: {pocketoption_asset} /// Demo-Modus: {pocketoption_demo} /// Trades: {trade_amount}$/x{trade_repeat}/{trade_distance}s ###",
+                message=(
+                    f"TIME: {time} /// "
+                    f"KTO: {live_data_balance_formatted} $ /// "
+                    f"WS: {'ja' if _ws_connection is not None else 'nein'}\n"
+                    f"MODEL: {active_model} /// "
+                    f"CUR: {pocketoption_asset} /// "
+                    f"DEMO: {'ja' if pocketoption_demo == 1 else 'nein'} /// "
+                    f"TRADES: {trade_amount}$/{trade_repeat}x/{trade_distance}s"
+                ),
                 choices=[
                     option1,
                     option2,
