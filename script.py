@@ -52,13 +52,17 @@ from watchdog.events import FileSystemEventHandler
 import os, sys, time
 from dotenv import load_dotenv
 import os
+from datetime import datetime, timezone
+from slugify import slugify
+from sklearn.model_selection import TimeSeriesSplit, cross_val_score
+
 
 # load env
 load_dotenv()
 
 pocketoption_asset = "AUDCAD_otc"
 pocketoption_demo = 1
-active_model = "XGBoost"
+active_model = "XGBoost (Values)"
 trade_amount = 15
 trade_repeat = 10
 trade_distance = 30
@@ -77,8 +81,14 @@ if os.path.exists("tmp/settings.json"):
     except Exception as e:
         print("⚠️ Fehler beim  Laden der Einstellungen:", e)
 
-filename_historic_data = "data/historic_data_" + pocketoption_asset + ".csv"
-filename_model = "models/model_" + active_model + "_" + pocketoption_asset + ".json"
+filename_historic_data = "data/historic_data_" + slugify(pocketoption_asset) + ".csv"
+filename_model = (
+    "models/model_"
+    + slugify(active_model)
+    + "_"
+    + slugify(pocketoption_asset)
+    + ".json"
+)
 
 _ws_connection = None
 stop_thread = False
@@ -563,7 +573,7 @@ def run_fulltest_fast(filename, startzeit=None, endzeit=None):
 
         i += 1
 
-    if active_model == "XGBoost":
+    if active_model == "XGBoost (Values)":
         # ✅ Prediction in einem Rutsch (schnell!)
         # model laden
         model = xgb.XGBRegressor(tree_method="hist", device="cuda")
@@ -572,6 +582,17 @@ def run_fulltest_fast(filename, startzeit=None, endzeit=None):
         X_df = pd.DataFrame(X_test)
         X_gpu = cp.asarray(X_df)
         prognosen = model.get_booster().inplace_predict(X_gpu)
+
+    if active_model == "XGBoost (Trend)":
+        # ✅ Prediction in einem Rutsch (schnell!)
+        # model laden
+        model = xgb.XGBRegressor(tree_method="hist", device="cuda")
+        model.load_model(filename_model)
+        model.get_booster().set_param({"device": "cuda"})
+        X_df = pd.DataFrame(X_test)
+        X_gpu = cp.asarray(X_df)
+        prognosen = model.get_booster().inplace_predict(X_gpu)
+
     if active_model == "random":
         prognosen = []
         for i in range(len(X_test)):
@@ -717,7 +738,20 @@ async def doBuySellOrder(filename):
     aktueller_kurs = X[-1]
 
     # Prognose durchführen
-    if active_model == "XGBoost":
+    if active_model == "XGBoost (Values)":
+        # GPU-Optimierung (optional, empfohlen für Geschwindigkeit)
+        X_gpu = cp.asarray(X_df)
+        # load model
+        model = xgb.XGBRegressor(tree_method="hist", device="cuda")
+        model.load_model(filename_model)
+        # Wichtig: Booster explizit auf GPU setzen
+        model.get_booster().set_param({"device": "cuda"})
+        # prediction = model.predict(X_gpu).get()
+        prediction = model.get_booster().inplace_predict(X_gpu)
+        print(prediction)
+        prediction = prediction[0]
+
+    if active_model == "XGBoost (Trend)":
         # GPU-Optimierung (optional, empfohlen für Geschwindigkeit)
         X_gpu = cp.asarray(X_df)
         # load model
@@ -782,7 +816,10 @@ def format_deals(data, type):
                     datetime.fromtimestamp(
                         deal.get("openTimestamp"), tz=timezone.utc
                     ).strftime("%d.%m.%y %H:%M:%S"),
-                    # datetime.fromtimestamp(deal.get('closeTimestamp')).strftime("%Y-%m-%d %H:%M:%S"),
+                    datetime.fromtimestamp(
+                        deal.get("closeTimestamp"), tz=timezone.utc
+                    ).strftime("%d.%m.%y %H:%M:%S"),
+                    "---",
                     f"{deal.get('amount')}$",
                     f"{deal.get('profit')}$" if type == "closed" else "???",
                     # f"{deal.get('percentProfit')} %",
@@ -831,6 +868,12 @@ async def printLiveStats():
             if os.path.exists("data/live_data_balance.json"):
                 with open("data/live_data_balance.json", "r", encoding="utf-8") as f:
                     live_data_balance = f.read().strip()
+            live_data_balance_formatted = (
+                f"{float(live_data_balance):,.2f}".replace(",", "X")
+                .replace(".", ",")
+                .replace("X", ".")
+            )
+
             if os.path.exists("data/live_data_deals.json"):
                 with open("data/live_data_deals.json", "r", encoding="utf-8") as f:
                     live_data_deals = json.load(f)
@@ -838,8 +881,9 @@ async def printLiveStats():
             headers = [
                 "ID",
                 # "Währung",
-                "Zeit",
-                # "Ausstiegszeit",
+                "Beginn",
+                "Ende",
+                "Rest",
                 "Einsatz",
                 "Gewinn",
                 # "Gewinn %",
@@ -883,6 +927,21 @@ async def printLiveStats():
             win_count_last = win_count
             loose_count_last = loose_count
 
+            # modify end time
+            for deal in live_data_deals:
+                local = pytz.timezone(
+                    "Europe/Berlin"
+                )  # oder deine echte lokale Zeitzone
+                naiv = datetime.strptime(deal[2], "%d.%m.%y %H:%M:%S")  # noch ohne TZ
+                close_ts = local.localize(naiv).astimezone(pytz.utc)
+                now = datetime.now(pytz.utc)
+                diff = int((close_ts - now).total_seconds())
+                diff = diff - 5  # puffer
+                if diff > 0:
+                    deal[3] = f"{diff}s"
+                else:
+                    deal[3] = "---"
+
             live_data_deals_output = tabulate(
                 live_data_deals[:10], headers=headers, tablefmt="plain"
             )
@@ -907,7 +966,7 @@ async def printLiveStats():
                                 for deal in live_data_deals
                                 if deal[len(deal) - 1] == "closed"
                             ][:10]
-                            if float(deal2[3].replace("$", "")) > 0
+                            if float(deal2[len(deal2) - 4].replace("$", "")) > 0
                         ]
                     )
                     / len(
@@ -925,7 +984,7 @@ async def printLiveStats():
             print("###############################################")
             print(f'LIVE-DATEN - {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
             print()
-            print(f"Balance: {live_data_balance}")
+            print(f"Kontostand: {live_data_balance_formatted} $")
             print()
             print(f"Gewinnrate (letzte 10 Trades):")
             print(f"{prozent:.1f}%")
@@ -979,7 +1038,7 @@ def trainActiveModel(filename):
 
     print(f"✅ Starte Training")
 
-    if active_model == "XGBoost":
+    if active_model == "XGBoost (Values)":
 
         # CSV-Datei laden
         df = pd.read_csv(filename)
@@ -1050,6 +1109,78 @@ def trainActiveModel(filename):
         # save model
         model.save_model(filename_model)
 
+    if active_model == "XGBoost (Trend)":
+
+        # CSV-Datei laden
+        df = pd.read_csv(filename)
+        df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"], errors="coerce")
+
+        # Sliding-Window Features erstellen
+        window_size = 300  # 5 Minuten Fenster
+        forecast_horizon = 60  # 1 Minute Vorhersage
+        X, y = [], []
+
+        for i in range(len(df) - window_size - forecast_horizon):
+            window = df["Wert"].iloc[i : i + window_size].values
+            future = df["Wert"].iloc[i + window_size + forecast_horizon]
+            last = window[-1]
+
+            label = 1 if future > last else 0  # BUY = 1, SELL = 0
+            X.append(window)
+            y.append(label)
+
+        X = pd.DataFrame(X)
+        y = pd.Series(y)
+
+        # GPU-Daten (CuPy)
+        X_gpu = cp.asarray(X.values)
+        y_gpu = cp.asarray(y.values)
+
+        # XGBoost Classifier
+        model = xgb.XGBClassifier(
+            objective="binary:logistic",
+            eval_metric="logloss",
+            n_estimators=400,
+            max_depth=5,
+            learning_rate=0.02,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            tree_method="hist",
+            device="cuda",
+            verbosity=1,
+        )
+
+        model.fit(X_gpu, y_gpu, eval_set=[(X_gpu, y_gpu)], verbose=True)
+
+        # Zurück zur CPU
+        X_cpu = X_gpu.get()
+        y_cpu = y_gpu.get()
+        model.set_params(device="cpu")
+
+        # Bewertung
+        accuracy = model.score(X_cpu, y_cpu)
+        print(f"✅ Genauigkeit auf Trainingsdaten: {accuracy:.4f}")
+
+        tscv = TimeSeriesSplit(n_splits=5)
+        cv_scores = cross_val_score(model, X_cpu, y_cpu, cv=tscv)
+        print(f"✅ Cross-Validation-Genauigkeit: {cv_scores.mean():.4f}")
+
+        # Beispiel-Vorhersagen
+        preds = model.predict(X_cpu[:5])
+        probs = model.predict_proba(X_cpu[:5])[:, 1]
+
+        print("📈 Beispiel-Predictions:")
+        for idx, (true_label, pred, prob) in enumerate(zip(y_cpu[:5], preds, probs)):
+            print(
+                f"  [{idx}] Echt: {true_label} / Prognose: {pred} / BUY-Wahrscheinlichkeit: {prob:.3f}"
+            )
+
+        # Zurück auf GPU
+        model.set_params(device="cuda")
+
+        # Modell speichern
+        model.save_model(filename_model)
+
     if active_model == "random":
 
         # save model
@@ -1098,13 +1229,18 @@ async def hauptmenu():
         if os.path.exists("data/live_data_balance.json"):
             with open("data/live_data_balance.json", "r", encoding="utf-8") as f:
                 live_data_balance = f.read().strip()
+        live_data_balance_formatted = (
+            f"{float(live_data_balance):,.2f}".replace(",", "X")
+            .replace(".", ",")
+            .replace("X", ".")
+        )
 
         time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         questions = [
             inquirer.List(
                 "auswahl",
-                message=f"### Zeit: {time} /// Kontostand: {live_data_balance} /// Status WS: {'ja' if _ws_connection is not None else 'nein'} /// Model: {active_model} /// Währung: {pocketoption_asset} /// Demo-Modus: {pocketoption_demo} /// Trades: {trade_amount}$/x{trade_repeat}/{trade_distance}s ###",
+                message=f"### Zeit: {time} /// Kontostand: {live_data_balance_formatted} $ /// Status WS: {'ja' if _ws_connection is not None else 'nein'} /// Model: {active_model} /// Währung: {pocketoption_asset} /// Demo-Modus: {pocketoption_demo} /// Trades: {trade_amount}$/x{trade_repeat}/{trade_distance}s ###",
                 choices=[
                     option1,
                     option2,
@@ -1284,8 +1420,14 @@ async def auswahl_menue():
             message="KI-Modell?",
             choices=[
                 (
-                    (f"[x]" if active_model == "XGBoost" else "[ ]") + " XGBoost",
-                    "XGBoost",
+                    (f"[x]" if active_model == "XGBoost (Values)" else "[ ]")
+                    + " XGBoost (Values)",
+                    "XGBoost (Values)",
+                ),
+                (
+                    (f"[x]" if active_model == "XGBoost (Trend)" else "[ ]")
+                    + " XGBoost (Trend)",
+                    "XGBoost (Trend)",
                 ),
                 ((f"[x]" if active_model == "random" else "[ ]") + " random", "random"),
             ],
@@ -1354,9 +1496,15 @@ async def auswahl_menue():
         # Datei aktualisieren
         global filename_historic_data
         global filename_model
-        filename_historic_data = "data/historic_data_" + pocketoption_asset + ".csv"
+        filename_historic_data = (
+            "data/historic_data_" + slugify(pocketoption_asset) + ".csv"
+        )
         filename_model = (
-            "models/model_" + active_model + "_" + pocketoption_asset + ".json"
+            "models/model_"
+            + slugify(active_model)
+            + "_"
+            + slugify(pocketoption_asset)
+            + ".json"
         )
 
         # Einstellungen speichern
