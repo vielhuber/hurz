@@ -60,6 +60,7 @@ import csv
 import os
 import time
 from datetime import datetime, timedelta
+import traceback
 
 
 # load env
@@ -122,7 +123,7 @@ target_time = None
 laufende_tasks = []
 main_menu_default = None
 show_max_trades_in_list = 100
-reconnect_tries = 3
+reconnect_last_try = None
 
 
 async def setup_websockets():
@@ -262,7 +263,7 @@ async def ws_send_loop(ws):
 
 async def ws_receive_loop(ws):
     global target_time
-    global reconnect_tries
+    global reconnect_last_try
 
     # Antworten abwarten und in lokale Dateien schreiben
     binary_expected_event = None
@@ -524,8 +525,13 @@ async def ws_receive_loop(ws):
             print("🔄 reconnect wird gestartet.")
             print("🔄 reconnect wird gestartet.")
             print("🔄 reconnect wird gestartet.")
-            reconnect_tries -= 1
-            if reconnect_tries >= 0:
+
+            # reconnect only on first try or after every 5 minutes (prevent endless reconnects)
+            if reconnect_last_try is None or (
+                ((datetime.now(timezone.utc)) - reconnect_last_try)
+                > timedelta(minutes=5)
+            ):
+                reconnect_last_try = datetime.now(timezone.utc)
                 await shutdown()
                 await setup_websockets()
             else:
@@ -535,6 +541,7 @@ async def ws_receive_loop(ws):
 
     except Exception as e:
         print(f"⚠️ Fehler in ws_receive_loop: {e}")
+        traceback.print_exc()
 
 
 async def send_order(asset, amount, action, duration):
