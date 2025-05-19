@@ -55,6 +55,11 @@ import os
 from datetime import datetime, timezone
 from slugify import slugify
 from sklearn.model_selection import TimeSeriesSplit, cross_val_score
+import os
+import csv
+import os
+import time
+from datetime import datetime, timedelta
 
 
 # load env
@@ -62,10 +67,11 @@ load_dotenv()
 
 pocketoption_asset = "AUDCAD_otc"
 pocketoption_demo = 1
-active_model = "XGBoost (Values)"
+active_model = "XGBoost (Trend)"
 trade_amount = 15
 trade_repeat = 10
 trade_distance = 30
+sound_effects = 1
 
 # Einstellungen laden
 if os.path.exists("tmp/settings.json"):
@@ -78,8 +84,9 @@ if os.path.exists("tmp/settings.json"):
             trade_amount = einstellungen.get("trade_amount", trade_amount)
             trade_repeat = einstellungen.get("trade_repeat", trade_repeat)
             trade_distance = einstellungen.get("trade_distance", trade_distance)
+            sound_effects = einstellungen.get("sound_effects", sound_effects)
     except Exception as e:
-        print("⚠️ Fehler beim  Laden der Einstellungen:", e)
+        print("⚠️ Fehler beim Laden der Einstellungen:", e)
 
 filename_historic_data = "data/historic_data_" + slugify(pocketoption_asset) + ".csv"
 filename_model = (
@@ -135,7 +142,12 @@ async def setup_websockets():
 
     with open("tmp/ws.txt", "r", encoding="utf-8") as f:
         status = f.read().strip()
-        if status == "running":
+        zu_alt = (
+            (datetime.now()) - (datetime.fromtimestamp(os.path.getmtime("tmp/ws.txt")))
+        ) > timedelta(
+            hours=2
+        )  # 2 hours
+        if status == "running" and not zu_alt:
             print("⚠️ Verbindung läuft bereits. Starte nicht erneut.")
             return None
 
@@ -316,14 +328,14 @@ async def ws_receive_loop(ws):
                     decoded = message.decode("utf-8")
                     data = json.loads(decoded)
 
-                    if not os.path.exists("data/live_data_balance.json"):
+                    if not os.path.exists("tmp/live_data_balance.json"):
                         with open(
-                            "data/live_data_balance.json", "w", encoding="utf-8"
+                            "tmp/live_data_balance.json", "w", encoding="utf-8"
                         ) as f:
                             json.dump([], f)
 
                     with open(
-                        "data/live_data_balance.json", "w", encoding="utf-8"
+                        "tmp/live_data_balance.json", "w", encoding="utf-8"
                     ) as file:
                         file.write(str(data["balance"]))
                     binary_expected_event = None
@@ -331,17 +343,17 @@ async def ws_receive_loop(ws):
                 elif binary_expected_event == "updateOpenedDeals":
                     decoded = message.decode("utf-8")
                     data = json.loads(decoded)
-                    if not os.path.exists("data/live_data_deals.json"):
+                    if not os.path.exists("tmp/live_data_deals.json"):
                         with open(
-                            "data/live_data_deals.json", "w", encoding="utf-8"
+                            "tmp/live_data_deals.json", "w", encoding="utf-8"
                         ) as f:
                             json.dump([], f)
-                    with open("data/live_data_deals.json", "r+", encoding="utf-8") as f:
+                    with open("tmp/live_data_deals.json", "r+", encoding="utf-8") as f:
                         try:
                             vorhandene_deals = json.load(f)
                         except json.JSONDecodeError:
                             vorhandene_deals = []
-                        # delete all
+                        # delete all opened
                         vorhandene_deals = [
                             eintrag
                             for eintrag in vorhandene_deals
@@ -352,7 +364,7 @@ async def ws_receive_loop(ws):
                         vorhandene_deals.extend(format_deals(data, "open"))
                         # sort
                         vorhandene_deals.sort(
-                            key=lambda x: datetime.strptime(x[1], "%d.%m.%y %H:%M:%S"),
+                            key=lambda x: datetime.strptime(x[4], "%d.%m.%y %H:%M:%S"),
                             reverse=True,
                         )
                         f.seek(0)
@@ -365,12 +377,12 @@ async def ws_receive_loop(ws):
                     decoded = message.decode("utf-8")
                     data = json.loads(decoded)
 
-                    if not os.path.exists("data/live_data_deals.json"):
+                    if not os.path.exists("tmp/live_data_deals.json"):
                         with open(
-                            "data/live_data_deals.json", "w", encoding="utf-8"
+                            "tmp/live_data_deals.json", "w", encoding="utf-8"
                         ) as f:
                             json.dump([], f)
-                    with open("data/live_data_deals.json", "r+", encoding="utf-8") as f:
+                    with open("tmp/live_data_deals.json", "r+", encoding="utf-8") as f:
                         try:
                             vorhandene_deals = json.load(f)
                         except json.JSONDecodeError:
@@ -385,7 +397,7 @@ async def ws_receive_loop(ws):
                         vorhandene_deals.extend(format_deals(data, "closed"))
                         # sort
                         vorhandene_deals.sort(
-                            key=lambda x: datetime.strptime(x[1], "%d.%m.%y %H:%M:%S"),
+                            key=lambda x: datetime.strptime(x[4], "%d.%m.%y %H:%M:%S"),
                             reverse=True,
                         )
                         f.seek(0)
@@ -400,12 +412,12 @@ async def ws_receive_loop(ws):
                     data = json.loads(decoded)
                     print(data)
 
-                    if not os.path.exists("data/live_data_deals.json"):
+                    if not os.path.exists("tmp/live_data_deals.json"):
                         with open(
-                            "data/live_data_deals.json", "w", encoding="utf-8"
+                            "tmp/live_data_deals.json", "w", encoding="utf-8"
                         ) as f:
                             json.dump([], f)
-                    with open("data/live_data_deals.json", "r+", encoding="utf-8") as f:
+                    with open("tmp/live_data_deals.json", "r+", encoding="utf-8") as f:
                         try:
                             vorhandene_deals = json.load(f)
                         except json.JSONDecodeError:
@@ -413,7 +425,7 @@ async def ws_receive_loop(ws):
                         vorhandene_deals.extend(format_deals([data], "open"))
                         # sort
                         vorhandene_deals.sort(
-                            key=lambda x: datetime.strptime(x[1], "%d.%m.%y %H:%M:%S"),
+                            key=lambda x: datetime.strptime(x[4], "%d.%m.%y %H:%M:%S"),
                             reverse=True,
                         )
                         f.seek(0)
@@ -427,12 +439,12 @@ async def ws_receive_loop(ws):
                     data = json.loads(decoded)
                     print(data)
 
-                    if not os.path.exists("data/live_data_deals.json"):
+                    if not os.path.exists("tmp/live_data_deals.json"):
                         with open(
-                            "data/live_data_deals.json", "w", encoding="utf-8"
+                            "tmp/live_data_deals.json", "w", encoding="utf-8"
                         ) as f:
                             json.dump([], f)
-                    with open("data/live_data_deals.json", "r+", encoding="utf-8") as f:
+                    with open("tmp/live_data_deals.json", "r+", encoding="utf-8") as f:
                         try:
                             vorhandene_deals = json.load(f)
                         except json.JSONDecodeError:
@@ -444,14 +456,14 @@ async def ws_receive_loop(ws):
                             vorhandene_deals = [
                                 eintrag
                                 for eintrag in vorhandene_deals
-                                if eintrag[0] != deal.get("id")
+                                if eintrag[0] != deal.get("id").split("-")[0]
                             ]
                         vorhandene_deals.extend(
                             format_deals(data.get("deals"), "closed")
                         )
                         # sort
                         vorhandene_deals.sort(
-                            key=lambda x: datetime.strptime(x[1], "%d.%m.%y %H:%M:%S"),
+                            key=lambda x: datetime.strptime(x[4], "%d.%m.%y %H:%M:%S"),
                             reverse=True,
                         )
                         f.seek(0)
@@ -823,6 +835,34 @@ async def doBuySellOrder(filename):
         )
 
 
+def getModelFromId(id):
+    csv_path = "data/id_models.csv"
+
+    # Datei anlegen, falls sie nicht existiert
+    if not os.path.exists(csv_path):
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(["id", "model"])  # Header schreiben
+
+    # Datei einlesen
+    with open(csv_path, "r", newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        eintraege = list(reader)
+
+    # Nach ID suchen
+    for zeile in eintraege:
+        if zeile["id"] == id:
+            print(f"✅ Modell für ID {id}: {zeile['model']}")
+            return zeile["model"]
+
+    # ID nicht gefunden → neuen Eintrag mit aktuellem Modell speichern
+    with open(csv_path, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow([id, active_model])
+        print(f"💾 Neues Modell für ID {id} gespeichert: {active_model}")
+        return active_model
+
+
 def format_deals(data, type):
     if not isinstance(data, list):
         return "⚠️ Ungültige Datenstruktur: kein Array."
@@ -841,8 +881,10 @@ def format_deals(data, type):
         try:
             tabelle.append(
                 [
-                    deal.get("id"),
-                    # deal.get('asset'),
+                    deal.get("id").split("-")[0],
+                    deal.get("asset"),
+                    "ja" if pocketoption_demo == 1 else "nein",
+                    getModelFromId(deal.get("id")),
                     datetime.fromtimestamp(
                         deal.get("openTimestamp"), tz=timezone.utc
                     ).strftime("%d.%m.%y %H:%M:%S"),
@@ -895,8 +937,8 @@ async def printLiveStats():
     try:
         while not stop_thread:
 
-            if os.path.exists("data/live_data_balance.json"):
-                with open("data/live_data_balance.json", "r", encoding="utf-8") as f:
+            if os.path.exists("tmp/live_data_balance.json"):
+                with open("tmp/live_data_balance.json", "r", encoding="utf-8") as f:
                     live_data_balance = f.read().strip()
             live_data_balance_formatted = (
                 f"{float(live_data_balance):,.2f}".replace(",", "X")
@@ -904,13 +946,16 @@ async def printLiveStats():
                 .replace("X", ".")
             )
 
-            if os.path.exists("data/live_data_deals.json"):
-                with open("data/live_data_deals.json", "r", encoding="utf-8") as f:
+            if os.path.exists("tmp/live_data_deals.json"):
+                with open("tmp/live_data_deals.json", "r", encoding="utf-8") as f:
                     live_data_deals = json.load(f)
 
             headers = [
                 "ID",
                 # "Währung",
+                "Währung",
+                "Demo",
+                "Model",
                 "Beginn",
                 "Ende",
                 "Rest",
@@ -935,24 +980,27 @@ async def printLiveStats():
                     win_count += 1
                 elif deal[len(deal) - 2] == "LOSE":
                     loose_count += 1
-            if all_count_last is not None and all_count != all_count_last:
-                pygame.init()
-                pygame.mixer.init()
-                pygame.mixer.music.load("assets/deal-open.mp3")
-                pygame.mixer.music.play()
-                print("🦄 Sound abspielen")
-            if win_count_last is not None and win_count != win_count_last:
-                pygame.init()
-                pygame.mixer.init()
-                pygame.mixer.music.load("assets/deal-win.mp3")
-                pygame.mixer.music.play()
-                print("🦄 Sound abspielen")
-            if loose_count_last is not None and loose_count != loose_count_last:
-                pygame.init()
-                pygame.mixer.init()
-                pygame.mixer.music.load("assets/deal-loose.mp3")
-                pygame.mixer.music.play()
-                print("🦄 Sound abspielen")
+
+            if sound_effects == 1:
+                if all_count_last is not None and all_count != all_count_last:
+                    pygame.init()
+                    pygame.mixer.init()
+                    pygame.mixer.music.load("assets/deal-open.mp3")
+                    pygame.mixer.music.play()
+                    print("🦄 Sound abspielen")
+                if win_count_last is not None and win_count != win_count_last:
+                    pygame.init()
+                    pygame.mixer.init()
+                    pygame.mixer.music.load("assets/deal-win.mp3")
+                    pygame.mixer.music.play()
+                    print("🦄 Sound abspielen")
+                if loose_count_last is not None and loose_count != loose_count_last:
+                    pygame.init()
+                    pygame.mixer.init()
+                    pygame.mixer.music.load("assets/deal-loose.mp3")
+                    pygame.mixer.music.play()
+                    print("🦄 Sound abspielen")
+
             all_count_last = all_count
             win_count_last = win_count
             loose_count_last = loose_count
@@ -962,15 +1010,15 @@ async def printLiveStats():
                 local = pytz.timezone(
                     "Europe/Berlin"
                 )  # oder deine echte lokale Zeitzone
-                naiv = datetime.strptime(deal[2], "%d.%m.%y %H:%M:%S")  # noch ohne TZ
+                naiv = datetime.strptime(deal[5], "%d.%m.%y %H:%M:%S")  # noch ohne TZ
                 close_ts = local.localize(naiv).astimezone(pytz.utc)
                 now = datetime.now(pytz.utc)
                 diff = int((close_ts - now).total_seconds())
                 diff = diff - 2  # puffer
                 if diff > 0:
-                    deal[3] = f"{diff}s"
+                    deal[6] = f"{diff}s"
                 else:
-                    deal[3] = "---"
+                    deal[6] = "---"
 
             live_data_deals_output = tabulate(
                 live_data_deals[:10], headers=headers, tablefmt="plain"
@@ -1252,8 +1300,8 @@ async def hauptmenu():
         option8 = "Programm verlassen"
 
         live_data_balance = 0
-        if os.path.exists("data/live_data_balance.json"):
-            with open("data/live_data_balance.json", "r", encoding="utf-8") as f:
+        if os.path.exists("tmp/live_data_balance.json"):
+            with open("tmp/live_data_balance.json", "r", encoding="utf-8") as f:
                 live_data_balance = f.read().strip()
         live_data_balance_formatted = (
             f"{float(live_data_balance):,.2f}".replace(",", "X")
@@ -1267,13 +1315,14 @@ async def hauptmenu():
             inquirer.List(
                 "auswahl",
                 message=(
-                    f"TIME: {time} /// "
-                    f"KTO: {live_data_balance_formatted} $ /// "
-                    f"WS: {'ja' if _ws_connection is not None else 'nein'}\n"
-                    f"MODEL: {active_model} /// "
-                    f"CUR: {pocketoption_asset} /// "
-                    f"DEMO: {'ja' if pocketoption_demo == 1 else 'nein'} /// "
-                    f"TRADES: {trade_amount}$/{trade_repeat}x/{trade_distance}s"
+                    f"TIME: {time} // "
+                    f"KTO: {live_data_balance_formatted} $ // "
+                    f"WS: {'ja' if _ws_connection is not None else 'nein'} // "
+                    f"SOUND: {'ja' if sound_effects == 1 else 'nein'}\n"
+                    f"MODEL: {active_model} // "
+                    f"CUR: {pocketoption_asset} // "
+                    f"DEMO: {'ja' if pocketoption_demo == 1 else 'nein'} // "
+                    f"TRD: {trade_amount}$/{trade_repeat}x/{trade_distance}s"
                 ),
                 choices=[
                     option1,
@@ -1408,12 +1457,23 @@ async def auswahl_menue():
     global trade_amount
     global trade_repeat
     global trade_distance
+    global sound_effects
 
     asset_frage = [
         inquirer.List(
             "asset",
             message="Wähle ein Handelspaar",
             choices=[
+                (
+                    (f"[x]" if pocketoption_asset == "AUDCAD_otc" else "[ ]")
+                    + " AUDCAD_otc",
+                    "AUDCAD_otc",
+                ),
+                (
+                    (f"[x]" if pocketoption_asset == "EURUSD_otc" else "[ ]")
+                    + " EURUSD_otc",
+                    "EURUSD_otc",
+                ),
                 (
                     (f"[x]" if pocketoption_asset == "EURUSD" else "[ ]") + " EURUSD",
                     "EURUSD",
@@ -1430,12 +1490,8 @@ async def auswahl_menue():
                     (f"[x]" if pocketoption_asset == "AUDCAD" else "[ ]") + " AUDCAD",
                     "AUDCAD",
                 ),
-                (
-                    (f"[x]" if pocketoption_asset == "AUDCAD_otc" else "[ ]")
-                    + " AUDCAD_otc",
-                    "AUDCAD_otc",
-                ),
             ],
+            default=pocketoption_asset,
         )
     ]
     demo_frage = [
@@ -1446,6 +1502,7 @@ async def auswahl_menue():
                 ((f"[x]" if pocketoption_demo == 1 else "[ ]") + " Ja", 1),
                 ((f"[x]" if pocketoption_demo == 0 else "[ ]") + " Nein", 0),
             ],
+            default=pocketoption_demo,
         )
     ]
     model_frage = [
@@ -1465,6 +1522,7 @@ async def auswahl_menue():
                 ),
                 ((f"[x]" if active_model == "random" else "[ ]") + " random", "random"),
             ],
+            default=active_model,
         )
     ]
 
@@ -1480,9 +1538,13 @@ async def auswahl_menue():
 
     try:
         os.system("cls" if os.name == "nt" else "clear")
-        auswahl_trade_amount_input = input("Einsatz in $? (Standard: 15): ").strip()
+        auswahl_trade_amount_input = input(
+            f"Einsatz in $? (aktuell: {trade_amount}): "
+        ).strip()
         auswahl_trade_amount = (
-            int(auswahl_trade_amount_input) if auswahl_trade_amount_input else 15
+            int(auswahl_trade_amount_input)
+            if auswahl_trade_amount_input
+            else trade_amount
         )
     except ValueError:
         print("⚠️ Ungültige Eingabe, Standardwert 15 wird verwendet.")
@@ -1490,9 +1552,13 @@ async def auswahl_menue():
 
     try:
         os.system("cls" if os.name == "nt" else "clear")
-        auswahl_trade_repeat_input = input("Wiederholungen? (Standard: 10): ").strip()
+        auswahl_trade_repeat_input = input(
+            f"Wiederholungen? (aktuell: {trade_repeat}): "
+        ).strip()
         auswahl_trade_repeat = (
-            int(auswahl_trade_repeat_input) if auswahl_trade_repeat_input else 10
+            int(auswahl_trade_repeat_input)
+            if auswahl_trade_repeat_input
+            else trade_repeat
         )
     except ValueError:
         print("⚠️ Ungültige Eingabe, Standardwert 10 wird verwendet.")
@@ -1500,21 +1566,49 @@ async def auswahl_menue():
 
     try:
         os.system("cls" if os.name == "nt" else "clear")
-        auswahl_trade_distance_input = input("Abstand in s? (Standard: 30): ").strip()
+        auswahl_trade_distance_input = input(
+            f"Abstand in s? (aktuell: {trade_distance}): "
+        ).strip()
         auswahl_trade_distance = (
-            int(auswahl_trade_distance_input) if auswahl_trade_distance_input else 30
+            int(auswahl_trade_distance_input)
+            if auswahl_trade_distance_input
+            else trade_distance
         )
     except ValueError:
         print("⚠️ Ungültige Eingabe, Standardwert 30 wird verwendet.")
         auswahl_trade_distance = 30
 
-    if auswahl_asset and auswahl_demo and auswahl_model:
+    sound_effects_frage = [
+        inquirer.List(
+            "sound_effects",
+            message="Sound an?",
+            choices=[
+                ((f"[x]" if sound_effects == 1 else "[ ]") + " Ja", 1),
+                ((f"[x]" if sound_effects == 0 else "[ ]") + " Nein", 0),
+            ],
+            default=sound_effects,
+        )
+    ]
+    auswahl_sound_effects = await asyncio.get_event_loop().run_in_executor(
+        None, lambda: inquirer.prompt(sound_effects_frage)
+    )
+
+    if (
+        auswahl_asset
+        and auswahl_demo
+        and auswahl_model
+        and auswahl_trade_amount
+        and auswahl_trade_repeat
+        and auswahl_trade_distance
+        and auswahl_sound_effects
+    ):
         neues_asset = auswahl_asset["asset"]
         neuer_demo = auswahl_demo["demo"]
         neues_model = auswahl_model["model"]
         neues_trade_amount = auswahl_trade_amount
         neues_trade_repeat = auswahl_trade_repeat
         neues_trade_distance = auswahl_trade_distance
+        neues_sound_effects = auswahl_sound_effects["sound_effects"]
 
         print("🔁 Starte neu...")
         restart = False
@@ -1526,6 +1620,7 @@ async def auswahl_menue():
         trade_amount = neues_trade_amount
         trade_repeat = neues_trade_repeat
         trade_distance = neues_trade_distance
+        sound_effects = neues_sound_effects
 
         # Datei aktualisieren
         global filename_historic_data
@@ -1552,6 +1647,7 @@ async def auswahl_menue():
                         "trade_amount": trade_amount,
                         "trade_repeat": trade_repeat,
                         "trade_distance": trade_distance,
+                        "sound_effects": sound_effects,
                     },
                     f,
                     indent=2,
