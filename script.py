@@ -290,7 +290,7 @@ async def ws_receive_loop(ws):
                         print(
                             f"-------------------------------------------------------------------"
                         )
-                        if isinstance(data, list):
+                        if isinstance(data, list) and target_time is not None:
                             print(datetime.fromtimestamp(data[0]["time"]))
                             print(datetime.fromtimestamp(data[-1]["time"]))
 
@@ -323,6 +323,7 @@ async def ws_receive_loop(ws):
                                 ) as file:
                                     file.write("done")
                                 print("✅ Alle Daten empfangen.")
+                                target_time = None
 
                 elif binary_expected_event == "successupdateBalance":
                     decoded = message.decode("utf-8")
