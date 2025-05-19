@@ -73,6 +73,10 @@ trade_repeat = 10
 trade_distance = 30
 sound_effects = 1
 
+# ordner anlegen falls nicht verfügbar
+for ordner in ["tmp", "data", "models"]:
+    os.makedirs(ordner, exist_ok=True)
+
 # Einstellungen laden
 if os.path.exists("tmp/settings.json"):
     try:
