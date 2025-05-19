@@ -77,34 +77,52 @@ sound_effects = 1
 for ordner in ["tmp", "data", "models"]:
     os.makedirs(ordner, exist_ok=True)
 
-# Einstellungen laden
-if os.path.exists("tmp/settings.json"):
-    try:
-        with open("tmp/settings.json", "r", encoding="utf-8") as f:
-            einstellungen = json.load(f)
-            pocketoption_asset = einstellungen.get("asset", pocketoption_asset)
-            pocketoption_demo = einstellungen.get("demo", pocketoption_demo)
-            active_model = einstellungen.get("model", active_model)
-            trade_amount = einstellungen.get("trade_amount", trade_amount)
-            trade_repeat = einstellungen.get("trade_repeat", trade_repeat)
-            trade_distance = einstellungen.get("trade_distance", trade_distance)
-            sound_effects = einstellungen.get("sound_effects", sound_effects)
-    except Exception as e:
-        print("⚠️ Fehler beim Laden der Einstellungen:", e)
 
-filename_historic_data = "data/historic_data_" + slugify(pocketoption_asset) + ".csv"
-filename_model = (
-    "models/model_"
-    + slugify(active_model)
-    + "_"
-    + slugify(pocketoption_asset)
-    + ".json"
-)
+def loadSettings():
+    global pocketoption_asset
+    global pocketoption_demo
+    global active_model
+    global trade_amount
+    global trade_repeat
+    global trade_distance
+    global sound_effects
+    global filename_historic_data
+    global filename_model
+    if os.path.exists("tmp/settings.json"):
+        try:
+            with open("tmp/settings.json", "r", encoding="utf-8") as f:
+                einstellungen = json.load(f)
+                pocketoption_asset = einstellungen.get("asset", pocketoption_asset)
+                pocketoption_demo = einstellungen.get("demo", pocketoption_demo)
+                active_model = einstellungen.get("model", active_model)
+                trade_amount = einstellungen.get("trade_amount", trade_amount)
+                trade_repeat = einstellungen.get("trade_repeat", trade_repeat)
+                trade_distance = einstellungen.get("trade_distance", trade_distance)
+                sound_effects = einstellungen.get("sound_effects", sound_effects)
+        except Exception as e:
+            print("⚠️ Fehler beim Laden der Einstellungen:", e)
+    filename_historic_data = (
+        "data/historic_data_" + slugify(pocketoption_asset) + ".csv"
+    )
+    filename_model = (
+        "models/model_"
+        + slugify(active_model)
+        + "_"
+        + slugify(pocketoption_asset)
+        + ".json"
+    )
+
+
+# Einstellungen laden
+loadSettings()
 
 _ws_connection = None
 stop_thread = False
 target_time = None
 laufende_tasks = []
+main_menu_default = None
+show_max_trades_in_list = 100
+reconnect_tries = 3
 
 
 async def setup_websockets():
@@ -244,6 +262,7 @@ async def ws_send_loop(ws):
 
 async def ws_receive_loop(ws):
     global target_time
+    global reconnect_tries
 
     # Antworten abwarten und in lokale Dateien schreiben
     binary_expected_event = None
@@ -333,14 +352,14 @@ async def ws_receive_loop(ws):
                     decoded = message.decode("utf-8")
                     data = json.loads(decoded)
 
-                    if not os.path.exists("tmp/live_data_balance.json"):
+                    if not os.path.exists("data/live_data_balance.json"):
                         with open(
-                            "tmp/live_data_balance.json", "w", encoding="utf-8"
+                            "data/live_data_balance.json", "w", encoding="utf-8"
                         ) as f:
                             json.dump([], f)
 
                     with open(
-                        "tmp/live_data_balance.json", "w", encoding="utf-8"
+                        "data/live_data_balance.json", "w", encoding="utf-8"
                     ) as file:
                         file.write(str(data["balance"]))
                     binary_expected_event = None
@@ -348,23 +367,23 @@ async def ws_receive_loop(ws):
                 elif binary_expected_event == "updateOpenedDeals":
                     decoded = message.decode("utf-8")
                     data = json.loads(decoded)
-                    if not os.path.exists("tmp/live_data_deals.json"):
+                    if not os.path.exists("data/live_data_deals.json"):
                         with open(
-                            "tmp/live_data_deals.json", "w", encoding="utf-8"
+                            "data/live_data_deals.json", "w", encoding="utf-8"
                         ) as f:
                             json.dump([], f)
-                    with open("tmp/live_data_deals.json", "r+", encoding="utf-8") as f:
+                    with open("data/live_data_deals.json", "r+", encoding="utf-8") as f:
                         try:
                             vorhandene_deals = json.load(f)
                         except json.JSONDecodeError:
                             vorhandene_deals = []
-                        # delete all opened
+                        # delete all currently opened
                         vorhandene_deals = [
                             eintrag
                             for eintrag in vorhandene_deals
                             if eintrag[len(eintrag) - 1] != "open"
                         ]
-                        # add all
+                        # add all opened
                         print(data)
                         vorhandene_deals.extend(format_deals(data, "open"))
                         # sort
@@ -372,6 +391,7 @@ async def ws_receive_loop(ws):
                             key=lambda x: datetime.strptime(x[4], "%d.%m.%y %H:%M:%S"),
                             reverse=True,
                         )
+                        # permanently store
                         f.seek(0)
                         json.dump(vorhandene_deals, f, indent=2)
                         f.truncate()
@@ -382,29 +402,34 @@ async def ws_receive_loop(ws):
                     decoded = message.decode("utf-8")
                     data = json.loads(decoded)
 
-                    if not os.path.exists("tmp/live_data_deals.json"):
+                    if not os.path.exists("data/live_data_deals.json"):
                         with open(
-                            "tmp/live_data_deals.json", "w", encoding="utf-8"
+                            "data/live_data_deals.json", "w", encoding="utf-8"
                         ) as f:
                             json.dump([], f)
-                    with open("tmp/live_data_deals.json", "r+", encoding="utf-8") as f:
+                    with open("data/live_data_deals.json", "r+", encoding="utf-8") as f:
                         try:
                             vorhandene_deals = json.load(f)
                         except json.JSONDecodeError:
                             vorhandene_deals = []
-                        # delete all
-                        vorhandene_deals = [
-                            eintrag
-                            for eintrag in vorhandene_deals
-                            if eintrag[len(eintrag) - 1] != "closed"
-                        ]
-                        # add all
+
+                        # delete deals that are added again
+                        for deal in data:
+                            vorhandene_deals = [
+                                eintrag
+                                for eintrag in vorhandene_deals
+                                if eintrag[0] != deal.get("id").split("-")[0]
+                            ]
+
+                        # add again
                         vorhandene_deals.extend(format_deals(data, "closed"))
+
                         # sort
                         vorhandene_deals.sort(
                             key=lambda x: datetime.strptime(x[4], "%d.%m.%y %H:%M:%S"),
                             reverse=True,
                         )
+                        # permanently store
                         f.seek(0)
                         json.dump(vorhandene_deals, f, indent=2)
                         f.truncate()
@@ -417,22 +442,24 @@ async def ws_receive_loop(ws):
                     data = json.loads(decoded)
                     print(data)
 
-                    if not os.path.exists("tmp/live_data_deals.json"):
+                    if not os.path.exists("data/live_data_deals.json"):
                         with open(
-                            "tmp/live_data_deals.json", "w", encoding="utf-8"
+                            "data/live_data_deals.json", "w", encoding="utf-8"
                         ) as f:
                             json.dump([], f)
-                    with open("tmp/live_data_deals.json", "r+", encoding="utf-8") as f:
+                    with open("data/live_data_deals.json", "r+", encoding="utf-8") as f:
                         try:
                             vorhandene_deals = json.load(f)
                         except json.JSONDecodeError:
                             vorhandene_deals = []
+                        # add newly opened deal
                         vorhandene_deals.extend(format_deals([data], "open"))
                         # sort
                         vorhandene_deals.sort(
                             key=lambda x: datetime.strptime(x[4], "%d.%m.%y %H:%M:%S"),
                             reverse=True,
                         )
+                        # permanently store
                         f.seek(0)
                         json.dump(vorhandene_deals, f, indent=2)
                         f.truncate()
@@ -444,25 +471,24 @@ async def ws_receive_loop(ws):
                     data = json.loads(decoded)
                     print(data)
 
-                    if not os.path.exists("tmp/live_data_deals.json"):
+                    if not os.path.exists("data/live_data_deals.json"):
                         with open(
-                            "tmp/live_data_deals.json", "w", encoding="utf-8"
+                            "data/live_data_deals.json", "w", encoding="utf-8"
                         ) as f:
                             json.dump([], f)
-                    with open("tmp/live_data_deals.json", "r+", encoding="utf-8") as f:
+                    with open("data/live_data_deals.json", "r+", encoding="utf-8") as f:
                         try:
                             vorhandene_deals = json.load(f)
                         except json.JSONDecodeError:
                             vorhandene_deals = []
-
-                        # vorhandene_deals.extend(format_deals([data]))
-                        # delete deals to add later
+                        # delete deals that are added again
                         for deal in data.get("deals"):
                             vorhandene_deals = [
                                 eintrag
                                 for eintrag in vorhandene_deals
                                 if eintrag[0] != deal.get("id").split("-")[0]
                             ]
+                        # add again
                         vorhandene_deals.extend(
                             format_deals(data.get("deals"), "closed")
                         )
@@ -471,6 +497,7 @@ async def ws_receive_loop(ws):
                             key=lambda x: datetime.strptime(x[4], "%d.%m.%y %H:%M:%S"),
                             reverse=True,
                         )
+                        # permanently store
                         f.seek(0)
                         json.dump(vorhandene_deals, f, indent=2)
                         f.truncate()
@@ -484,15 +511,28 @@ async def ws_receive_loop(ws):
         print(f"✅ WebSocket normal geschlossen (Code {e.code}): {e.reason}")
     except websockets.ConnectionClosedError as e:
         print(f"❌ Verbindung unerwartet geschlossen ({e.code}): {e.reason}")
-        # reconnect (disabled)
-        """
+        # reconnect (this is needed because no PING PONG is sended on training etc.)
         if not ws.open:
             print("🔄 reconnect wird gestartet.")
-            with open("tmp/ws.txt", "w", encoding="utf-8") as f:
-                f.write("closed")
-            await setup_websockets()
+            print("🔄 reconnect wird gestartet.")
+            print("🔄 reconnect wird gestartet.")
+            print("🔄 reconnect wird gestartet.")
+            print("🔄 reconnect wird gestartet.")
+            print("🔄 reconnect wird gestartet.")
+            print("🔄 reconnect wird gestartet.")
+            print("🔄 reconnect wird gestartet.")
+            print("🔄 reconnect wird gestartet.")
+            print("🔄 reconnect wird gestartet.")
+            print("🔄 reconnect wird gestartet.")
+            reconnect_tries -= 1
+            if reconnect_tries >= 0:
+                await shutdown()
+                await setup_websockets()
+            else:
+                await shutdown()
+                stop_event.set()
             return
-        """
+
     except Exception as e:
         print(f"⚠️ Fehler in ws_receive_loop: {e}")
 
@@ -703,7 +743,7 @@ async def pocketoption_ws(time_back_in_minutes, filename):
     with open("tmp/historic_data_raw.json", "w", encoding="utf-8") as file:
         json.dump([], file)
 
-    while request_time > target_time:
+    while target_time is not None and request_time > target_time:
 
         history_request = [
             "loadHistoryPeriod",
@@ -888,7 +928,7 @@ def format_deals(data, type):
                 [
                     deal.get("id").split("-")[0],
                     deal.get("asset"),
-                    "ja" if pocketoption_demo == 1 else "nein",
+                    "ja" if deal.get("isDemo") == 1 else "nein",
                     getModelFromId(deal.get("id")),
                     datetime.fromtimestamp(
                         deal.get("openTimestamp"), tz=timezone.utc
@@ -942,8 +982,8 @@ async def printLiveStats():
     try:
         while not stop_thread:
 
-            if os.path.exists("tmp/live_data_balance.json"):
-                with open("tmp/live_data_balance.json", "r", encoding="utf-8") as f:
+            if os.path.exists("data/live_data_balance.json"):
+                with open("data/live_data_balance.json", "r", encoding="utf-8") as f:
                     live_data_balance = f.read().strip()
             live_data_balance_formatted = (
                 f"{float(live_data_balance):,.2f}".replace(",", "X")
@@ -951,8 +991,8 @@ async def printLiveStats():
                 .replace("X", ".")
             )
 
-            if os.path.exists("tmp/live_data_deals.json"):
-                with open("tmp/live_data_deals.json", "r", encoding="utf-8") as f:
+            if os.path.exists("data/live_data_deals.json"):
+                with open("data/live_data_deals.json", "r", encoding="utf-8") as f:
                     live_data_deals = json.load(f)
 
             headers = [
@@ -1026,7 +1066,9 @@ async def printLiveStats():
                     deal[6] = "---"
 
             live_data_deals_output = tabulate(
-                live_data_deals[:10], headers=headers, tablefmt="plain"
+                live_data_deals[:show_max_trades_in_list],
+                headers=headers,
+                tablefmt="plain",
             )
 
             prozent = 0
@@ -1048,7 +1090,7 @@ async def printLiveStats():
                                 deal
                                 for deal in live_data_deals
                                 if deal[len(deal) - 1] == "closed"
-                            ][:10]
+                            ][:show_max_trades_in_list]
                             if float(deal2[len(deal2) - 4].replace("$", "")) > 0
                         ]
                     )
@@ -1057,7 +1099,7 @@ async def printLiveStats():
                             deal
                             for deal in live_data_deals
                             if deal[len(deal) - 1] == "closed"
-                        ][:10]
+                        ][:show_max_trades_in_list]
                     )
                 ) * 100
 
@@ -1069,7 +1111,7 @@ async def printLiveStats():
             print()
             print(f"Kontostand: {live_data_balance_formatted} $")
             print()
-            print(f"Gewinnrate (letzte 10 Trades):")
+            print(f"Gewinnrate (letzte {show_max_trades_in_list} Trades):")
             print(f"{prozent:.1f}%")
             print()
             print(f"Letzte Deals:")
@@ -1268,6 +1310,8 @@ def trainActiveModel(filename):
 
 
 async def hauptmenu():
+    global main_menu_default
+
     while True and not stop_event.is_set():
 
         option1 = "Historische Daten laden"
@@ -1302,11 +1346,13 @@ async def hauptmenu():
 
         option7 = "Einstellungen ändern"
 
-        option8 = "Programm verlassen"
+        option8 = "Ansicht aktualisieren"
+
+        option9 = "Programm verlassen"
 
         live_data_balance = 0
-        if os.path.exists("tmp/live_data_balance.json"):
-            with open("tmp/live_data_balance.json", "r", encoding="utf-8") as f:
+        if os.path.exists("data/live_data_balance.json"):
+            with open("data/live_data_balance.json", "r", encoding="utf-8") as f:
                 live_data_balance = f.read().strip()
         live_data_balance_formatted = (
             f"{float(live_data_balance):,.2f}".replace(",", "X")
@@ -1329,16 +1375,22 @@ async def hauptmenu():
                     f"DEMO: {'ja' if pocketoption_demo == 1 else 'nein'} // "
                     f"TRD: {trade_amount}$/{trade_repeat}x/{trade_distance}s"
                 ),
-                choices=[
-                    option1,
-                    option2,
-                    option3,
-                    option4,
-                    option5,
-                    option6,
-                    option7,
-                    option8,
-                ],
+                choices=(
+                    [
+                        option1,
+                        option2,
+                        option3,
+                        option4,
+                        option5,
+                        option6,
+                        option7,
+                        option8,
+                        option9,
+                    ]
+                    if _ws_connection is not None
+                    else [option6, option8, option9]
+                ),
+                default=main_menu_default,
             ),
         ]
 
@@ -1347,6 +1399,8 @@ async def hauptmenu():
         antworten = await asyncio.get_event_loop().run_in_executor(
             concurrent.futures.ThreadPoolExecutor(), lambda: inquirer.prompt(questions)
         )
+
+        main_menu_default = antworten["auswahl"]
 
         if stop_event.is_set():
             break
@@ -1399,6 +1453,10 @@ async def hauptmenu():
             await auswahl_menue()
 
         elif antworten["auswahl"] == option8:
+            print("Ansicht wird aktualisiert...")
+            loadSettings()
+
+        elif antworten["auswahl"] == option9:
             print("Programm wird beendet.")
             stop_event.set()
             for t in asyncio.all_tasks():
