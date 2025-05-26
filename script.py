@@ -8,6 +8,7 @@ import msgpack
 from datetime import datetime
 import pygame
 import pandas as pd
+import re
 import xgboost as xgb
 from sklearn.model_selection import cross_val_score
 import random
@@ -246,6 +247,14 @@ async def ws_keepalive(ws):
             print("⚠️ Ping fehlgeschlagen:", e)
             break
         await asyncio.sleep(30)
+
+
+def format_waehrung(name):
+    # Schritt 1: _ → Leerzeichen
+    name = name.replace("_", " ")
+    # Schritt 2: Ersetze 6 aufeinanderfolgende Großbuchstaben durch XXX/XXX
+    name = re.sub(r"\b([A-Z]{3})([A-Z]{3})\b", r"\1/\2", name)
+    return name
 
 
 async def ws_send_loop(ws):
@@ -970,7 +979,7 @@ def format_deals(data, type):
             tabelle.append(
                 [
                     deal.get("id").split("-")[0],
-                    deal.get("asset"),
+                    format_waehrung(deal.get("asset")),
                     "ja" if deal.get("isDemo") == 1 else "nein",
                     getModelFromId(deal.get("id")),
                     datetime.fromtimestamp(
@@ -1429,7 +1438,7 @@ async def hauptmenu():
                     f"WS: {'ja' if _ws_connection is not None else 'nein'} // "
                     f"SOUND: {'ja' if sound_effects == 1 else 'nein'}\n"
                     f"MODEL: {active_model} // "
-                    f"CUR: {pocketoption_asset} // "
+                    f"CUR: {format_waehrung(pocketoption_asset)} // "
                     f"DEMO: {'ja' if pocketoption_demo == 1 else 'nein'} // "
                     f"TRD: {trade_amount}$/{trade_repeat}x/{trade_distance}s"
                 ),
