@@ -11,6 +11,7 @@ import pandas as pd
 import xgboost as xgb
 from sklearn.model_selection import cross_val_score
 import random
+import readchar
 import inquirer
 import atexit
 import os
@@ -122,12 +123,13 @@ stop_thread = False
 target_time = None
 laufende_tasks = []
 main_menu_default = None
-show_max_trades_in_list = 100
 reconnect_last_try = None
+binary_expected_event = None
 
 
 async def setup_websockets():
     global _ws_connection
+    global binary_expected_event
 
     # vars
     ip_address = os.getenv("IP_ADDRESS")
@@ -211,6 +213,10 @@ async def setup_websockets():
     auth_response = await ws.recv()
     print("Auth Antwort:", auth_response)
 
+    # das wird immer schon vor dem auth gesandt
+    if "updateAssets" in auth_response:
+        binary_expected_event = "updateAssets"
+
     # Ab hier bist du erfolgreich authentifiziert!
     if auth_response.startswith("451-") or "successauth" in auth_response:
         print("✅ Auth erfolgreich, weitere Events senden...")
@@ -264,9 +270,7 @@ async def ws_send_loop(ws):
 async def ws_receive_loop(ws):
     global target_time
     global reconnect_last_try
-
-    # Antworten abwarten und in lokale Dateien schreiben
-    binary_expected_event = None
+    global binary_expected_event
 
     try:
         while True:
@@ -291,6 +295,8 @@ async def ws_receive_loop(ws):
                     binary_expected_event = "successcloseOrder"
                 elif "loadHistoryPeriod" in message:
                     binary_expected_event = "loadHistoryPeriod"
+                elif "updateAssets" in message:
+                    binary_expected_event = "updateAssets"
             elif isinstance(message, bytes):
                 if binary_expected_event == "loadHistoryPeriod":
                     json_data = json.loads(message.decode("utf-8"))
@@ -379,11 +385,12 @@ async def ws_receive_loop(ws):
                         except json.JSONDecodeError:
                             vorhandene_deals = []
                         # delete all currently opened
-                        vorhandene_deals = [
-                            eintrag
-                            for eintrag in vorhandene_deals
-                            if eintrag[len(eintrag) - 1] != "open"
-                        ]
+                        for deal in data:
+                            vorhandene_deals = [
+                                eintrag
+                                for eintrag in vorhandene_deals
+                                if eintrag[0] != deal.get("id").split("-")[0]
+                            ]
                         # add all opened
                         print(data)
                         vorhandene_deals.extend(format_deals(data, "open"))
@@ -504,8 +511,37 @@ async def ws_receive_loop(ws):
                         f.truncate()
 
                     binary_expected_event = None
+
                 elif binary_expected_event == "failopenOrder":
                     print("❌ Order fehlgeschlagen:", message)
+                    binary_expected_event = None
+
+                elif binary_expected_event == "updateAssets":
+                    decoded = message.decode("utf-8")
+                    data = json.loads(decoded)
+                    with open("tmp/assets_raw.json", "w", encoding="utf-8") as f:
+                        json.dump(data, f, indent=2)
+
+                    gefilterte = []
+                    for eintrag in data:
+                        if (
+                            len(eintrag) > 3
+                            and eintrag[3] == "currency"
+                            and eintrag[14] is True
+                        ):
+                            gefilterte.append(
+                                {
+                                    "name": eintrag[1],
+                                    "label": eintrag[2],
+                                    "percent": eintrag[5],
+                                }
+                            )
+                    gefilterte = sorted(
+                        gefilterte, key=lambda x: (-x["percent"], x["label"])
+                    )
+                    with open("tmp/assets.json", "w", encoding="utf-8") as f:
+                        json.dump(gefilterte, f, indent=2)
+
                     binary_expected_event = None
 
     except websockets.ConnectionClosedOK as e:
@@ -970,9 +1006,9 @@ async def printLiveStats():
     def listen_for_exit():
         global stop_thread
         while True:
-            eingabe = input("Drücke 'c' + Enter zum Beenden: ").strip().lower()
-            if eingabe == "c":
-                print("⏹️ Beenden durch Benutzereingabe.")
+            taste = readchar.readkey().lower()
+            if taste == "c":
+                print("⏹️ Beenden durch Tastendruck.")
                 stop_thread = True
                 break
 
@@ -1073,9 +1109,12 @@ async def printLiveStats():
                     deal[6] = "---"
 
             live_data_deals_output = tabulate(
-                live_data_deals[:show_max_trades_in_list],
+                live_data_deals[:10],
                 headers=headers,
                 tablefmt="plain",
+                stralign="left",  # Spalteninhalt bündig ohne Zusatzabstände
+                numalign="right",  # Zahlen bündig rechts (optional)
+                colalign=None,  # oder z. B. ["left", "right", "right"]
             )
 
             prozent = 0
@@ -1097,7 +1136,7 @@ async def printLiveStats():
                                 deal
                                 for deal in live_data_deals
                                 if deal[len(deal) - 1] == "closed"
-                            ][:show_max_trades_in_list]
+                            ][:100]
                             if float(deal2[len(deal2) - 4].replace("$", "")) > 0
                         ]
                     )
@@ -1106,7 +1145,7 @@ async def printLiveStats():
                             deal
                             for deal in live_data_deals
                             if deal[len(deal) - 1] == "closed"
-                        ][:show_max_trades_in_list]
+                        ][:100]
                     )
                 ) * 100
 
@@ -1118,13 +1157,15 @@ async def printLiveStats():
             print()
             print(f"Kontostand: {live_data_balance_formatted} $")
             print()
-            print(f"Gewinnrate (letzte {show_max_trades_in_list} Trades):")
+            print(f"Gewinnrate (letzte 100 Trades):")
             print(f"{prozent:.1f}%")
             print()
-            print(f"Letzte Deals:")
+            print(f"Letzte Trades:")
             print(f"{live_data_deals_output}")
             print()
-            print('Drücke "c" und ENTER um zurück zum Hauptmenü zu gelangen.')
+            print(f"...und {(len(live_data_deals) - 10)} weitere.")
+            print()
+            print('Drücke "c" um zurück zum Hauptmenü zu gelangen.')
             print("###############################################")
             await asyncio.sleep(1)
     except KeyboardInterrupt:
@@ -1164,6 +1205,16 @@ def printDiagrams():
 
     # Diagramm in der Konsole ausgeben
     plt.show()
+
+
+def assetIsAvailable(asset):
+    assets = []
+    with open("tmp/assets.json", "r", encoding="utf-8") as f:
+        assets = json.load(f)
+    if any(eintrag["name"] == asset for eintrag in assets):
+        return True
+    else:
+        return False
 
 
 def trainActiveModel(filename):
@@ -1360,9 +1411,9 @@ async def hauptmenu():
         live_data_balance = 0
         if os.path.exists("data/live_data_balance.json"):
             with open("data/live_data_balance.json", "r", encoding="utf-8") as f:
-                live_data_balance = f.read().strip()
+                live_data_balance = float(f.read().strip())
         live_data_balance_formatted = (
-            f"{float(live_data_balance):,.2f}".replace(",", "X")
+            f"{live_data_balance:,.2f}".replace(",", "X")
             .replace(".", ",")
             .replace("X", ".")
         )
@@ -1416,6 +1467,15 @@ async def hauptmenu():
             print("❌ Auswahl wurde abgebrochen. Programm wird beendet.")
             return
 
+        if (
+            antworten["auswahl"] == option1 or antworten["auswahl"] == option5
+        ) and assetIsAvailable(pocketoption_asset) is False:
+            print(
+                f"❌ Handelspaar {pocketoption_asset} ist nicht verfügbar. Bitte wähle ein anderes."
+            )
+            await asyncio.sleep(3)
+            continue
+
         if antworten["auswahl"] == option1:
             await pocketoption_ws(24 * 60, filename_historic_data)  # 24 hours
             await asyncio.sleep(3)
@@ -1434,6 +1494,13 @@ async def hauptmenu():
             await asyncio.sleep(5)
 
         elif antworten["auswahl"] == option5 and os.path.exists(filename_model):
+
+            if (trade_repeat * trade_amount) > live_data_balance:
+                print(
+                    f"❌ Nicht genügend Guthaben ({live_data_balance:.2f}$) für {trade_repeat} Trades à {trade_amount}$."
+                )
+                await asyncio.sleep(3)
+                continue
 
             for i in range(trade_repeat):
                 print(f"🚀 Orderdurchlauf {i+1}/{trade_repeat}")
@@ -1529,38 +1596,28 @@ async def auswahl_menue():
     global trade_distance
     global sound_effects
 
+    # Choices dynamisch bauen
+    with open("tmp/assets.json", "r", encoding="utf-8") as f:
+        assets = json.load(f)
+    choices = []
+    for eintrag in assets:
+        choices.append(
+            (
+                (f"[x]" if pocketoption_asset == eintrag["name"] else "[ ]")
+                + " "
+                + eintrag["label"]
+                + " ("
+                + str(eintrag["percent"])
+                + "%)",
+                eintrag["name"],
+            )
+        )
+
     asset_frage = [
         inquirer.List(
             "asset",
             message="Wähle ein Handelspaar",
-            choices=[
-                (
-                    (f"[x]" if pocketoption_asset == "AUDCAD_otc" else "[ ]")
-                    + " AUDCAD_otc",
-                    "AUDCAD_otc",
-                ),
-                (
-                    (f"[x]" if pocketoption_asset == "EURUSD_otc" else "[ ]")
-                    + " EURUSD_otc",
-                    "EURUSD_otc",
-                ),
-                (
-                    (f"[x]" if pocketoption_asset == "EURUSD" else "[ ]") + " EURUSD",
-                    "EURUSD",
-                ),
-                (
-                    (f"[x]" if pocketoption_asset == "GBPUSD" else "[ ]") + " GBPUSD",
-                    "GBPUSD",
-                ),
-                (
-                    (f"[x]" if pocketoption_asset == "USDJPY" else "[ ]") + " USDJPY",
-                    "USDJPY",
-                ),
-                (
-                    (f"[x]" if pocketoption_asset == "AUDCAD" else "[ ]") + " AUDCAD",
-                    "AUDCAD",
-                ),
-            ],
+            choices=choices,
             default=pocketoption_asset,
         )
     ]

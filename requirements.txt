@@ -8,6 +8,7 @@ plotext
 prompt_toolkit
 python-dotenv
 pytz
+readchar
 scikit_learn
 tabulate
 tqdm
