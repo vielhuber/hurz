@@ -1,69 +1,31 @@
 import asyncio
-import websockets
-import json
-import ssl
-import time
-import zlib
-import msgpack
-from datetime import datetime
-import pygame
-import pandas as pd
-import re
-import xgboost as xgb
-from sklearn.model_selection import cross_val_score
-import random
-import readchar
-import inquirer
-import atexit
-import os
-import os
-from datetime import datetime
-import pandas as pd
-import xgboost as xgb
-import cupy as cp
-import pandas as pd
-import asyncio
-from prompt_toolkit import prompt
-from prompt_toolkit.completion import WordCompleter
-import signal
-import sys
-import plotext as plt
-import xgboost as xgb
-import cupy as cp
-from tqdm import tqdm
-import pandas as pd
-from sklearn.metrics import r2_score
-from xgboost.callback import EarlyStopping
-from sklearn.model_selection import TimeSeriesSplit, cross_val_score
-import time
-from datetime import datetime
-import threading
-import keyboard  # Du benötigst: pip install keyboard
-from tabulate import tabulate
-from datetime import datetime
 import atexit
 import concurrent.futures
-import sys
-from datetime import datetime, timezone
-from datetime import datetime
+import csv
+import cupy as cp
+import inquirer
+import json
+import os
+import pandas as pd
+import plotext as plt
+import pygame
 import pytz
 import random
-import pandas as pd
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
-import os, sys, time
-from dotenv import load_dotenv
-import os
-from datetime import datetime, timezone
-from slugify import slugify
-from sklearn.model_selection import TimeSeriesSplit, cross_val_score
-import os
-import csv
-import os
+import re
+import readchar
+import signal
+import ssl
+import sys
+import threading
 import time
-from datetime import datetime, timedelta
 import traceback
-
+import websockets
+import xgboost as xgb
+from datetime import datetime, timedelta, timezone
+from dotenv import load_dotenv
+from sklearn.model_selection import TimeSeriesSplit, cross_val_score
+from slugify import slugify
+from tabulate import tabulate
 
 # load env
 load_dotenv()
@@ -1024,7 +986,7 @@ async def printLiveStats():
     listener_thread = threading.Thread(target=listen_for_exit, daemon=True)
     listener_thread.start()
 
-    live_data_balance = 42
+    live_data_balance = 0
     live_data_deals = []
 
     all_count_last = None
@@ -1035,17 +997,26 @@ async def printLiveStats():
         while not stop_thread:
 
             if os.path.exists("data/live_data_balance.json"):
-                with open("data/live_data_balance.json", "r", encoding="utf-8") as f:
-                    live_data_balance = f.read().strip()
+                try:
+                    with open(
+                        "data/live_data_balance.json", "r", encoding="utf-8"
+                    ) as f:
+                        live_data_balance = float(f.read().strip())
+                except Exception:
+                    live_data_balance = 0
+
             live_data_balance_formatted = (
-                f"{float(live_data_balance):,.2f}".replace(",", "X")
+                f"{live_data_balance:,.2f}".replace(",", "X")
                 .replace(".", ",")
                 .replace("X", ".")
             )
 
             if os.path.exists("data/live_data_deals.json"):
-                with open("data/live_data_deals.json", "r", encoding="utf-8") as f:
-                    live_data_deals = json.load(f)
+                try:
+                    with open("data/live_data_deals.json", "r", encoding="utf-8") as f:
+                        live_data_deals = json.load(f)
+                except json.JSONDecodeError:
+                    continue
 
             headers = [
                 "ID",
@@ -1126,7 +1097,7 @@ async def printLiveStats():
                 colalign=None,  # oder z. B. ["left", "right", "right"]
             )
 
-            prozent = 0
+            percent_win_rate_100 = 0
             if (
                 len(
                     [
@@ -1137,7 +1108,7 @@ async def printLiveStats():
                 )
                 > 0
             ):
-                prozent = (
+                percent_win_rate_100 = (
                     len(
                         [
                             deal2
@@ -1158,16 +1129,94 @@ async def printLiveStats():
                     )
                 ) * 100
 
+            percent_win_rate_all = 0
+            if (
+                len(
+                    [
+                        deal
+                        for deal in live_data_deals
+                        if deal[len(deal) - 1] == "closed"
+                    ]
+                )
+                > 0
+            ):
+                percent_win_rate_all = (
+                    len(
+                        [
+                            deal2
+                            for deal2 in [
+                                deal
+                                for deal in live_data_deals
+                                if deal[len(deal) - 1] == "closed"
+                            ]
+                            if float(deal2[len(deal2) - 4].replace("$", "")) > 0
+                        ]
+                    )
+                    / len(
+                        [
+                            deal
+                            for deal in live_data_deals
+                            if deal[len(deal) - 1] == "closed"
+                        ]
+                    )
+                ) * 100
+
+            abs_win_rate_100 = 0
+            if (
+                len(
+                    [
+                        deal
+                        for deal in live_data_deals
+                        if deal[len(deal) - 1] == "closed"
+                    ]
+                )
+                > 0
+            ):
+                abs_win_rate_100 = sum(
+                    float(deal[len(deal) - 4].replace("$", ""))
+                    for deal in [
+                        deal
+                        for deal in live_data_deals
+                        if deal[len(deal) - 1] == "closed"
+                    ][:100]
+                )
+
+            abs_win_rate_all = 0
+            if (
+                len(
+                    [
+                        deal
+                        for deal in live_data_deals
+                        if deal[len(deal) - 1] == "closed"
+                    ]
+                )
+                > 0
+            ):
+                abs_win_rate_all = sum(
+                    float(deal[len(deal) - 4].replace("$", ""))
+                    for deal in [
+                        deal
+                        for deal in live_data_deals
+                        if deal[len(deal) - 1] == "closed"
+                    ]
+                )
+
             os.system(
                 "cls" if os.name == "nt" else "clear"
             )  # Konsole leeren (Windows/Linux)
             print("###############################################")
-            print(f'LIVE-DATEN - {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
-            print()
+            print(f'{datetime.now().strftime("%d.%m.%Y %H:%M:%S")}')
             print(f"Kontostand: {live_data_balance_formatted} $")
-            print()
-            print(f"Gewinnrate (letzte 100 Trades):")
-            print(f"{prozent:.1f}%")
+
+            print(
+                f"Gewinnrate (letzte 100 Trades): {percent_win_rate_100:.1f}% ({percent_win_rate_100:.1f}% benötigt!)"
+            )
+            print(
+                f"Gewinnrate (insgesamt): {percent_win_rate_all:.1f}% ({percent_win_rate_100:.1f}% benötigt!)"
+            )
+            print(f"Gewinn (letzte 100 Trades): {abs_win_rate_100:.1f}$")
+            print(f"Gewinn (insgesamt): {abs_win_rate_all:.1f}$")
+
             print()
             print(f"Letzte Trades:")
             print(f"{live_data_deals_output}")
@@ -1384,16 +1433,16 @@ async def hauptmenu():
         option1 = "Historische Daten laden"
         if os.path.exists(filename_historic_data):
             timestamp = os.path.getmtime(filename_historic_data)
-            datum = datetime.fromtimestamp(timestamp).strftime("%d.%m.%Y %H:%M:%S")
-            option1 += " (Änderung: " + datum + ")"
+            datum = datetime.fromtimestamp(timestamp).strftime("%d.%m.%y %H:%M:%S")
+            option1 += " (vom " + datum + ")"
         else:
             option1 += " (Daten nicht vorhanden)"
 
         option2 = "Modell trainieren"
         if os.path.exists(filename_model):
             timestamp = os.path.getmtime(filename_model)
-            datum = datetime.fromtimestamp(timestamp).strftime("%d.%m.%Y %H:%M:%S")
-            option2 += " (Änderung: " + datum + ")"
+            datum = datetime.fromtimestamp(timestamp).strftime("%d.%m.%y %H:%M:%S")
+            option2 += " (vom " + datum + ")"
         else:
             option2 += " (Daten nicht vorhanden)"
 
@@ -1419,27 +1468,28 @@ async def hauptmenu():
 
         live_data_balance = 0
         if os.path.exists("data/live_data_balance.json"):
-            with open("data/live_data_balance.json", "r", encoding="utf-8") as f:
-                live_data_balance = float(f.read().strip())
+            try:
+                with open("data/live_data_balance.json", "r", encoding="utf-8") as f:
+                    live_data_balance = float(f.read().strip())
+            except Exception:
+                live_data_balance = 0
         live_data_balance_formatted = (
             f"{live_data_balance:,.2f}".replace(",", "X")
             .replace(".", ",")
             .replace("X", ".")
         )
 
-        time = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
-
         questions = [
             inquirer.List(
                 "auswahl",
                 message=(
-                    f"TIME: {time} // "
-                    f"KTO: {live_data_balance_formatted} $ // "
-                    f"WS: {'ja' if _ws_connection is not None else 'nein'} // "
-                    f"SOUND: {'ja' if sound_effects == 1 else 'nein'}\n"
-                    f"MODEL: {active_model} // "
-                    f"CUR: {format_waehrung(pocketoption_asset)} // "
-                    f"DEMO: {'ja' if pocketoption_demo == 1 else 'nein'} // "
+                    f'T: {datetime.now().strftime("%H:%M:%S")} | '
+                    f"KTO: {live_data_balance_formatted}$ | "
+                    f"WS: {'1' if _ws_connection is not None else '0'} | "
+                    f"DEMO: {'1' if pocketoption_demo == 1 else '0'} | "
+                    f"TON: {'1' if sound_effects == 1 else '0'}\n"
+                    f"MDL: {active_model} | "
+                    f"CUR: {format_waehrung(pocketoption_asset)} | "
                     f"TRD: {trade_amount}$/{trade_repeat}x/{trade_distance}s"
                 ),
                 choices=(
@@ -1523,10 +1573,11 @@ async def hauptmenu():
                 await asyncio.sleep(0)
 
                 if i < trade_repeat - 1:
+                    wartezeit = max(0, trade_distance + random.uniform(-15, 15))
                     print(
-                        f"⏳ Warte {trade_distance} Sekunden, bevor die nächste Order folgt..."
+                        f"⏳ Warte {wartezeit} Sekunden, bevor die nächste Order folgt..."
                     )
-                    await asyncio.sleep(trade_distance)
+                    await asyncio.sleep(wartezeit)
 
         elif antworten["auswahl"] == option6:
             await printLiveStats()

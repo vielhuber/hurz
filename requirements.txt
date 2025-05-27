@@ -1,17 +1,13 @@
 cupy_cuda12x
 inquirer
-keyboard
-msgpack_python
 pandas
 pygame
 plotext
-prompt_toolkit
 python-dotenv
 pytz
 readchar
 scikit_learn
 tabulate
-tqdm
 watchdog
 websockets==10.1
 xgboost
