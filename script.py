@@ -1097,6 +1097,21 @@ async def printLiveStats():
                 colalign=None,  # oder z. B. ["left", "right", "right"]
             )
 
+            needed_percent_rate = 0
+            werte_gewinn = []
+            werte_einsatz = []
+            for deal in live_data_deals:
+                if deal[len(deal) - 1] == "closed":
+                    if float(deal[len(deal) - 4].replace("$", "")) > 0:
+                        werte_gewinn.append(float(deal[len(deal) - 4].replace("$", "")))
+                    werte_einsatz.append(float(deal[len(deal) - 5].replace("$", "")))
+            if werte_gewinn and werte_einsatz:
+                werte_gewinn_durchschnitt = sum(werte_gewinn) / len(werte_gewinn)
+                werte_einsatz_durchschnitt = sum(werte_einsatz) / len(werte_einsatz)
+                needed_percent_rate = (100 * werte_einsatz_durchschnitt) / (
+                    werte_gewinn_durchschnitt + werte_einsatz_durchschnitt
+                )
+
             percent_win_rate_100 = 0
             if (
                 len(
@@ -1161,6 +1176,46 @@ async def printLiveStats():
                     )
                 ) * 100
 
+            percent_win_rate_today = 0
+            if (
+                len(
+                    [
+                        deal
+                        for deal in live_data_deals
+                        if deal[len(deal) - 1] == "closed"
+                        and datetime.strptime(deal[4], "%d.%m.%y %H:%M:%S").date()
+                        == datetime.now().date()
+                    ]
+                )
+                > 0
+            ):
+                percent_win_rate_today = (
+                    len(
+                        [
+                            deal2
+                            for deal2 in [
+                                deal
+                                for deal in live_data_deals
+                                if deal[len(deal) - 1] == "closed"
+                                and datetime.strptime(
+                                    deal[4], "%d.%m.%y %H:%M:%S"
+                                ).date()
+                                == datetime.now().date()
+                            ]
+                            if float(deal2[len(deal2) - 4].replace("$", "")) > 0
+                        ]
+                    )
+                    / len(
+                        [
+                            deal
+                            for deal in live_data_deals
+                            if deal[len(deal) - 1] == "closed"
+                            and datetime.strptime(deal[4], "%d.%m.%y %H:%M:%S").date()
+                            == datetime.now().date()
+                        ]
+                    )
+                ) * 100
+
             abs_win_rate_100 = 0
             if (
                 len(
@@ -1201,21 +1256,69 @@ async def printLiveStats():
                     ]
                 )
 
+            abs_win_rate_today = 0
+            if (
+                len(
+                    [
+                        deal
+                        for deal in live_data_deals
+                        if deal[len(deal) - 1] == "closed"
+                        and datetime.strptime(deal[4], "%d.%m.%y %H:%M:%S").date()
+                        == datetime.now().date()
+                    ]
+                )
+                > 0
+            ):
+                abs_win_rate_today = sum(
+                    float(deal[len(deal) - 4].replace("$", ""))
+                    for deal in [
+                        deal
+                        for deal in live_data_deals
+                        if deal[len(deal) - 1] == "closed"
+                        and datetime.strptime(deal[4], "%d.%m.%y %H:%M:%S").date()
+                        == datetime.now().date()
+                    ]
+                )
+
             os.system(
                 "cls" if os.name == "nt" else "clear"
             )  # Konsole leeren (Windows/Linux)
             print("###############################################")
-            print(f'{datetime.now().strftime("%d.%m.%Y %H:%M:%S")}')
-            print(f"Kontostand: {live_data_balance_formatted} $")
-
             print(
-                f"Gewinnrate (letzte 100 Trades): {percent_win_rate_100:.1f}% ({percent_win_rate_100:.1f}% benötigt!)"
+                f'Zeit: {datetime.now().strftime("%d.%m.%Y %H:%M:%S")} | Kontostand: {live_data_balance_formatted} $'
             )
+            print()
             print(
-                f"Gewinnrate (insgesamt): {percent_win_rate_all:.1f}% ({percent_win_rate_100:.1f}% benötigt!)"
+                tabulate(
+                    [
+                        [
+                            "Gewinnrate",
+                            f"{percent_win_rate_all:.1f}%",
+                            f"{percent_win_rate_100:.1f}%",
+                            f"{percent_win_rate_today:.1f}%",
+                            f"{needed_percent_rate:.1f}%",
+                        ],
+                        [
+                            "Gewinn",
+                            f"{abs_win_rate_all:.1f}$",
+                            f"{abs_win_rate_100:.1f}$",
+                            f"{abs_win_rate_today:.1f}$",
+                            "100$",
+                        ],
+                    ],
+                    headers=[
+                        "",
+                        "insgesamt",
+                        "letzte 100 Trades",
+                        "heute",
+                        "benötigt",
+                    ],
+                    tablefmt="plain",
+                    stralign="left",
+                    numalign="right",
+                    colalign=None,
+                )
             )
-            print(f"Gewinn (letzte 100 Trades): {abs_win_rate_100:.1f}$")
-            print(f"Gewinn (insgesamt): {abs_win_rate_all:.1f}$")
 
             print()
             print(f"Letzte Trades:")
