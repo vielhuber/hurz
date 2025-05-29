@@ -12,6 +12,11 @@
 -   `python script.py`
 -   `python watcher.py`
 
+## models
+
+-   place your custom models inside `external` (see `random.py`)
+-   premium models can be decrypted via `unzip -o -P PREMIUMPASSWORD external/models.zip`
+
 ## create .env
 
 -   log in to https://pocketoption.com
