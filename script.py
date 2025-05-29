@@ -2,7 +2,7 @@ import asyncio
 import atexit
 import concurrent.futures
 import csv
-import cupy as cp
+import importlib.util
 import inquirer
 import json
 import os
@@ -20,15 +20,27 @@ import threading
 import time
 import traceback
 import websockets
-import xgboost as xgb
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
-from sklearn.model_selection import TimeSeriesSplit, cross_val_score
 from slugify import slugify
 from tabulate import tabulate
 
 # load env
 load_dotenv()
+
+# load externals
+model_classes = {}
+for file in os.listdir("external"):
+    if file.endswith(".py"):
+        # load modules
+        path = os.path.join("external", file)
+        spec = importlib.util.spec_from_file_location(file[:-3], path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        # push to array
+        for obj in module.__dict__.values():
+            if isinstance(obj, type) and hasattr(obj, "name"):
+                model_classes[obj.name] = obj
 
 pocketoption_asset = "AUDCAD_otc"
 pocketoption_demo = 1
@@ -37,6 +49,8 @@ trade_amount = 15
 trade_repeat = 10
 trade_distance = 30
 sound_effects = 1
+filename_historic_data = None
+filename_model = None
 
 # ordner anlegen falls nicht verfügbar
 for ordner in ["tmp", "data", "models"]:
@@ -644,42 +658,9 @@ def run_fulltest_fast(filename, startzeit=None, endzeit=None):
 
         i += 1
 
-    if active_model == "XGBoost (Values)":
-        # ✅ Prediction in einem Rutsch (schnell!)
-        # model laden
-        model = xgb.XGBRegressor(tree_method="hist", device="cuda")
-        model.load_model(filename_model)
-        model.get_booster().set_param({"device": "cuda"})
-        X_df = pd.DataFrame(X_test)
-        X_gpu = cp.asarray(X_df)
-        prognosen = model.get_booster().inplace_predict(X_gpu)
-
-    if active_model == "XGBoost (Trend)":
-        # ✅ Model laden
-        model = xgb.XGBClassifier(tree_method="hist", device="cuda")
-        model.load_model(filename_model)
-        model.get_booster().set_param({"device": "cuda"})
-
-        # ✅ Input vorbereiten
-        X_df = pd.DataFrame(X_test)  # z. B. 2D: [[300 Werte], [300 Werte], ...]
-
-        # ✅ CuPy-Konvertierung
-        X_gpu = cp.asarray(X_df)
-
-        # ✅ Wahrscheinlichkeiten (BUY) vorhersagen
-        probs = model.get_booster().inplace_predict(X_gpu)  # ergibt Werte zwischen 0–1
-
-        # ✅ Optional: Threshold bei 0.5 (oder anpassbar)
-        prognosen = (probs > 0.5).astype(int)  # 1 = BUY, 0 = SELL
-
-        # ✅ Debug-Ausgabe (optional)
-        # for i, (prob, pred) in enumerate(zip(probs[:5], predictions[:5])):
-        # print(f"[{i}] BUY-Wahrscheinlichkeit: {prob:.3f} → Entscheidung: {'BUY' if pred == 1 else 'SELL'}")
-
-    if active_model == "random":
-        prognosen = []
-        for i in range(len(X_test)):
-            prognosen.append(letzte_werte[i] + random.uniform(-0.1, 0.1))
+    prognosen = model_classes[active_model].model_run_fulltest(
+        filename_model, X_test, letzte_werte
+    )
 
     # ✅ Auswertung
     full_erfolge = 0
@@ -688,27 +669,11 @@ def run_fulltest_fast(filename, startzeit=None, endzeit=None):
     for i in range(gesamt_full):
         hit = False
 
-        if active_model == "XGBoost (Values)":
-            if (prognosen[i] > letzte_werte[i] and zielwerte[i] > letzte_werte[i]) or (
-                prognosen[i] < letzte_werte[i] and zielwerte[i] < letzte_werte[i]
-            ):
-                full_erfolge += 1
-                hit = True
-
-        if active_model == "XGBoost (Trend)":
-            richtung = (
-                1 if zielwerte[i] > letzte_werte[i] else 0
-            )  # 1 = Kurs steigt = BUY
-            if prognosen[i] == richtung:
-                full_erfolge += 1
-                hit = True
-
-        if active_model == "random":
-            if (prognosen[i] > letzte_werte[i] and zielwerte[i] > letzte_werte[i]) or (
-                prognosen[i] < letzte_werte[i] and zielwerte[i] < letzte_werte[i]
-            ):
-                full_erfolge += 1
-                hit = True
+        if model_classes[active_model].model_run_fulltest_result(
+            zielwerte, letzte_werte, prognosen, i
+        ):
+            full_erfolge += 1
+            hit = True
 
         if i == 0 or i == 1 or i == len(prognosen) - 1:
             with open("tmp/debug_fulltest.txt", "a", encoding="utf-8") as f:
@@ -840,39 +805,9 @@ async def doBuySellOrder(filename):
 
     doCall = None
 
-    # Prognose durchführen
-    if active_model == "XGBoost (Values)":
-        # GPU-Optimierung (optional, empfohlen für Geschwindigkeit)
-        X_gpu = cp.asarray(X_df)
-        # load model
-        model = xgb.XGBRegressor(tree_method="hist", device="cuda")
-        model.load_model(filename_model)
-        # Wichtig: Booster explizit auf GPU setzen
-        model.get_booster().set_param({"device": "cuda"})
-        # prediction = model.predict(X_gpu).get()
-        prediction = model.get_booster().inplace_predict(X_gpu)
-        print(prediction)
-        prediction = prediction[0]
-        doCall = prediction > aktueller_kurs
-
-    if active_model == "XGBoost (Trend)":
-        # GPU-Optimierung (optional, empfohlen für Geschwindigkeit)
-        X_gpu = cp.asarray(X_df)
-        # Modell laden
-        model = xgb.XGBClassifier(tree_method="hist", device="cuda")
-        model.load_model(filename_model)
-        # Booster auf GPU setzen
-        model.get_booster().set_param({"device": "cuda"})
-        # Wahrscheinlichkeiten vorhersagen (z. B. Wahrscheinlichkeit für "BUY")
-        probs = model.get_booster().inplace_predict(X_gpu)
-        prediction = probs[0]  # z. B. 0.81 = Wahrscheinlichkeit für BUY
-        print(f"📊 BUY-Wahrscheinlichkeit: {prediction:.3f}")
-        threshold = 0.5
-        doCall = prediction > threshold
-
-    if active_model == "random":
-        prediction = aktueller_kurs + random.uniform(-0.1, 0.1)
-        doCall = prediction > aktueller_kurs
+    doCall = model_classes[active_model].model_buy_sell_order(
+        X_df, filename_model, aktueller_kurs
+    )
 
     # dauer
     if pocketoption_demo == 0:
@@ -1216,6 +1151,70 @@ async def printLiveStats():
                     )
                 ) * 100
 
+            abs_amount_rate_100 = 0
+            if (
+                len(
+                    [
+                        deal
+                        for deal in live_data_deals
+                        if deal[len(deal) - 1] == "closed"
+                    ]
+                )
+                > 0
+            ):
+                abs_amount_rate_100 = sum(
+                    float(deal[len(deal) - 5].replace("$", ""))
+                    for deal in [
+                        deal
+                        for deal in live_data_deals
+                        if deal[len(deal) - 1] == "closed"
+                    ][:100]
+                )
+
+            abs_amount_rate_all = 0
+            if (
+                len(
+                    [
+                        deal
+                        for deal in live_data_deals
+                        if deal[len(deal) - 1] == "closed"
+                    ]
+                )
+                > 0
+            ):
+                abs_amount_rate_all = sum(
+                    float(deal[len(deal) - 5].replace("$", ""))
+                    for deal in [
+                        deal
+                        for deal in live_data_deals
+                        if deal[len(deal) - 1] == "closed"
+                    ]
+                )
+
+            abs_amount_rate_today = 0
+            if (
+                len(
+                    [
+                        deal
+                        for deal in live_data_deals
+                        if deal[len(deal) - 1] == "closed"
+                        and datetime.strptime(deal[4], "%d.%m.%y %H:%M:%S").date()
+                        == datetime.now().date()
+                    ]
+                )
+                > 0
+            ):
+                abs_amount_rate_today = sum(
+                    float(deal[len(deal) - 5].replace("$", ""))
+                    for deal in [
+                        deal
+                        for deal in live_data_deals
+                        if deal[len(deal) - 1] == "closed"
+                        and datetime.strptime(deal[4], "%d.%m.%y %H:%M:%S").date()
+                        == datetime.now().date()
+                    ]
+                )
+
             abs_win_rate_100 = 0
             if (
                 len(
@@ -1299,11 +1298,18 @@ async def printLiveStats():
                             f"{needed_percent_rate:.1f}%",
                         ],
                         [
+                            "Einsatz",
+                            f"{abs_amount_rate_all:.1f}$",
+                            f"{abs_amount_rate_100:.1f}$",
+                            f"{abs_amount_rate_today:.1f}$",
+                            "---",
+                        ],
+                        [
                             "Gewinn",
                             f"{abs_win_rate_all:.1f}$",
                             f"{abs_win_rate_100:.1f}$",
                             f"{abs_win_rate_today:.1f}$",
-                            "100$",
+                            "---",
                         ],
                     ],
                     headers=[
@@ -1379,153 +1385,8 @@ def assetIsAvailable(asset):
 
 
 def trainActiveModel(filename):
-
     print(f"✅ Starte Training")
-
-    if active_model == "XGBoost (Values)":
-
-        # CSV-Datei laden
-        df = pd.read_csv(filename)
-
-        # Zeit umwandeln (optional, falls benötigt)
-        df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"], errors="coerce")
-
-        # Sliding-Window Features erstellen
-        window_size = 300  # 5 Minuten Fenster bei 1 Wert pro Sekunde
-        forecast_horizon = 60  # 1 Minute Vorhersage
-        X, y = [], []
-        for i in range(len(df) - window_size - forecast_horizon):
-            window = df["Wert"].iloc[i : i + window_size].values
-            target = df["Wert"].iloc[i + window_size + forecast_horizon]
-            X.append(window)
-            y.append(target)
-        X = pd.DataFrame(X)
-        y = pd.Series(y)
-
-        # 🔑 GPU-Daten explizit erzeugen (CuPy)
-        X_gpu = cp.asarray(X.values)
-        y_gpu = cp.asarray(y.values)
-
-        # XGBoost Modell trainieren
-        model = xgb.XGBRegressor(
-            n_estimators=400,  # ❗NORMAL 500! Mehr Entscheidungsbäume
-            max_depth=5,  # ❗NORMAL 6! Größere Baumtiefe
-            learning_rate=0.02,  # Langsamere Anpassung
-            subsample=0.8,  # Stichprobe von Daten pro Baum
-            colsample_bytree=0.8,  # Teilmenge Features pro Baum
-            tree_method="hist",  # GPU-Training (falls möglich)
-            device="cuda",  # ❗❗❗USE GPU FOR SPEED!
-            verbosity=1,
-        )
-
-        model.fit(X_gpu, y_gpu, eval_set=[(X_gpu, y_gpu)], verbose=True)
-
-        # print('✅ model.fit abgeschlossen')
-
-        # Zurück zur CPU für die Ausgabe der Scores und cross_val_score (funktioniert nur mit CPU!)
-        X_cpu = X_gpu.get()
-        y_cpu = y_gpu.get()
-
-        # print('✅ Starte model.score')
-
-        # set to cpu (needed for further functions)
-        model.set_params(device="cpu")
-
-        # Check, ob Modelltrainierung grundsätzlich erfolgreich war
-        print(f"✅ R²-Score auf Trainingsdaten: {model.score(X_cpu, y_cpu):.4f}")
-
-        tscv = TimeSeriesSplit(n_splits=5)
-        cv_scores = cross_val_score(model, X_cpu, y_cpu, cv=tscv)
-        print(f"✅ Cross-Validation-Score (5 Splits): {cv_scores.mean():.4f}")
-        # 6. Beispielvorhersagen
-        preds = model.predict(X_cpu[:5])
-        print("📈 Beispiel-Predictions:")
-        for idx, (true_val, pred_val) in enumerate(zip(y_cpu[:5], preds)):
-            print(f"  [{idx}] Echt: {true_val:.5f} / Prognose: {pred_val:.5f}")
-
-        # reset to cuda
-        model.set_params(device="cuda")
-
-        # save model
-        model.save_model(filename_model)
-
-    if active_model == "XGBoost (Trend)":
-
-        # CSV-Datei laden
-        df = pd.read_csv(filename)
-        df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"], errors="coerce")
-
-        # Sliding-Window Features erstellen
-        window_size = 300  # 5 Minuten Fenster
-        forecast_horizon = 60  # 1 Minute Vorhersage
-        X, y = [], []
-
-        for i in range(len(df) - window_size - forecast_horizon):
-            window = df["Wert"].iloc[i : i + window_size].values
-            future = df["Wert"].iloc[i + window_size + forecast_horizon]
-            last = window[-1]
-
-            label = 1 if future > last else 0  # BUY = 1, SELL = 0
-            X.append(window)
-            y.append(label)
-
-        X = pd.DataFrame(X)
-        y = pd.Series(y)
-
-        # GPU-Daten (CuPy)
-        X_gpu = cp.asarray(X.values)
-        y_gpu = cp.asarray(y.values)
-
-        # XGBoost Classifier
-        model = xgb.XGBClassifier(
-            objective="binary:logistic",
-            eval_metric="logloss",
-            n_estimators=400,
-            max_depth=5,
-            learning_rate=0.02,
-            subsample=0.8,
-            colsample_bytree=0.8,
-            tree_method="hist",
-            device="cuda",
-            verbosity=1,
-        )
-
-        model.fit(X_gpu, y_gpu, eval_set=[(X_gpu, y_gpu)], verbose=True)
-
-        # Zurück zur CPU
-        X_cpu = X_gpu.get()
-        y_cpu = y_gpu.get()
-        model.set_params(device="cpu")
-
-        # Bewertung
-        accuracy = model.score(X_cpu, y_cpu)
-        print(f"✅ Genauigkeit auf Trainingsdaten: {accuracy:.4f}")
-
-        tscv = TimeSeriesSplit(n_splits=5)
-        cv_scores = cross_val_score(model, X_cpu, y_cpu, cv=tscv)
-        print(f"✅ Cross-Validation-Genauigkeit: {cv_scores.mean():.4f}")
-
-        # Beispiel-Vorhersagen
-        preds = model.predict(X_cpu[:5])
-        probs = model.predict_proba(X_cpu[:5])[:, 1]
-
-        print("📈 Beispiel-Predictions:")
-        for idx, (true_label, pred, prob) in enumerate(zip(y_cpu[:5], preds, probs)):
-            print(
-                f"  [{idx}] Echt: {true_label} / Prognose: {pred} / BUY-Wahrscheinlichkeit: {prob:.3f}"
-            )
-
-        # Zurück auf GPU
-        model.set_params(device="cuda")
-
-        # Modell speichern
-        model.save_model(filename_model)
-
-    if active_model == "random":
-
-        # save model
-        with open(filename_model, "w", encoding="utf-8") as f:
-            json.dump([], f)
+    model_classes[active_model].model_train_model(filename, filename_model)
 
 
 async def hauptmenu():
