@@ -44,7 +44,7 @@ for file in os.listdir("external"):
 
 pocketoption_asset = "AUDCAD_otc"
 pocketoption_demo = 1
-active_model = "XGBoost (Trend)"
+active_model = "random"
 trade_amount = 15
 trade_repeat = 10
 trade_distance = 30
@@ -1656,22 +1656,14 @@ async def auswahl_menue():
             default=pocketoption_demo,
         )
     ]
+
     model_frage = [
         inquirer.List(
             "model",
             message="KI-Modell?",
             choices=[
-                (
-                    (f"[x]" if active_model == "XGBoost (Values)" else "[ ]")
-                    + " XGBoost (Values)",
-                    "XGBoost (Values)",
-                ),
-                (
-                    (f"[x]" if active_model == "XGBoost (Trend)" else "[ ]")
-                    + " XGBoost (Trend)",
-                    "XGBoost (Trend)",
-                ),
-                ((f"[x]" if active_model == "random" else "[ ]") + " random", "random"),
+                (f"[{'x' if name == active_model else ' '}] {name}", name)
+                for name in model_classes.keys()
             ],
             default=active_model,
         )
