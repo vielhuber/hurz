@@ -1,6 +1,5 @@
 #!/bin/bash
-if [ -f .env ]; then
-  export $(grep -v '^#' .env | xargs)
-fi
-zip -r -P "$ZIP_PASSWORD" "./external/models.zip" "./external/*.py"
-echo "✅ Zip abgeschlossen."
+[ -f .env ] && export $(grep -v '^#' .env | xargs)
+zip -r -P "$ZIP_PASSWORD" external/models.zip external/*.py
+git add external/models.zip
+echo "✅ encrypted models."

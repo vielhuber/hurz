@@ -698,24 +698,38 @@ def run_fulltest_fast(filename, startzeit=None, endzeit=None):
     )
 
 
-async def pocketoption_ws(time_back_in_minutes, filename):
+async def pocketoption_load_historic_data(time_back_in_minutes, filename):
     global target_time
 
-    all_ticks = []
-    # create file
-    with open(filename, "w", encoding="utf-8") as file:
-        file.write("Waehrung,Zeitpunkt,Wert\n")  # Header der CSV-Datei
+    # Aktuelle Zeit (jetzt)
+    current_time = int(time.time())
 
-    current_time = int(time.time())  # Aktuelle Zeit (jetzt)
-    target_time = current_time - (
-        time_back_in_minutes * 60
-    )  # X Stunden zurück (anpassen nach Bedarf)
+    # zielzeit (x minuten zurück)
+    target_time = current_time - (time_back_in_minutes * 60)
+
+    # zielzeit anpassen, damit nicht doppelte daten abgerufen werden
+    if os.path.exists(filename):
+        with open(filename, "r", encoding="utf-8") as f:
+            zeilen = [zeile.strip() for zeile in f if zeile.strip()]
+            if len(zeilen) > 1:
+                letzte = zeilen[-1].split(",")
+                zeitstempel_str = letzte[1]
+                print(f"📅 Letzter Zeitwert: {zeitstempel_str}")
+                dt = datetime.strptime(zeitstempel_str, "%Y-%m-%d %H:%M:%S.%f")
+                target_time = int(dt.timestamp())
+
+    # startzeit
     request_time = current_time
 
     period = 1  # Kerzen: 5 Sekunden
     offset = 1800  # Sprungweite (z.B. 30 Minuten pro Request), in Sekunden
     overlap = 60  # Überlappung von 1 Minute (60 Sekunden) pro Request
     index = 174336071151  # random unique number
+
+    # create file if not exists
+    if not os.path.exists(filename):
+        with open(filename, "w", encoding="utf-8") as file:
+            file.write("Waehrung,Zeitpunkt,Wert\n")  # Header der CSV-Datei
 
     with open("tmp/historic_data_status.json", "w", encoding="utf-8") as file:
         file.write("pending")
@@ -754,20 +768,40 @@ async def pocketoption_ws(time_back_in_minutes, filename):
             with open("tmp/historic_data_raw.json", "r", encoding="utf-8") as f:
                 raw = json.load(f)
             if raw:
-                df = pd.DataFrame(raw, columns=["Waehrung", "Zeitpunkt", "Wert"])
+                df_neu = pd.DataFrame(raw, columns=["Waehrung", "Zeitpunkt", "Wert"])
+                df_neu["Zeitpunkt"] = pd.to_datetime(
+                    df_neu["Zeitpunkt"], errors="coerce"
+                )
+                df_neu.dropna(subset=["Zeitpunkt"], inplace=True)
+                # Resample auf 1 Sekunde (nur auf Zeitpunkt)
+                df_neu.set_index("Zeitpunkt", inplace=True)
+                df_neu = df_neu.resample("1s").last().dropna().reset_index()
+                # 5 Nachkommastellen erhalten
+                df_neu["Wert"] = df_neu["Wert"].astype(float).map(lambda x: f"{x:.5f}")
+                # Nach Resampling Spalten sauber sortieren
+                df_neu = df_neu[["Waehrung", "Zeitpunkt", "Wert"]]
+                # Zeitpunkt schön formatieren
+                df_neu["Zeitpunkt"] = df_neu["Zeitpunkt"].dt.strftime(
+                    "%Y-%m-%d %H:%M:%S.%f"
+                )
+
+                # Bestehende Datei einlesen, wenn vorhanden
+                if os.path.exists(filename):
+                    df_alt = pd.read_csv(filename)
+                    df = pd.concat([df_alt, df_neu], ignore_index=True)
+                else:
+                    df = df_neu
+
+                # Alles nach Zeit sortieren und doppelte Zeilen entfernen
                 df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"], errors="coerce")
                 df.dropna(subset=["Zeitpunkt"], inplace=True)
-                # Resample auf 1 Sekunde (nur auf Zeitpunkt)
-                df.set_index("Zeitpunkt", inplace=True)
-                df = df.resample("1s").last().dropna().reset_index()
-                # Nach Resampling Spalten sauber sortieren
-                df = df[["Waehrung", "Zeitpunkt", "Wert"]]
-                # Zeitpunkt schön formatieren
+                df = df.sort_values("Zeitpunkt").drop_duplicates(
+                    subset=["Waehrung", "Zeitpunkt"]
+                )
+
+                # Wieder als string formatieren
                 df["Zeitpunkt"] = df["Zeitpunkt"].dt.strftime("%Y-%m-%d %H:%M:%S.%f")
                 df.to_csv(filename, index=False)
-                print(
-                    "✅ Daten wurden auf 1 Sekunde ausgedünnt, sortiert und gespeichert."
-                )
 
                 with open("tmp/historic_data_raw.json", "w", encoding="utf-8") as file:
                     json.dump([], file)
@@ -1500,7 +1534,11 @@ async def hauptmenu():
             continue
 
         if antworten["auswahl"] == option1:
-            await pocketoption_ws(24 * 60, filename_historic_data)  # 24 hours
+            await pocketoption_load_historic_data(
+                # 2 * 30.25 * 24 * 60,
+                6 * 60,
+                filename_historic_data,
+            )  # 2 months
             await asyncio.sleep(3)
 
         elif antworten["auswahl"] == option2:
@@ -1528,7 +1566,9 @@ async def hauptmenu():
             for i in range(trade_repeat):
                 print(f"🚀 Orderdurchlauf {i+1}/{trade_repeat}")
 
-                await pocketoption_ws(10, "tmp/tmp_live_data.csv")  # 10 minutes
+                await pocketoption_load_historic_data(
+                    10, "tmp/tmp_live_data.csv"
+                )  # 10 minutes
                 await asyncio.sleep(0)
                 report = run_fulltest_fast("tmp/tmp_live_data.csv", None, None)
                 print(report)
