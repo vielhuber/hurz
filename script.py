@@ -285,6 +285,8 @@ async def ws_receive_loop(ws):
             elif isinstance(message, bytes):
                 if binary_expected_event == "loadHistoryPeriod":
                     json_data = json.loads(message.decode("utf-8"))
+                    print(f"ERHALTEN?")
+                    print(json_data)
                     if (
                         isinstance(json_data, dict)
                         and isinstance(json_data["data"], list)
@@ -698,7 +700,7 @@ def run_fulltest_fast(filename, startzeit=None, endzeit=None):
     )
 
 
-async def pocketoption_load_historic_data(time_back_in_minutes, filename):
+async def pocketoption_load_historic_data(filename, time_back_in_minutes):
     global target_time
 
     # Aktuelle Zeit (jetzt)
@@ -716,14 +718,15 @@ async def pocketoption_load_historic_data(time_back_in_minutes, filename):
                 zeitstempel_str = letzte[1]
                 print(f"📅 Letzter Zeitwert: {zeitstempel_str}")
                 dt = datetime.strptime(zeitstempel_str, "%Y-%m-%d %H:%M:%S.%f")
-                target_time = int(dt.timestamp())
+                if target_time < int(dt.timestamp()):
+                    target_time = int(dt.timestamp())
 
     # startzeit
     request_time = current_time
 
-    period = 1  # Kerzen: 5 Sekunden
-    offset = 1800  # Sprungweite (z.B. 30 Minuten pro Request), in Sekunden
-    overlap = 60  # Überlappung von 1 Minute (60 Sekunden) pro Request
+    period = 60  # Kerzen: 60 Sekunden
+    offset = 30 * 60  # Sprungweite pro Request: 30 Minuten
+    overlap = 2 * 60  # Überlappung von 2 Minute (60 Sekunden) pro Request
     index = 174336071151  # random unique number
 
     # create file if not exists
@@ -755,10 +758,14 @@ async def pocketoption_load_historic_data(time_back_in_minutes, filename):
         print(
             f"Historische Daten angefordert für Zeitraum: {datetime.fromtimestamp(request_time)}"
         )
+        if target_time is not None:
+            print(
+                f"❗❗Prozent: {(round(100*(1-((request_time - target_time) / (current_time - target_time)))))}%"
+            )
 
         request_time -= offset - overlap
 
-        await asyncio.sleep(1)  # kurze Pause zwischen den Anfragen
+        await asyncio.sleep(10)  # kurze Pause zwischen den Anfragen
 
     while True:
         with open("tmp/historic_data_status.json", "r", encoding="utf-8") as f:
@@ -776,7 +783,6 @@ async def pocketoption_load_historic_data(time_back_in_minutes, filename):
                 # Resample auf 1 Sekunde (nur auf Zeitpunkt)
                 df_neu.set_index("Zeitpunkt", inplace=True)
                 df_neu = df_neu.resample("1s").last().dropna().reset_index()
-                # 5 Nachkommastellen erhalten
                 df_neu["Wert"] = df_neu["Wert"].astype(float).map(lambda x: f"{x:.5f}")
                 # Nach Resampling Spalten sauber sortieren
                 df_neu = df_neu[["Waehrung", "Zeitpunkt", "Wert"]]
@@ -791,6 +797,11 @@ async def pocketoption_load_historic_data(time_back_in_minutes, filename):
                     df = pd.concat([df_alt, df_neu], ignore_index=True)
                 else:
                     df = df_neu
+
+                # 5 Nachkommastellen erhalten
+                df["Wert"] = pd.to_numeric(df["Wert"], errors="coerce").map(
+                    lambda x: f"{x:.5f}" if pd.notnull(x) else ""
+                )
 
                 # Alles nach Zeit sortieren und doppelte Zeilen entfernen
                 df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"], errors="coerce")
@@ -1535,10 +1546,8 @@ async def hauptmenu():
 
         if antworten["auswahl"] == option1:
             await pocketoption_load_historic_data(
-                # 2 * 30.25 * 24 * 60,
-                6 * 60,
-                filename_historic_data,
-            )  # 2 months
+                filename_historic_data, 3 * 30.25 * 24 * 60  # 3 months
+            )
             await asyncio.sleep(3)
 
         elif antworten["auswahl"] == option2:
@@ -1567,8 +1576,8 @@ async def hauptmenu():
                 print(f"🚀 Orderdurchlauf {i+1}/{trade_repeat}")
 
                 await pocketoption_load_historic_data(
-                    10, "tmp/tmp_live_data.csv"
-                )  # 10 minutes
+                    "tmp/tmp_live_data.csv", 10  # 10 minutes
+                )
                 await asyncio.sleep(0)
                 report = run_fulltest_fast("tmp/tmp_live_data.csv", None, None)
                 print(report)
