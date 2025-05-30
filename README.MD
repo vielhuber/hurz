@@ -14,7 +14,7 @@
 
 -   place your custom models inside `external` (see `random.py`)
 -   premium models can be decrypted via `unzip -o -P PREMIUMPASSWORD external/models.zip`
--   to automatically push changed models encrypted use `cp post-commit .git/hooks/post-commit && chmod +x .git/hooks/post-commit`
+-   to automatically push changed models use `cp post-commit .git/hooks/post-commit && chmod +x .git/hooks/post-commit`
 
 ## create .env
 
