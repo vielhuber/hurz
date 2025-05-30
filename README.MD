@@ -19,7 +19,7 @@
 
 ## create .env
 
--   log in     to https://pocketoption.com
+-   log in             to https://pocketoption.com
 -   go to https://pocketoption.com/cabinet/demo-quick-high-low
 -   run in console
 
