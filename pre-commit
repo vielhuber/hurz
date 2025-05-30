@@ -1,5 +1,0 @@
-#!/bin/bash
-[ -f .env ] && export $(grep -v '^#' .env | xargs)
-zip -r -P "$ZIP_PASSWORD" external/models.zip external/*.py
-git add external/models.zip
-echo "✅ encrypted models."

@@ -1,8 +1,6 @@
 ## setup
 
 -   `git clone git@github.com:vielhuber/hurz.git .`
--   `cp pre-commit .git/hooks/pre-commit`
--   `chmod +x .git/hooks/pre-commit`
 -   `python -m venv venv`
 -   `pip install -r requirements.txt`
 -   `cp .env.example .env`
@@ -16,6 +14,7 @@
 
 -   place your custom models inside `external` (see `random.py`)
 -   premium models can be decrypted via `unzip -o -P PREMIUMPASSWORD external/models.zip`
+-   to automatically push changed models encrypted use `cp post-commit .git/hooks/post-commit && chmod +x .git/hooks/post-commit`
 
 ## create .env
 

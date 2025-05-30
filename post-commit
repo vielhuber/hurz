@@ -1,0 +1,10 @@
+#!/bin/bash
+[ -f .skip-post-commit ] && exit 0
+[ -f .env ] && export $(grep -v '^#' .env | xargs)
+zip -r -P "$ZIP_PASSWORD" external/models.zip external/*.py
+MSG="- Update encrypted models."
+git add external/models.zip
+touch .skip-post-commit
+git commit --no-verify -m "$MSG"
+rm .skip-post-commit
+echo "$MSG"
