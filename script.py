@@ -300,19 +300,20 @@ async def ws_receive_loop(ws):
             elif isinstance(message, bytes):
                 if binary_expected_event == "loadHistoryPeriod":
                     json_data = json.loads(message.decode("utf-8"))
-                    print(f"ERHALTEN?")
-                    print(json_data)
+                    # print(f"ERHALTEN?")
+                    # print(json_data)
                     if (
                         isinstance(json_data, dict)
                         and isinstance(json_data["data"], list)
-                        and "price" in json_data["data"][0]
-                        and json_data["data"][0]["price"] is not None
+                        and "open" in json_data["data"][0]
+                        and json_data["data"][0]["open"] is not None
                         and all(k in json_data for k in ["asset", "index", "data"])
                     ):
                         print("✅ Gewünschte historische Daten erhalten!")
                         asset = json_data["asset"]
                         index = json_data["index"]
                         data = json_data["data"]
+
                         print(
                             f"-------------------------------------------------------------------"
                         )
@@ -329,11 +330,13 @@ async def ws_receive_loop(ws):
                             daten = []
 
                             for tick in data:
-                                zeitpunkt = datetime.fromtimestamp(
+                                zeitpunkt_beginn = datetime.fromtimestamp(
                                     tick["time"]
                                 ).strftime("%Y-%m-%d %H:%M:%S.%f")
-                                wert = f"{float(tick['price']):.5f}"  # explizit float und exakt 5 Nachkommastellen!
-                                daten.append([asset, zeitpunkt, wert])
+                                wert_beginn = f"{float(tick['open']):.5f}"  # explizit float und exakt 5 Nachkommastellen!
+                                daten.append(
+                                    [tick["asset"], zeitpunkt_beginn, wert_beginn]
+                                )
 
                             with open(
                                 "tmp/historic_data_raw.json", "r+", encoding="utf-8"
@@ -739,10 +742,10 @@ async def pocketoption_load_historic_data(filename, time_back_in_minutes):
     # startzeit
     request_time = current_time
 
-    period = 60  # Kerzen: 60 Sekunden
-    offset = 30 * 60  # Sprungweite pro Request: 30 Minuten
-    overlap = 2 * 60  # Überlappung von 2 Minute (60 Sekunden) pro Request
-    index = 174336071151  # random unique number
+    period = 60  # ✅ Kerzen: 60 Sekunden
+    offset = 150 * 60  # Sprungweite pro Request: 150 Minuten
+    overlap = 2 * 60  # ✅ Überlappung von 2 Minute (60 Sekunden) pro Request
+    index = 174336071151  # ✅ random unique number
 
     # create file if not exists
     if not os.path.exists(filename):
@@ -780,7 +783,7 @@ async def pocketoption_load_historic_data(filename, time_back_in_minutes):
 
         request_time -= offset - overlap
 
-        await asyncio.sleep(10)  # kurze Pause zwischen den Anfragen
+        await asyncio.sleep(1)  # kurze Pause zwischen den Anfragen
 
     while True:
         with open("tmp/historic_data_status.json", "r", encoding="utf-8") as f:
@@ -1567,7 +1570,9 @@ async def hauptmenu():
 
         if antworten["auswahl"] == option1:
             await pocketoption_load_historic_data(
-                filename_historic_data, 3 * 30.25 * 24 * 60  # 3 months
+                filename_historic_data,
+                # 3 * 30.25 * 24 * 60  # 3 months
+                7 * 24 * 60,  # 1 week
             )
             await asyncio.sleep(3)
 
