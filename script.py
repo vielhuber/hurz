@@ -42,12 +42,14 @@ for file in os.listdir("external"):
             if isinstance(obj, type) and hasattr(obj, "name"):
                 model_classes[obj.name] = obj
 
-pocketoption_asset = "AUDCAD_otc"
-pocketoption_demo = 1
+trade_asset = "AUDCAD_otc"
+is_demo_account = 1
 active_model = "random"
+trade_platform = "pocketoption"
 trade_amount = 15
 trade_repeat = 10
 trade_distance = 30
+trade_time = 60
 sound_effects = 1
 filename_historic_data = None
 filename_model = None
@@ -58,36 +60,49 @@ for ordner in ["tmp", "data", "models"]:
 
 
 def loadSettings():
-    global pocketoption_asset
-    global pocketoption_demo
+    global trade_asset
+    global is_demo_account
     global active_model
+    global trade_platform
     global trade_amount
     global trade_repeat
     global trade_distance
+    global trade_time
     global sound_effects
     global filename_historic_data
     global filename_model
-    if os.path.exists("tmp/settings.json"):
+    if os.path.exists("data/settings.json"):
         try:
-            with open("tmp/settings.json", "r", encoding="utf-8") as f:
+            with open("data/settings.json", "r", encoding="utf-8") as f:
                 einstellungen = json.load(f)
-                pocketoption_asset = einstellungen.get("asset", pocketoption_asset)
-                pocketoption_demo = einstellungen.get("demo", pocketoption_demo)
+                trade_asset = einstellungen.get("asset", trade_asset)
+                is_demo_account = einstellungen.get("demo", is_demo_account)
                 active_model = einstellungen.get("model", active_model)
+                trade_platform = einstellungen.get("trade_platform", trade_platform)
                 trade_amount = einstellungen.get("trade_amount", trade_amount)
                 trade_repeat = einstellungen.get("trade_repeat", trade_repeat)
                 trade_distance = einstellungen.get("trade_distance", trade_distance)
+                trade_time = einstellungen.get("trade_time", trade_time)
                 sound_effects = einstellungen.get("sound_effects", sound_effects)
         except Exception as e:
             print("⚠️ Fehler beim Laden der Einstellungen:", e)
     filename_historic_data = (
-        "data/historic_data_" + slugify(pocketoption_asset) + ".csv"
+        "data/historic_data_"
+        + slugify(trade_platform)
+        + "_"
+        + slugify(trade_asset)
+        + ".csv"
     )
     filename_model = (
         "models/model_"
+        + slugify(trade_platform)
+        + "_"
         + slugify(active_model)
         + "_"
-        + slugify(pocketoption_asset)
+        + slugify(trade_asset)
+        + "_"
+        + str(trade_time)
+        + "s"
         + ".json"
     )
 
@@ -116,7 +131,7 @@ async def setup_websockets():
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
         "Accept-Language": "de-DE,de;q=0.9,en;q=0.8",
     }
-    if pocketoption_demo == 0:
+    if is_demo_account == 0:
         suffix_id = os.getenv("LIVE_SUFFIX_ID")
         pocketoption_session_id = os.getenv("LIVE_SESSION_ID")
         pocketoption_url = "wss://api-eu.po.market/socket.io/?EIO=4&transport=websocket"
@@ -135,7 +150,7 @@ async def setup_websockets():
             "wss://demo-api-eu.po.market/socket.io/?EIO=4&transport=websocket"
         )
         pocketoption_session_string = pocketoption_session_id
-    pocketoption_auth_payload = f'42["auth",{{"session":"{pocketoption_session_string}","isDemo":{pocketoption_demo},"uid":{user_id},"platform":2}}]'
+    pocketoption_auth_payload = f'42["auth",{{"session":"{pocketoption_session_string}","isDemo":{is_demo_account},"uid":{user_id},"platform":2}}]'
 
     # sicherstellen, dass Datei existiert
     if not os.path.exists("tmp/ws.txt"):
@@ -383,7 +398,7 @@ async def ws_receive_loop(ws):
                         vorhandene_deals.extend(format_deals(data, "open"))
                         # sort
                         vorhandene_deals.sort(
-                            key=lambda x: datetime.strptime(x[4], "%d.%m.%y %H:%M:%S"),
+                            key=lambda x: datetime.strptime(x[6], "%d.%m.%y %H:%M:%S"),
                             reverse=True,
                         )
                         # permanently store
@@ -421,7 +436,7 @@ async def ws_receive_loop(ws):
 
                         # sort
                         vorhandene_deals.sort(
-                            key=lambda x: datetime.strptime(x[4], "%d.%m.%y %H:%M:%S"),
+                            key=lambda x: datetime.strptime(x[6], "%d.%m.%y %H:%M:%S"),
                             reverse=True,
                         )
                         # permanently store
@@ -451,7 +466,7 @@ async def ws_receive_loop(ws):
                         vorhandene_deals.extend(format_deals([data], "open"))
                         # sort
                         vorhandene_deals.sort(
-                            key=lambda x: datetime.strptime(x[4], "%d.%m.%y %H:%M:%S"),
+                            key=lambda x: datetime.strptime(x[6], "%d.%m.%y %H:%M:%S"),
                             reverse=True,
                         )
                         # permanently store
@@ -489,7 +504,7 @@ async def ws_receive_loop(ws):
                         )
                         # sort
                         vorhandene_deals.sort(
-                            key=lambda x: datetime.strptime(x[4], "%d.%m.%y %H:%M:%S"),
+                            key=lambda x: datetime.strptime(x[6], "%d.%m.%y %H:%M:%S"),
                             reverse=True,
                         )
                         # permanently store
@@ -575,7 +590,7 @@ async def send_order(asset, amount, action, duration):
             "asset": asset,
             "amount": amount,
             "action": action,  # "call" (steigend) oder "put" (fallend)
-            "isDemo": pocketoption_demo,  # 1 für Demo, 0 für echtes Konto
+            "isDemo": is_demo_account,  # 1 für Demo, 0 für echtes Konto
             "requestId": random.randint(1000000, 99999999),  # Eindeutige ID generieren
             "optionType": 100,  # Fixe ID von PocketOption für kurzfristige Optionen
             "time": duration,  # Laufzeit in Sekunden (z.B. 60)
@@ -744,7 +759,7 @@ async def pocketoption_load_historic_data(filename, time_back_in_minutes):
         history_request = [
             "loadHistoryPeriod",
             {
-                "asset": pocketoption_asset,
+                "asset": trade_asset,
                 "time": request_time,
                 "index": index,
                 "offset": offset * 1000,
@@ -855,7 +870,7 @@ async def doBuySellOrder(filename):
     )
 
     # dauer
-    if pocketoption_demo == 0:
+    if is_demo_account == 0:
         duration = 60
     else:
         duration = 60
@@ -865,23 +880,25 @@ async def doBuySellOrder(filename):
     if doCall:
         print(f"✅ CALL-Option (steigend) kaufen!")
         await send_order(
-            pocketoption_asset, amount=trade_amount, action="call", duration=duration
+            trade_asset, amount=trade_amount, action="call", duration=duration
         )
     else:
         print(f"✅ PUT-Option (fallend) kaufen!")
         await send_order(
-            pocketoption_asset, amount=trade_amount, action="put", duration=duration
+            trade_asset, amount=trade_amount, action="put", duration=duration
         )
 
 
-def getModelFromId(id):
-    csv_path = "data/id_models.csv"
+def getAdditionalInformationFromId(id):
+    csv_path = "data/additional_information.csv"
 
     # Datei anlegen, falls sie nicht existiert
     if not os.path.exists(csv_path):
         with open(csv_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow(["id", "model"])  # Header schreiben
+            writer.writerow(
+                ["id", "model", "trade_time", "trade_platform"]
+            )  # Header schreiben
 
     # Datei einlesen
     with open(csv_path, "r", newline="", encoding="utf-8") as f:
@@ -891,15 +908,14 @@ def getModelFromId(id):
     # Nach ID suchen
     for zeile in eintraege:
         if zeile["id"] == id:
-            print(f"✅ Modell für ID {id}: {zeile['model']}")
-            return zeile["model"]
+            return zeile
 
-    # ID nicht gefunden → neuen Eintrag mit aktuellem Modell speichern
+    # ID nicht gefunden → neuen Eintrag speichern
     with open(csv_path, "a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow([id, active_model])
-        print(f"💾 Neues Modell für ID {id} gespeichert: {active_model}")
-        return active_model
+        writer.writerow([id, active_model, trade_time, trade_platform])
+        # print(f"💾 Neues Modell für ID {id} gespeichert: {active_model}")
+        return [id, active_model, trade_time, trade_platform]
 
 
 def format_deals(data, type):
@@ -923,7 +939,9 @@ def format_deals(data, type):
                     deal.get("id").split("-")[0],
                     format_waehrung(deal.get("asset")),
                     "ja" if deal.get("isDemo") == 1 else "nein",
-                    getModelFromId(deal.get("id")),
+                    getAdditionalInformationFromId(deal.get("id"))["model"],
+                    getAdditionalInformationFromId(deal.get("id"))["trade_time"],
+                    getAdditionalInformationFromId(deal.get("id"))["trade_platform"],
                     datetime.fromtimestamp(
                         deal.get("openTimestamp"), tz=timezone.utc
                     ).strftime("%d.%m.%y %H:%M:%S"),
@@ -1003,6 +1021,8 @@ async def printLiveStats():
                 # "Währung",
                 "Währung",
                 "Demo",
+                "Sekunden",
+                "Platform",
                 "Model",
                 "Beginn",
                 "Ende",
@@ -1058,15 +1078,15 @@ async def printLiveStats():
                 local = pytz.timezone(
                     "Europe/Berlin"
                 )  # oder deine echte lokale Zeitzone
-                naiv = datetime.strptime(deal[5], "%d.%m.%y %H:%M:%S")  # noch ohne TZ
+                naiv = datetime.strptime(deal[7], "%d.%m.%y %H:%M:%S")  # noch ohne TZ
                 close_ts = local.localize(naiv).astimezone(pytz.utc)
                 now = datetime.now(pytz.utc)
                 diff = int((close_ts - now).total_seconds())
                 diff = diff - 2  # puffer
                 if diff > 0:
-                    deal[6] = f"{diff}s"
+                    deal[8] = f"{diff}s"
                 else:
-                    deal[6] = "---"
+                    deal[8] = "---"
 
             live_data_deals_output = tabulate(
                 live_data_deals[:10],
@@ -1163,7 +1183,7 @@ async def printLiveStats():
                         deal
                         for deal in live_data_deals
                         if deal[len(deal) - 1] == "closed"
-                        and datetime.strptime(deal[4], "%d.%m.%y %H:%M:%S").date()
+                        and datetime.strptime(deal[6], "%d.%m.%y %H:%M:%S").date()
                         == datetime.now().date()
                     ]
                 )
@@ -1178,7 +1198,7 @@ async def printLiveStats():
                                 for deal in live_data_deals
                                 if deal[len(deal) - 1] == "closed"
                                 and datetime.strptime(
-                                    deal[4], "%d.%m.%y %H:%M:%S"
+                                    deal[6], "%d.%m.%y %H:%M:%S"
                                 ).date()
                                 == datetime.now().date()
                             ]
@@ -1190,7 +1210,7 @@ async def printLiveStats():
                             deal
                             for deal in live_data_deals
                             if deal[len(deal) - 1] == "closed"
-                            and datetime.strptime(deal[4], "%d.%m.%y %H:%M:%S").date()
+                            and datetime.strptime(deal[6], "%d.%m.%y %H:%M:%S").date()
                             == datetime.now().date()
                         ]
                     )
@@ -1243,7 +1263,7 @@ async def printLiveStats():
                         deal
                         for deal in live_data_deals
                         if deal[len(deal) - 1] == "closed"
-                        and datetime.strptime(deal[4], "%d.%m.%y %H:%M:%S").date()
+                        and datetime.strptime(deal[6], "%d.%m.%y %H:%M:%S").date()
                         == datetime.now().date()
                     ]
                 )
@@ -1255,7 +1275,7 @@ async def printLiveStats():
                         deal
                         for deal in live_data_deals
                         if deal[len(deal) - 1] == "closed"
-                        and datetime.strptime(deal[4], "%d.%m.%y %H:%M:%S").date()
+                        and datetime.strptime(deal[6], "%d.%m.%y %H:%M:%S").date()
                         == datetime.now().date()
                     ]
                 )
@@ -1307,7 +1327,7 @@ async def printLiveStats():
                         deal
                         for deal in live_data_deals
                         if deal[len(deal) - 1] == "closed"
-                        and datetime.strptime(deal[4], "%d.%m.%y %H:%M:%S").date()
+                        and datetime.strptime(deal[6], "%d.%m.%y %H:%M:%S").date()
                         == datetime.now().date()
                     ]
                 )
@@ -1319,7 +1339,7 @@ async def printLiveStats():
                         deal
                         for deal in live_data_deals
                         if deal[len(deal) - 1] == "closed"
-                        and datetime.strptime(deal[4], "%d.%m.%y %H:%M:%S").date()
+                        and datetime.strptime(deal[6], "%d.%m.%y %H:%M:%S").date()
                         == datetime.now().date()
                     ]
                 )
@@ -1493,13 +1513,14 @@ async def hauptmenu():
                 "auswahl",
                 message=(
                     f'T: {datetime.now().strftime("%H:%M:%S")} | '
+                    f"P: {trade_platform} | "
                     f"KTO: {live_data_balance_formatted}$ | "
                     f"WS: {'1' if _ws_connection is not None else '0'} | "
-                    f"DEMO: {'1' if pocketoption_demo == 1 else '0'} | "
+                    f"DEMO: {'1' if is_demo_account == 1 else '0'} | "
                     f"TON: {'1' if sound_effects == 1 else '0'}\n"
                     f"MDL: {active_model} | "
-                    f"CUR: {format_waehrung(pocketoption_asset)} | "
-                    f"TRD: {trade_amount}$/{trade_repeat}x/{trade_distance}s"
+                    f"CUR: {format_waehrung(trade_asset)} | "
+                    f"TRD: {trade_amount}$/{trade_time}/{trade_repeat}x/{trade_distance}s"
                 ),
                 choices=(
                     [
@@ -1537,9 +1558,9 @@ async def hauptmenu():
 
         if (
             antworten["auswahl"] == option1 or antworten["auswahl"] == option5
-        ) and assetIsAvailable(pocketoption_asset) is False:
+        ) and assetIsAvailable(trade_asset) is False:
             print(
-                f"❌ Handelspaar {pocketoption_asset} ist nicht verfügbar. Bitte wähle ein anderes."
+                f"❌ Handelspaar {trade_asset} ist nicht verfügbar. Bitte wähle ein anderes."
             )
             await asyncio.sleep(3)
             continue
@@ -1661,12 +1682,14 @@ async def shutdown():
 
 
 async def auswahl_menue():
-    global pocketoption_asset
-    global pocketoption_demo
+    global trade_asset
+    global is_demo_account
     global active_model
+    global trade_platform
     global trade_amount
     global trade_repeat
     global trade_distance
+    global trade_time
     global sound_effects
 
     # Choices dynamisch bauen
@@ -1676,7 +1699,7 @@ async def auswahl_menue():
     for eintrag in assets:
         choices.append(
             (
-                (f"[x]" if pocketoption_asset == eintrag["name"] else "[ ]")
+                (f"[x]" if trade_asset == eintrag["name"] else "[ ]")
                 + " "
                 + eintrag["label"]
                 + " ("
@@ -1691,7 +1714,7 @@ async def auswahl_menue():
             "asset",
             message="Wähle ein Handelspaar",
             choices=choices,
-            default=pocketoption_asset,
+            default=trade_asset,
         )
     ]
     demo_frage = [
@@ -1699,10 +1722,10 @@ async def auswahl_menue():
             "demo",
             message="Demo-Modus?",
             choices=[
-                ((f"[x]" if pocketoption_demo == 1 else "[ ]") + " Ja", 1),
-                ((f"[x]" if pocketoption_demo == 0 else "[ ]") + " Nein", 0),
+                ((f"[x]" if is_demo_account == 1 else "[ ]") + " Ja", 1),
+                ((f"[x]" if is_demo_account == 0 else "[ ]") + " Nein", 0),
             ],
-            default=pocketoption_demo,
+            default=is_demo_account,
         )
     ]
 
@@ -1770,6 +1793,18 @@ async def auswahl_menue():
         print("⚠️ Ungültige Eingabe, Standardwert 30 wird verwendet.")
         auswahl_trade_distance = 30
 
+    try:
+        os.system("cls" if os.name == "nt" else "clear")
+        auswahl_trade_time_input = input(
+            f"Trading-Dauer s? (aktuell: {trade_time}): "
+        ).strip()
+        auswahl_trade_time = (
+            int(auswahl_trade_time_input) if auswahl_trade_time_input else trade_time
+        )
+    except ValueError:
+        print("⚠️ Ungültige Eingabe, Standardwert 60 wird verwendet.")
+        auswahl_trade_time = 60
+
     sound_effects_frage = [
         inquirer.List(
             "sound_effects",
@@ -1785,6 +1820,24 @@ async def auswahl_menue():
         None, lambda: inquirer.prompt(sound_effects_frage)
     )
 
+    trade_platform_frage = [
+        inquirer.List(
+            "trade_platform",
+            message="Trading-Plattform?",
+            choices=[
+                (
+                    (f"[x]" if trade_platform == "pocketoption" else "[ ]")
+                    + " pocketoption",
+                    "pocketoption",
+                ),
+            ],
+            default=trade_platform,
+        )
+    ]
+    auswahl_trade_platform = await asyncio.get_event_loop().run_in_executor(
+        None, lambda: inquirer.prompt(trade_platform_frage)
+    )
+
     if (
         auswahl_asset
         and auswahl_demo
@@ -1792,7 +1845,9 @@ async def auswahl_menue():
         and auswahl_trade_amount
         and auswahl_trade_repeat
         and auswahl_trade_distance
+        and auswahl_trade_time
         and auswahl_sound_effects
+        and auswahl_trade_platform
     ):
         neues_asset = auswahl_asset["asset"]
         neuer_demo = auswahl_demo["demo"]
@@ -1800,45 +1855,61 @@ async def auswahl_menue():
         neues_trade_amount = auswahl_trade_amount
         neues_trade_repeat = auswahl_trade_repeat
         neues_trade_distance = auswahl_trade_distance
+        neues_trade_time = auswahl_trade_time
         neues_sound_effects = auswahl_sound_effects["sound_effects"]
+        neues_trade_platform = auswahl_trade_platform["trade_platform"]
 
         print("🔁 Starte neu...")
         restart = False
-        if pocketoption_demo != neuer_demo:
+        if is_demo_account != neuer_demo:
             restart = True
-        pocketoption_asset = neues_asset
-        pocketoption_demo = neuer_demo
+        trade_asset = neues_asset
+        is_demo_account = neuer_demo
         active_model = neues_model
+        trade_platform = neues_trade_platform
         trade_amount = neues_trade_amount
         trade_repeat = neues_trade_repeat
         trade_distance = neues_trade_distance
+        trade_time = neues_trade_time
         sound_effects = neues_sound_effects
 
         # Datei aktualisieren
         global filename_historic_data
         global filename_model
         filename_historic_data = (
-            "data/historic_data_" + slugify(pocketoption_asset) + ".csv"
+            "data/historic_data_"
+            + slugify(trade_platform)
+            + "_"
+            + slugify(trade_asset)
+            + ".csv"
         )
+
         filename_model = (
             "models/model_"
+            + slugify(trade_platform)
+            + "_"
             + slugify(active_model)
             + "_"
-            + slugify(pocketoption_asset)
+            + slugify(trade_asset)
+            + "_"
+            + str(trade_time)
+            + "s"
             + ".json"
         )
 
         # Einstellungen speichern
         try:
-            with open("tmp/settings.json", "w", encoding="utf-8") as f:
+            with open("data/settings.json", "w", encoding="utf-8") as f:
                 json.dump(
                     {
-                        "asset": pocketoption_asset,
-                        "demo": pocketoption_demo,
+                        "asset": trade_asset,
+                        "demo": is_demo_account,
                         "model": active_model,
+                        "trade_platform": trade_platform,
                         "trade_amount": trade_amount,
                         "trade_repeat": trade_repeat,
                         "trade_distance": trade_distance,
+                        "trade_time": trade_time,
                         "sound_effects": sound_effects,
                     },
                     f,
