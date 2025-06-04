@@ -117,6 +117,8 @@ laufende_tasks = []
 main_menu_default = None
 reconnect_last_try = None
 binary_expected_event = None
+train_window = 5  # Input-Zeitraum, 5 Minuten
+train_horizon = 1  # Vorhersagefenster, 1 Minute
 
 
 async def setup_websockets():
@@ -607,12 +609,6 @@ async def send_order(asset, amount, action, duration):
 
 
 def run_fulltest_fast(filename, startzeit=None, endzeit=None):
-
-    window = 300  # Größe des Input-Fensters (300 Sekunden = 5 Minuten), muss genauso groß sein wie beim Training
-    horizon = (
-        60  # Vorhersagehorizont (60 Sekunden), muss genauso groß sein wie beim Training
-    )
-
     df = pd.read_csv(filename)
     df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
 
@@ -644,8 +640,8 @@ def run_fulltest_fast(filename, startzeit=None, endzeit=None):
 
     while True:
         start = start_index + i
-        ende = start + window
-        ziel = ende + horizon
+        ende = start + train_window
+        ziel = ende + train_horizon
 
         if ziel > end_index:
             break
@@ -671,7 +667,7 @@ def run_fulltest_fast(filename, startzeit=None, endzeit=None):
                 f.write(f"  fenster: {fenster.tolist()}\n")
                 f.write("\n")
 
-        if len(fenster) == window:
+        if len(fenster) == train_window:
             X_test.append(fenster)
             zielwerte.append(zielwert)
             letzte_werte.append(letzter_wert)
@@ -718,8 +714,15 @@ def run_fulltest_fast(filename, startzeit=None, endzeit=None):
     )
 
 
-async def pocketoption_load_historic_data(filename, time_back_in_minutes):
+async def pocketoption_load_historic_data(
+    filename, time_back_in_minutes, delete_old=False
+):
     global target_time
+
+    # Alte Datei löschen
+    if delete_old is True and os.path.exists(filename):
+        os.remove(filename)
+        print(f"✅ Alte Datei {filename} gelöscht.")
 
     # Aktuelle Zeit (jetzt)
     current_time = int(time.time())
@@ -851,17 +854,17 @@ async def doBuySellOrder(filename):
     # Features vorbereiten (alle vorhandenen Werte der letzten 5 Minuten)
     X = df[["Wert"]].values.flatten()
 
-    # Anzahl der Features ggf. auf gewünschte Länge anpassen (z.B. exakt 300 Werte für 5 Minuten in Sekunden)
-    desired_length = 300
+    # Anzahl der Features ggf. auf gewünschte Länge anpassen (muss genau wie im Training sein)
+    desired_length = train_window
     if len(X) < desired_length:
         # falls weniger Daten vorhanden, vorne mit dem ersten Wert auffüllen
         X = pd.Series(X).reindex(range(desired_length), method="ffill").values
     else:
-        # falls mehr Daten, dann letzte 300 nehmen
+        # falls mehr Daten, dann letzte nehmen
         X = X[-desired_length:]
 
     # Wichtig: exakte Struktur wie beim Training (DataFrame und nicht nur flatten)
-    X_df = pd.DataFrame([X])  # ✅ Wichtig: korrekte Struktur (1 Zeile, 300 Spalten)
+    X_df = pd.DataFrame([X])  # ✅ Wichtig: korrekte Struktur (1 Zeile, x Spalten)
 
     # Aktueller Kurs (letzter Wert)
     aktueller_kurs = X[-1]
@@ -918,7 +921,12 @@ def getAdditionalInformationFromId(id):
         writer = csv.writer(f)
         writer.writerow([id, active_model, trade_time, trade_platform])
         # print(f"💾 Neues Modell für ID {id} gespeichert: {active_model}")
-        return [id, active_model, trade_time, trade_platform]
+        return {
+            "id": id,
+            "model": active_model,
+            "trade_time": trade_time,
+            "trade_platform": trade_platform,
+        }
 
 
 def format_deals(data, type):
@@ -932,9 +940,9 @@ def format_deals(data, type):
         result = "???"
         if type == "closed":
             if float(deal.get("profit")) > 0:
-                result = "WIN"
+                result = "✅"
             else:
-                result = "LOSE"
+                result = "⛔"
 
         try:
             tabelle.append(
@@ -958,14 +966,14 @@ def format_deals(data, type):
                     # f"{deal.get('percentLoss')} %",
                     # deal.get('openPrice'),
                     # deal.get('closePrice'),
-                    "FALLEND" if deal.get("command") == 1 else "STEIGEND",
+                    "⬇️" if deal.get("command") == 1 else "⬆️",
                     result,
                     #'Demo' if deal.get('isDemo') == 1 else 'Live',
                     type,
                 ]
             )
         except Exception as e:
-            print("ERROR")
+            print("ERROR", e)
             exit()
 
     return tabelle
@@ -1047,9 +1055,9 @@ async def printLiveStats():
             win_count = 0
             loose_count = 0
             for deal in live_data_deals:
-                if deal[len(deal) - 2] == "WIN":
+                if deal[len(deal) - 2] == "✅":
                     win_count += 1
-                elif deal[len(deal) - 2] == "LOSE":
+                elif deal[len(deal) - 2] == "⛔":
                     loose_count += 1
 
             if sound_effects == 1:
@@ -1454,7 +1462,9 @@ def assetIsAvailable(asset):
 
 def trainActiveModel(filename):
     print(f"✅ Starte Training")
-    model_classes[active_model].model_train_model(filename, filename_model)
+    model_classes[active_model].model_train_model(
+        filename, filename_model, train_window, train_horizon
+    )
 
 
 async def hauptmenu():
@@ -1571,8 +1581,9 @@ async def hauptmenu():
         if antworten["auswahl"] == option1:
             await pocketoption_load_historic_data(
                 filename_historic_data,
-                # 3 * 30.25 * 24 * 60  # 3 months
-                7 * 24 * 60,  # 1 week
+                3 * 30.25 * 24 * 60,  # 3 months
+                # 7 * 24 * 60,  # 1 week
+                False,
             )
             await asyncio.sleep(3)
 
@@ -1602,7 +1613,7 @@ async def hauptmenu():
                 print(f"🚀 Orderdurchlauf {i+1}/{trade_repeat}")
 
                 await pocketoption_load_historic_data(
-                    "tmp/tmp_live_data.csv", 10  # 10 minutes
+                    "tmp/tmp_live_data.csv", 10, True  # 10 minutes  # delete old data
                 )
                 await asyncio.sleep(0)
                 report = run_fulltest_fast("tmp/tmp_live_data.csv", None, None)
@@ -1697,134 +1708,7 @@ async def auswahl_menue():
     global trade_time
     global sound_effects
 
-    # Choices dynamisch bauen
-    with open("tmp/assets.json", "r", encoding="utf-8") as f:
-        assets = json.load(f)
-    choices = []
-    for eintrag in assets:
-        choices.append(
-            (
-                (f"[x]" if trade_asset == eintrag["name"] else "[ ]")
-                + " "
-                + eintrag["label"]
-                + " ("
-                + str(eintrag["percent"])
-                + "%)",
-                eintrag["name"],
-            )
-        )
-
-    asset_frage = [
-        inquirer.List(
-            "asset",
-            message="Wähle ein Handelspaar",
-            choices=choices,
-            default=trade_asset,
-        )
-    ]
-    demo_frage = [
-        inquirer.List(
-            "demo",
-            message="Demo-Modus?",
-            choices=[
-                ((f"[x]" if is_demo_account == 1 else "[ ]") + " Ja", 1),
-                ((f"[x]" if is_demo_account == 0 else "[ ]") + " Nein", 0),
-            ],
-            default=is_demo_account,
-        )
-    ]
-
-    model_frage = [
-        inquirer.List(
-            "model",
-            message="KI-Modell?",
-            choices=[
-                (f"[{'x' if name == active_model else ' '}] {name}", name)
-                for name in model_classes.keys()
-            ],
-            default=active_model,
-        )
-    ]
-
-    auswahl_asset = await asyncio.get_event_loop().run_in_executor(
-        None, lambda: inquirer.prompt(asset_frage)
-    )
-    auswahl_demo = await asyncio.get_event_loop().run_in_executor(
-        None, lambda: inquirer.prompt(demo_frage)
-    )
-    auswahl_model = await asyncio.get_event_loop().run_in_executor(
-        None, lambda: inquirer.prompt(model_frage)
-    )
-
-    try:
-        os.system("cls" if os.name == "nt" else "clear")
-        auswahl_trade_amount_input = input(
-            f"Einsatz in $? (aktuell: {trade_amount}): "
-        ).strip()
-        auswahl_trade_amount = (
-            int(auswahl_trade_amount_input)
-            if auswahl_trade_amount_input
-            else trade_amount
-        )
-    except ValueError:
-        print("⚠️ Ungültige Eingabe, Standardwert 15 wird verwendet.")
-        auswahl_trade_amount = 15
-
-    try:
-        os.system("cls" if os.name == "nt" else "clear")
-        auswahl_trade_repeat_input = input(
-            f"Wiederholungen? (aktuell: {trade_repeat}): "
-        ).strip()
-        auswahl_trade_repeat = (
-            int(auswahl_trade_repeat_input)
-            if auswahl_trade_repeat_input
-            else trade_repeat
-        )
-    except ValueError:
-        print("⚠️ Ungültige Eingabe, Standardwert 10 wird verwendet.")
-        auswahl_trade_repeat = 10
-
-    try:
-        os.system("cls" if os.name == "nt" else "clear")
-        auswahl_trade_distance_input = input(
-            f"Abstand in s? (aktuell: {trade_distance}): "
-        ).strip()
-        auswahl_trade_distance = (
-            int(auswahl_trade_distance_input)
-            if auswahl_trade_distance_input
-            else trade_distance
-        )
-    except ValueError:
-        print("⚠️ Ungültige Eingabe, Standardwert 30 wird verwendet.")
-        auswahl_trade_distance = 30
-
-    try:
-        os.system("cls" if os.name == "nt" else "clear")
-        auswahl_trade_time_input = input(
-            f"Trading-Dauer s? (aktuell: {trade_time}): "
-        ).strip()
-        auswahl_trade_time = (
-            int(auswahl_trade_time_input) if auswahl_trade_time_input else trade_time
-        )
-    except ValueError:
-        print("⚠️ Ungültige Eingabe, Standardwert 60 wird verwendet.")
-        auswahl_trade_time = 60
-
-    sound_effects_frage = [
-        inquirer.List(
-            "sound_effects",
-            message="Sound an?",
-            choices=[
-                ((f"[x]" if sound_effects == 1 else "[ ]") + " Ja", 1),
-                ((f"[x]" if sound_effects == 0 else "[ ]") + " Nein", 0),
-            ],
-            default=sound_effects,
-        )
-    ]
-    auswahl_sound_effects = await asyncio.get_event_loop().run_in_executor(
-        None, lambda: inquirer.prompt(sound_effects_frage)
-    )
-
+    # PLATFORM
     trade_platform_frage = [
         inquirer.List(
             "trade_platform",
@@ -1841,6 +1725,140 @@ async def auswahl_menue():
     ]
     auswahl_trade_platform = await asyncio.get_event_loop().run_in_executor(
         None, lambda: inquirer.prompt(trade_platform_frage)
+    )
+
+    # DEMO
+    demo_frage = [
+        inquirer.List(
+            "demo",
+            message="Demo-Modus?",
+            choices=[
+                ((f"[x]" if is_demo_account == 1 else "[ ]") + " Ja", 1),
+                ((f"[x]" if is_demo_account == 0 else "[ ]") + " Nein", 0),
+            ],
+            default=is_demo_account,
+        )
+    ]
+    auswahl_demo = await asyncio.get_event_loop().run_in_executor(
+        None, lambda: inquirer.prompt(demo_frage)
+    )
+
+    # ASSETS
+    with open("tmp/assets.json", "r", encoding="utf-8") as f:
+        assets = json.load(f)
+    choices = []
+    for eintrag in assets:
+        choices.append(
+            (
+                (f"[x]" if trade_asset == eintrag["name"] else "[ ]")
+                + " "
+                + eintrag["label"]
+                + " ("
+                + str(eintrag["percent"])
+                + "%)",
+                eintrag["name"],
+            )
+        )
+    asset_frage = [
+        inquirer.List(
+            "asset",
+            message="Wähle ein Handelspaar",
+            choices=choices,
+            default=trade_asset,
+        )
+    ]
+    auswahl_asset = await asyncio.get_event_loop().run_in_executor(
+        None, lambda: inquirer.prompt(asset_frage)
+    )
+
+    # MODEL
+    model_frage = [
+        inquirer.List(
+            "model",
+            message="KI-Modell?",
+            choices=[
+                (f"[{'x' if name == active_model else ' '}] {name}", name)
+                for name in model_classes.keys()
+            ],
+            default=active_model,
+        )
+    ]
+    auswahl_model = await asyncio.get_event_loop().run_in_executor(
+        None, lambda: inquirer.prompt(model_frage)
+    )
+
+    # EINSATZ
+    try:
+        os.system("cls" if os.name == "nt" else "clear")
+        auswahl_trade_amount_input = input(
+            f"Einsatz in $? (aktuell: {trade_amount}): "
+        ).strip()
+        auswahl_trade_amount = (
+            int(auswahl_trade_amount_input)
+            if auswahl_trade_amount_input
+            else trade_amount
+        )
+    except ValueError:
+        print("⚠️ Ungültige Eingabe, Standardwert 15 wird verwendet.")
+        auswahl_trade_amount = 15
+
+    # WIEDERHOLUNGEN
+    try:
+        os.system("cls" if os.name == "nt" else "clear")
+        auswahl_trade_repeat_input = input(
+            f"Wiederholungen? (aktuell: {trade_repeat}): "
+        ).strip()
+        auswahl_trade_repeat = (
+            int(auswahl_trade_repeat_input)
+            if auswahl_trade_repeat_input
+            else trade_repeat
+        )
+    except ValueError:
+        print("⚠️ Ungültige Eingabe, Standardwert 10 wird verwendet.")
+        auswahl_trade_repeat = 10
+
+    # ABSTAND
+    try:
+        os.system("cls" if os.name == "nt" else "clear")
+        auswahl_trade_distance_input = input(
+            f"Abstand in s? (aktuell: {trade_distance}): "
+        ).strip()
+        auswahl_trade_distance = (
+            int(auswahl_trade_distance_input)
+            if auswahl_trade_distance_input
+            else trade_distance
+        )
+    except ValueError:
+        print("⚠️ Ungültige Eingabe, Standardwert 30 wird verwendet.")
+        auswahl_trade_distance = 30
+
+    # DAUER
+    try:
+        os.system("cls" if os.name == "nt" else "clear")
+        auswahl_trade_time_input = input(
+            f"Trading-Dauer s? (aktuell: {trade_time}): "
+        ).strip()
+        auswahl_trade_time = (
+            int(auswahl_trade_time_input) if auswahl_trade_time_input else trade_time
+        )
+    except ValueError:
+        print("⚠️ Ungültige Eingabe, Standardwert 60 wird verwendet.")
+        auswahl_trade_time = 60
+
+    # SOUND
+    sound_effects_frage = [
+        inquirer.List(
+            "sound_effects",
+            message="Sound an?",
+            choices=[
+                ((f"[x]" if sound_effects == 1 else "[ ]") + " Ja", 1),
+                ((f"[x]" if sound_effects == 0 else "[ ]") + " Nein", 0),
+            ],
+            default=sound_effects,
+        )
+    ]
+    auswahl_sound_effects = await asyncio.get_event_loop().run_in_executor(
+        None, lambda: inquirer.prompt(sound_effects_frage)
     )
 
     if (

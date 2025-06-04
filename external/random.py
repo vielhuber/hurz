@@ -6,7 +6,7 @@ class RandomModel:
 
     name = "random"
 
-    def model_train_model(filename, filename_model):
+    def model_train_model(filename, filename_model, train_window, train_horizon):
         # pseudo save
         with open(filename_model, "w", encoding="utf-8") as f:
             json.dump([], f)
