@@ -144,7 +144,7 @@ async def setup_websockets():
             + suffix_id
         )
     else:
-        suffid_id = None
+        suffix_id = None
         pocketoption_session_id = os.getenv("DEMO_SESSION_ID")
         pocketoption_url = (
             "wss://demo-api-eu.po.market/socket.io/?EIO=4&transport=websocket"
