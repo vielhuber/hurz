@@ -46,6 +46,7 @@ trade_asset = "AUDCAD_otc"
 is_demo_account = 1
 active_model = "random"
 trade_platform = "pocketoption"
+trade_confidence = 55
 trade_amount = 15
 trade_repeat = 10
 trade_distance = 30
@@ -64,6 +65,7 @@ def loadSettings():
     global is_demo_account
     global active_model
     global trade_platform
+    global trade_confidence
     global trade_amount
     global trade_repeat
     global trade_distance
@@ -79,6 +81,9 @@ def loadSettings():
                 is_demo_account = einstellungen.get("demo", is_demo_account)
                 active_model = einstellungen.get("model", active_model)
                 trade_platform = einstellungen.get("trade_platform", trade_platform)
+                trade_confidence = einstellungen.get(
+                    "trade_confidence", trade_confidence
+                )
                 trade_amount = einstellungen.get("trade_amount", trade_amount)
                 trade_repeat = einstellungen.get("trade_repeat", trade_repeat)
                 trade_distance = einstellungen.get("trade_distance", trade_distance)
@@ -403,7 +408,10 @@ async def ws_receive_loop(ws):
                         vorhandene_deals.extend(format_deals(data, "open"))
                         # sort
                         vorhandene_deals.sort(
-                            key=lambda x: datetime.strptime(x[6], "%d.%m.%y %H:%M:%S"),
+                            key=lambda x: datetime.strptime(
+                                x[format_deals_get_column("date_from")],
+                                "%d.%m.%y %H:%M:%S",
+                            ),
                             reverse=True,
                         )
                         # permanently store
@@ -441,7 +449,10 @@ async def ws_receive_loop(ws):
 
                         # sort
                         vorhandene_deals.sort(
-                            key=lambda x: datetime.strptime(x[6], "%d.%m.%y %H:%M:%S"),
+                            key=lambda x: datetime.strptime(
+                                x[format_deals_get_column("date_from")],
+                                "%d.%m.%y %H:%M:%S",
+                            ),
                             reverse=True,
                         )
                         # permanently store
@@ -471,7 +482,10 @@ async def ws_receive_loop(ws):
                         vorhandene_deals.extend(format_deals([data], "open"))
                         # sort
                         vorhandene_deals.sort(
-                            key=lambda x: datetime.strptime(x[6], "%d.%m.%y %H:%M:%S"),
+                            key=lambda x: datetime.strptime(
+                                x[format_deals_get_column("date_from")],
+                                "%d.%m.%y %H:%M:%S",
+                            ),
                             reverse=True,
                         )
                         # permanently store
@@ -509,7 +523,10 @@ async def ws_receive_loop(ws):
                         )
                         # sort
                         vorhandene_deals.sort(
-                            key=lambda x: datetime.strptime(x[6], "%d.%m.%y %H:%M:%S"),
+                            key=lambda x: datetime.strptime(
+                                x[format_deals_get_column("date_from")],
+                                "%d.%m.%y %H:%M:%S",
+                            ),
                             reverse=True,
                         )
                         # permanently store
@@ -608,7 +625,7 @@ async def send_order(asset, amount, action, duration):
     print(f"📤 Order gesendet: {order_payload}")
 
 
-def run_fulltest_fast(filename, startzeit=None, endzeit=None):
+def run_fulltest(filename, startzeit=None, endzeit=None):
     df = pd.read_csv(filename)
     df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
 
@@ -675,19 +692,31 @@ def run_fulltest_fast(filename, startzeit=None, endzeit=None):
         i += 1
 
     prognosen = model_classes[active_model].model_run_fulltest(
-        filename_model, X_test, letzte_werte
+        filename_model, X_test, trade_confidence
     )
 
     # ✅ Auswertung
     full_erfolge = 0
+    full_cases = 0
     gesamt_full = len(prognosen)
 
     for i in range(gesamt_full):
         hit = False
 
-        if model_classes[active_model].model_run_fulltest_result(
-            zielwerte, letzte_werte, prognosen, i
-        ):
+        result_is_correct = False
+        if prognosen[i] == 1 and zielwerte[i] > letzte_werte[i]:
+            result_is_correct = True
+        if prognosen[i] == 0 and zielwerte[i] < letzte_werte[i]:
+            result_is_correct = True
+        if prognosen[i] == 0.5:
+            result_is_correct = None
+
+        if result_is_correct is None:
+            continue
+
+        full_cases += 1
+
+        if result_is_correct is True:
             full_erfolge += 1
             hit = True
 
@@ -705,9 +734,10 @@ def run_fulltest_fast(filename, startzeit=None, endzeit=None):
             {
                 "Typ": "Fulltest",
                 "Erfolge": full_erfolge,
+                "Cases": full_cases,
                 "Gesamt": gesamt_full,
                 "Erfolgsquote (%)": (
-                    round((full_erfolge / gesamt_full) * 100, 2) if gesamt_full else 0
+                    round((full_erfolge / full_cases) * 100, 2) if full_cases else 0
                 ),
             },
         ]
@@ -872,7 +902,7 @@ async def doBuySellOrder(filename):
     doCall = None
 
     doCall = model_classes[active_model].model_buy_sell_order(
-        X_df, filename_model, aktueller_kurs
+        X_df, filename_model, trade_confidence
     )
 
     # dauer
@@ -882,17 +912,18 @@ async def doBuySellOrder(filename):
         duration = 60
 
     # Kaufentscheidung treffen (Beispiel)
-    print(f"📈 Entscheidung: {'CALL' if doCall else 'PUT'}")
-    if doCall:
+    if doCall == 1:
         print(f"✅ CALL-Option (steigend) kaufen!")
         await send_order(
             trade_asset, amount=trade_amount, action="call", duration=duration
         )
-    else:
+    elif doCall == 0:
         print(f"✅ PUT-Option (fallend) kaufen!")
         await send_order(
             trade_asset, amount=trade_amount, action="put", duration=duration
         )
+    else:
+        print(f"⛔ UNSCHLÜSSIG! ÜBERSPRINGE!")
 
 
 def getAdditionalInformationFromId(id):
@@ -903,7 +934,7 @@ def getAdditionalInformationFromId(id):
         with open(csv_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(
-                ["id", "model", "trade_time", "trade_platform"]
+                ["id", "model", "trade_time", "trade_confidence", "trade_platform"]
             )  # Header schreiben
 
     # Datei einlesen
@@ -919,14 +950,37 @@ def getAdditionalInformationFromId(id):
     # ID nicht gefunden → neuen Eintrag speichern
     with open(csv_path, "a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow([id, active_model, trade_time, trade_platform])
+        writer.writerow(
+            [id, active_model, trade_time, trade_confidence, trade_platform]
+        )
         # print(f"💾 Neues Modell für ID {id} gespeichert: {active_model}")
         return {
             "id": id,
             "model": active_model,
             "trade_time": trade_time,
+            "trade_confidence": trade_confidence,
             "trade_platform": trade_platform,
         }
+
+
+def format_deals_get_column(type):
+    if type == "id":
+        return 0
+    if type == "date_from":
+        return 7
+    if type == "date_until":
+        return 8
+    if type == "rest":
+        return 9
+    if type == "einsatz":
+        return 10
+    if type == "gewinn":
+        return 11
+    if type == "result":
+        return 13
+    if type == "status":
+        return 14
+    return None
 
 
 def format_deals(data, type):
@@ -952,6 +1006,7 @@ def format_deals(data, type):
                     "ja" if deal.get("isDemo") == 1 else "nein",
                     getAdditionalInformationFromId(deal.get("id"))["model"],
                     getAdditionalInformationFromId(deal.get("id"))["trade_time"],
+                    getAdditionalInformationFromId(deal.get("id"))["trade_confidence"],
                     getAdditionalInformationFromId(deal.get("id"))["trade_platform"],
                     datetime.fromtimestamp(
                         deal.get("openTimestamp"), tz=timezone.utc
@@ -1028,26 +1083,21 @@ async def printLiveStats():
                     continue
 
             headers = [
-                "ID",
-                # "Währung",
-                "Währung",
-                "Demo",
-                "Sekunden",
-                "Platform",
-                "Model",
-                "Beginn",
-                "Ende",
-                "Rest",
-                "Einsatz",
-                "Gewinn",
-                # "Gewinn %",
-                # "Verlust %",
-                # "Startwert",
-                # "Endwert",
-                "Typ",
-                # "Modus",
-                "Ergebnis",
-                "Status",
+                "ID",  # 0
+                "Währung",  # 1
+                "Demo",  # 2
+                "Model",  # 3
+                "Sekunden",  # 4
+                "Sicherheit",  # 5
+                "Plattform",  # 6
+                "Beginn",  # 7
+                "Ende",  # 8
+                "Rest",  # 9
+                "Einsatz",  # 10
+                "Gewinn",  # 11
+                "Typ",  # 12
+                "Ergebnis",  # 13
+                "Status",  # 14
             ]
 
             # play sound
@@ -1055,9 +1105,9 @@ async def printLiveStats():
             win_count = 0
             loose_count = 0
             for deal in live_data_deals:
-                if deal[len(deal) - 2] == "✅":
+                if deal[format_deals_get_column("result")] == "✅":
                     win_count += 1
-                elif deal[len(deal) - 2] == "⛔":
+                elif deal[format_deals_get_column("result")] == "⛔":
                     loose_count += 1
 
             if sound_effects == 1:
@@ -1089,15 +1139,17 @@ async def printLiveStats():
                 local = pytz.timezone(
                     "Europe/Berlin"
                 )  # oder deine echte lokale Zeitzone
-                naiv = datetime.strptime(deal[7], "%d.%m.%y %H:%M:%S")  # noch ohne TZ
+                naiv = datetime.strptime(
+                    deal[format_deals_get_column("date_until")], "%d.%m.%y %H:%M:%S"
+                )  # noch ohne TZ
                 close_ts = local.localize(naiv).astimezone(pytz.utc)
                 now = datetime.now(pytz.utc)
                 diff = int((close_ts - now).total_seconds())
                 diff = diff - 2  # puffer
                 if diff > 0:
-                    deal[8] = f"{diff}s"
+                    deal[format_deals_get_column("rest")] = f"{diff}s"
                 else:
-                    deal[8] = "---"
+                    deal[format_deals_get_column("rest")] = "---"
 
             live_data_deals_output = tabulate(
                 live_data_deals[:10],
@@ -1112,10 +1164,19 @@ async def printLiveStats():
             werte_gewinn = []
             werte_einsatz = []
             for deal in live_data_deals:
-                if deal[len(deal) - 1] == "closed":
-                    if float(deal[len(deal) - 4].replace("$", "")) > 0:
-                        werte_gewinn.append(float(deal[len(deal) - 4].replace("$", "")))
-                    werte_einsatz.append(float(deal[len(deal) - 5].replace("$", "")))
+                if deal[format_deals_get_column("status")] == "closed":
+                    if (
+                        float(deal[format_deals_get_column("gewinn")].replace("$", ""))
+                        > 0
+                    ):
+                        werte_gewinn.append(
+                            float(
+                                deal[format_deals_get_column("gewinn")].replace("$", "")
+                            )
+                        )
+                    werte_einsatz.append(
+                        float(deal[format_deals_get_column("einsatz")].replace("$", ""))
+                    )
             if werte_gewinn and werte_einsatz:
                 werte_gewinn_durchschnitt = sum(werte_gewinn) / len(werte_gewinn)
                 werte_einsatz_durchschnitt = sum(werte_einsatz) / len(werte_einsatz)
@@ -1129,7 +1190,7 @@ async def printLiveStats():
                     [
                         deal
                         for deal in live_data_deals
-                        if deal[len(deal) - 1] == "closed"
+                        if deal[format_deals_get_column("status")] == "closed"
                     ]
                 )
                 > 0
@@ -1141,16 +1202,21 @@ async def printLiveStats():
                             for deal2 in [
                                 deal
                                 for deal in live_data_deals
-                                if deal[len(deal) - 1] == "closed"
+                                if deal[format_deals_get_column("status")] == "closed"
                             ][:100]
-                            if float(deal2[len(deal2) - 4].replace("$", "")) > 0
+                            if float(
+                                deal2[format_deals_get_column("gewinn")].replace(
+                                    "$", ""
+                                )
+                            )
+                            > 0
                         ]
                     )
                     / len(
                         [
                             deal
                             for deal in live_data_deals
-                            if deal[len(deal) - 1] == "closed"
+                            if deal[format_deals_get_column("status")] == "closed"
                         ][:100]
                     )
                 ) * 100
@@ -1161,7 +1227,7 @@ async def printLiveStats():
                     [
                         deal
                         for deal in live_data_deals
-                        if deal[len(deal) - 1] == "closed"
+                        if deal[format_deals_get_column("status")] == "closed"
                     ]
                 )
                 > 0
@@ -1173,16 +1239,21 @@ async def printLiveStats():
                             for deal2 in [
                                 deal
                                 for deal in live_data_deals
-                                if deal[len(deal) - 1] == "closed"
+                                if deal[format_deals_get_column("status")] == "closed"
                             ]
-                            if float(deal2[len(deal2) - 4].replace("$", "")) > 0
+                            if float(
+                                deal2[format_deals_get_column("gewinn")].replace(
+                                    "$", ""
+                                )
+                            )
+                            > 0
                         ]
                     )
                     / len(
                         [
                             deal
                             for deal in live_data_deals
-                            if deal[len(deal) - 1] == "closed"
+                            if deal[format_deals_get_column("status")] == "closed"
                         ]
                     )
                 ) * 100
@@ -1193,8 +1264,11 @@ async def printLiveStats():
                     [
                         deal
                         for deal in live_data_deals
-                        if deal[len(deal) - 1] == "closed"
-                        and datetime.strptime(deal[6], "%d.%m.%y %H:%M:%S").date()
+                        if deal[format_deals_get_column("status")] == "closed"
+                        and datetime.strptime(
+                            deal[format_deals_get_column("date_from")],
+                            "%d.%m.%y %H:%M:%S",
+                        ).date()
                         == datetime.now().date()
                     ]
                 )
@@ -1207,21 +1281,30 @@ async def printLiveStats():
                             for deal2 in [
                                 deal
                                 for deal in live_data_deals
-                                if deal[len(deal) - 1] == "closed"
+                                if deal[format_deals_get_column("status")] == "closed"
                                 and datetime.strptime(
-                                    deal[6], "%d.%m.%y %H:%M:%S"
+                                    deal[format_deals_get_column("date_from")],
+                                    "%d.%m.%y %H:%M:%S",
                                 ).date()
                                 == datetime.now().date()
                             ]
-                            if float(deal2[len(deal2) - 4].replace("$", "")) > 0
+                            if float(
+                                deal2[format_deals_get_column("gewinn")].replace(
+                                    "$", ""
+                                )
+                            )
+                            > 0
                         ]
                     )
                     / len(
                         [
                             deal
                             for deal in live_data_deals
-                            if deal[len(deal) - 1] == "closed"
-                            and datetime.strptime(deal[6], "%d.%m.%y %H:%M:%S").date()
+                            if deal[format_deals_get_column("status")] == "closed"
+                            and datetime.strptime(
+                                deal[format_deals_get_column("date_from")],
+                                "%d.%m.%y %H:%M:%S",
+                            ).date()
                             == datetime.now().date()
                         ]
                     )
@@ -1233,17 +1316,17 @@ async def printLiveStats():
                     [
                         deal
                         for deal in live_data_deals
-                        if deal[len(deal) - 1] == "closed"
+                        if deal[format_deals_get_column("status")] == "closed"
                     ]
                 )
                 > 0
             ):
                 abs_amount_rate_100 = sum(
-                    float(deal[len(deal) - 5].replace("$", ""))
+                    float(deal[format_deals_get_column("einsatz")].replace("$", ""))
                     for deal in [
                         deal
                         for deal in live_data_deals
-                        if deal[len(deal) - 1] == "closed"
+                        if deal[format_deals_get_column("status")] == "closed"
                     ][:100]
                 )
 
@@ -1253,17 +1336,17 @@ async def printLiveStats():
                     [
                         deal
                         for deal in live_data_deals
-                        if deal[len(deal) - 1] == "closed"
+                        if deal[format_deals_get_column("status")] == "closed"
                     ]
                 )
                 > 0
             ):
                 abs_amount_rate_all = sum(
-                    float(deal[len(deal) - 5].replace("$", ""))
+                    float(deal[format_deals_get_column("einsatz")].replace("$", ""))
                     for deal in [
                         deal
                         for deal in live_data_deals
-                        if deal[len(deal) - 1] == "closed"
+                        if deal[format_deals_get_column("status")] == "closed"
                     ]
                 )
 
@@ -1273,20 +1356,26 @@ async def printLiveStats():
                     [
                         deal
                         for deal in live_data_deals
-                        if deal[len(deal) - 1] == "closed"
-                        and datetime.strptime(deal[6], "%d.%m.%y %H:%M:%S").date()
+                        if deal[format_deals_get_column("status")] == "closed"
+                        and datetime.strptime(
+                            deal[format_deals_get_column("date_from")],
+                            "%d.%m.%y %H:%M:%S",
+                        ).date()
                         == datetime.now().date()
                     ]
                 )
                 > 0
             ):
                 abs_amount_rate_today = sum(
-                    float(deal[len(deal) - 5].replace("$", ""))
+                    float(deal[format_deals_get_column("einsatz")].replace("$", ""))
                     for deal in [
                         deal
                         for deal in live_data_deals
-                        if deal[len(deal) - 1] == "closed"
-                        and datetime.strptime(deal[6], "%d.%m.%y %H:%M:%S").date()
+                        if deal[format_deals_get_column("status")] == "closed"
+                        and datetime.strptime(
+                            deal[format_deals_get_column("date_from")],
+                            "%d.%m.%y %H:%M:%S",
+                        ).date()
                         == datetime.now().date()
                     ]
                 )
@@ -1297,17 +1386,17 @@ async def printLiveStats():
                     [
                         deal
                         for deal in live_data_deals
-                        if deal[len(deal) - 1] == "closed"
+                        if deal[format_deals_get_column("status")] == "closed"
                     ]
                 )
                 > 0
             ):
                 abs_win_rate_100 = sum(
-                    float(deal[len(deal) - 4].replace("$", ""))
+                    float(deal[format_deals_get_column("gewinn")].replace("$", ""))
                     for deal in [
                         deal
                         for deal in live_data_deals
-                        if deal[len(deal) - 1] == "closed"
+                        if deal[format_deals_get_column("status")] == "closed"
                     ][:100]
                 )
 
@@ -1317,17 +1406,17 @@ async def printLiveStats():
                     [
                         deal
                         for deal in live_data_deals
-                        if deal[len(deal) - 1] == "closed"
+                        if deal[format_deals_get_column("status")] == "closed"
                     ]
                 )
                 > 0
             ):
                 abs_win_rate_all = sum(
-                    float(deal[len(deal) - 4].replace("$", ""))
+                    float(deal[format_deals_get_column("gewinn")].replace("$", ""))
                     for deal in [
                         deal
                         for deal in live_data_deals
-                        if deal[len(deal) - 1] == "closed"
+                        if deal[format_deals_get_column("status")] == "closed"
                     ]
                 )
 
@@ -1337,20 +1426,26 @@ async def printLiveStats():
                     [
                         deal
                         for deal in live_data_deals
-                        if deal[len(deal) - 1] == "closed"
-                        and datetime.strptime(deal[6], "%d.%m.%y %H:%M:%S").date()
+                        if deal[format_deals_get_column("status")] == "closed"
+                        and datetime.strptime(
+                            deal[format_deals_get_column("date_from")],
+                            "%d.%m.%y %H:%M:%S",
+                        ).date()
                         == datetime.now().date()
                     ]
                 )
                 > 0
             ):
                 abs_win_rate_today = sum(
-                    float(deal[len(deal) - 4].replace("$", ""))
+                    float(deal[format_deals_get_column("gewinn")].replace("$", ""))
                     for deal in [
                         deal
                         for deal in live_data_deals
-                        if deal[len(deal) - 1] == "closed"
-                        and datetime.strptime(deal[6], "%d.%m.%y %H:%M:%S").date()
+                        if deal[format_deals_get_column("status")] == "closed"
+                        and datetime.strptime(
+                            deal[format_deals_get_column("date_from")],
+                            "%d.%m.%y %H:%M:%S",
+                        ).date()
                         == datetime.now().date()
                     ]
                 )
@@ -1488,7 +1583,7 @@ async def hauptmenu():
         else:
             option2 += " (Daten nicht vorhanden)"
 
-        option3 = "Fulltest durchführen (schnell)"
+        option3 = "Fulltest durchführen"
         if not os.path.exists(filename_model):
             option3 += " (nicht möglich)"
 
@@ -1533,7 +1628,7 @@ async def hauptmenu():
                     f"TON: {'1' if sound_effects == 1 else '0'}\n"
                     f"MDL: {active_model} | "
                     f"CUR: {format_waehrung(trade_asset)} | "
-                    f"TRD: {trade_amount}$/{trade_time}/{trade_repeat}x/{trade_distance}s"
+                    f"TRD: {trade_amount}$/{trade_time}/{trade_repeat}x/{trade_distance}s/{trade_confidence}%"
                 ),
                 choices=(
                     [
@@ -1592,7 +1687,7 @@ async def hauptmenu():
             await asyncio.sleep(5)
 
         elif antworten["auswahl"] == option3 and os.path.exists(filename_model):
-            report = run_fulltest_fast(filename_historic_data, None, None)
+            report = run_fulltest(filename_historic_data, None, None)
             print(report)
             await asyncio.sleep(5)
 
@@ -1616,14 +1711,17 @@ async def hauptmenu():
                     "tmp/tmp_live_data.csv", 10, True  # 10 minutes  # delete old data
                 )
                 await asyncio.sleep(0)
-                report = run_fulltest_fast("tmp/tmp_live_data.csv", None, None)
+                report = run_fulltest("tmp/tmp_live_data.csv", None, None)
                 print(report)
                 await asyncio.sleep(0)
                 await doBuySellOrder("tmp/tmp_live_data.csv")
                 await asyncio.sleep(0)
 
                 if i < trade_repeat - 1:
-                    wartezeit = max(0, trade_distance + random.uniform(-15, 15))
+                    toleranz = 0.20  # 20 Prozent
+                    abweichung = trade_distance * random.uniform(-toleranz, toleranz)
+                    wartezeit = max(0, trade_distance + abweichung)
+                    wartezeit = int(round(wartezeit))
                     print(
                         f"⏳ Warte {wartezeit} Sekunden, bevor die nächste Order folgt..."
                     )
@@ -1702,6 +1800,7 @@ async def auswahl_menue():
     global is_demo_account
     global active_model
     global trade_platform
+    global trade_confidence
     global trade_amount
     global trade_repeat
     global trade_distance
@@ -1845,6 +1944,21 @@ async def auswahl_menue():
         print("⚠️ Ungültige Eingabe, Standardwert 60 wird verwendet.")
         auswahl_trade_time = 60
 
+    # CONFIDENCE
+    try:
+        os.system("cls" if os.name == "nt" else "clear")
+        auswahl_trade_confidence_input = input(
+            f"Sicherheitsfaktor in % (z.B. 55) ? (aktuell: {trade_confidence}): "
+        ).strip()
+        auswahl_trade_confidence = (
+            int(auswahl_trade_confidence_input)
+            if auswahl_trade_confidence_input
+            else trade_confidence
+        )
+    except ValueError:
+        print("⚠️ Ungültige Eingabe, Standardwert 55 wird verwendet.")
+        auswahl_trade_confidence = 55
+
     # SOUND
     sound_effects_frage = [
         inquirer.List(
@@ -1871,6 +1985,7 @@ async def auswahl_menue():
         and auswahl_trade_time
         and auswahl_sound_effects
         and auswahl_trade_platform
+        and auswahl_trade_confidence
     ):
         neues_asset = auswahl_asset["asset"]
         neuer_demo = auswahl_demo["demo"]
@@ -1881,6 +1996,7 @@ async def auswahl_menue():
         neues_trade_time = auswahl_trade_time
         neues_sound_effects = auswahl_sound_effects["sound_effects"]
         neues_trade_platform = auswahl_trade_platform["trade_platform"]
+        neues_trade_confidence = auswahl_trade_confidence
 
         print("🔁 Starte neu...")
         restart = False
@@ -1890,6 +2006,7 @@ async def auswahl_menue():
         is_demo_account = neuer_demo
         active_model = neues_model
         trade_platform = neues_trade_platform
+        trade_confidence = neues_trade_confidence
         trade_amount = neues_trade_amount
         trade_repeat = neues_trade_repeat
         trade_distance = neues_trade_distance
@@ -1929,6 +2046,7 @@ async def auswahl_menue():
                         "demo": is_demo_account,
                         "model": active_model,
                         "trade_platform": trade_platform,
+                        "trade_confidence": trade_confidence,
                         "trade_amount": trade_amount,
                         "trade_repeat": trade_repeat,
                         "trade_distance": trade_distance,
