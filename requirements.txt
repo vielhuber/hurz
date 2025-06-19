@@ -4,7 +4,7 @@ inquirer
 pandas
 pygame
 plotext
-python-socks\[asyncio\]
+python-socks[asyncio]
 PySocks
 python-dotenv
 pytz

@@ -1,14 +1,15 @@
 ## setup
 
--   `git clone git@github.com:vielhuber/hurz.git .`
--   `python -m venv venv`
--   `pip install -r requirements.txt`
+-   `sudo apt install python3 python3-pip python3-venv`
+-   `git clone https://github.com/vielhuber/hurz.git .`
+-   `python3 -m venv venv`
+-   `pip3 install -r requirements.txt`
 -   `cp .env.example .env`
 
 ## usage
 
--   `python script.py`
--   `python watcher.py`
+-   `python3 script.py`
+-   `python3 watcher.py`
 
 ## models
 
