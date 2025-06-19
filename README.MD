@@ -1,6 +1,6 @@
 ## setup
 
--   `sudo apt install python3 python3-pip python3-venv`
+-   `sudo apt install git unzip python3 python3-pip python3-venv`
 -   `git clone https://github.com/vielhuber/hurz.git .`
 -   `python3 -m venv venv`
 -   `pip3 install -r requirements.txt`
@@ -14,7 +14,7 @@
 ## models
 
 -   place your custom models inside `external` (see `random.py`)
--   premium models can be decrypted via `unzip -o -P PREMIUMPASSWORD external/models.zip`
+-   premium models can be decrypted via `unzip -o -P "PREMIUMPASSWORD" external/models.zip`
 -   to automatically push changed models use `cp post-commit .git/hooks/post-commit && chmod +x .git/hooks/post-commit`
 
 ## create .env
