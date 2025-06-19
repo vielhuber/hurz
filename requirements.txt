@@ -14,5 +14,5 @@ requests
 scikit_learn
 tabulate
 watchdog
-websockets==10.1
+websockets
 xgboost
