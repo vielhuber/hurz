@@ -7,11 +7,11 @@ plotext
 python-socks[asyncio]
 PySocks
 python-dotenv
+python-slugify
 pytz
 readchar
 requests
 scikit_learn
-slugify
 tabulate
 watchdog
 websockets==10.1
