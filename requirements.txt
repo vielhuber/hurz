@@ -1,11 +1,15 @@
+aiohttp
 cupy_cuda12x
 inquirer
 pandas
 pygame
 plotext
+python-socks\[asyncio\]
+PySocks
 python-dotenv
 pytz
 readchar
+requests
 scikit_learn
 tabulate
 watchdog

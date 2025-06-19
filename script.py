@@ -1,5 +1,6 @@
 import asyncio
 import atexit
+import aiohttp
 import concurrent.futures
 import csv
 import importlib.util
@@ -12,13 +13,17 @@ import pygame
 import pytz
 import random
 import re
+import requests
 import readchar
 import signal
+import socks
+import socket
 import ssl
 import sys
 import threading
 import time
 import traceback
+import urllib.request
 import websockets
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
@@ -54,6 +59,7 @@ trade_time = 60
 sound_effects = 1
 filename_historic_data = None
 filename_model = None
+current_ip_address = "127.0.0.1"
 
 # ordner anlegen falls nicht verfügbar
 for ordner in ["tmp", "data", "models"]:
@@ -129,6 +135,7 @@ train_horizon = 1  # Vorhersagefenster, 1 Minute
 async def setup_websockets():
     global _ws_connection
     global binary_expected_event
+    global current_ip_address
 
     # vars
     ip_address = os.getenv("IP_ADDRESS")
@@ -179,16 +186,37 @@ async def setup_websockets():
     with open("tmp/ws.txt", "w", encoding="utf-8") as f:
         f.write("running")
 
-    # Baue Verbindung auf
-    ssl_context = ssl.create_default_context()
+    # with
+    proxy_arg = os.getenv("PROXY")
+    if proxy_arg is not None and proxy_arg.strip() != "":
+        proxy_url = "socks5://" + proxy_arg.strip()
+        os.environ["wss_proxy"] = proxy_url
+        print(urllib.request.getproxies())
+        # sys.exit()
+        proxy_connect_setting = True
+    else:
+        proxy_url = None
+        proxy_connect_setting = None
+
+    # test ip
+    async with aiohttp.ClientSession() as session:
+        async with session.get(
+            "https://api.ipify.org?format=json", proxy=proxy_url
+        ) as resp:
+            data = await resp.json()
+            print("🌍 Öffentliche IP:", data["ip"])
+            current_ip_address = data["ip"]
+
     ws = await websockets.connect(
         pocketoption_url,
-        extra_headers=pocketoption_headers,
-        ssl=ssl_context,
+        additional_headers=pocketoption_headers,
+        ssl=ssl.create_default_context(),
+        proxy=proxy_connect_setting,
         # ping_interval=None  # ← manuell am Leben halten
         ping_interval=25,  # alle 20 Sekunden Ping senden
         ping_timeout=20,  # wenn keine Antwort nach 10s → Fehler
     )
+
     _ws_connection = ws
 
     # Erste Nachricht (Handshake) empfangen
@@ -1616,20 +1644,38 @@ async def hauptmenu():
             .replace("X", ".")
         )
 
+        help_text = (
+            f"\n"
+            f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+            f"\n"
+            f"\n"
+            f'TIME: {datetime.now().strftime("%H:%M:%S")}'
+            f" | "
+            f"PLATFORM: {trade_platform}"
+            f" | "
+            f"BALANCE: {live_data_balance_formatted}$"
+            f" | "
+            f"WEBSOCKETS: {'AN' if _ws_connection is not None else 'AUS'}"
+            f" | "
+            f"IP: {current_ip_address}"
+            f"\n"
+            f"DEMO: {'AN' if is_demo_account == 1 else 'AUS'}"
+            f" | "
+            f"SOUND: {'AN' if sound_effects == 1 else 'AUS'}"
+            f" | "
+            f"MODEL: {active_model}"
+            f" | "
+            f"CURRENCY: {format_waehrung(trade_asset)}"
+            f" | "
+            f"SETTINGS: {trade_amount}$ / {trade_time} / {trade_repeat}x / {trade_distance}s / {trade_confidence}%"
+            f"\n"
+            f"\n"
+        )
+
         questions = [
             inquirer.List(
                 "auswahl",
-                message=(
-                    f'T: {datetime.now().strftime("%H:%M:%S")} | '
-                    f"P: {trade_platform} | "
-                    f"KTO: {live_data_balance_formatted}$ | "
-                    f"WS: {'1' if _ws_connection is not None else '0'} | "
-                    f"DEMO: {'1' if is_demo_account == 1 else '0'} | "
-                    f"TON: {'1' if sound_effects == 1 else '0'}\n"
-                    f"MDL: {active_model} | "
-                    f"CUR: {format_waehrung(trade_asset)} | "
-                    f"TRD: {trade_amount}$/{trade_time}/{trade_repeat}x/{trade_distance}s/{trade_confidence}%"
-                ),
+                message="hurz 0.0.1",
                 choices=(
                     [
                         option1,
@@ -1641,9 +1687,10 @@ async def hauptmenu():
                         option7,
                         option8,
                         option9,
+                        help_text,
                     ]
                     if _ws_connection is not None
-                    else [option6, option8, option9]
+                    else [option6, option8, option9, help_text]
                 ),
                 default=main_menu_default,
             ),
@@ -1783,7 +1830,7 @@ async def shutdown():
                 print(f"🛑 Task {task.get_coro().__name__} wurde gestoppt.")
         laufende_tasks.clear()
 
-    if _ws_connection and not _ws_connection.closed:
+    if _ws_connection and not _ws_connection.close_code is None:
         try:
             print("🔌 Schließe WebSocket...................")
             await _ws_connection.close()
