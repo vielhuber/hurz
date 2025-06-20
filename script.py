@@ -589,7 +589,17 @@ async def ws_receive_loop(ws):
                                 }
                             )
                     gefilterte = sorted(
-                        gefilterte, key=lambda x: (-x["percent"], x["label"])
+                        gefilterte,
+                        key=lambda x: (
+                            "OTC"
+                            in x[
+                                "label"
+                            ],  # False (=0) kommt zuerst, True (=1) kommt später
+                            -x[
+                                "percent"
+                            ],  # innerhalb der Nicht-OTC sortieren nach Prozent absteigend
+                            x["label"],
+                        ),
                     )
                     with open("tmp/assets.json", "w", encoding="utf-8") as f:
                         json.dump(gefilterte, f, indent=2)
@@ -1011,6 +1021,29 @@ def format_deals_get_column(type):
     return None
 
 
+def timestamp_in_local_timezone(ts: int, tzname: str = "Europe/Berlin") -> datetime:
+    """
+    Wandelt einen fälschlich als UTC interpretierten lokalen Timestamp in echte lokale Zeit um.
+    Zieht den Offset zwischen UTC und lokaler Zeitzone ab.
+    """
+    local_tz = pytz.timezone(tzname)
+
+    # Jetzt-Zeit in lokaler Zeitzone
+    now_local = datetime.now(local_tz)
+
+    # Jetzt-Zeit in UTC
+    now_utc = datetime.now(timezone.utc)
+
+    # Differenz zwischen lokaler Zeit und UTC
+    offset = now_local.utcoffset() or timedelta(0)
+
+    # Timestamp um Offset korrigieren
+    korrigierter_ts = ts - offset.total_seconds()
+
+    # Jetzt korrekt als lokale Zeit interpretieren
+    return local_tz.localize(datetime.fromtimestamp(korrigierter_ts))
+
+
 def format_deals(data, type):
     if not isinstance(data, list):
         return "⚠️ Ungültige Datenstruktur: kein Array."
@@ -1027,6 +1060,33 @@ def format_deals(data, type):
                 result = "⛔"
 
         try:
+            print(deal["openTimestamp"])
+            print(
+                datetime.fromtimestamp(deal["openTimestamp"], tz=timezone.utc)
+                .astimezone(pytz.timezone("Europe/Berlin"))
+                .strftime("%Y-%m-%d %H:%M:%S %Z")
+            )
+            print(
+                datetime.fromtimestamp(
+                    deal["openTimestamp"], tz=pytz.timezone("Europe/Berlin")
+                ).strftime("%Y-%m-%d %H:%M:%S %Z")
+            )
+            print(
+                pytz.timezone("Europe/Berlin")
+                .localize(datetime.fromtimestamp(deal["openTimestamp"]))
+                .strftime("%Y-%m-%d %H:%M:%S %Z")
+            )
+            print(
+                pytz.timezone("Europe/Berlin")
+                .localize(datetime.fromtimestamp(deal["openTimestamp"]))
+                .strftime("%Y-%m-%d %H:%M:%S %Z")
+            )
+            print(
+                timestamp_in_local_timezone(deal["openTimestamp"]).strftime(
+                    "%Y-%m-%d %H:%M:%S %Z"
+                )
+            )
+
             tabelle.append(
                 [
                     deal.get("id").split("-")[0],
@@ -1036,12 +1096,12 @@ def format_deals(data, type):
                     getAdditionalInformationFromId(deal.get("id"))["trade_time"],
                     getAdditionalInformationFromId(deal.get("id"))["trade_confidence"],
                     getAdditionalInformationFromId(deal.get("id"))["trade_platform"],
-                    datetime.fromtimestamp(
-                        deal.get("openTimestamp"), tz=timezone.utc
-                    ).strftime("%d.%m.%y %H:%M:%S"),
-                    datetime.fromtimestamp(
-                        deal.get("closeTimestamp"), tz=timezone.utc
-                    ).strftime("%d.%m.%y %H:%M:%S"),
+                    pytz.timezone("Europe/Berlin")
+                    .localize(datetime.fromtimestamp(deal["openTimestamp"]))
+                    .strftime("%d.%m.%y %H:%M:%S"),
+                    pytz.timezone("Europe/Berlin")
+                    .localize(datetime.fromtimestamp(deal["closeTimestamp"]))
+                    .strftime("%d.%m.%y %H:%M:%S"),
                     "---",
                     f"{deal.get('amount')}$",
                     f"{deal.get('profit')}$" if type == "closed" else "???",
