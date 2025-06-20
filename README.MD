@@ -10,6 +10,9 @@
 ## usage
 
 -   `python3 script.py`
+
+## watch changes
+
 -   `python3 watcher.py`
 
 ## models
