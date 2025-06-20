@@ -1,6 +1,6 @@
 ## setup
 
--   `sudo apt install git unzip python3 python3-pip python3-venv`
+-   `sudo apt install -y git unzip python3 python3-pip python3-venv`
 -   install nvidia cuda according to https://developer.nvidia.com/cuda-downloads
 -   `git clone https://github.com/vielhuber/hurz.git .`
 -   `python3 -m venv venv`
