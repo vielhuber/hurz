@@ -2177,14 +2177,13 @@ signal.signal(signal.SIGINT, handle_sigint)
 
 async def main():
 
-    ts = 1750431697
-    berlin = pytz.timezone("Europe/Berlin")
-    dt_utc = datetime.fromtimestamp(ts, tz=timezone.utc)
-    dt_naiv = dt_utc.replace(tzinfo=None)
-    dt_berlin = berlin.localize(dt_naiv)
-    print(dt_berlin.strftime("%Y-%m-%d %H:%M:%S %Z"))
-
-    print(pytz.timezone("Europe/Berlin").localize(datetime.fromtimestamp(1750431697)))
+    print(
+        pytz.timezone("Europe/Berlin")
+        .localize(
+            datetime.fromtimestamp(1750431697, tz=timezone.utc).replace(tzinfo=None)
+        )
+        .strftime("%Y-%m-%d %H:%M:%S %Z")
+    )
     sys.exit()
 
     try:
