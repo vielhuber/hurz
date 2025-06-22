@@ -2144,15 +2144,6 @@ signal.signal(signal.SIGINT, handle_sigint)
 
 async def main():
 
-    print(
-        pytz.timezone("Europe/Berlin")
-        .localize(
-            datetime.fromtimestamp(1750431697, tz=timezone.utc).replace(tzinfo=None)
-        )
-        .strftime("%Y-%m-%d %H:%M:%S %Z")
-    )
-    sys.exit()
-
     try:
         await setup_websockets()
 
