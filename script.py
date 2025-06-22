@@ -863,7 +863,7 @@ async def pocketoption_load_historic_data(
             json.dump(history_request, f)
 
         print(
-            f"Historische Daten angefordert für Zeitraum: {datetime.fromtimestamp(request_time)}"
+            f'Historische Daten angefordert für Zeitraum bis: {output_correct_datetime(request_time, "%d.%m.%y %H:%M:%S", False)}'
         )
         if target_time is not None:
             print(
