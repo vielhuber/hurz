@@ -1627,7 +1627,7 @@ async def hauptmenu():
         option1 = "Historische Daten laden"
         if os.path.exists(filename_historic_data):
             timestamp = os.path.getmtime(filename_historic_data)
-            datum = output_correct_datetime(timestamp, "%d.%m.%y %H:%M:%S", True)
+            datum = output_correct_datetime(timestamp, "%d.%m.%y %H:%M:%S", False)
             option1 += " (vom " + datum + ")"
         else:
             option1 += " (Daten nicht vorhanden)"
@@ -1635,7 +1635,7 @@ async def hauptmenu():
         option2 = "Modell trainieren"
         if os.path.exists(filename_model):
             timestamp = os.path.getmtime(filename_model)
-            datum = output_correct_datetime(timestamp, "%d.%m.%y %H:%M:%S", True)
+            datum = output_correct_datetime(timestamp, "%d.%m.%y %H:%M:%S", False)
             option2 += " (vom " + datum + ")"
         else:
             option2 += " (Daten nicht vorhanden)"
