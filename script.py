@@ -383,9 +383,9 @@ async def ws_receive_loop(ws):
                             daten = []
 
                             for tick in data:
-                                zeitpunkt_beginn = datetime.fromtimestamp(
-                                    tick["time"]
-                                ).strftime("%Y-%m-%d %H:%M:%S.%f")
+                                zeitpunkt_beginn = output_correct_datetime(
+                                    tick["time"], "%Y-%m-%d %H:%M:%S.%f", True
+                                )
                                 wert_beginn = f"{float(tick['open']):.5f}"  # explizit float und exakt 5 Nachkommastellen!
                                 daten.append(
                                     [tick["asset"], zeitpunkt_beginn, wert_beginn]
