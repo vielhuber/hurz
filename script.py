@@ -1023,25 +1023,17 @@ def format_deals_get_column(type):
 
 def timestamp_in_local_timezone(ts: int, tzname: str = "Europe/Berlin") -> datetime:
     """
-    Wandelt einen fälschlich als UTC interpretierten lokalen Timestamp in echte lokale Zeit um.
-    Zieht den Offset zwischen UTC und lokaler Zeitzone ab.
+    Interpretiert einen Unix-Timestamp, der fälschlich als UTC gespeichert wurde,
+    obwohl er eigentlich in lokaler Zeit gemeint war.
+    Gibt ein korrekt lokalisiertes datetime-Objekt zurück.
     """
     local_tz = pytz.timezone(tzname)
 
-    # Jetzt-Zeit in lokaler Zeitzone
-    now_local = datetime.now(local_tz)
+    # 1. Naive datetime erzeugen (wie "fälschlich lokal gemeint")
+    dt_naiv = datetime.fromtimestamp(ts)
 
-    # Jetzt-Zeit in UTC
-    now_utc = datetime.now(timezone.utc)
-
-    # Differenz zwischen lokaler Zeit und UTC
-    offset = now_local.utcoffset() or timedelta(0)
-
-    # Timestamp um Offset korrigieren
-    korrigierter_ts = ts - offset.total_seconds()
-
-    # Jetzt korrekt als lokale Zeit interpretieren
-    return local_tz.localize(datetime.fromtimestamp(korrigierter_ts))
+    # 2. Richtig lokalisieren (setzt Zeitzone, inkl. Sommerzeit)
+    return local_tz.localize(dt_naiv)
 
 
 def format_deals(data, type):
@@ -2184,6 +2176,17 @@ signal.signal(signal.SIGINT, handle_sigint)
 
 
 async def main():
+
+    ts = 1750431697
+    berlin = pytz.timezone("Europe/Berlin")
+    dt_utc = datetime.fromtimestamp(ts, tz=timezone.utc)
+    dt_naiv = dt_utc.replace(tzinfo=None)
+    dt_berlin = berlin.localize(dt_naiv)
+    print(dt_berlin.strftime("%Y-%m-%d %H:%M:%S %Z"))
+
+    print(pytz.timezone("Europe/Berlin").localize(datetime.fromtimestamp(1750431697)))
+    sys.exit()
+
     try:
         await setup_websockets()
 
