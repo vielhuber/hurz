@@ -1021,21 +1021,6 @@ def format_deals_get_column(type):
     return None
 
 
-def timestamp_in_local_timezone(ts: int, tzname: str = "Europe/Berlin") -> datetime:
-    """
-    Interpretiert einen Unix-Timestamp, der fälschlich als UTC gespeichert wurde,
-    obwohl er eigentlich in lokaler Zeit gemeint war.
-    Gibt ein korrekt lokalisiertes datetime-Objekt zurück.
-    """
-    local_tz = pytz.timezone(tzname)
-
-    # 1. Naive datetime erzeugen (wie "fälschlich lokal gemeint")
-    dt_naiv = datetime.fromtimestamp(ts)
-
-    # 2. Richtig lokalisieren (setzt Zeitzone, inkl. Sommerzeit)
-    return local_tz.localize(dt_naiv)
-
-
 def format_deals(data, type):
     if not isinstance(data, list):
         return "⚠️ Ungültige Datenstruktur: kein Array."
@@ -1052,32 +1037,6 @@ def format_deals(data, type):
                 result = "⛔"
 
         try:
-            print(deal["openTimestamp"])
-            print(
-                datetime.fromtimestamp(deal["openTimestamp"], tz=timezone.utc)
-                .astimezone(pytz.timezone("Europe/Berlin"))
-                .strftime("%Y-%m-%d %H:%M:%S %Z")
-            )
-            print(
-                datetime.fromtimestamp(
-                    deal["openTimestamp"], tz=pytz.timezone("Europe/Berlin")
-                ).strftime("%Y-%m-%d %H:%M:%S %Z")
-            )
-            print(
-                pytz.timezone("Europe/Berlin")
-                .localize(datetime.fromtimestamp(deal["openTimestamp"]))
-                .strftime("%Y-%m-%d %H:%M:%S %Z")
-            )
-            print(
-                pytz.timezone("Europe/Berlin")
-                .localize(datetime.fromtimestamp(deal["openTimestamp"]))
-                .strftime("%Y-%m-%d %H:%M:%S %Z")
-            )
-            print(
-                timestamp_in_local_timezone(deal["openTimestamp"]).strftime(
-                    "%Y-%m-%d %H:%M:%S %Z"
-                )
-            )
 
             tabelle.append(
                 [
@@ -1089,10 +1048,18 @@ def format_deals(data, type):
                     getAdditionalInformationFromId(deal.get("id"))["trade_confidence"],
                     getAdditionalInformationFromId(deal.get("id"))["trade_platform"],
                     pytz.timezone("Europe/Berlin")
-                    .localize(datetime.fromtimestamp(deal["openTimestamp"]))
+                    .localize(
+                        datetime.fromtimestamp(
+                            deal["openTimestamp"], tz=timezone.utc
+                        ).replace(tzinfo=None)
+                    )
                     .strftime("%d.%m.%y %H:%M:%S"),
                     pytz.timezone("Europe/Berlin")
-                    .localize(datetime.fromtimestamp(deal["closeTimestamp"]))
+                    .localize(
+                        datetime.fromtimestamp(
+                            deal["closeTimestamp"], tz=timezone.utc
+                        ).replace(tzinfo=None)
+                    )
                     .strftime("%d.%m.%y %H:%M:%S"),
                     "---",
                     f"{deal.get('amount')}$",
