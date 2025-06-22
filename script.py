@@ -377,8 +377,8 @@ async def ws_receive_loop(ws):
                             f"-------------------------------------------------------------------"
                         )
                         if isinstance(data, list) and target_time is not None:
-                            print(datetime.fromtimestamp(data[0]["time"]))
-                            print(datetime.fromtimestamp(data[-1]["time"]))
+                            # print(datetime.fromtimestamp(data[0]["time"]))
+                            # print(datetime.fromtimestamp(data[-1]["time"]))
 
                             daten = []
 
