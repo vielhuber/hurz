@@ -275,6 +275,24 @@ async def ws_keepalive(ws):
         await asyncio.sleep(30)
 
 
+def output_correct_datetime(timestamp, format, shift=False):
+
+    if shift is False:
+        return (
+            datetime.fromtimestamp(timestamp, tz=timezone.utc)
+            .astimezone(pytz.timezone("Europe/Berlin"))
+            .strftime(format)
+        )
+    else:
+        return (
+            pytz.timezone("Europe/Berlin")
+            .localize(
+                datetime.fromtimestamp(timestamp, tz=timezone.utc).replace(tzinfo=None)
+            )
+            .strftime(format)
+        )
+
+
 def format_waehrung(name):
     # Schritt 1: _ → Leerzeichen
     name = name.replace("_", " ")
@@ -1047,20 +1065,12 @@ def format_deals(data, type):
                     getAdditionalInformationFromId(deal.get("id"))["trade_time"],
                     getAdditionalInformationFromId(deal.get("id"))["trade_confidence"],
                     getAdditionalInformationFromId(deal.get("id"))["trade_platform"],
-                    pytz.timezone("Europe/Berlin")
-                    .localize(
-                        datetime.fromtimestamp(
-                            deal["openTimestamp"], tz=timezone.utc
-                        ).replace(tzinfo=None)
-                    )
-                    .strftime("%d.%m.%y %H:%M:%S"),
-                    pytz.timezone("Europe/Berlin")
-                    .localize(
-                        datetime.fromtimestamp(
-                            deal["closeTimestamp"], tz=timezone.utc
-                        ).replace(tzinfo=None)
-                    )
-                    .strftime("%d.%m.%y %H:%M:%S"),
+                    output_correct_datetime(
+                        deal["openTimestamp"], "%d.%m.%y %H:%M:%S", True
+                    ),
+                    output_correct_datetime(
+                        deal["closeTimestamp"], "%d.%m.%y %H:%M:%S", True
+                    ),
                     "---",
                     f"{deal.get('amount')}$",
                     f"{deal.get('profit')}$" if type == "closed" else "???",
@@ -1502,7 +1512,7 @@ async def printLiveStats():
             )  # Konsole leeren (Windows/Linux)
             print("###############################################")
             print(
-                f'Zeit: {datetime.now().strftime("%d.%m.%Y %H:%M:%S")} | Kontostand: {live_data_balance_formatted} $'
+                f'Zeit: {output_correct_datetime(datetime.now().timestamp(),"%d.%m.%Y %H:%M:%S", False)} | Kontostand: {live_data_balance_formatted} $'
             )
             print()
             print(
@@ -1617,7 +1627,7 @@ async def hauptmenu():
         option1 = "Historische Daten laden"
         if os.path.exists(filename_historic_data):
             timestamp = os.path.getmtime(filename_historic_data)
-            datum = datetime.fromtimestamp(timestamp).strftime("%d.%m.%y %H:%M:%S")
+            datum = output_correct_datetime(timestamp, "%d.%m.%y %H:%M:%S", True)
             option1 += " (vom " + datum + ")"
         else:
             option1 += " (Daten nicht vorhanden)"
@@ -1625,7 +1635,7 @@ async def hauptmenu():
         option2 = "Modell trainieren"
         if os.path.exists(filename_model):
             timestamp = os.path.getmtime(filename_model)
-            datum = datetime.fromtimestamp(timestamp).strftime("%d.%m.%y %H:%M:%S")
+            datum = output_correct_datetime(timestamp, "%d.%m.%y %H:%M:%S", True)
             option2 += " (vom " + datum + ")"
         else:
             option2 += " (Daten nicht vorhanden)"
@@ -1668,7 +1678,7 @@ async def hauptmenu():
             f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
             f"\n"
             f"\n"
-            f'TIME: {datetime.now().strftime("%H:%M:%S")}'
+            f'TIME: {output_correct_datetime(datetime.now().timestamp(),"%H:%M:%S", False)}'
             f" | "
             f"PLATFORM: {trade_platform}"
             f" | "
