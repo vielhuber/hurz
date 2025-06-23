@@ -863,7 +863,19 @@ async def pocketoption_load_historic_data(
     if request_time <= target_time:
         print(f"ERROR")
         print(f"request_time: {request_time}")
+        print(
+            f"request_time #2: {output_correct_datetime(request_time, '%d.%m.%y %H:%M:%S', False)}"
+        )
+        print(
+            f"request_time #3: {output_correct_datetime(request_time, '%d.%m.%y %H:%M:%S', True)}"
+        )
         print(f"target_time: {target_time}")
+        print(
+            f"target_time #2: {output_correct_datetime(target_time, '%d.%m.%y %H:%M:%S', False)}"
+        )
+        print(
+            f"target_time #3: {output_correct_datetime(target_time, '%d.%m.%y %H:%M:%S', True)}"
+        )
         sys.exit()
 
     period = 60  # ✅ Kerzen: 60 Sekunden
