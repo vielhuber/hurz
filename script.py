@@ -873,6 +873,8 @@ async def pocketoption_load_historic_data(
     with open("tmp/historic_data_raw.json", "w", encoding="utf-8") as file:
         json.dump([], file)
 
+    print(f"target time: {target_time} - request_time: {request_time}")
+
     while target_time is not None and request_time > target_time:
 
         history_request = [
