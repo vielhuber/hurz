@@ -858,6 +858,11 @@ async def pocketoption_load_historic_data(
     # startzeit
     request_time = current_time
 
+    if request_time <= target_time:
+        print(f"ERROR")
+        print(f"request_time: {request_time}")
+        print(f"target_time: {target_time}")
+
     period = 60  # ✅ Kerzen: 60 Sekunden
     offset = 150 * 60  # Sprungweite pro Request: 150 Minuten
     overlap = 2 * 60  # ✅ Überlappung von 2 Minute (60 Sekunden) pro Request
@@ -872,8 +877,6 @@ async def pocketoption_load_historic_data(
         file.write("pending")
     with open("tmp/historic_data_raw.json", "w", encoding="utf-8") as file:
         json.dump([], file)
-
-    print(f"target time: {target_time} - request_time: {request_time}")
 
     while target_time is not None and request_time > target_time:
 
