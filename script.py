@@ -386,7 +386,7 @@ async def ws_receive_loop(ws):
                                 zeitpunkt_beginn = output_correct_datetime(
                                     tick["time"], "%Y-%m-%d %H:%M:%S.%f", False
                                 )
-                                print(f"!!!{zeitpunkt_beginn}")
+                                # print(f"!!!{zeitpunkt_beginn}")
                                 wert_beginn = f"{float(tick['open']):.5f}"  # explizit float und exakt 5 Nachkommastellen!
                                 daten.append(
                                     [tick["asset"], zeitpunkt_beginn, wert_beginn]
@@ -816,6 +816,9 @@ def run_fulltest(filename, startzeit=None, endzeit=None):
                 "Erfolge": full_erfolge,
                 "Cases": full_cases,
                 "Gesamt": gesamt_full,
+                "Trading-Quote (%)": (
+                    round((full_cases / gesamt_full) * 100, 2) if gesamt_full else 0
+                ),
                 "Erfolgsquote (%)": (
                     round((full_erfolge / full_cases) * 100, 2) if full_cases else 0
                 ),
@@ -1832,7 +1835,7 @@ async def hauptmenu():
                 print(f"🚀 Orderdurchlauf {i+1}/{trade_repeat}")
 
                 await pocketoption_load_historic_data(
-                    "tmp/tmp_live_data.csv", 10, True  # 10 minutes  # delete old data
+                    "tmp/tmp_live_data.csv", 240, True  # ~2 hours  # delete old data
                 )
                 await asyncio.sleep(0)
                 report = run_fulltest("tmp/tmp_live_data.csv", None, None)
