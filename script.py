@@ -851,7 +851,9 @@ async def pocketoption_load_historic_data(
                 letzte = zeilen[-1].split(",")
                 zeitstempel_str = letzte[1]
                 print(f"📅 Letzter Zeitwert: {zeitstempel_str}")
-                dt = datetime.strptime(zeitstempel_str, "%Y-%m-%d %H:%M:%S.%f")
+                dt = datetime.strptime(zeitstempel_str, "%Y-%m-%d %H:%M:%S.%f").replace(
+                    tzinfo=timezone.utc
+                )
                 if target_time < int(dt.timestamp()):
                     target_time = int(dt.timestamp())
 
@@ -862,6 +864,7 @@ async def pocketoption_load_historic_data(
         print(f"ERROR")
         print(f"request_time: {request_time}")
         print(f"target_time: {target_time}")
+        sys.exit()
 
     period = 60  # ✅ Kerzen: 60 Sekunden
     offset = 150 * 60  # Sprungweite pro Request: 150 Minuten
