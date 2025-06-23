@@ -5,4 +5,5 @@
 /.env
 __pycache__
 *.pyc
+*.prof
 /NOTES.MD

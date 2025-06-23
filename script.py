@@ -25,7 +25,7 @@ import time
 import traceback
 import urllib.request
 import websockets
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, time as time2
 from dotenv import load_dotenv
 from slugify import slugify
 from tabulate import tabulate
@@ -708,49 +708,73 @@ def run_fulltest(filename, startzeit=None, endzeit=None):
 
     i = 0
 
+    werte = df["Wert"].astype(float).values  # Nur einmal umwandeln
+
+    # die einzelnen windows
     X_test = []
+    # die zu prognostizierenden zielwerte
     zielwerte = []
+    # die letzten werte in den windows
     letzte_werte = []
+
+    performance_start = time.perf_counter()
+
+    with open("tmp/debug_fulltest.txt", "w", encoding="utf-8") as f:
+        f.write("")
 
     while True:
         start = start_index + i
         ende = start + train_window
-        ziel = ende + train_horizon
+        ziel = ende + train_horizon - 1
 
         if ziel > end_index:
             break
 
-        fenster = df.iloc[start:ende]["Wert"].astype(float).values
-        zielwert = float(df.iloc[ziel]["Wert"])
-        letzter_wert = fenster[-1]
-
-        if i == 0 or i == 1 or ziel == end_index:
-            with open("tmp/debug_fulltest.txt", "a", encoding="utf-8") as f:
-                f.write(f"Step {i}\n")
-                f.write(f"  start index : {start}\n")
-                f.write(f"  end index   : {ende}\n")
-                f.write(f"  ziel index  : {ziel}\n")
-                f.write(f"  start zeitpunkt : {df.iloc[start]['Zeitpunkt']}\n")
-                f.write(f"  ende zeitpunkt : {df.iloc[ende]['Zeitpunkt']}\n")
-                f.write(f"  ziel zeitpunkt : {df.iloc[ziel]['Zeitpunkt']}\n")
-                f.write(f"  start wert : {df.iloc[start]['Wert']}\n")
-                f.write(f"  ende wert : {df.iloc[ende]['Wert']}\n")
-                f.write(f"  letzter_wert : {letzter_wert}\n")
-                f.write(f"  ziel wert : {df.iloc[ziel]['Wert']}\n")
-                f.write(f"  fenster len : {len(fenster)}\n")
-                f.write(f"  fenster: {fenster.tolist()}\n")
-                f.write("\n")
+        # zu langsam
+        # fenster = df.iloc[start:ende]["Wert"].astype(float).values
+        # optimiert
+        fenster = werte[start:ende]  # ende ist ausgeschlossen(!)
 
         if len(fenster) == train_window:
+            # zu langsam
+            # zielwert = float(df.iloc[ziel]["Wert"])
+            # optimiert
+            zielwert = werte[ziel]
+
+            letzter_wert = fenster[-1]
+
             X_test.append(fenster)
             zielwerte.append(zielwert)
             letzte_werte.append(letzter_wert)
 
+        if i == 0 or i == 1 or ziel == end_index or i == 1342 or i == 1343:
+            with open("tmp/debug_fulltest.txt", "a", encoding="utf-8") as f:
+                f.write(f"Step {i}\n")
+                f.write(f"  start index : {start}\n")
+                f.write(f"  end index (exkl)   : {ende}\n")
+                f.write(f"  ziel index  : {ziel}\n")
+                f.write(f"  start zeitpunkt : {df.iloc[start]['Zeitpunkt']}\n")
+                f.write(f"  ende zeitpunkt (exkl) : {df.iloc[ende]['Zeitpunkt']}\n")
+                f.write(f"  ziel zeitpunkt : {df.iloc[ziel]['Zeitpunkt']}\n")
+                f.write(f"  start wert : {df.iloc[start]['Wert']}\n")
+                f.write(f"  ende wert (exkl) : {df.iloc[ende]['Wert']}\n")
+                f.write(f"  ziel wert : {df.iloc[ziel]['Wert']}\n")
+                f.write(f"  letzter_wert : {letzter_wert}\n")
+                f.write(f"  fenster len : {len(fenster)}\n")
+                f.write(f"  fenster: {fenster.tolist()}\n")
+                f.write("\n")
+
         i += 1
+
+    print(f"⏱ #0.1 {time.perf_counter() - performance_start:.4f}s")
+    performance_start = time.perf_counter()
 
     prognosen = model_classes[active_model].model_run_fulltest(
         filename_model, X_test, trade_confidence
     )
+
+    print(f"⏱ #0.2 {time.perf_counter() - performance_start:.4f}s")
+    performance_start = time.perf_counter()
 
     # ✅ Auswertung
     full_erfolge = 0
@@ -758,8 +782,6 @@ def run_fulltest(filename, startzeit=None, endzeit=None):
     gesamt_full = len(prognosen)
 
     for i in range(gesamt_full):
-        hit = False
-
         result_is_correct = False
         if prognosen[i] == 1 and zielwerte[i] > letzte_werte[i]:
             result_is_correct = True
@@ -768,23 +790,24 @@ def run_fulltest(filename, startzeit=None, endzeit=None):
         if prognosen[i] == 0.5:
             result_is_correct = None
 
-        if result_is_correct is None:
-            continue
-
-        full_cases += 1
-
-        if result_is_correct is True:
-            full_erfolge += 1
-            hit = True
-
-        if i == 0 or i == 1 or i == len(prognosen) - 1:
+        if i == 0 or i == 1 or i == len(prognosen) - 1 or i == 1342 or i == 1343:
             with open("tmp/debug_fulltest.txt", "a", encoding="utf-8") as f:
                 f.write(f"Step {i}\n")
                 f.write(f"  letzter wert : {letzte_werte[i]}\n")
                 f.write(f"  zielwert : {zielwerte[i]}\n")
                 f.write(f"  prognose : {prognosen[i]}\n")
-                f.write(f"  hit : {hit}\n")
+                f.write(f"  result_is_correct : {result_is_correct}\n")
                 f.write("\n")
+
+        if result_is_correct is None:
+            continue
+
+        full_cases += 1
+        if result_is_correct is True:
+            full_erfolge += 1
+
+    print(f"⏱ #0.3 {time.perf_counter() - performance_start:.4f}s")
+    performance_start = time.perf_counter()
 
     return pd.DataFrame(
         [
@@ -911,9 +934,33 @@ async def pocketoption_load_historic_data(
                     lambda x: f"{x:.5f}" if pd.notnull(x) else ""
                 )
 
-                # Alles nach Zeit sortieren und doppelte Zeilen entfernen
+                # Doppelte Zeilen entfernen
                 df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"], errors="coerce")
                 df.dropna(subset=["Zeitpunkt"], inplace=True)
+
+                # Wochenenden (Trading Freie Zeiten) entfernen
+                if "OTC" not in trade_asset:
+                    df_tmp = df.copy()
+                    df_tmp["Zeitpunkt"] = pd.to_datetime(
+                        df_tmp["Zeitpunkt"], errors="coerce"
+                    )
+                    df_tmp["wochentag"] = df_tmp["Zeitpunkt"].dt.weekday
+                    df_tmp["uhrzeit"] = df_tmp["Zeitpunkt"].dt.time
+
+                    def ist_wochenende(row):
+                        wd = row["wochentag"]
+                        t = row["uhrzeit"]
+                        if wd == 5 and t >= time2(1, 0):  # Samstag ab 01:00
+                            return True
+                        if wd == 6:  # Ganzer Sonntag
+                            return True
+                        if wd == 0 and t < time2(1, 0):  # Montag vor 01:00
+                            return True
+                        return False
+
+                    df = df[~df_tmp.apply(ist_wochenende, axis=1)]
+
+                # Alles nach Zeit sortieren
                 df = df.sort_values("Zeitpunkt").drop_duplicates(
                     subset=["Waehrung", "Zeitpunkt"]
                 )
@@ -1766,7 +1813,7 @@ async def hauptmenu():
         elif antworten["auswahl"] == option3 and os.path.exists(filename_model):
             report = run_fulltest(filename_historic_data, None, None)
             print(report)
-            await asyncio.sleep(15)
+            await asyncio.sleep(5)
 
         elif antworten["auswahl"] == option4 and os.path.exists(filename_historic_data):
             printDiagrams()
