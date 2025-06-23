@@ -128,7 +128,7 @@ laufende_tasks = []
 main_menu_default = None
 reconnect_last_try = None
 binary_expected_event = None
-train_window = 5  # Input-Zeitraum, 5 Minuten
+train_window = 30  # Input-Zeitraum, 30 Minuten
 train_horizon = 1  # Vorhersagefenster, 1 Minute
 
 
@@ -1766,7 +1766,7 @@ async def hauptmenu():
         elif antworten["auswahl"] == option3 and os.path.exists(filename_model):
             report = run_fulltest(filename_historic_data, None, None)
             print(report)
-            await asyncio.sleep(5)
+            await asyncio.sleep(15)
 
         elif antworten["auswahl"] == option4 and os.path.exists(filename_historic_data):
             printDiagrams()

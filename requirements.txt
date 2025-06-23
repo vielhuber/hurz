@@ -1,6 +1,7 @@
 aiohttp
 cupy_cuda12x
 inquirer
+matplotlib
 pandas
 pygame
 plotext
