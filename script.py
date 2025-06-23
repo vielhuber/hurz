@@ -852,7 +852,7 @@ async def pocketoption_load_historic_data(
                 zeitstempel_str = letzte[1]
                 print(f"📅 Letzter Zeitwert: {zeitstempel_str}")
                 dt = datetime.strptime(zeitstempel_str, "%Y-%m-%d %H:%M:%S.%f").replace(
-                    tzinfo=timezone.utc
+                    tzinfo=None
                 )
                 if target_time < int(dt.timestamp()):
                     target_time = int(dt.timestamp())
