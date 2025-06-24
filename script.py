@@ -840,10 +840,13 @@ async def pocketoption_load_historic_data(
     # Aktuelle Zeit (jetzt)
     current_time = int(time.time())
 
+    # startzeit
+    request_time = current_time
+
     # zielzeit (x minuten zurück)
     target_time = current_time - (time_back_in_minutes * 60)
 
-    # zielzeit anpassen, damit nicht doppelte daten abgerufen werden
+    # zielzeit dynamisch anpassen, damit nicht doppelte daten abgerufen werden
     if os.path.exists(filename):
         with open(filename, "r", encoding="utf-8") as f:
             zeilen = [zeile.strip() for zeile in f if zeile.strip()]
@@ -851,14 +854,16 @@ async def pocketoption_load_historic_data(
                 letzte = zeilen[-1].split(",")
                 zeitstempel_str = letzte[1]
                 print(f"📅 Letzter Zeitwert: {zeitstempel_str}")
-                dt = datetime.strptime(zeitstempel_str, "%Y-%m-%d %H:%M:%S.%f").replace(
-                    tzinfo=None
+                this_timestamp = int(
+                    pytz.timezone("Europe/Berlin")
+                    .localize(
+                        datetime.strptime(zeitstempel_str, "%Y-%m-%d %H:%M:%S.%f")
+                    )
+                    .astimezone(pytz.utc)
+                    .timestamp()
                 )
-                if target_time < int(dt.timestamp()):
-                    target_time = int(dt.timestamp())
-
-    # startzeit
-    request_time = current_time
+                if target_time < this_timestamp:
+                    target_time = this_timestamp
 
     if request_time <= target_time:
         print(f"ERROR")
