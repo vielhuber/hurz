@@ -997,7 +997,7 @@ class Hurz:
                     break
             await asyncio.sleep(1)  # Intervall zur Entlastung
 
-    async def do_buy_sell_order(self, platform, model, asset, key):
+    async def do_buy_sell_order(self, platform, model, asset):
         print("Kaufoption wird getätigt.")
 
         # Live-Daten laden (bereits 5 Minuten gesammelt)
@@ -1057,7 +1057,7 @@ class Hurz:
         else:
             print(f"⛔ UNSCHLÜSSIG! ÜBERSPRINGE!")
 
-    def get_asset_information(self, key):
+    def get_asset_information(self, platform, model, asset):
         csv_path = "data/db_assets.csv"
 
         if not os.path.exists(csv_path):
@@ -1074,28 +1074,28 @@ class Hurz:
                 and zeile["model"] == model
                 and zeile["asset"] == asset
             ):
-                return zeile[key]
+                return zeile
 
         return None
 
-    def store_asset_information(self, platform, model, asset, key, value):
+    def store_asset_information(self, platform, model, asset, data):
         csv_path = "data/db_assets.csv"
+
+        header = [
+            "platform",
+            "model",
+            "asset",
+            "last_return_percent",
+            "last_trade_confidence",
+            "last_fulltest_quote_trading",
+            "last_fulltest_quote_success",
+        ]
 
         # Datei anlegen, falls sie nicht existiert
         if not os.path.exists(csv_path):
             with open(csv_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
-                writer.writerow(
-                    [
-                        "platform",
-                        "model",
-                        "asset",
-                        "last_return_percent",
-                        "last_fulltest_trade_confidence",
-                        "last_fulltest_quote_trading",
-                        "last_fulltest_quote_success",
-                    ]
-                )  # Header schreiben
+                writer.writerow(header)  # Header schreiben
 
         # Datei einlesen
         with open(csv_path, "r", newline="", encoding="utf-8") as f:
@@ -1103,30 +1103,39 @@ class Hurz:
             eintraege = list(reader)
 
         # Nach Eintrag suchen und überschreiben
+        found = False
         for zeile in eintraege:
             if (
                 zeile["platform"] == platform
                 and zeile["model"] == model
                 and zeile["asset"] == asset
             ):
-                zeile[key] = value
-                return
+                found = True
+                for data__key, data__value in data.items():
+                    zeile[data__key] = data__value
 
         # Wenn kein Eintrag gefunden, neuen Eintrag hinzufügen
-        new_entry = {
-            "platform": platform,
-            "model": model,
-            "asset": asset,
-            "last_return_percent": None,
-            "last_fulltest_trade_confidence": None,
-            "last_fulltest_quote_trading": None,
-            "last_fulltest_quote_success": None,
-        }
-        new_entry[key] = value
-        eintraege.append(new_entry)
+        if found is False:
+            new_entry = {
+                "platform": platform,
+                "model": model,
+                "asset": asset,
+                "last_return_percent": None,
+                "last_trade_confidence": None,
+                "last_fulltest_quote_trading": None,
+                "last_fulltest_quote_success": None,
+            }
+            for data__key, data__value in data.items():
+                new_entry[data__key] = data__value
+            eintraege.append(new_entry)
 
         # in CSV speichern
-        with open(csv_path, "a", newline="", encoding="utf-8") as f:
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=header,
+            )
+            writer.writeheader()
             writer.writerows(eintraege)
 
     def get_additional_information_from_id(self, id):
@@ -1776,6 +1785,8 @@ class Hurz:
     async def start_auto_mode(self):
         print("🚀 Starte geführten Auto-Modus...")
 
+        last_return_percent = None
+
         # determine next optimal trading pair
         with open("tmp/assets.json", "r", encoding="utf-8") as f:
             assets = json.load(f)
@@ -1784,32 +1795,21 @@ class Hurz:
             if eintrag["name"] == self.trade_asset:
                 continue
             # get asset information
-            last_return_percent = self.get_asset_information(
-                self.trade_platform,
-                self.active_model,
-                eintrag["name"],
-                "last_return_percent",
+            asset_information = self.get_asset_information(
+                self.trade_platform, self.active_model, eintrag["name"]
             )
-            last_fulltest_trade_confidence = self.get_asset_information(
-                self.trade_platform,
-                self.active_model,
-                eintrag["name"],
-                "last_fulltest_trade_confidence",
-            )
-            last_fulltest_quote_trading = self.get_asset_information(
-                self.trade_platform,
-                self.active_model,
-                eintrag["name"],
-                "last_fulltest_quote_trading",
-            )
-            last_fulltest_quote_success = self.get_asset_information(
-                self.trade_platform,
-                self.active_model,
-                eintrag["name"],
-                "last_fulltest_quote_success",
-            )
+            if asset_information is not None:
+                print(asset_information["last_return_percent"])
+                print(asset_information["last_trade_confidence"])
+                print(asset_information["last_fulltest_quote_trading"])
+                print(asset_information["last_fulltest_quote_success"])
+
             # debug
             self.trade_asset = eintrag["name"]
+            self.trade_asset = "AUDCHF"
+
+            last_return_percent = eintrag["return_percent"]
+
             break
 
         # change other settings (without saving)
@@ -1818,55 +1818,37 @@ class Hurz:
         self.trade_confidence = 65
         self.refresh_dependent_settings()
 
-        # do the following only if the data is not too old
-
-        # load historic data
-        if True is True:
+        # load historic data (if too old)
+        if True is False:
             await self.pocketoption_load_historic_data(
                 self.filename_historic_data,
                 3 * 30.25 * 24 * 60,
                 False,
             )
 
-        # train model
-        if True is True:
+        # train model (if too old)
+        if True is False:
             self.train_active_model(self.filename_historic_data)
 
         # run fulltest
         fulltest_result = self.run_fulltest(self.filename_historic_data, None, None)
-        print(fulltest_result.report)
+        print(fulltest_result["report"])
 
         # store asset information
         self.store_asset_information(
             self.trade_platform,
             self.active_model,
             self.trade_asset,
-            "last_return_percent",
-            "TODO",
-        )
-        self.store_asset_information(
-            self.trade_platform,
-            self.active_model,
-            self.trade_asset,
-            "last_fulltest_trade_confidence",
-            "TODO",
-        )
-        self.store_asset_information(
-            self.trade_platform,
-            self.active_model,
-            self.trade_asset,
-            "last_fulltest_quote_trading",
-            "TODO",
-        )
-        self.store_asset_information(
-            self.trade_platform,
-            self.active_model,
-            self.trade_asset,
-            "last_fulltest_quote_success",
-            "TODO",
+            {
+                "last_return_percent": last_return_percent,
+                "last_trade_confidence": self.trade_confidence,
+                "last_fulltest_quote_trading": fulltest_result["data"]["quote_trading"],
+                "last_fulltest_quote_success": fulltest_result["data"]["quote_success"],
+            },
         )
 
         # do live trading
+        # TODO
 
     def print_diagrams(self):
         print("Drucke Diagramme...")
@@ -2074,7 +2056,7 @@ class Hurz:
                 fulltest_result = self.run_fulltest(
                     self.filename_historic_data, None, None
                 )
-                print(fulltest_result.report)
+                print(fulltest_result["report"])
                 await asyncio.sleep(5)
 
             elif antworten["auswahl"] == option4 and os.path.exists(
@@ -2106,7 +2088,7 @@ class Hurz:
                     fulltest_result = self.run_fulltest(
                         "tmp/tmp_live_data.csv", None, None
                     )
-                    print(fulltest_result.report)
+                    print(fulltest_result["report"])
                     await asyncio.sleep(0)
                     await self.do_buy_sell_order("tmp/tmp_live_data.csv")
                     await asyncio.sleep(0)
