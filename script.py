@@ -103,27 +103,11 @@ class Hurz:
                     self.sound_effects = einstellungen.get(
                         "sound_effects", self.sound_effects
                     )
+
+                    self.refresh_dependent_settings()
+
             except Exception as e:
                 print("⚠️ Fehler beim Laden der Einstellungen:", e)
-        self.filename_historic_data = (
-            "data/historic_data_"
-            + slugify(self.trade_platform)
-            + "_"
-            + slugify(self.trade_asset)
-            + ".csv"
-        )
-        self.filename_model = (
-            "models/model_"
-            + slugify(self.trade_platform)
-            + "_"
-            + slugify(self.active_model)
-            + "_"
-            + slugify(self.trade_asset)
-            + "_"
-            + str(self.trade_time)
-            + "s"
-            + ".json"
-        )
 
     async def setup_websockets(self):
         # vars
@@ -583,6 +567,8 @@ class Hurz:
                     elif self.binary_expected_event == "updateAssets":
                         decoded = message.decode("utf-8")
                         data = json.loads(decoded)
+
+                        # debug
                         with open("tmp/assets_raw.json", "w", encoding="utf-8") as f:
                             json.dump(data, f, indent=2)
 
@@ -597,9 +583,12 @@ class Hurz:
                                     {
                                         "name": eintrag[1],
                                         "label": eintrag[2],
-                                        "percent": eintrag[5],
+                                        "return_percent": eintrag[5],
+                                        "is_available": True,
                                     }
                                 )
+
+                        # sort
                         gefilterte = sorted(
                             gefilterte,
                             key=lambda x: (
@@ -608,11 +597,13 @@ class Hurz:
                                     "label"
                                 ],  # False (=0) kommt zuerst, True (=1) kommt später
                                 -x[
-                                    "percent"
+                                    "return_percent"
                                 ],  # innerhalb der Nicht-OTC sortieren nach Prozent absteigend
                                 x["label"],
                             ),
                         )
+
+                        # save
                         with open("tmp/assets.json", "w", encoding="utf-8") as f:
                             json.dump(gefilterte, f, indent=2)
 
@@ -802,22 +793,27 @@ class Hurz:
         print(f"⏱ #0.3 {time.perf_counter() - performance_start:.4f}s")
         performance_start = time.perf_counter()
 
-        return pd.DataFrame(
-            [
-                {
-                    "Typ": "Fulltest",
-                    "Erfolge": full_erfolge,
-                    "Cases": full_cases,
-                    "Gesamt": gesamt_full,
-                    "Trading-Quote (%)": (
-                        round((full_cases / gesamt_full) * 100, 2) if gesamt_full else 0
-                    ),
-                    "Erfolgsquote (%)": (
-                        round((full_erfolge / full_cases) * 100, 2) if full_cases else 0
-                    ),
-                },
-            ]
-        )
+        quote_trading = round((full_cases / gesamt_full) * 100, 2) if gesamt_full else 0
+        quote_success = round((full_erfolge / full_cases) * 100, 2) if full_cases else 0
+
+        return {
+            "data": {
+                "quote_trading": quote_trading,
+                "quote_success": quote_success,
+            },
+            "report": pd.DataFrame(
+                [
+                    {
+                        "Typ": "Fulltest",
+                        "Erfolge": full_erfolge,
+                        "Cases": full_cases,
+                        "Gesamt": gesamt_full,
+                        "Trading-Quote (%)": quote_trading,
+                        "Erfolgsquote (%)": quote_success,
+                    },
+                ]
+            ),
+        }
 
     async def pocketoption_load_historic_data(
         self, filename, time_back_in_minutes, delete_old=False
@@ -970,7 +966,7 @@ class Hurz:
                         df_tmp["wochentag"] = df_tmp["Zeitpunkt"].dt.weekday
                         df_tmp["uhrzeit"] = df_tmp["Zeitpunkt"].dt.time
 
-                        def ist_wochenende(self, row):
+                        def ist_wochenende(row):
                             wd = row["wochentag"]
                             t = row["uhrzeit"]
                             if wd == 5 and t >= time2(1, 0):  # Samstag ab 01:00
@@ -1001,7 +997,7 @@ class Hurz:
                     break
             await asyncio.sleep(1)  # Intervall zur Entlastung
 
-    async def do_buy_sell_order(self, filename):
+    async def do_buy_sell_order(self, platform, model, asset, key):
         print("Kaufoption wird getätigt.")
 
         # Live-Daten laden (bereits 5 Minuten gesammelt)
@@ -1061,8 +1057,80 @@ class Hurz:
         else:
             print(f"⛔ UNSCHLÜSSIG! ÜBERSPRINGE!")
 
+    def get_asset_information(self, key):
+        csv_path = "data/db_assets.csv"
+
+        if not os.path.exists(csv_path):
+            return None
+
+        with open(csv_path, "r", newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            eintraege = list(reader)
+
+        # Nach ID suchen
+        for zeile in eintraege:
+            if (
+                zeile["platform"] == platform
+                and zeile["model"] == model
+                and zeile["asset"] == asset
+            ):
+                return zeile[key]
+
+        return None
+
+    def store_asset_information(self, platform, model, asset, key, value):
+        csv_path = "data/db_assets.csv"
+
+        # Datei anlegen, falls sie nicht existiert
+        if not os.path.exists(csv_path):
+            with open(csv_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(
+                    [
+                        "platform",
+                        "model",
+                        "asset",
+                        "last_return_percent",
+                        "last_fulltest_trade_confidence",
+                        "last_fulltest_quote_trading",
+                        "last_fulltest_quote_success",
+                    ]
+                )  # Header schreiben
+
+        # Datei einlesen
+        with open(csv_path, "r", newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            eintraege = list(reader)
+
+        # Nach Eintrag suchen und überschreiben
+        for zeile in eintraege:
+            if (
+                zeile["platform"] == platform
+                and zeile["model"] == model
+                and zeile["asset"] == asset
+            ):
+                zeile[key] = value
+                return
+
+        # Wenn kein Eintrag gefunden, neuen Eintrag hinzufügen
+        new_entry = {
+            "platform": platform,
+            "model": model,
+            "asset": asset,
+            "last_return_percent": None,
+            "last_fulltest_trade_confidence": None,
+            "last_fulltest_quote_trading": None,
+            "last_fulltest_quote_success": None,
+        }
+        new_entry[key] = value
+        eintraege.append(new_entry)
+
+        # in CSV speichern
+        with open(csv_path, "a", newline="", encoding="utf-8") as f:
+            writer.writerows(eintraege)
+
     def get_additional_information_from_id(self, id):
-        csv_path = "data/additional_information.csv"
+        csv_path = "data/db_orders.csv"
 
         # Datei anlegen, falls sie nicht existiert
         if not os.path.exists(csv_path):
@@ -1705,6 +1773,101 @@ class Hurz:
 
         print("⬅️ Zurück zum Hauptmenü...")
 
+    async def start_auto_mode(self):
+        print("🚀 Starte geführten Auto-Modus...")
+
+        # determine next optimal trading pair
+        with open("tmp/assets.json", "r", encoding="utf-8") as f:
+            assets = json.load(f)
+        for eintrag in assets:
+            # never use current asset
+            if eintrag["name"] == self.trade_asset:
+                continue
+            # get asset information
+            last_return_percent = self.get_asset_information(
+                self.trade_platform,
+                self.active_model,
+                eintrag["name"],
+                "last_return_percent",
+            )
+            last_fulltest_trade_confidence = self.get_asset_information(
+                self.trade_platform,
+                self.active_model,
+                eintrag["name"],
+                "last_fulltest_trade_confidence",
+            )
+            last_fulltest_quote_trading = self.get_asset_information(
+                self.trade_platform,
+                self.active_model,
+                eintrag["name"],
+                "last_fulltest_quote_trading",
+            )
+            last_fulltest_quote_success = self.get_asset_information(
+                self.trade_platform,
+                self.active_model,
+                eintrag["name"],
+                "last_fulltest_quote_success",
+            )
+            # debug
+            self.trade_asset = eintrag["name"]
+            break
+
+        # change other settings (without saving)
+        self.trade_repeat = 1
+        self.sound_effects = 0
+        self.trade_confidence = 65
+        self.refresh_dependent_settings()
+
+        # do the following only if the data is not too old
+
+        # load historic data
+        if True is True:
+            await self.pocketoption_load_historic_data(
+                self.filename_historic_data,
+                3 * 30.25 * 24 * 60,
+                False,
+            )
+
+        # train model
+        if True is True:
+            self.train_active_model(self.filename_historic_data)
+
+        # run fulltest
+        fulltest_result = self.run_fulltest(self.filename_historic_data, None, None)
+        print(fulltest_result.report)
+
+        # store asset information
+        self.store_asset_information(
+            self.trade_platform,
+            self.active_model,
+            self.trade_asset,
+            "last_return_percent",
+            "TODO",
+        )
+        self.store_asset_information(
+            self.trade_platform,
+            self.active_model,
+            self.trade_asset,
+            "last_fulltest_trade_confidence",
+            "TODO",
+        )
+        self.store_asset_information(
+            self.trade_platform,
+            self.active_model,
+            self.trade_asset,
+            "last_fulltest_quote_trading",
+            "TODO",
+        )
+        self.store_asset_information(
+            self.trade_platform,
+            self.active_model,
+            self.trade_asset,
+            "last_fulltest_quote_success",
+            "TODO",
+        )
+
+        # do live trading
+
     def print_diagrams(self):
         print("Drucke Diagramme...")
 
@@ -1754,7 +1917,7 @@ class Hurz:
             filename, self.filename_model, self.train_window, self.train_horizon
         )
 
-    async def hauptmenu(self):
+    async def initialize_main_menu(self):
         while True and not self.stop_event.is_set():
 
             option1 = "Historische Daten laden"
@@ -1795,7 +1958,9 @@ class Hurz:
 
             option8 = "Ansicht aktualisieren"
 
-            option9 = "Programm verlassen"
+            option9 = "Geführter Auto-Modus"
+
+            option10 = "Programm verlassen"
 
             live_data_balance = 0
             if os.path.exists("data/live_data_balance.json"):
@@ -1855,10 +2020,11 @@ class Hurz:
                             option7,
                             option8,
                             option9,
+                            option10,
                             help_text,
                         ]
                         if self._ws_connection is not None
-                        else [option6, option8, option9, help_text]
+                        else [option6, option8, option10, help_text]
                     ),
                     default=self.main_menu_default,
                 ),
@@ -1905,8 +2071,10 @@ class Hurz:
             elif antworten["auswahl"] == option3 and os.path.exists(
                 self.filename_model
             ):
-                report = self.run_fulltest(self.filename_historic_data, None, None)
-                print(report)
+                fulltest_result = self.run_fulltest(
+                    self.filename_historic_data, None, None
+                )
+                print(fulltest_result.report)
                 await asyncio.sleep(5)
 
             elif antworten["auswahl"] == option4 and os.path.exists(
@@ -1935,8 +2103,10 @@ class Hurz:
                         True,  # ~2 hours  # delete old data
                     )
                     await asyncio.sleep(0)
-                    report = self.run_fulltest("tmp/tmp_live_data.csv", None, None)
-                    print(report)
+                    fulltest_result = self.run_fulltest(
+                        "tmp/tmp_live_data.csv", None, None
+                    )
+                    print(fulltest_result.report)
                     await asyncio.sleep(0)
                     await self.do_buy_sell_order("tmp/tmp_live_data.csv")
                     await asyncio.sleep(0)
@@ -1965,6 +2135,10 @@ class Hurz:
                 self.load_settings()
 
             elif antworten["auswahl"] == option9:
+                await self.start_auto_mode()
+                await asyncio.sleep(1)
+
+            elif antworten["auswahl"] == option10:
                 print("Programm wird beendet.")
                 self.stop_event.set()
                 for t in asyncio.all_tasks():
@@ -2067,7 +2241,7 @@ class Hurz:
                     + " "
                     + eintrag["label"]
                     + " ("
-                    + str(eintrag["percent"])
+                    + str(eintrag["return_percent"])
                     + "%)",
                     eintrag["name"],
                 )
@@ -2229,54 +2403,58 @@ class Hurz:
             self.trade_time = neues_trade_time
             self.sound_effects = neues_sound_effects
 
-            # Datei aktualisieren
-            self.filename_historic_data = (
-                "data/historic_data_"
-                + slugify(self.trade_platform)
-                + "_"
-                + slugify(self.trade_asset)
-                + ".csv"
-            )
-
-            self.filename_model = (
-                "models/model_"
-                + slugify(self.trade_platform)
-                + "_"
-                + slugify(self.active_model)
-                + "_"
-                + slugify(self.trade_asset)
-                + "_"
-                + str(self.trade_time)
-                + "s"
-                + ".json"
-            )
-
-            # Einstellungen speichern
-            try:
-                with open("data/settings.json", "w", encoding="utf-8") as f:
-                    json.dump(
-                        {
-                            "asset": self.trade_asset,
-                            "demo": self.is_demo_account,
-                            "model": self.active_model,
-                            "trade_platform": self.trade_platform,
-                            "trade_confidence": self.trade_confidence,
-                            "trade_amount": self.trade_amount,
-                            "trade_repeat": self.trade_repeat,
-                            "trade_distance": self.trade_distance,
-                            "trade_time": self.trade_time,
-                            "sound_effects": self.sound_effects,
-                        },
-                        f,
-                        indent=2,
-                    )
-            except Exception as e:
-                print("⚠️ Fehler beim Speichern der Einstellungen:", e)
+            self.refresh_dependent_settings()
+            self.save_current_settings()
 
             # reinitialisieren (nur wenn Demo geändert wurde)
             if restart is True:
                 await self.shutdown()
                 await self.setup_websockets()
+
+    def refresh_dependent_settings(self):
+        self.filename_historic_data = (
+            "data/historic_data_"
+            + slugify(self.trade_platform)
+            + "_"
+            + slugify(self.trade_asset)
+            + ".csv"
+        )
+
+        self.filename_model = (
+            "models/model_"
+            + slugify(self.trade_platform)
+            + "_"
+            + slugify(self.active_model)
+            + "_"
+            + slugify(self.trade_asset)
+            + "_"
+            + str(self.trade_time)
+            + "s"
+            + ".json"
+        )
+
+    def save_current_settings(self):
+        # Einstellungen speichern
+        try:
+            with open("data/settings.json", "w", encoding="utf-8") as f:
+                json.dump(
+                    {
+                        "asset": self.trade_asset,
+                        "demo": self.is_demo_account,
+                        "model": self.active_model,
+                        "trade_platform": self.trade_platform,
+                        "trade_confidence": self.trade_confidence,
+                        "trade_amount": self.trade_amount,
+                        "trade_repeat": self.trade_repeat,
+                        "trade_distance": self.trade_distance,
+                        "trade_time": self.trade_time,
+                        "sound_effects": self.sound_effects,
+                    },
+                    f,
+                    indent=2,
+                )
+        except Exception as e:
+            print("⚠️ Fehler beim Speichern der Einstellungen:", e)
 
     def handle_sigint(self, signum, frame):
         print("🔔 SIGINT empfangen – .........beende...")
@@ -2297,10 +2475,10 @@ class Hurz:
 
             await self.setup_websockets()
 
-            # await self.hauptmenu()
+            # await self.initialize_main_menu()
             await asyncio.wait(
                 [
-                    asyncio.create_task(self.hauptmenu()),
+                    asyncio.create_task(self.initialize_main_menu()),
                     asyncio.create_task(self.stop_event.wait()),
                 ],
                 return_when=asyncio.FIRST_COMPLETED,
