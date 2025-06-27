@@ -5,6 +5,7 @@ import concurrent.futures
 import csv
 import importlib.util
 import inquirer
+import math
 import json
 import os
 import pandas as pd
@@ -22,6 +23,7 @@ import time
 import traceback
 import urllib.request
 import websockets
+from functools import partial
 from datetime import datetime, timedelta, timezone, time as time2
 from dotenv import load_dotenv
 from slugify import slugify
@@ -55,11 +57,16 @@ class Hurz:
         self.train_window = 30  # Input-Zeitraum, 30 Minuten
         self.train_horizon = 1  # Vorhersagefenster, 1 Minute
         self.stop_event = asyncio.Event()
+        self.cancel_auto_mode = False
 
     def create_folders(self):
         # ordner anlegen falls nicht verfügbar
         for ordner in ["tmp", "data", "models"]:
             os.makedirs(ordner, exist_ok=True)
+
+    async def run_sync_as_async(self, func, *args, **kwargs):
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, partial(func, *args, **kwargs))
 
     def load_externals(self):
         for file in os.listdir("external"):
@@ -249,7 +256,14 @@ class Hurz:
                 break
             await asyncio.sleep(30)
 
-    def output_correct_datetime(self, timestamp, format, shift=False):
+    def correct_string_to_datetime(self, string, format):
+        return (
+            pytz.timezone("Europe/Berlin")
+            .localize(datetime.strptime(string, format))
+            .astimezone(timezone.utc)
+        )
+
+    def correct_datetime_to_string(self, timestamp, format, shift=False):
 
         if shift is False:
             return (
@@ -303,21 +317,21 @@ class Hurz:
                     print("↔️  Automatisch PONG gesendet")
                 elif isinstance(message, str) and message.startswith("451-"):
                     print(message)
-                    if "successupdateBalance" in message:
+                    if '"successupdateBalance"' in message:
                         self.binary_expected_event = "successupdateBalance"
-                    elif "updateOpenedDeals" in message:
+                    elif '"updateOpenedDeals"' in message:
                         self.binary_expected_event = "updateOpenedDeals"
-                    elif "updateClosedDeals" in message:
+                    elif '"updateClosedDeals"' in message:
                         self.binary_expected_event = "updateClosedDeals"
-                    elif "successopenOrder" in message:
+                    elif '"successopenOrder"' in message:
                         self.binary_expected_event = "successopenOrder"
-                    elif "failopenOrder" in message:
+                    elif '"failopenOrder"' in message:
                         self.binary_expected_event = "failopenOrder"
-                    elif "successcloseOrder" in message:
+                    elif '"successcloseOrder"' in message:
                         self.binary_expected_event = "successcloseOrder"
-                    elif "loadHistoryPeriod" in message:
+                    elif '"loadHistoryPeriod"' in message:
                         self.binary_expected_event = "loadHistoryPeriod"
-                    elif "updateAssets" in message:
+                    elif '"updateAssets"' in message:
                         self.binary_expected_event = "updateAssets"
                 elif isinstance(message, bytes):
                     if self.binary_expected_event == "loadHistoryPeriod":
@@ -352,14 +366,15 @@ class Hurz:
                                 daten = []
 
                                 for tick in data:
-                                    zeitpunkt_beginn = self.output_correct_datetime(
+                                    zeitpunkt_beginn = self.correct_datetime_to_string(
                                         tick["time"], "%Y-%m-%d %H:%M:%S.%f", False
                                     )
                                     # print(f"!!!{zeitpunkt_beginn}")
+                                    # print("!!!!!!!!!!!!")
+                                    # print(tick)
+                                    # print("!!!!!!!!!!!!")
                                     wert_beginn = f"{float(tick['open']):.5f}"  # explizit float und exakt 5 Nachkommastellen!
-                                    daten.append(
-                                        [tick["asset"], zeitpunkt_beginn, wert_beginn]
-                                    )
+                                    daten.append([asset, zeitpunkt_beginn, wert_beginn])
 
                                 with open(
                                     "tmp/historic_data_raw.json", "r+", encoding="utf-8"
@@ -584,7 +599,6 @@ class Hurz:
                                         "name": eintrag[1],
                                         "label": eintrag[2],
                                         "return_percent": eintrag[5],
-                                        "is_available": True,
                                     }
                                 )
 
@@ -611,6 +625,8 @@ class Hurz:
 
         except websockets.ConnectionClosedOK as e:
             print(f"✅ WebSocket normal geschlossen (Code {e.code}): {e.reason}")
+            await self.shutdown()
+            self.stop_event.set()
         except websockets.ConnectionClosedError as e:
             print(f"❌ Verbindung unerwartet geschlossen ({e.code}): {e.reason}")
             # reconnect (this is needed because no PING PONG is sended on training etc.)
@@ -689,6 +705,7 @@ class Hurz:
 
         # --- Fulltest ---
         print("✅ Starte Fulltest")
+        print(f"🚀 Trade confidence: {self.trade_confidence}")
 
         i = 0
 
@@ -856,17 +873,17 @@ class Hurz:
             print(f"ERROR")
             print(f"request_time: {request_time}")
             print(
-                f"request_time #2: {self.output_correct_datetime(request_time, '%d.%m.%y %H:%M:%S', False)}"
+                f"request_time #2: {self.correct_datetime_to_string(request_time, '%d.%m.%y %H:%M:%S', False)}"
             )
             print(
-                f"request_time #3: {self.output_correct_datetime(request_time, '%d.%m.%y %H:%M:%S', True)}"
+                f"request_time #3: {self.correct_datetime_to_string(request_time, '%d.%m.%y %H:%M:%S', True)}"
             )
             print(f"target_time: {self.target_time}")
             print(
-                f"target_time #2: {self.output_correct_datetime(self.target_time, '%d.%m.%y %H:%M:%S', False)}"
+                f"target_time #2: {self.correct_datetime_to_string(self.target_time, '%d.%m.%y %H:%M:%S', False)}"
             )
             print(
-                f"target_time #3: {self.output_correct_datetime(self.target_time, '%d.%m.%y %H:%M:%S', True)}"
+                f"target_time #3: {self.correct_datetime_to_string(self.target_time, '%d.%m.%y %H:%M:%S', True)}"
             )
             sys.exit()
 
@@ -902,7 +919,7 @@ class Hurz:
                 json.dump(history_request, f)
 
             print(
-                f'Historische Daten angefordert für Zeitraum bis: {self.output_correct_datetime(request_time, "%d.%m.%y %H:%M:%S", False)}'
+                f'Historische Daten angefordert für Zeitraum bis: {self.correct_datetime_to_string(request_time, "%d.%m.%y %H:%M:%S", False)}'
             )
             if self.target_time is not None:
                 print(
@@ -997,11 +1014,25 @@ class Hurz:
                     break
             await asyncio.sleep(1)  # Intervall zur Entlastung
 
-    async def do_buy_sell_order(self, platform, model, asset):
+    async def do_buy_sell_order(self):
+
         print("Kaufoption wird getätigt.")
 
+        # load small amount
+        await self.pocketoption_load_historic_data(
+            "tmp/tmp_live_data.csv",
+            240,  # ~2 hours
+            True,  # delete old data
+        )
+
+        # run fulltest (only for information)
+        fulltest_result = await self.run_sync_as_async(
+            self.run_fulltest, "tmp/tmp_live_data.csv", None, None
+        )
+        print(fulltest_result["report"])
+
         # Live-Daten laden (bereits 5 Minuten gesammelt)
-        df = pd.read_csv(filename)
+        df = pd.read_csv("tmp/tmp_live_data.csv")
         df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
 
         # Sicherstellen, dass die Daten zeitlich sortiert sind
@@ -1055,7 +1086,9 @@ class Hurz:
                 duration=duration,
             )
         else:
-            print(f"⛔ UNSCHLÜSSIG! ÜBERSPRINGE!")
+            print(
+                f"⛔ UNSCHLÜSSIG! ÜBERSPRINGE! trade_confidence: {self.trade_confidence}"
+            )
 
     def get_asset_information(self, platform, model, asset):
         csv_path = "data/db_assets.csv"
@@ -1074,21 +1107,29 @@ class Hurz:
                 and zeile["model"] == model
                 and zeile["asset"] == asset
             ):
+                # format datatypes
+                zeile["last_trade_confidence"] = float(zeile["last_trade_confidence"])
+                zeile["last_fulltest_quote_trading"] = float(
+                    zeile["last_fulltest_quote_trading"]
+                )
+                zeile["last_fulltest_quote_success"] = float(
+                    zeile["last_fulltest_quote_success"]
+                )
                 return zeile
 
         return None
 
-    def store_asset_information(self, platform, model, asset, data):
+    def set_asset_information(self, platform, model, asset, data):
         csv_path = "data/db_assets.csv"
 
         header = [
             "platform",
             "model",
             "asset",
-            "last_return_percent",
             "last_trade_confidence",
             "last_fulltest_quote_trading",
             "last_fulltest_quote_success",
+            "updated_at",
         ]
 
         # Datei anlegen, falls sie nicht existiert
@@ -1120,10 +1161,12 @@ class Hurz:
                 "platform": platform,
                 "model": model,
                 "asset": asset,
-                "last_return_percent": None,
                 "last_trade_confidence": None,
                 "last_fulltest_quote_trading": None,
                 "last_fulltest_quote_success": None,
+                "updated_at": self.correct_datetime_to_string(
+                    datetime.now().timestamp(), "%H:%M:%S", False
+                ),
             }
             for data__key, data__value in data.items():
                 new_entry[data__key] = data__value
@@ -1239,10 +1282,10 @@ class Hurz:
                         self.get_additional_information_from_id(deal.get("id"))[
                             "trade_platform"
                         ],
-                        self.output_correct_datetime(
+                        self.correct_datetime_to_string(
                             deal["openTimestamp"], "%d.%m.%y %H:%M:%S", True
                         ),
-                        self.output_correct_datetime(
+                        self.correct_datetime_to_string(
                             deal["closeTimestamp"], "%d.%m.%y %H:%M:%S", True
                         ),
                         "---",
@@ -1264,18 +1307,21 @@ class Hurz:
 
         return tabelle
 
+    def print_live_stats_listen_for_exit(self):
+        print("⏹️ Beenden durch Tastendruck. Drücke 'c' zum Beenden.")
+        while True:
+            taste = readchar.readkey().lower()
+            if taste == "c":
+                print("⏹️ Beenden durch Tastendruck.")
+                self.stop_thread = True
+                break
+
     async def print_live_stats(self):
         self.stop_thread = False
 
-        def listen_for_exit(self):
-            while True:
-                taste = readchar.readkey().lower()
-                if taste == "c":
-                    print("⏹️ Beenden durch Tastendruck.")
-                    self.stop_thread = True
-                    break
-
-        listener_thread = threading.Thread(target=listen_for_exit, daemon=True)
+        listener_thread = threading.Thread(
+            target=self.print_live_stats_listen_for_exit, daemon=True
+        )
         listener_thread.start()
 
         live_data_balance = 0
@@ -1721,12 +1767,12 @@ class Hurz:
                         ]
                     )
 
-                os.system(
-                    "cls" if os.name == "nt" else "clear"
-                )  # Konsole leeren (Windows/Linux)
+                # Konsole leeren (Windows/Linux)
+                os.system("cls" if os.name == "nt" else "clear")
+
                 print("###############################################")
                 print(
-                    f'Zeit: {self.output_correct_datetime(datetime.now().timestamp(),"%d.%m.%Y %H:%M:%S", False)} | Kontostand: {live_data_balance_formatted} $'
+                    f'Zeit: {self.correct_datetime_to_string(datetime.now().timestamp(),"%d.%m.%Y %H:%M:%S", False)} | Kontostand: {live_data_balance_formatted} $'
                 )
                 print()
                 print(
@@ -1782,73 +1828,194 @@ class Hurz:
 
         print("⬅️ Zurück zum Hauptmenü...")
 
+    def file_modified_before_minutes(self, filename):
+        if not os.path.exists(filename):
+            return False
+
+        return (
+            (datetime.now(timezone.utc))
+            - (datetime.fromtimestamp(os.path.getmtime(filename), tz=timezone.utc))
+        ).total_seconds() / 60
+
     async def start_auto_mode(self):
-        print("🚀 Starte geführten Auto-Modus...")
+        self.cancel_auto_mode = False
 
-        last_return_percent = None
+        def warte_auf_eingabe():
+            input("Drücke [Enter], um abzubrechen...\n")
+            self.cancel_auto_mode = True
 
-        # determine next optimal trading pair
-        with open("tmp/assets.json", "r", encoding="utf-8") as f:
-            assets = json.load(f)
-        for eintrag in assets:
-            # never use current asset
-            if eintrag["name"] == self.trade_asset:
-                continue
-            # get asset information
-            asset_information = self.get_asset_information(
-                self.trade_platform, self.active_model, eintrag["name"]
-            )
-            if asset_information is not None:
-                print(asset_information["last_return_percent"])
-                print(asset_information["last_trade_confidence"])
-                print(asset_information["last_fulltest_quote_trading"])
-                print(asset_information["last_fulltest_quote_success"])
+        threading.Thread(target=warte_auf_eingabe, daemon=True).start()
 
-            # debug
-            self.trade_asset = eintrag["name"]
-            self.trade_asset = "AUDCHF"
+        while not self.cancel_auto_mode:
 
-            last_return_percent = eintrag["return_percent"]
+            print("🚀 Starte geführten Auto-Modus...")
 
-            break
+            active_asset_information = None
+            active_asset_return_percent = None
 
-        # change other settings (without saving)
-        self.trade_repeat = 1
-        self.sound_effects = 0
-        self.trade_confidence = 65
-        self.refresh_dependent_settings()
+            # determine next optimal trading pair (reload assets since they could be updated)
+            with open("tmp/assets.json", "r", encoding="utf-8") as f:
+                assets = json.load(f)
+            # assets = sorted(assets, key=lambda x: float(x["return_percent"]), reverse=True)
+            random.shuffle(assets)
+            tries = len(assets)
+            for eintrag in assets:
+                print(f"inspecting {eintrag['name']}...")
+                tries -= 1
 
-        # load historic data (if too old)
-        if True is False:
-            await self.pocketoption_load_historic_data(
-                self.filename_historic_data,
-                3 * 30.25 * 24 * 60,
-                False,
-            )
+                # get asset information
+                asset_information = self.get_asset_information(
+                    self.trade_platform, self.active_model, eintrag["name"]
+                )
+                if asset_information is not None:
+                    print(asset_information["last_trade_confidence"])
+                    print(asset_information["last_fulltest_quote_trading"])
+                    print(asset_information["last_fulltest_quote_success"])
+                    print(asset_information["updated_at"])
 
-        # train model (if too old)
-        if True is False:
-            self.train_active_model(self.filename_historic_data)
+                # never use current asset
+                if tries > 0 and eintrag["name"] == self.trade_asset:
+                    print("dont take current...")
+                    continue
 
-        # run fulltest
-        fulltest_result = self.run_fulltest(self.filename_historic_data, None, None)
-        print(fulltest_result["report"])
+                # never use OTC
+                if tries > 0 and "otc" in eintrag["name"]:
+                    print("never take otc")
+                    continue
 
-        # store asset information
-        self.store_asset_information(
-            self.trade_platform,
-            self.active_model,
-            self.trade_asset,
-            {
-                "last_return_percent": last_return_percent,
-                "last_trade_confidence": self.trade_confidence,
-                "last_fulltest_quote_trading": fulltest_result["data"]["quote_trading"],
-                "last_fulltest_quote_success": fulltest_result["data"]["quote_success"],
-            },
-        )
+                # determine next!
+                if (
+                    tries == 0
+                    or asset_information is None
+                    or (
+                        asset_information["last_trade_confidence"] > 0.5
+                        and asset_information["last_fulltest_quote_trading"] > 0.20
+                        and asset_information["last_fulltest_quote_success"]
+                        > (eintrag["return_percent"] + 0.1)
+                    )
+                ):
+                    self.trade_asset = eintrag["name"]
+                    active_asset_information = asset_information
+                    active_asset_return_percent = eintrag["return_percent"]
+                    break
+                else:
+                    print(
+                        f"Don't take {eintrag['name']} ({asset_information['last_fulltest_quote_trading']}/{asset_information['last_trade_confidence']}/{asset_information['last_fulltest_quote_success']})"
+                    )
 
-        # do live trading
-        # TODO
+            if active_asset_return_percent is None:
+                print("count not determine any provider!")
+                return
+
+            # change other settings (without saving)
+            self.trade_repeat = 1
+            self.sound_effects = 0
+            if active_asset_information is not None:
+                self.trade_confidence = active_asset_information[
+                    "last_trade_confidence"
+                ]
+            self.refresh_dependent_settings()
+
+            # load historic data (if too old)
+            if (
+                not os.path.exists(self.filename_historic_data)
+                or self.file_modified_before_minutes(self.filename_historic_data) > 60
+            ):
+                await self.pocketoption_load_historic_data(
+                    self.filename_historic_data,
+                    3 * 30.25 * 24 * 60,
+                    False,
+                )
+
+            # train model (if too old)
+            if (
+                not os.path.exists(self.filename_model)
+                or self.file_modified_before_minutes(self.filename_model) > 60
+            ):
+                await self.run_sync_as_async(
+                    self.train_active_model, self.filename_historic_data
+                )
+
+            # run fulltest and determine optimal trade_confidence
+            if (
+                active_asset_information is None
+                or active_asset_information["last_trade_confidence"] is None
+                or active_asset_information["updated_at"] is None
+                or (
+                    self.correct_string_to_datetime(
+                        active_asset_information["updated_at"], "%Y-%m-%d %H:%M:%S"
+                    )
+                    - datetime.now(timezone.utc)
+                    > timedelta(minutes=60)
+                )
+            ):
+                self.trade_confidence = 100
+                last_quote_trading = None
+                last_quote_success = None
+                while True:
+                    fulltest_result = await self.run_sync_as_async(
+                        self.run_fulltest, self.filename_historic_data, None, None
+                    )
+                    print(fulltest_result["report"])
+
+                    if (
+                        last_quote_success is not None
+                        and fulltest_result["data"]["quote_success"]
+                        < last_quote_success
+                        and fulltest_result["data"]["quote_success"]
+                        < (active_asset_return_percent + 0.1)
+                        and fulltest_result["data"]["quote_success"] > 10
+                        and last_quote_trading > 10
+                    ):
+                        # store asset information
+                        self.set_asset_information(
+                            self.trade_platform,
+                            self.active_model,
+                            self.trade_asset,
+                            {
+                                "last_trade_confidence": self.trade_confidence,
+                                "last_fulltest_quote_trading": fulltest_result["data"][
+                                    "quote_trading"
+                                ],
+                                "last_fulltest_quote_success": fulltest_result["data"][
+                                    "quote_success"
+                                ],
+                                "updated_at": self.correct_datetime_to_string(
+                                    datetime.now().timestamp(),
+                                    "%Y-%m-%d %H:%M:%S",
+                                    False,
+                                ),
+                            },
+                        )
+                        break
+
+                    if last_quote_trading is None:
+                        self.trade_confidence -= 10
+                    elif (
+                        fulltest_result["data"]["quote_trading"] - last_quote_trading
+                    ) < 0:
+                        self.trade_confidence -= 5
+                    elif (
+                        fulltest_result["data"]["quote_trading"] - last_quote_trading
+                    ) < 2:
+                        self.trade_confidence -= 4
+                    elif (
+                        fulltest_result["data"]["quote_trading"] - last_quote_trading
+                    ) < 4:
+                        self.trade_confidence -= 3
+                    elif (
+                        fulltest_result["data"]["quote_trading"] - last_quote_trading
+                    ) < 6:
+                        self.trade_confidence -= 2
+                    else:
+                        self.trade_confidence -= 1
+                    last_quote_trading = fulltest_result["data"]["quote_trading"]
+                    last_quote_success = fulltest_result["data"]["quote_success"]
+
+            # do live trading (one trade)
+            await self.do_buy_sell_order()
+
+            await asyncio.sleep(2)
 
     def print_diagrams(self):
         print("Drucke Diagramme...")
@@ -1905,7 +2072,7 @@ class Hurz:
             option1 = "Historische Daten laden"
             if os.path.exists(self.filename_historic_data):
                 timestamp = os.path.getmtime(self.filename_historic_data)
-                datum = self.output_correct_datetime(
+                datum = self.correct_datetime_to_string(
                     timestamp, "%d.%m.%y %H:%M:%S", False
                 )
                 option1 += " (vom " + datum + ")"
@@ -1915,7 +2082,7 @@ class Hurz:
             option2 = "Modell trainieren"
             if os.path.exists(self.filename_model):
                 timestamp = os.path.getmtime(self.filename_model)
-                datum = self.output_correct_datetime(
+                datum = self.correct_datetime_to_string(
                     timestamp, "%d.%m.%y %H:%M:%S", False
                 )
                 option2 += " (vom " + datum + ")"
@@ -1964,7 +2131,7 @@ class Hurz:
                 f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
                 f"\n"
                 f"\n"
-                f'TIME: {self.output_correct_datetime(datetime.now().timestamp(),"%H:%M:%S", False)}'
+                f'TIME: {self.correct_datetime_to_string(datetime.now().timestamp(),"%H:%M:%S", False)}'
                 f" | "
                 f"PLATFORM: {self.trade_platform}"
                 f" | "
@@ -2047,14 +2214,16 @@ class Hurz:
                 await asyncio.sleep(3)
 
             elif antworten["auswahl"] == option2:
-                self.train_active_model(self.filename_historic_data)
+                await self.run_sync_as_async(
+                    self.train_active_model, self.filename_historic_data
+                )
                 await asyncio.sleep(5)
 
             elif antworten["auswahl"] == option3 and os.path.exists(
                 self.filename_model
             ):
-                fulltest_result = self.run_fulltest(
-                    self.filename_historic_data, None, None
+                fulltest_result = await self.run_sync_as_async(
+                    self.run_fulltest, self.filename_historic_data, None, None
                 )
                 print(fulltest_result["report"])
                 await asyncio.sleep(5)
@@ -2079,19 +2248,7 @@ class Hurz:
                 for i in range(self.trade_repeat):
                     print(f"🚀 Orderdurchlauf {i+1}/{self.trade_repeat}")
 
-                    await self.pocketoption_load_historic_data(
-                        "tmp/tmp_live_data.csv",
-                        240,
-                        True,  # ~2 hours  # delete old data
-                    )
-                    await asyncio.sleep(0)
-                    fulltest_result = self.run_fulltest(
-                        "tmp/tmp_live_data.csv", None, None
-                    )
-                    print(fulltest_result["report"])
-                    await asyncio.sleep(0)
-                    await self.do_buy_sell_order("tmp/tmp_live_data.csv")
-                    await asyncio.sleep(0)
+                    await self.do_buy_sell_order()
 
                     if i < self.trade_repeat - 1:
                         toleranz = 0.20  # 20 Prozent
