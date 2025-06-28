@@ -2604,7 +2604,6 @@ class Hurz:
             foo.test()
             bar.test()
             utils.create_folders()
-            sys.exit()
             load_dotenv()
             self.load_externals()
             self.load_settings()
