@@ -1958,7 +1958,7 @@ class Hurz:
                     )
                     print(fulltest_result["report"])
 
-                    if (
+                    if self.trade_confidence <= 0 or (
                         last_quote_success is not None
                         and fulltest_result["data"]["quote_success"]
                         < last_quote_success
