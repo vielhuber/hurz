@@ -9,7 +9,7 @@
 
 ## usage
 
--   `python3 script.py`
+-   `python3 hurz.py`
 
 ## watch changes
 

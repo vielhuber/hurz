@@ -28,6 +28,7 @@ from datetime import datetime, timedelta, timezone, time as time2
 from dotenv import load_dotenv
 from slugify import slugify
 from tabulate import tabulate
+from classes import utils, foo, bar
 
 
 class Hurz:
@@ -58,11 +59,6 @@ class Hurz:
         self.train_horizon = 1  # Vorhersagefenster, 1 Minute
         self.stop_event = asyncio.Event()
         self.cancel_auto_mode = False
-
-    def create_folders(self):
-        # ordner anlegen falls nicht verfügbar
-        for ordner in ["tmp", "data", "models"]:
-            os.makedirs(ordner, exist_ok=True)
 
     async def run_sync_as_async(self, func, *args, **kwargs):
         loop = asyncio.get_running_loop()
@@ -1880,7 +1876,7 @@ class Hurz:
 
                 # never use OTC
                 if tries > 0 and "otc" in eintrag["name"]:
-                    print("never take otc")
+                    print("dont take otc")
                     continue
 
                 # determine next!
@@ -2605,7 +2601,10 @@ class Hurz:
     async def main(self):
 
         try:
-            self.create_folders()
+            foo.test()
+            bar.test()
+            utils.create_folders()
+            sys.exit()
             load_dotenv()
             self.load_externals()
             self.load_settings()
@@ -2631,5 +2630,6 @@ class Hurz:
             sys.exit(0)
 
 
-hurz = Hurz()
-asyncio.run(hurz.main())
+if __name__ == "__main__":
+    hurz = Hurz()
+    asyncio.run(hurz.main())
