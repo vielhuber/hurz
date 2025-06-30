@@ -7,3 +7,4 @@ __pycache__
 *.pyc
 *.prof
 /NOTES.MD
+/external-git
