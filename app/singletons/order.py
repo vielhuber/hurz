@@ -3,6 +3,7 @@ import json
 import os
 import pandas as pd
 import random
+from typing import Optional, Dict, Any
 
 from app.utils.singletons import fulltest, history, store, utils
 from app.utils.helpers import singleton
@@ -11,7 +12,7 @@ from app.utils.helpers import singleton
 @singleton
 class Order:
 
-    async def do_buy_sell_order(self):
+    async def do_buy_sell_order(self) -> None:
 
         print("Kaufoption wird getätigt.")
 
@@ -90,7 +91,7 @@ class Order:
                 f"⛔ UNSCHLÜSSIG! ÜBERSPRINGE! trade_confidence: {store.trade_confidence}"
             )
 
-    async def send_order(self, asset, amount, action, duration):
+    async def send_order(self, asset: str, amount: float, action: str, duration: int) -> None:
 
         order_payload = [
             "openOrder",
@@ -112,7 +113,7 @@ class Order:
 
         print(f"📤 Order gesendet: {order_payload}")
 
-    def get_additional_information_from_id(self, id):
+    def get_additional_information_from_id(self, id: str) -> Dict[str, Any]:
         csv_path = "data/db_orders.csv"
 
         # Datei anlegen, falls sie nicht existiert
@@ -160,7 +161,7 @@ class Order:
                 "trade_platform": store.trade_platform,
             }
 
-    def format_deals_get_column(self, type):
+    def format_deals_get_column(self, type: str) -> Optional[int]:
         if type == "id":
             return 0
         if type == "date_from":
@@ -179,7 +180,7 @@ class Order:
             return 14
         return None
 
-    def format_deals(self, data, type):
+    def format_deals(self, data: list, type: str) -> list:
         if not isinstance(data, list):
             return "⚠️ Ungültige Datenstruktur: kein Array."
 

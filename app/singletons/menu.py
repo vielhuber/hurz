@@ -12,6 +12,7 @@ from app.utils.singletons import (
     boot,
     diagrams,
     fulltest,
+    history,
     livestats,
     order,
     settings,
@@ -26,7 +27,7 @@ from app.utils.helpers import singleton
 @singleton
 class Menu:
 
-    async def initialize_main_menu(self):
+    async def initialize_main_menu(self) -> None:
         while True and not store.stop_event.is_set():
 
             option1 = "Historische Daten laden"
@@ -165,7 +166,7 @@ class Menu:
                 continue
 
             if antworten["auswahl"] == option1:
-                await self.history.pocketoption_load_historic_data(
+                await history.pocketoption_load_historic_data(
                     store.filename_historic_data,
                     3 * 30.25 * 24 * 60,  # 3 months
                     # 7 * 24 * 60,  # 1 week
@@ -251,7 +252,7 @@ class Menu:
 
             await asyncio.sleep(0.1)  # kurz durchatmen
 
-    async def auswahl_menue(self):
+    async def auswahl_menue(self) -> None:
 
         # PLATFORM
         store.trade_platform_frage = [

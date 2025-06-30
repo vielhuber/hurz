@@ -4,6 +4,7 @@ import pytz
 import re
 from functools import partial
 from datetime import datetime, timezone
+from typing import Optional, Any
 
 from app.utils.helpers import singleton
 
@@ -11,19 +12,19 @@ from app.utils.helpers import singleton
 @singleton
 class Utils:
 
-    def create_folders(self):
+    def create_folders(self) -> None:
         # ordner anlegen falls nicht verfügbar
         for ordner in ["tmp", "data", "models"]:
             os.makedirs(ordner, exist_ok=True)
 
-    def correct_string_to_datetime(self, string, format):
+    def correct_string_to_datetime(self, string: str, format: str) -> datetime:
         return (
             pytz.timezone("Europe/Berlin")
             .localize(datetime.strptime(string, format))
             .astimezone(timezone.utc)
         )
 
-    def correct_datetime_to_string(self, timestamp, format, shift=False):
+    def correct_datetime_to_string(self, timestamp: float, format: str, shift: bool = False) -> str:
 
         if shift is False:
             return (
@@ -42,7 +43,7 @@ class Utils:
                 .strftime(format)
             )
 
-    def file_modified_before_minutes(self, filename):
+    def file_modified_before_minutes(self, filename: str) -> float:
         if not os.path.exists(filename):
             return False
 
@@ -51,13 +52,13 @@ class Utils:
             - (datetime.fromtimestamp(os.path.getmtime(filename), tz=timezone.utc))
         ).total_seconds() / 60
 
-    def format_waehrung(self, name):
+    def format_waehrung(self, name: str) -> str:
         # Schritt 1: _ → Leerzeichen
         name = name.replace("_", " ")
         # Schritt 2: Ersetze 6 aufeinanderfolgende Großbuchstaben durch XXX/XXX
         name = re.sub(r"\b([A-Z]{3})([A-Z]{3})\b", r"\1/\2", name)
         return name
 
-    async def run_sync_as_async(self, func, *args, **kwargs):
+    async def run_sync_as_async(self, func: Any, *args: Any, **kwargs: Any) -> Any:
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, partial(func, *args, **kwargs))

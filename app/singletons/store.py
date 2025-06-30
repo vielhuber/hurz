@@ -6,7 +6,7 @@ from app.utils.helpers import singleton
 @singleton
 class Store:
 
-    def setup(self):
+    def setup(self) -> None:
         self.model_classes = {}
         self.trade_asset = "AUDCAD_otc"
         self.is_demo_account = 1

@@ -2,6 +2,7 @@ import csv
 import json
 import os
 from datetime import datetime
+from typing import Dict, Any, Optional
 
 from app.utils.singletons import utils
 from app.utils.helpers import singleton
@@ -10,7 +11,7 @@ from app.utils.helpers import singleton
 @singleton
 class Asset:
 
-    def get_asset_information(self, platform, model, asset):
+    def get_asset_information(self, platform: str, model: str, asset: str) -> Optional[Dict[str, Any]]:
         csv_path = "data/db_assets.csv"
 
         if not os.path.exists(csv_path):
@@ -39,7 +40,7 @@ class Asset:
 
         return None
 
-    def set_asset_information(self, platform, model, asset, data):
+    def set_asset_information(self, platform: str, model: str, asset: str, data: Dict[str, Any]) -> None:
         csv_path = "data/db_assets.csv"
 
         header = [
@@ -101,7 +102,7 @@ class Asset:
             writer.writeheader()
             writer.writerows(eintraege)
 
-    def asset_is_available(self, asset):
+    def asset_is_available(self, asset: str) -> bool:
         assets = []
         with open("tmp/assets.json", "r", encoding="utf-8") as f:
             assets = json.load(f)

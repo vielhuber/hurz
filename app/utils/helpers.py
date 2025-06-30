@@ -1,4 +1,6 @@
-def singleton(cls):
+from typing import Callable, Any
+
+def singleton(cls: type[Any]) -> Callable[..., Any]:
     _instance = None
 
     def wrapper(*args, **kwargs):

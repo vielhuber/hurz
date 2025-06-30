@@ -10,17 +10,17 @@ from app.utils.helpers import singleton
 @singleton
 class Boot:
 
-    def shutdown_sync(self):
+    def shutdown_sync(self) -> None:
         try:
             asyncio.run(self.shutdown())
         except:
             pass
 
-    def register_shutdown_sync(self):
+    def register_shutdown_sync(self) -> None:
         # bei Programmende aufräumen
         atexit.register(self.shutdown_sync)
 
-    async def shutdown(self):
+    async def shutdown(self) -> None:
         if store._ws_connection:
             with open("tmp/ws.txt", "r+", encoding="utf-8") as f:
                 status = f.read().strip()

@@ -11,7 +11,7 @@ from app.utils.helpers import singleton
 @singleton
 class Settings:
 
-    def load_externals(self):
+    def load_externals(self) -> None:
         for file in os.listdir("external"):
             if file.endswith(".py"):
                 # load modules
@@ -24,7 +24,7 @@ class Settings:
                     if isinstance(obj, type) and hasattr(obj, "name"):
                         store.model_classes[obj.name] = obj
 
-    def load_settings(self):
+    def load_settings(self) -> None:
         if os.path.exists("data/settings.json"):
             try:
                 with open("data/settings.json", "r", encoding="utf-8") as f:
@@ -59,7 +59,7 @@ class Settings:
             except Exception as e:
                 print("⚠️ Fehler beim Laden der Einstellungen:", e)
 
-    def refresh_dependent_settings(self):
+    def refresh_dependent_settings(self) -> None:
         store.filename_historic_data = (
             "data/historic_data_"
             + slugify(store.trade_platform)
@@ -81,7 +81,7 @@ class Settings:
             + ".json"
         )
 
-    def save_current_settings(self):
+    def save_current_settings(self) -> None:
         # Einstellungen speichern
         try:
             with open("data/settings.json", "w", encoding="utf-8") as f:

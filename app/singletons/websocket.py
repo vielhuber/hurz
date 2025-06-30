@@ -7,6 +7,7 @@ import sys
 import traceback
 import urllib.request
 import websockets
+from websockets.client import WebSocketClientProtocol
 from datetime import datetime, timedelta, timezone
 
 from app.utils.singletons import (
@@ -22,7 +23,7 @@ from app.utils.helpers import singleton
 @singleton
 class WebSocket:
 
-    async def setup_websockets(self):
+    async def setup_websockets(self) -> None:
         # vars
         ip_address = os.getenv("IP_ADDRESS")
         user_id = os.getenv("USER_ID")
@@ -152,7 +153,7 @@ class WebSocket:
             await boot.shutdown()
             sys.exit(0)
 
-    async def ws_send_loop(self, ws):
+    async def ws_send_loop(self, ws: WebSocketClientProtocol) -> None:
         # Commandos senden
         last_content = ""
         while True:
@@ -170,7 +171,7 @@ class WebSocket:
                 # sys.exit()
             await asyncio.sleep(1)  # Intervall zur Entlastung
 
-    async def ws_receive_loop(self, ws):
+    async def ws_receive_loop(self, ws: WebSocketClientProtocol) -> None:
         try:
             while True:
                 message = await ws.recv()
@@ -194,16 +195,22 @@ class WebSocket:
                         store.binary_expected_event = "successcloseOrder"
                     elif '"loadHistoryPeriod"' in message:
                         store.binary_expected_event = "loadHistoryPeriod"
+                    elif '"loadHistoryPeriodFast"' in message:
+                        store.binary_expected_event = "loadHistoryPeriodFast"
                     elif '"updateAssets"' in message:
                         store.binary_expected_event = "updateAssets"
                 elif isinstance(message, bytes):
-                    if store.binary_expected_event == "loadHistoryPeriod":
+                    if (
+                        store.binary_expected_event == "loadHistoryPeriod"
+                        or store.binary_expected_event == "loadHistoryPeriodFast"
+                    ):
                         json_data = json.loads(message.decode("utf-8"))
                         # print(f"ERHALTEN?")
                         # print(json_data)
                         if (
                             isinstance(json_data, dict)
                             and isinstance(json_data["data"], list)
+                            and len(json_data["data"]) > 0
                             and "open" in json_data["data"][0]
                             and json_data["data"][0]["open"] is not None
                             and all(k in json_data for k in ["asset", "index", "data"])
@@ -492,6 +499,7 @@ class WebSocket:
             store.stop_event.set()
         except websockets.ConnectionClosedError as e:
             print(f"❌ Verbindung unerwartet geschlossen ({e.code}): {e.reason}")
+
             # reconnect (this is needed because no PING PONG is sended on training etc.)
             if not ws.open:
                 print("🔄 reconnect wird gestartet.")
@@ -519,11 +527,15 @@ class WebSocket:
                     store.stop_event.set()
                 return
 
+            else:
+                await boot.shutdown()
+                store.stop_event.set()
+
         except Exception as e:
             print(f"⚠️ Fehler in websocket.ws_receive_loop: {e}")
             traceback.print_exc()
 
-    async def ws_keepalive(self, ws):
+    async def ws_keepalive(self, ws: WebSocketClientProtocol) -> None:
         while True:
             try:
                 print("PING")

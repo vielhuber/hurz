@@ -16,7 +16,7 @@ utils = None
 websocket = None
 
 
-def bootstrap():
+def bootstrap() -> None:
     global _initialized
     if _initialized:
         return

@@ -15,8 +15,8 @@ from app.utils.helpers import singleton
 class History:
 
     async def pocketoption_load_historic_data(
-        self, filename, time_back_in_minutes, delete_old=False
-    ):
+        self, filename: str, time_back_in_minutes: float, delete_old: bool = False
+    ) -> None:
 
         # Alte Datei löschen
         if delete_old is True and os.path.exists(filename):

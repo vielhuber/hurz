@@ -21,7 +21,7 @@ from app.utils.helpers import singleton
 @singleton
 class AutoTrade:
 
-    async def start_auto_mode(self):
+    async def start_auto_mode(self) -> None:
         store.cancel_auto_mode = False
 
         def warte_auf_eingabe():
@@ -62,14 +62,15 @@ class AutoTrade:
                     print("dont take current...")
                     continue
 
-                # never use OTC
-                if tries > 0 and "otc" in eintrag["name"]:
+                # never use OTC (disabled)
+                if True is False and tries > 0 and "otc" in eintrag["name"]:
                     print("dont take otc")
                     continue
 
                 # determine next!
                 if (
-                    tries == 0
+                    True is True
+                    or tries == 0
                     or asset_information is None
                     or (
                         asset_information["last_trade_confidence"] > 0.5
@@ -197,6 +198,6 @@ class AutoTrade:
                     last_quote_success = fulltest_result["data"]["quote_success"]
 
             # do live trading (one trade)
-            await order.do_buy_sell_order()
+            # await order.do_buy_sell_order()
 
             await asyncio.sleep(2)

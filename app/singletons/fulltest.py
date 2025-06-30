@@ -1,5 +1,6 @@
 import pandas as pd
 import time
+from typing import Optional, Dict, Any
 
 from app.utils.singletons import store
 from app.utils.helpers import singleton
@@ -8,7 +9,7 @@ from app.utils.helpers import singleton
 @singleton
 class FullTest:
 
-    def run_fulltest(self, filename, startzeit=None, endzeit=None):
+    def run_fulltest(self, filename: str, startzeit: Optional[Any] = None, endzeit: Optional[Any] = None) -> Optional[Dict[str, Any]]:
         df = pd.read_csv(filename)
         df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
 

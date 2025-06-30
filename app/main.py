@@ -5,12 +5,10 @@ from dotenv import load_dotenv
 from app.utils.singletons import store, utils, settings, boot, websocket, menu
 
 
-async def run():
+async def run() -> None:
 
     try:
-        print(type(store))
         store.setup()
-        print(type(store))
         utils.create_folders()
         load_dotenv()
         settings.load_externals()

@@ -15,7 +15,7 @@ from app.utils.helpers import singleton
 @singleton
 class LiveStats:
 
-    async def print_live_stats(self):
+    async def print_live_stats(self) -> None:
         store.stop_thread = False
 
         listener_thread = threading.Thread(
@@ -529,7 +529,7 @@ class LiveStats:
 
         print("⬅️ Zurück zum Hauptmenü...")
 
-    def print_live_stats_listen_for_exit(self):
+    def print_live_stats_listen_for_exit(self) -> None:
         print("⏹️ Beenden durch Tastendruck. Drücke 'c' zum Beenden.")
         while True:
             taste = readchar.readkey().lower()

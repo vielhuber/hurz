@@ -8,7 +8,7 @@ from app.utils.helpers import singleton
 @singleton
 class Diagrams:
 
-    def print_diagrams(self):
+    def print_diagrams(self) -> None:
         print("Drucke Diagramme...")
 
         # Daten aus CSV laden
