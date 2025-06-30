@@ -1,0 +1,63 @@
+import asyncio
+import os
+import pytz
+import re
+from functools import partial
+from datetime import datetime, timezone
+
+from app.utils.helpers import singleton
+
+
+@singleton
+class Utils:
+
+    def create_folders(self):
+        # ordner anlegen falls nicht verfügbar
+        for ordner in ["tmp", "data", "models"]:
+            os.makedirs(ordner, exist_ok=True)
+
+    def correct_string_to_datetime(self, string, format):
+        return (
+            pytz.timezone("Europe/Berlin")
+            .localize(datetime.strptime(string, format))
+            .astimezone(timezone.utc)
+        )
+
+    def correct_datetime_to_string(self, timestamp, format, shift=False):
+
+        if shift is False:
+            return (
+                datetime.fromtimestamp(timestamp, tz=timezone.utc)
+                .astimezone(pytz.timezone("Europe/Berlin"))
+                .strftime(format)
+            )
+        else:
+            return (
+                pytz.timezone("Europe/Berlin")
+                .localize(
+                    datetime.fromtimestamp(timestamp, tz=timezone.utc).replace(
+                        tzinfo=None
+                    )
+                )
+                .strftime(format)
+            )
+
+    def file_modified_before_minutes(self, filename):
+        if not os.path.exists(filename):
+            return False
+
+        return (
+            (datetime.now(timezone.utc))
+            - (datetime.fromtimestamp(os.path.getmtime(filename), tz=timezone.utc))
+        ).total_seconds() / 60
+
+    def format_waehrung(self, name):
+        # Schritt 1: _ → Leerzeichen
+        name = name.replace("_", " ")
+        # Schritt 2: Ersetze 6 aufeinanderfolgende Großbuchstaben durch XXX/XXX
+        name = re.sub(r"\b([A-Z]{3})([A-Z]{3})\b", r"\1/\2", name)
+        return name
+
+    async def run_sync_as_async(self, func, *args, **kwargs):
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, partial(func, *args, **kwargs))
