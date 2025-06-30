@@ -17,7 +17,7 @@ class Boot:
             pass
 
     def register_shutdown_sync(self) -> None:
-        # bei Programmende aufräumen
+        # clean up on program exit
         atexit.register(self.shutdown_sync)
 
     async def shutdown(self) -> None:
@@ -28,31 +28,31 @@ class Boot:
                     f.seek(0)
                     f.write("closed")
                     f.truncate()
-                    print("✅ Schreibe Datei.")
+                    print("✅ Writing file.")
 
         if store.laufende_tasks:
-            print("Schließe Tasks..........", store.laufende_tasks)
+            print("Closing tasks..........", store.laufende_tasks)
             for task in store.laufende_tasks:
                 task.cancel()
                 try:
                     await task
                 except asyncio.CancelledError:
-                    print(f"🛑 Task {task.get_coro().__name__} wurde gestoppt.")
+                    print(f"🛑 Task {task.get_coro().__name__} was stopped.")
             store.laufende_tasks.clear()
 
         if store._ws_connection and not store._ws_connection.close_code is None:
             try:
-                print("🔌 Schließe WebSocket...................")
+                print("🔌 Closing WebSocket...................")
                 await store._ws_connection.close()
-                print("✅ Verbindung geschlossen.")
+                print("✅ Connection closed.")
             except Exception as e:
-                print("⚠️ Fehler beim Schließen:", e)
+                print("⚠️ Error closing:", e)
 
         # fix console
         os.system("stty sane")
 
     def handle_sigint(self, signum, frame):
-        print("🔔 SIGINT empfangen – .........beende...")
+        print("🔔 SIGINT received – .........ending...")
         store.stop_event.set()
 
     def register_stop_event(self):

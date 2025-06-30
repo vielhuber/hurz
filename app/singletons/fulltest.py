@@ -13,7 +13,7 @@ class FullTest:
         df = pd.read_csv(filename)
         df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
 
-        # zeitraum bestimmen
+        # determine time range
         if startzeit is not None:
             startzeit = pd.to_datetime(startzeit)
             start_index = df[df["Zeitpunkt"] >= startzeit].first_valid_index()
@@ -36,13 +36,13 @@ class FullTest:
 
         i = 0
 
-        werte = df["Wert"].astype(float).values  # Nur einmal umwandeln
+        werte = df["Wert"].astype(float).values  # Convert only once
 
-        # die einzelnen windows
+        # the individual windows
         X_test = []
-        # die zu prognostizierenden zielwerte
+        # the target values to be predicted
         zielwerte = []
-        # die letzten werte in den windows
+        # the last values in the windows
         letzte_werte = []
 
         performance_start = time.perf_counter()
@@ -58,15 +58,15 @@ class FullTest:
             if ziel > end_index:
                 break
 
-            # zu langsam
+            # too slow
             # fenster = df.iloc[start:ende]["Wert"].astype(float).values
-            # optimiert
+            # optimized
             fenster = werte[start:ende]  # ende ist ausgeschlossen(!)
 
             if len(fenster) == store.train_window:
-                # zu langsam
+                # too slow
                 # zielwert = float(df.iloc[ziel]["Wert"])
-                # optimiert
+                # optimized
                 zielwert = werte[ziel]
 
                 letzter_wert = fenster[-1]

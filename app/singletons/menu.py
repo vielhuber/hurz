@@ -30,37 +30,37 @@ class Menu:
     async def initialize_main_menu(self) -> None:
         while True and not store.stop_event.is_set():
 
-            option1 = "Historische Daten laden"
+            option1 = "Load Historical Data"
             if os.path.exists(store.filename_historic_data):
                 timestamp = os.path.getmtime(store.filename_historic_data)
                 datum = utils.correct_datetime_to_string(
                     timestamp, "%d.%m.%y %H:%M:%S", False
                 )
-                option1 += " (vom " + datum + ")"
+                option1 += " (from " + datum + ")"
             else:
-                option1 += " (Daten nicht vorhanden)"
+                option1 += " (Data not available)"
 
-            option2 = "Modell trainieren"
+            option2 = "Train Model"
             if os.path.exists(store.filename_model):
                 timestamp = os.path.getmtime(store.filename_model)
                 datum = utils.correct_datetime_to_string(
                     timestamp, "%d.%m.%y %H:%M:%S", False
                 )
-                option2 += " (vom " + datum + ")"
+                option2 += " (from " + datum + ")"
             else:
-                option2 += " (Daten nicht vorhanden)"
+                option2 += " (Data not available)"
 
-            option3 = "Fulltest durchführen"
+            option3 = "Perform Fulltest"
             if not os.path.exists(store.filename_model):
-                option3 += " (nicht möglich)"
+                option3 += " (not possible)"
 
-            option4 = "Diagramm zeichnen"
+            option4 = "Draw Diagram"
             if not os.path.exists(store.filename_historic_data):
-                option4 += " (nicht möglich)"
+                option4 += " (not possible)"
 
-            option5 = "Kaufoption tätigen"
+            option5 = "Place Purchase Option"
             if not os.path.exists(store.filename_model):
-                option5 += " (nicht möglich)"
+                option5 += " (not possible)"
 
             option6 = "Live-Status ansehen"
 
@@ -140,7 +140,7 @@ class Menu:
                 ),
             ]
 
-            # antworten = inquirer.prompt(questions)
+            # answers = inquirer.prompt(questions)
             # run inquirer async
             antworten = await asyncio.get_event_loop().run_in_executor(
                 concurrent.futures.ThreadPoolExecutor(),

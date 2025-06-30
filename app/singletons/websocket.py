@@ -55,7 +55,7 @@ class WebSocket:
             pocketoption_session_string = pocketoption_session_id
         pocketoption_auth_payload = f'42["auth",{{"session":"{pocketoption_session_string}","isDemo":{store.is_demo_account},"uid":{user_id},"platform":2}}]'
 
-        # sicherstellen, dass Datei existiert
+        # ensure file exists
         if not os.path.exists("tmp/ws.txt"):
             with open("tmp/ws.txt", "w", encoding="utf-8") as f:
                 f.write("")
@@ -72,7 +72,7 @@ class WebSocket:
                 print("⚠️ Verbindung läuft bereits. Starte nicht erneut.")
                 return None
 
-        # Schreibe Status
+        # Write Status
         with open("tmp/ws.txt", "w", encoding="utf-8") as f:
             f.write("running")
 
@@ -102,19 +102,19 @@ class WebSocket:
             additional_headers=pocketoption_headers,
             ssl=ssl.create_default_context(),
             proxy=proxy_connect_setting,
-            # ping_interval=None  # ← manuell am Leben halten
-            ping_interval=25,  # alle 20 Sekunden Ping senden
-            ping_timeout=20,  # wenn keine Antwort nach 10s → Fehler
+            # ping_interval=None  # ← keep alive manually
+            ping_interval=25,  # send ping every 20 seconds
+            ping_timeout=20,  # if no response after 10s -> Error
         )
 
         store._ws_connection = ws
 
-        # Erste Nachricht (Handshake) empfangen
+        # First message (handshake) received
         handshake = await ws.recv()
         print("Handshake:", handshake)
 
         if handshake.startswith("0"):
-            # Verbindung bestätigen
+            # Confirm connection
             await ws.send("40")
             print("Verbindung bestätigt (40 gesendet)")
 
@@ -130,7 +130,7 @@ class WebSocket:
         auth_response = await ws.recv()
         print("Auth Antwort:", auth_response)
 
-        # das wird immer schon vor dem auth gesandt
+        # this is always sent before auth
         if "updateAssets" in auth_response:
             store.binary_expected_event = "updateAssets"
 
@@ -154,7 +154,7 @@ class WebSocket:
             sys.exit(0)
 
     async def ws_send_loop(self, ws: WebSocketClientProtocol) -> None:
-        # Commandos senden
+        # Commands to send
         last_content = ""
         while True:
             try:
@@ -243,7 +243,7 @@ class WebSocket:
                                     # print("!!!!!!!!!!!!")
                                     # print(tick)
                                     # print("!!!!!!!!!!!!")
-                                    wert_beginn = f"{float(tick['open']):.5f}"  # explizit float und exakt 5 Nachkommastellen!
+                                    wert_beginn = f"{float(tick['open']):.5f}"  # explicit float and exactly 5 decimal places!
                                     daten.append([asset, zeitpunkt_beginn, wert_beginn])
 
                                 with open(
@@ -500,7 +500,7 @@ class WebSocket:
         except websockets.ConnectionClosedError as e:
             print(f"❌ Verbindung unerwartet geschlossen ({e.code}): {e.reason}")
 
-            # reconnect (this is needed because no PING PONG is sended on training etc.)
+            # reconnect (this is needed because no PING PONG is sent on training etc.)
             if not ws.open:
                 print("🔄 reconnect wird gestartet.")
                 print("🔄 reconnect wird gestartet.")

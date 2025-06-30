@@ -25,14 +25,14 @@ class AutoTrade:
         store.cancel_auto_mode = False
 
         def warte_auf_eingabe():
-            input("Drücke [Enter], um abzubrechen...\n")
+            input("Press [Enter] to cancel...\n")
             store.cancel_auto_mode = True
 
         threading.Thread(target=warte_auf_eingabe, daemon=True).start()
 
         while not store.cancel_auto_mode:
 
-            print("🚀 Starte geführten Auto-Modus...")
+            print("🚀 Starting guided auto mode...")
 
             active_asset_information = None
             active_asset_return_percent = None

@@ -13,7 +13,7 @@ from app.utils.helpers import singleton
 class Utils:
 
     def create_folders(self) -> None:
-        # ordner anlegen falls nicht verfügbar
+        # create folders if not available
         for ordner in ["tmp", "data", "models"]:
             os.makedirs(ordner, exist_ok=True)
 
@@ -53,9 +53,9 @@ class Utils:
         ).total_seconds() / 60
 
     def format_waehrung(self, name: str) -> str:
-        # Schritt 1: _ → Leerzeichen
+        # Step 1: _ -> Space
         name = name.replace("_", " ")
-        # Schritt 2: Ersetze 6 aufeinanderfolgende Großbuchstaben durch XXX/XXX
+        # Step 2: Replace 6 consecutive uppercase letters with XXX/XXX
         name = re.sub(r"\b([A-Z]{3})([A-Z]{3})\b", r"\1/\2", name)
         return name
 

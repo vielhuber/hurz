@@ -11,25 +11,25 @@ class Diagrams:
     def print_diagrams(self) -> None:
         print("Drucke Diagramme...")
 
-        # Daten aus CSV laden
+        # Load data from CSV
         df = pd.read_csv(store.filename_historic_data)
         df["Zeitpunkt"] = pd.to_datetime(
             df["Zeitpunkt"], format="mixed", errors="coerce"
         )
         df.dropna(subset=["Zeitpunkt"], inplace=True)
 
-        # Zeitachse vorbereiten (Strings für Konsole)
+        # Prepare time axis (strings for console)
         zeiten = df["Zeitpunkt"].dt.strftime("%d/%m/%Y %H:%M:%S").tolist()
         werte = df["Wert"].tolist()
 
-        # Optionale Reduzierung der Werteanzahl für bessere Übersicht
+        # Optional reduction of the number of values for better overview
         step = max(1, len(zeiten) // 100)
         zeiten = zeiten[::step]
         werte = werte[::step]
 
-        # Diagramm erzeugen
+        # Generate diagram
         plt.clear_figure()
-        plt.date_form("d/m/Y H:M:S")  # Passendes Datumsformat einstellen!
+        plt.date_form("d/m/Y H:M:S")  # Set appropriate date format!
         plt.title("Kursverlauf (Konsolenansicht)")
         plt.xlabel("Zeit")
         plt.ylabel("Wert")

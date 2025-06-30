@@ -18,12 +18,12 @@ class History:
         self, filename: str, time_back_in_minutes: float, delete_old: bool = False
     ) -> None:
 
-        # Alte Datei löschen
+        # Delete old file
         if delete_old is True and os.path.exists(filename):
             os.remove(filename)
-            print(f"✅ Alte Datei {filename} gelöscht.")
+            print(f"✅ Old file {filename} deleted.")
 
-        # Aktuelle Zeit (jetzt)
+        # Current time (now)
         current_time = int(time.time())
 
         # startzeit

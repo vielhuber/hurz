@@ -27,8 +27,8 @@ async def run() -> None:
             return_when=asyncio.FIRST_COMPLETED,
         )
 
-        await boot.shutdown()  # is done also via atexit.register(boot.shutdown_sync)
-        print("KOMPLETT HERUNTERGEFAHREN")
+        await boot.shutdown()  # is also done via atexit.register(boot.shutdown_sync)
+        print("FULLY SHUT DOWN")
     except KeyboardInterrupt:
         print("🚪 STRG+C er....kannt – beende Programm...................")
         await boot.shutdown()

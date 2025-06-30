@@ -21,7 +21,7 @@ class Asset:
             reader = csv.DictReader(f)
             eintraege = list(reader)
 
-        # Nach ID suchen
+        # Search by ID
         for zeile in eintraege:
             if (
                 zeile["platform"] == platform

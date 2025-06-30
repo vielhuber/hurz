@@ -113,11 +113,11 @@ class LiveStats:
                 for deal in live_data_deals:
                     local = pytz.timezone(
                         "Europe/Berlin"
-                    )  # oder deine echte lokale Zeitzone
+                    )  # or your actual local timezone
                     naiv = datetime.strptime(
                         deal[order.format_deals_get_column("date_until")],
                         "%d.%m.%y %H:%M:%S",
-                    )  # noch ohne TZ
+                    )  # still without TZ
                     close_ts = local.localize(naiv).astimezone(pytz.utc)
                     now = datetime.now(pytz.utc)
                     diff = int((close_ts - now).total_seconds())
@@ -468,7 +468,7 @@ class LiveStats:
                         ]
                     )
 
-                # Konsole leeren (Windows/Linux)
+                # Clear console (Windows/Linux)
                 os.system("cls" if os.name == "nt" else "clear")
 
                 print("###############################################")

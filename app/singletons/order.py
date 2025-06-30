@@ -14,7 +14,7 @@ class Order:
 
     async def do_buy_sell_order(self) -> None:
 
-        print("Kaufoption wird getätigt.")
+        print("Purchase option is being executed.")
 
         # load small amount
         await history.pocketoption_load_historic_data(
@@ -32,27 +32,27 @@ class Order:
             return
         print(fulltest_result["report"])
 
-        # Live-Daten laden (bereits 5 Minuten gesammelt)
+        # Load live data (already collected for 5 minutes)
         df = pd.read_csv("tmp/tmp_live_data.csv")
         df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
 
-        # Sicherstellen, dass die Daten zeitlich sortiert sind
+        # Ensure data is sorted by time
         df.sort_values("Zeitpunkt", inplace=True)
 
-        # Features vorbereiten (alle vorhandenen Werte der letzten 5 Minuten)
+        # Prepare features (all existing values of the last 5 minutes)
         X = df[["Wert"]].values.flatten()
 
-        # Anzahl der Features ggf. auf gewünschte Länge anpassen (muss genau wie im Training sein)
+        # Adjust the number of features to the desired length if necessary (must be exactly as in training)
         desired_length = store.train_window
         if len(X) < desired_length:
-            # falls weniger Daten vorhanden, vorne mit dem ersten Wert auffüllen
+            # if less data is available, fill with the first value at the beginning
             X = pd.Series(X).reindex(range(desired_length), method="ffill").values
         else:
-            # falls mehr Daten, dann letzte nehmen
+            # if more data, then take the last ones
             X = X[-desired_length:]
 
-        # Wichtig: exakte Struktur wie beim Training (DataFrame und nicht nur flatten)
-        X_df = pd.DataFrame([X])  # ✅ Wichtig: korrekte Struktur (1 Zeile, x Spalten)
+        # Important: exact structure as in training (DataFrame and not just flatten)
+        X_df = pd.DataFrame([X])  # ✅ Important: correct structure (1 row, x columns)
 
         # Aktueller Kurs (letzter Wert)
         aktueller_kurs = X[-1]
@@ -63,13 +63,13 @@ class Order:
             X_df, store.filename_model, store.trade_confidence
         )
 
-        # dauer
+        # duration
         if store.is_demo_account == 0:
             duration = 60
         else:
             duration = 60
 
-        # Kaufentscheidung treffen (Beispiel)
+        # Make purchase decision (example)
         if doCall == 1:
             print(f"✅ CALL-Option (steigend) kaufen!")
             await self.send_order(
@@ -116,7 +116,7 @@ class Order:
     def get_additional_information_from_id(self, id: str) -> Dict[str, Any]:
         csv_path = "data/db_orders.csv"
 
-        # Datei anlegen, falls sie nicht existiert
+        # Create file if it does not exist
         if not os.path.exists(csv_path):
             with open(csv_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
@@ -128,19 +128,19 @@ class Order:
                         "trade_confidence",
                         "trade_platform",
                     ]
-                )  # Header schreiben
+                )  # Write header
 
-        # Datei einlesen
+        # Read file
         with open(csv_path, "r", newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             eintraege = list(reader)
 
-        # Nach ID suchen
+        # Search for ID
         for zeile in eintraege:
             if zeile["id"] == id:
                 return zeile
 
-        # ID nicht gefunden → neuen Eintrag speichern
+        # ID not found -> save new entry
         with open(csv_path, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(

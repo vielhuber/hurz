@@ -13,10 +13,10 @@ class RandomModel:
             json.dump([], f)
 
     def model_buy_sell_order(X_df: Any, filename_model: str, trade_confidence: int) -> float:
-        # Zufällige Wahrscheinlichkeit zwischen 0 und 1
+        # Random probability between 0 and 1
         prob = random.uniform(0, 1)
-        upper = trade_confidence / 100  # alles drüber ist BUY
-        lower = 1 - upper  # alles drunter ist SELL
+        upper = trade_confidence / 100  # everything above is BUY
+        lower = 1 - upper  # everything below is SELL
         if prob > upper:
             return 1
         if prob < lower:
@@ -28,13 +28,13 @@ class RandomModel:
         upper = trade_confidence / 100  # alles drüber ist BUY
         lower = 1 - upper  # alles drunter ist SELL
         for i in range(len(X_test)):
-            # Zufällige Wahrscheinlichkeit zwischen 0 und 1
+            # Random probability between 0 and 1
             prob = random.uniform(0, 1)
-            # Schwellen definieren
+            # Define thresholds
             if prob > upper:
                 prognosen.append(1)  # BUY
             elif prob < lower:
                 prognosen.append(0)  # SELL
             else:
-                prognosen.append(0.5)  # UNSICHER
+                prognosen.append(0.5)  # UNDECIDED
         return prognosen
