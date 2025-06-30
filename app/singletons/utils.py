@@ -24,7 +24,9 @@ class Utils:
             .astimezone(timezone.utc)
         )
 
-    def correct_datetime_to_string(self, timestamp: float, format: str, shift: bool = False) -> str:
+    def correct_datetime_to_string(
+        self, timestamp: float, format: str, shift: bool = False
+    ) -> str:
 
         if shift is False:
             return (
@@ -53,9 +55,9 @@ class Utils:
         ).total_seconds() / 60
 
     def format_waehrung(self, name: str) -> str:
-        # Step 1: _ -> Space
+        # step 1: _ -> space
         name = name.replace("_", " ")
-        # Step 2: Replace 6 consecutive uppercase letters with XXX/XXX
+        # step 2: replace 6 consecutive uppercase letters with xxx/xxx
         name = re.sub(r"\b([A-Z]{3})([A-Z]{3})\b", r"\1/\2", name)
         return name
 

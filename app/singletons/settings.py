@@ -82,7 +82,7 @@ class Settings:
         )
 
     def save_current_settings(self) -> None:
-        # Save settings
+        # save settings
         try:
             with open("data/settings.json", "w", encoding="utf-8") as f:
                 json.dump(

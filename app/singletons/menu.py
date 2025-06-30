@@ -212,7 +212,7 @@ class Menu:
                     await order.do_buy_sell_order()
 
                     if i < store.trade_repeat - 1:
-                        toleranz = 0.20  # 20 Prozent
+                        toleranz = 0.20  # 20 percent
                         abweichung = store.trade_distance * random.uniform(
                             -toleranz, toleranz
                         )
@@ -254,7 +254,7 @@ class Menu:
 
     async def auswahl_menue(self) -> None:
 
-        # PLATFORM
+        # platform
         store.trade_platform_frage = [
             inquirer.List(
                 "trade_platform",
@@ -273,7 +273,7 @@ class Menu:
             None, lambda: inquirer.prompt(store.trade_platform_frage)
         )
 
-        # DEMO
+        # demo
         demo_frage = [
             inquirer.List(
                 "demo",
@@ -289,7 +289,7 @@ class Menu:
             None, lambda: inquirer.prompt(demo_frage)
         )
 
-        # ASSETS
+        # assets
         with open("tmp/assets.json", "r", encoding="utf-8") as f:
             assets = json.load(f)
         choices = []
@@ -317,7 +317,7 @@ class Menu:
             None, lambda: inquirer.prompt(asset_frage)
         )
 
-        # MODEL
+        # model
         model_frage = [
             inquirer.List(
                 "model",
@@ -333,7 +333,7 @@ class Menu:
             None, lambda: inquirer.prompt(model_frage)
         )
 
-        # EINSATZ
+        # amount
         try:
             os.system("cls" if os.name == "nt" else "clear")
             auswahl_trade_amount_input = input(
@@ -348,7 +348,7 @@ class Menu:
             print("⚠️ Ungültige Eingabe, Standardwert 15 wird verwendet.")
             auswahl_trade_amount = 15
 
-        # WIEDERHOLUNGEN
+        # repeat
         try:
             os.system("cls" if os.name == "nt" else "clear")
             auswahl_trade_repeat_input = input(
@@ -363,7 +363,7 @@ class Menu:
             print("⚠️ Ungültige Eingabe, Standardwert 10 wird verwendet.")
             auswahl_trade_repeat = 10
 
-        # ABSTAND
+        # distance
         try:
             os.system("cls" if os.name == "nt" else "clear")
             auswahl_trade_distance_input = input(
@@ -378,7 +378,7 @@ class Menu:
             print("⚠️ Ungültige Eingabe, Standardwert 30 wird verwendet.")
             auswahl_trade_distance = 30
 
-        # DAUER
+        # time
         try:
             os.system("cls" if os.name == "nt" else "clear")
             auswahl_trade_time_input = input(
@@ -393,7 +393,7 @@ class Menu:
             print("⚠️ Ungültige Eingabe, Standardwert 60 wird verwendet.")
             auswahl_trade_time = 60
 
-        # CONFIDENCE
+        # confidence
         try:
             os.system("cls" if os.name == "nt" else "clear")
             auswahl_trade_confidence_input = input(
@@ -408,7 +408,7 @@ class Menu:
             print("⚠️ Ungültige Eingabe, Standardwert 55 wird verwendet.")
             auswahl_trade_confidence = 55
 
-        # SOUND
+        # sound
         store.sound_effects_frage = [
             inquirer.List(
                 "sound_effects",
@@ -465,7 +465,7 @@ class Menu:
             settings.refresh_dependent_settings()
             settings.save_current_settings()
 
-            # reinitialisieren (nur wenn Demo geändert wurde)
+            # reinitialize (only if demo is changed)
             if restart is True:
                 await boot.shutdown()
                 await websocket.setup_websockets()

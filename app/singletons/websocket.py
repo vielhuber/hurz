@@ -72,7 +72,7 @@ class WebSocket:
                 print("⚠️ Verbindung läuft bereits. Starte nicht erneut.")
                 return None
 
-        # Write Status
+        # write status
         with open("tmp/ws.txt", "w", encoding="utf-8") as f:
             f.write("running")
 
@@ -104,29 +104,29 @@ class WebSocket:
             proxy=proxy_connect_setting,
             # ping_interval=None  # ← keep alive manually
             ping_interval=25,  # send ping every 20 seconds
-            ping_timeout=20,  # if no response after 10s -> Error
+            ping_timeout=20,  # if no response after 10s -> error
         )
 
         store._ws_connection = ws
 
-        # First message (handshake) received
+        # first message (handshake) received
         handshake = await ws.recv()
         print("Handshake:", handshake)
 
         if handshake.startswith("0"):
-            # Confirm connection
+            # confirm connection
             await ws.send("40")
             print("Verbindung bestätigt (40 gesendet)")
 
-        # Warte auf Bestätigung vom Server ("40")
+        # wait for confirmation from server ("40")
         server_response = await ws.recv()
         print("Server Antwort:", server_response)
 
-        # Authentifizierung senden (jetzt garantiert korrekt!)
+        # send authentication
         await ws.send(pocketoption_auth_payload)
         print("Authentifizierung gesendet:", pocketoption_auth_payload)
 
-        # Antwort auf Authentifizierung empfangen
+        # get answer from authentication
         auth_response = await ws.recv()
         print("Auth Antwort:", auth_response)
 
@@ -134,11 +134,11 @@ class WebSocket:
         if "updateAssets" in auth_response:
             store.binary_expected_event = "updateAssets"
 
-        # Ab hier bist du erfolgreich authentifiziert!
+        # now you are authentication successfully
         if auth_response.startswith("451-") or "successauth" in auth_response:
             print("✅ Auth erfolgreich, weitere Events senden...")
 
-            # Starte beide Tasks parallel
+            # start tasks in parallel
             store.laufende_tasks.append(asyncio.create_task(websocket.ws_keepalive(ws)))
             store.laufende_tasks.append(asyncio.create_task(websocket.ws_send_loop(ws)))
             store.laufende_tasks.append(
@@ -154,7 +154,7 @@ class WebSocket:
             sys.exit(0)
 
     async def ws_send_loop(self, ws: WebSocketClientProtocol) -> None:
-        # Commands to send
+        # commands to send
         last_content = ""
         while True:
             try:
@@ -169,7 +169,7 @@ class WebSocket:
             except Exception as e:
                 print("⚠️ Fehler beim Senden von Input:", e)
                 # sys.exit()
-            await asyncio.sleep(1)  # Intervall zur Entlastung
+            await asyncio.sleep(1)  # breathe
 
     async def ws_receive_loop(self, ws: WebSocketClientProtocol) -> None:
         try:
@@ -479,10 +479,10 @@ class WebSocket:
                                 "OTC"
                                 in x[
                                     "label"
-                                ],  # False (=0) kommt zuerst, True (=1) kommt später
+                                ],  # false (=0) comes first, true (=1) comes last
                                 -x[
                                     "return_percent"
-                                ],  # innerhalb der Nicht-OTC sortieren nach Prozent absteigend
+                                ],  # sort inside non otc by percent descending
                                 x["label"],
                             ),
                         )
@@ -500,7 +500,7 @@ class WebSocket:
         except websockets.ConnectionClosedError as e:
             print(f"❌ Verbindung unerwartet geschlossen ({e.code}): {e.reason}")
 
-            # reconnect (this is needed because no PING PONG is sent on training etc.)
+            # reconnect (this is needed because no ping pong is sent on training etc.)
             if not ws.open:
                 print("🔄 reconnect wird gestartet.")
                 print("🔄 reconnect wird gestartet.")
@@ -539,9 +539,9 @@ class WebSocket:
         while True:
             try:
                 print("PING")
-                # await ws.send('42["ping-server"]')  # <- Socket.IO-Ping
-                await ws.send('42["ps"]')  # <- Socket.IO-Ping
-                # await ws.send('3')  # <- Socket.IO-Ping
+                # await ws.send('42["ping-server"]')  # <- socket.io-ping
+                await ws.send('42["ps"]')  # <- socket.io-ping
+                # await ws.send('3')  # <- socket.io-ping
             except Exception as e:
                 print("⚠️ Ping fehlgeschlagen:", e)
                 break

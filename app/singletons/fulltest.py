@@ -9,7 +9,12 @@ from app.utils.helpers import singleton
 @singleton
 class FullTest:
 
-    def run_fulltest(self, filename: str, startzeit: Optional[Any] = None, endzeit: Optional[Any] = None) -> Optional[Dict[str, Any]]:
+    def run_fulltest(
+        self,
+        filename: str,
+        startzeit: Optional[Any] = None,
+        endzeit: Optional[Any] = None,
+    ) -> Optional[Dict[str, Any]]:
         df = pd.read_csv(filename)
         df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
 
@@ -30,13 +35,13 @@ class FullTest:
             print("⚠️ Ungültiger Zeitbereich für Fulltest.")
             return None
 
-        # --- Fulltest ---
+        # --- fulltest ---
         print("✅ Starte Fulltest")
         print(f"🚀 Trade confidence: {store.trade_confidence}")
 
         i = 0
 
-        werte = df["Wert"].astype(float).values  # Convert only once
+        werte = df["Wert"].astype(float).values  # convert only once
 
         # the individual windows
         X_test = []
@@ -104,7 +109,7 @@ class FullTest:
         print(f"⏱ #0.2 {time.perf_counter() - performance_start:.4f}s")
         performance_start = time.perf_counter()
 
-        # ✅ Auswertung
+        # check results
         full_erfolge = 0
         full_cases = 0
         gesamt_full = len(prognosen)

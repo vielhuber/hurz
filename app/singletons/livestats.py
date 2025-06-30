@@ -117,7 +117,7 @@ class LiveStats:
                     naiv = datetime.strptime(
                         deal[order.format_deals_get_column("date_until")],
                         "%d.%m.%y %H:%M:%S",
-                    )  # still without TZ
+                    )  # still without tz
                     close_ts = local.localize(naiv).astimezone(pytz.utc)
                     now = datetime.now(pytz.utc)
                     diff = int((close_ts - now).total_seconds())
@@ -131,9 +131,9 @@ class LiveStats:
                     live_data_deals[:10],
                     headers=headers,
                     tablefmt="plain",
-                    stralign="left",  # Spalteninhalt bündig ohne Zusatzabstände
-                    numalign="right",  # Zahlen bündig rechts (optional)
-                    colalign=None,  # oder z. B. ["left", "right", "right"]
+                    stralign="left",  # col content left aligned
+                    numalign="right",  # integers right aligned
+                    colalign=None,  # or ["left", "right", "right"]
                 )
 
                 needed_percent_rate = 0
@@ -468,7 +468,7 @@ class LiveStats:
                         ]
                     )
 
-                # Clear console (Windows/Linux)
+                # clear console (Windows/Linux)
                 os.system("cls" if os.name == "nt" else "clear")
 
                 print("###############################################")

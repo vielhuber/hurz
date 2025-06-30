@@ -11,7 +11,9 @@ from app.utils.helpers import singleton
 @singleton
 class Asset:
 
-    def get_asset_information(self, platform: str, model: str, asset: str) -> Optional[Dict[str, Any]]:
+    def get_asset_information(
+        self, platform: str, model: str, asset: str
+    ) -> Optional[Dict[str, Any]]:
         csv_path = "data/db_assets.csv"
 
         if not os.path.exists(csv_path):
@@ -21,7 +23,7 @@ class Asset:
             reader = csv.DictReader(f)
             eintraege = list(reader)
 
-        # Search by ID
+        # search by id
         for zeile in eintraege:
             if (
                 zeile["platform"] == platform
@@ -40,7 +42,9 @@ class Asset:
 
         return None
 
-    def set_asset_information(self, platform: str, model: str, asset: str, data: Dict[str, Any]) -> None:
+    def set_asset_information(
+        self, platform: str, model: str, asset: str, data: Dict[str, Any]
+    ) -> None:
         csv_path = "data/db_assets.csv"
 
         header = [
@@ -53,18 +57,18 @@ class Asset:
             "updated_at",
         ]
 
-        # Datei anlegen, falls sie nicht existiert
+        # create file if it does not exist
         if not os.path.exists(csv_path):
             with open(csv_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
-                writer.writerow(header)  # Header schreiben
+                writer.writerow(header)  # write header
 
-        # Datei einlesen
+        # read file
         with open(csv_path, "r", newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             eintraege = list(reader)
 
-        # Nach Eintrag suchen und überschreiben
+        # search for entry and overwrite
         found = False
         for zeile in eintraege:
             if (
@@ -76,7 +80,7 @@ class Asset:
                 for data__key, data__value in data.items():
                     zeile[data__key] = data__value
 
-        # Wenn kein Eintrag gefunden, neuen Eintrag hinzufügen
+        # if no entry found, add new entry
         if found is False:
             new_entry = {
                 "platform": platform,
@@ -93,7 +97,7 @@ class Asset:
                 new_entry[data__key] = data__value
             eintraege.append(new_entry)
 
-        # in CSV speichern
+        # save to csv
         with open(csv_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(
                 f,

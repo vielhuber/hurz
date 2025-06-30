@@ -62,7 +62,7 @@ class AutoTrade:
                     print("dont take current...")
                     continue
 
-                # never use OTC (disabled)
+                # never use otc (disabled)
                 if True is False and tries > 0 and "otc" in eintrag["name"]:
                     print("dont take otc")
                     continue

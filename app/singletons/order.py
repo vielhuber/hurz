@@ -32,17 +32,17 @@ class Order:
             return
         print(fulltest_result["report"])
 
-        # Load live data (already collected for 5 minutes)
+        # load live data (already collected for 5 minutes)
         df = pd.read_csv("tmp/tmp_live_data.csv")
         df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
 
-        # Ensure data is sorted by time
+        # ensure data is sorted by time
         df.sort_values("Zeitpunkt", inplace=True)
 
-        # Prepare features (all existing values of the last 5 minutes)
+        # prepare features (all existing values of the last 5 minutes)
         X = df[["Wert"]].values.flatten()
 
-        # Adjust the number of features to the desired length if necessary (must be exactly as in training)
+        # adjust the number of features to the desired length if necessary (must be exactly as in training)
         desired_length = store.train_window
         if len(X) < desired_length:
             # if less data is available, fill with the first value at the beginning
@@ -51,10 +51,10 @@ class Order:
             # if more data, then take the last ones
             X = X[-desired_length:]
 
-        # Important: exact structure as in training (DataFrame and not just flatten)
-        X_df = pd.DataFrame([X])  # ✅ Important: correct structure (1 row, x columns)
+        # important: exact structure as in training (DataFrame and not just flatten)
+        X_df = pd.DataFrame([X])  # ✅ important: correct structure (1 row, x columns)
 
-        # Aktueller Kurs (letzter Wert)
+        # current stock price (last value)
         aktueller_kurs = X[-1]
 
         doCall = None
@@ -69,7 +69,7 @@ class Order:
         else:
             duration = 60
 
-        # Make purchase decision (example)
+        # make purchase decision (example)
         if doCall == 1:
             print(f"✅ CALL-Option (steigend) kaufen!")
             await self.send_order(
@@ -91,7 +91,9 @@ class Order:
                 f"⛔ UNSCHLÜSSIG! ÜBERSPRINGE! trade_confidence: {store.trade_confidence}"
             )
 
-    async def send_order(self, asset: str, amount: float, action: str, duration: int) -> None:
+    async def send_order(
+        self, asset: str, amount: float, action: str, duration: int
+    ) -> None:
 
         order_payload = [
             "openOrder",
@@ -99,12 +101,10 @@ class Order:
                 "asset": asset,
                 "amount": amount,
                 "action": action,  # "call" (steigend) oder "put" (fallend)
-                "isDemo": store.is_demo_account,  # 1 für Demo, 0 für echtes Konto
-                "requestId": random.randint(
-                    1000000, 99999999
-                ),  # Eindeutige ID generieren
-                "optionType": 100,  # Fixe ID von PocketOption für kurzfristige Optionen
-                "time": duration,  # Laufzeit in Sekunden (z.B. 60)
+                "isDemo": store.is_demo_account,  # 1: demo, 0: real
+                "requestId": random.randint(1000000, 99999999),  # generate unique id
+                "optionType": 100,  # fixed ids from pocketoption for short options
+                "time": duration,  # runtime in seconds (e.g. 60)
             },
         ]
 
@@ -116,7 +116,7 @@ class Order:
     def get_additional_information_from_id(self, id: str) -> Dict[str, Any]:
         csv_path = "data/db_orders.csv"
 
-        # Create file if it does not exist
+        # create file if it does not exist
         if not os.path.exists(csv_path):
             with open(csv_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
@@ -128,19 +128,19 @@ class Order:
                         "trade_confidence",
                         "trade_platform",
                     ]
-                )  # Write header
+                )  # write header
 
-        # Read file
+        # read file
         with open(csv_path, "r", newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             eintraege = list(reader)
 
-        # Search for ID
+        # search for id
         for zeile in eintraege:
             if zeile["id"] == id:
                 return zeile
 
-        # ID not found -> save new entry
+        # id not found -> save new entry
         with open(csv_path, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(
@@ -152,7 +152,7 @@ class Order:
                     store.trade_platform,
                 ]
             )
-            # print(f"💾 Neues Modell für ID {id} gespeichert: {store.active_model}")
+            # print(f"💾 saved new model for id {id}: {store.active_model}")
             return {
                 "id": id,
                 "model": store.active_model,

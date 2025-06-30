@@ -28,7 +28,7 @@ class Store:
         self.main_menu_default = None
         self.reconnect_last_try = None
         self.binary_expected_event = None
-        self.train_window = 30  # Input period, 30 minutes
-        self.train_horizon = 1  # Prediction window, 1 minute
+        self.train_window = 30  # input period, 30 minutes
+        self.train_horizon = 1  # prediction window, 1 minute
         self.stop_event = asyncio.Event()
         self.cancel_auto_mode = False

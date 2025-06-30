@@ -18,12 +18,12 @@ class History:
         self, filename: str, time_back_in_minutes: float, delete_old: bool = False
     ) -> None:
 
-        # Delete old file
+        # delete old file
         if delete_old is True and os.path.exists(filename):
             os.remove(filename)
             print(f"✅ Old file {filename} deleted.")
 
-        # Current time (now)
+        # current time (now)
         current_time = int(time.time())
 
         # startzeit
@@ -69,16 +69,16 @@ class History:
             )
             sys.exit()
 
-        period = 60  # ✅ Kerzen: 60 Sekunden
-        offset = 150 * 60  # Sprungweite pro Request: 150 Minuten
-        overlap = 2 * 60  # ✅ Überlappung von 2 Minute (60 Sekunden) pro Request
+        period = 60  # ✅ candles: 60 seconds
+        offset = 150 * 60  # jump distance per request: 150 minutes
+        overlap = 2 * 60  # ✅ overlapping of 2 minutes (120 seconds) per request
 
         index = 174336071151  # ✅ random unique number
 
         # create file if not exists
         if not os.path.exists(filename):
             with open(filename, "w", encoding="utf-8") as file:
-                file.write("Waehrung,Zeitpunkt,Wert\n")  # Header der CSV-Datei
+                file.write("Waehrung,Zeitpunkt,Wert\n")  # header of csv file
 
         with open("tmp/historic_data_status.json", "w", encoding="utf-8") as file:
             file.write("pending")
@@ -111,7 +111,7 @@ class History:
 
             request_time -= offset - overlap
 
-            await asyncio.sleep(1)  # kurze Pause zwischen den Anfragen
+            await asyncio.sleep(1)  # small break
 
         while True:
             with open("tmp/historic_data_status.json", "r", encoding="utf-8") as f:
@@ -128,36 +128,36 @@ class History:
                         df_neu["Zeitpunkt"], errors="coerce"
                     )
                     df_neu.dropna(subset=["Zeitpunkt"], inplace=True)
-                    # Resample auf 1 Sekunde (nur auf Zeitpunkt)
+                    # resample to 1 second (only for time)
                     df_neu.set_index("Zeitpunkt", inplace=True)
                     df_neu = df_neu.resample("1s").last().dropna().reset_index()
                     df_neu["Wert"] = (
                         df_neu["Wert"].astype(float).map(lambda x: f"{x:.5f}")
                     )
-                    # Nach Resampling Spalten sauber sortieren
+                    # after resampling sort cols
                     df_neu = df_neu[["Waehrung", "Zeitpunkt", "Wert"]]
-                    # Zeitpunkt schön formatieren
+                    # format time
                     df_neu["Zeitpunkt"] = df_neu["Zeitpunkt"].dt.strftime(
                         "%Y-%m-%d %H:%M:%S.%f"
                     )
 
-                    # Bestehende Datei einlesen, wenn vorhanden
+                    # read existing file if available
                     if os.path.exists(filename):
                         df_alt = pd.read_csv(filename)
                         df = pd.concat([df_alt, df_neu], ignore_index=True)
                     else:
                         df = df_neu
 
-                    # 5 Nachkommastellen erhalten
+                    # keep 5 spaces after comma
                     df["Wert"] = pd.to_numeric(df["Wert"], errors="coerce").map(
                         lambda x: f"{x:.5f}" if pd.notnull(x) else ""
                     )
 
-                    # Doppelte Zeilen entfernen
+                    # remove duplicate lines
                     df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"], errors="coerce")
                     df.dropna(subset=["Zeitpunkt"], inplace=True)
 
-                    # Wochenenden (Trading Freie Zeiten) entfernen
+                    # remove weekends (trading free times)
                     if "otc" not in store.trade_asset:
                         df_tmp = df.copy()
                         df_tmp["Zeitpunkt"] = pd.to_datetime(
@@ -169,22 +169,22 @@ class History:
                         def ist_wochenende(row):
                             wd = row["wochentag"]
                             t = row["uhrzeit"]
-                            if wd == 5 and t >= time2(1, 0):  # Samstag ab 01:00
+                            if wd == 5 and t >= time2(1, 0):  # saturday from 01:00
                                 return True
-                            if wd == 6:  # Ganzer Sonntag
+                            if wd == 6:  # whole sunday
                                 return True
-                            if wd == 0 and t < time2(1, 0):  # Montag vor 01:00
+                            if wd == 0 and t < time2(1, 0):  # monday before 01:00
                                 return True
                             return False
 
                         df = df[~df_tmp.apply(ist_wochenende, axis=1)]
 
-                    # Alles nach Zeit sortieren
+                    # sort all by time
                     df = df.sort_values("Zeitpunkt").drop_duplicates(
                         subset=["Waehrung", "Zeitpunkt"]
                     )
 
-                    # Wieder als string formatieren
+                    # sort as string again
                     df["Zeitpunkt"] = df["Zeitpunkt"].dt.strftime(
                         "%Y-%m-%d %H:%M:%S.%f"
                     )
@@ -195,4 +195,4 @@ class History:
                     ) as file:
                         json.dump([], file)
                     break
-            await asyncio.sleep(1)  # Intervall zur Entlastung
+            await asyncio.sleep(1)  # small pause to breathe
