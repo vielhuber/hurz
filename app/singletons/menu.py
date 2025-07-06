@@ -28,9 +28,12 @@ from app.utils.helpers import singleton
 class Menu:
 
     async def initialize_main_menu(self) -> None:
-        while True and not store.stop_event.is_set():
+        while not store.stop_event.is_set():
+            if store.auto_mode_active is True:
+                await asyncio.sleep(1)
+                continue
 
-            option1 = "Load Historical Data"
+            option1 = "Load historical data"
             if os.path.exists(store.filename_historic_data):
                 timestamp = os.path.getmtime(store.filename_historic_data)
                 datum = utils.correct_datetime_to_string(
@@ -40,7 +43,7 @@ class Menu:
             else:
                 option1 += " (Data not available)"
 
-            option2 = "Train Model"
+            option2 = "Train model"
             if os.path.exists(store.filename_model):
                 timestamp = os.path.getmtime(store.filename_model)
                 datum = utils.correct_datetime_to_string(
@@ -50,27 +53,29 @@ class Menu:
             else:
                 option2 += " (Data not available)"
 
-            option3 = "Perform Fulltest"
+            option3 = "Perform fulltest"
             if not os.path.exists(store.filename_model):
                 option3 += " (not possible)"
 
-            option4 = "Draw Diagram"
+            option4 = "Draw diagram"
             if not os.path.exists(store.filename_historic_data):
                 option4 += " (not possible)"
 
-            option5 = "Place Purchase Option"
+            option5 = "Place purchase option"
             if not os.path.exists(store.filename_model):
                 option5 += " (not possible)"
 
-            option6 = "Live-Status ansehen"
+            option6 = "Show live-status"
 
-            option7 = "Einstellungen ändern"
+            option7 = "Change settings"
 
-            option8 = "Ansicht aktualisieren"
+            option8 = "Refresh view"
 
-            option9 = "Geführter Auto-Modus"
+            option9 = "Auto-Trade Mode"
 
-            option10 = "Programm verlassen"
+            option10 = "Verify historical data"
+
+            option11 = "Exit"
 
             live_data_balance = 0
             if os.path.exists("data/live_data_balance.json"):
@@ -131,10 +136,11 @@ class Menu:
                             option8,
                             option9,
                             option10,
+                            option11,
                             help_text,
                         ]
                         if store._ws_connection is not None
-                        else [option6, option8, option10, help_text]
+                        else [option6, option8, option11, help_text]
                     ),
                     default=store.main_menu_default,
                 ),
@@ -156,9 +162,9 @@ class Menu:
                 print("❌ Auswahl wurde abgebrochen. Programm wird beendet.")
                 return
 
-            if (
-                antworten["auswahl"] == option1 or antworten["auswahl"] == option5
-            ) and asset.asset_is_available(store.trade_asset) is False:
+            if (antworten["auswahl"] == option5) and asset.asset_is_available(
+                store.trade_asset
+            ) is False:
                 print(
                     f"❌ Handelspaar {store.trade_asset} ist nicht verfügbar. Bitte wähle ein anderes."
                 )
@@ -166,7 +172,7 @@ class Menu:
                 continue
 
             if antworten["auswahl"] == option1:
-                await history.pocketoption_load_historic_data(
+                await history.load_data(
                     store.filename_historic_data,
                     3 * 30.25 * 24 * 60,  # 3 months
                     # 7 * 24 * 60,  # 1 week
@@ -235,10 +241,12 @@ class Menu:
                 settings.load_settings()
 
             elif antworten["auswahl"] == option9:
-                await autotrade.start_auto_mode()
-                await asyncio.sleep(1)
+                await self.auswahl_auto_trade_menue()
 
             elif antworten["auswahl"] == option10:
+                await history.verify_data()
+
+            elif antworten["auswahl"] == option11:
                 print("Programm wird beendet.")
                 store.stop_event.set()
                 for t in asyncio.all_tasks():
@@ -469,3 +477,27 @@ class Menu:
             if restart is True:
                 await boot.shutdown()
                 await websocket.setup_websockets()
+
+    async def auswahl_auto_trade_menue(self) -> None:
+
+        question = [
+            inquirer.List(
+                "mode",
+                message="Modus",
+                choices=[
+                    (f"Load all historical data", "data"),
+                    (f"Train all models", "train"),
+                    (f"Buy optimally", "trade"),
+                    (f"Back", "back"),
+                ],
+            )
+        ]
+        answer = await asyncio.get_event_loop().run_in_executor(
+            None, lambda: inquirer.prompt(question)
+        )
+
+        if answer["mode"] == "back":
+            return
+
+        print("🚀 Starting auto mode in background...")
+        asyncio.create_task(autotrade.start_auto_mode(answer["mode"]))

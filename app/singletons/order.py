@@ -17,7 +17,7 @@ class Order:
         print("Purchase option is being executed.")
 
         # load small amount
-        await history.pocketoption_load_historic_data(
+        await history.load_data(
             "tmp/tmp_live_data.csv",
             240,  # ~2 hours
             True,  # delete old data
@@ -33,7 +33,8 @@ class Order:
         print(fulltest_result["report"])
 
         # load live data (already collected for 5 minutes)
-        df = pd.read_csv("tmp/tmp_live_data.csv")
+        df = pd.read_csv("tmp/tmp_live_data.csv", na_values=["None"])
+        df.dropna(subset=["Wert"], inplace=True)
         df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
 
         # ensure data is sorted by time

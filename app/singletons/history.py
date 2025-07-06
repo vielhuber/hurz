@@ -5,7 +5,8 @@ import pandas as pd
 import pytz
 import sys
 import time
-from datetime import datetime, time as time2
+from datetime import datetime
+from slugify import slugify
 
 from app.utils.singletons import store, utils
 from app.utils.helpers import singleton
@@ -14,7 +15,7 @@ from app.utils.helpers import singleton
 @singleton
 class History:
 
-    async def pocketoption_load_historic_data(
+    async def load_data(
         self, filename: str, time_back_in_minutes: float, delete_old: bool = False
     ) -> None:
 
@@ -157,27 +158,14 @@ class History:
                     df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"], errors="coerce")
                     df.dropna(subset=["Zeitpunkt"], inplace=True)
 
-                    # remove weekends (trading free times)
+                    # remove weekends (trading free times) => Set to None!
                     if "otc" not in store.trade_asset:
                         df_tmp = df.copy()
                         df_tmp["Zeitpunkt"] = pd.to_datetime(
                             df_tmp["Zeitpunkt"], errors="coerce"
                         )
-                        df_tmp["wochentag"] = df_tmp["Zeitpunkt"].dt.weekday
-                        df_tmp["uhrzeit"] = df_tmp["Zeitpunkt"].dt.time
-
-                        def ist_wochenende(row):
-                            wd = row["wochentag"]
-                            t = row["uhrzeit"]
-                            if wd == 5 and t >= time2(1, 0):  # saturday from 01:00
-                                return True
-                            if wd == 6:  # whole sunday
-                                return True
-                            if wd == 0 and t < time2(1, 0):  # monday before 01:00
-                                return True
-                            return False
-
-                        df = df[~df_tmp.apply(ist_wochenende, axis=1)]
+                        wochenende_mask = df_tmp.apply(utils.ist_wochenende, axis=1)
+                        df.loc[wochenende_mask, "Wert"] = None
 
                     # sort all by time
                     df = df.sort_values("Zeitpunkt").drop_duplicates(
@@ -188,7 +176,7 @@ class History:
                     df["Zeitpunkt"] = df["Zeitpunkt"].dt.strftime(
                         "%Y-%m-%d %H:%M:%S.%f"
                     )
-                    df.to_csv(filename, index=False)
+                    df.to_csv(filename, index=False, na_rep="None")
 
                     with open(
                         "tmp/historic_data_raw.json", "w", encoding="utf-8"
@@ -196,3 +184,58 @@ class History:
                         json.dump([], file)
                     break
             await asyncio.sleep(1)  # small pause to breathe
+
+    def verify_data(self) -> None:
+        with open("tmp/assets.json", "r", encoding="utf-8") as f:
+            assets = json.load(f)
+
+        for assets__value in assets:
+            filename = (
+                "data/historic_data_"
+                + slugify(store.trade_platform)
+                + "_"
+                + slugify(assets__value["name"])
+                + ".csv"
+            )
+            if not os.path.exists(filename):
+                print(f"❗❗Fehler: Datei {filename} fehlt!")
+                continue
+
+            df = pd.read_csv(filename, na_values=["None"])
+            df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
+
+            # determine first and last time
+            first_time = df["Zeitpunkt"].min()
+            last_time = df["Zeitpunkt"].max()
+
+            # loop through all rows
+            minutes = 0
+            for index, row in df.iterrows():
+                # if time is weekend and it is non OTC, check if None
+                if "otc" not in store.trade_asset and not utils.ist_wochenende(row):
+                    if pd.isna(row["Wert"]) or row["Wert"] == "None":
+                        print(
+                            f"❗❗Fehler: Ungültiger Wert in Zeile {index + 1} für {assets__value['name']}!"
+                        )
+                        continue
+
+                # check if time is valid
+                if row["Zeitpunkt"] != first_time + pd.Timedelta(minutes=minutes):
+                    print(
+                        f"❗❗Fehler: Ungültige Zeit in Zeile {index + 1} für {assets__value['name']}!"
+                    )
+                    print(f"  Erwartet: {first_time + pd.Timedelta(minutes=minutes)}")
+                    print(f"  Gefunden: {row['Zeitpunkt']}")
+                    continue
+
+                minutes += 1
+
+            if first_time + pd.Timedelta(minutes=minutes - 1) != last_time:
+                print(
+                    f"❗❗Fehler: Letzte Zeit stimmt nicht überein für {assets__value['name']}!"
+                )
+                print(f"  Erwartet: {first_time + pd.Timedelta(minutes=minutes - 1)}")
+                print(f"  Gefunden: {last_time}")
+                continue
+
+            print(f"✅ Datei {filename} Analyse abgeschlossen.")

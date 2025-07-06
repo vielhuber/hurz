@@ -31,4 +31,4 @@ class Store:
         self.train_window = 30  # input period, 30 minutes
         self.train_horizon = 1  # prediction window, 1 minute
         self.stop_event = asyncio.Event()
-        self.cancel_auto_mode = False
+        self.auto_mode_active = False

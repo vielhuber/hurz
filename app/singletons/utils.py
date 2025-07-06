@@ -3,8 +3,9 @@ import os
 import pytz
 import re
 from functools import partial
-from datetime import datetime, timezone
+from datetime import datetime, timezone, time as time2
 from typing import Optional, Any
+import time
 
 from app.utils.helpers import singleton
 
@@ -64,3 +65,14 @@ class Utils:
     async def run_sync_as_async(self, func: Any, *args: Any, **kwargs: Any) -> Any:
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, partial(func, *args, **kwargs))
+
+    def ist_wochenende(self, row: Any) -> bool:
+        wd = row["Zeitpunkt"].weekday
+        t = row["Zeitpunkt"].time()
+        if wd == 5 and t >= time2(1, 0):  # saturday from 01:00
+            return True
+        if wd == 6:  # whole sunday
+            return True
+        if wd == 0 and t < time2(1, 0):  # monday before 01:00
+            return True
+        return False

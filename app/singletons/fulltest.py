@@ -15,7 +15,8 @@ class FullTest:
         startzeit: Optional[Any] = None,
         endzeit: Optional[Any] = None,
     ) -> Optional[Dict[str, Any]]:
-        df = pd.read_csv(filename)
+        df = pd.read_csv(filename, na_values=["None"])
+        df.dropna(subset=["Wert"], inplace=True)
         df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
 
         # determine time range

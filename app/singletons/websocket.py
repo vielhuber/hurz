@@ -267,6 +267,21 @@ class WebSocket:
                                         file.write("done")
                                     print("✅ Alle Daten empfangen.")
                                     store.target_time = None
+                        else:
+                            print("❗❗❗Keine vernünftigen Daten erhalten!❗❗❗")
+                            # debug
+                            with open(
+                                "tmp/debug_wrong_data.json", "w", encoding="utf-8"
+                            ) as f:
+                                json.dump(json_data, f, indent=2)
+                            with open(
+                                "tmp/historic_data_status.json",
+                                "w",
+                                encoding="utf-8",
+                            ) as file:
+                                file.write("done")
+                            print("✅ Beende Anfragen!")
+                            store.target_time = None
 
                     elif store.binary_expected_event == "successupdateBalance":
                         decoded = message.decode("utf-8")
@@ -500,8 +515,16 @@ class WebSocket:
         except websockets.ConnectionClosedError as e:
             print(f"❌ Verbindung unerwartet geschlossen ({e.code}): {e.reason}")
 
+            print("WAS IST DA LOS???? _1")
+            print("WAS IST DA LOS???? _1")
+            print("WAS IST DA LOS???? _1")
+
             # reconnect (this is needed because no ping pong is sent on training etc.)
             if not ws.open:
+                print("WAS IST DA LOS???? _2")
+                print("WAS IST DA LOS???? _2")
+                print("WAS IST DA LOS???? _2")
+
                 print("🔄 reconnect wird gestartet.")
                 print("🔄 reconnect wird gestartet.")
                 print("🔄 reconnect wird gestartet.")
@@ -528,6 +551,15 @@ class WebSocket:
                 return
 
             else:
+                print("WAS IST DA LOS???? _3")
+                print("WAS IST DA LOS???? _3")
+                print("WAS IST DA LOS???? _3")
+
+                print("VERSUCHE SHUTDOWN!")
+                print("VERSUCHE SHUTDOWN!")
+                print("VERSUCHE SHUTDOWN!")
+                print("VERSUCHE SHUTDOWN!")
+                print("VERSUCHE SHUTDOWN!")
                 await boot.shutdown()
                 store.stop_event.set()
 
