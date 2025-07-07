@@ -245,7 +245,7 @@ class Menu:
 
             elif antworten["auswahl"] == option10:
                 await utils.run_sync_as_async(history.verify_data_all)
-                await asyncio.sleep(10)
+                await asyncio.sleep(3)
 
             elif antworten["auswahl"] == option11:
                 print("Programm wird beendet.")

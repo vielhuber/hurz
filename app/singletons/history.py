@@ -194,16 +194,17 @@ class History:
                 break
             # if "otc" not in assets__value["name"]:
             #   continue
-            self.verify_data_of_asset(assets__value["name"])
+            result = self.verify_data_of_asset(assets__value["name"])
+            # delete file if verification fails (disabled)
+            continue
+            if result is False:
+                filename = self.get_filename_of_historic_data(assets__value["name"])
+                if os.path.exists(filename):
+                    os.remove(filename)
+                    print(f"⛔ {filename} deleted due to invalid data.")
 
     def verify_data_of_asset(self, asset: str) -> bool:
-        filename = (
-            "data/historic_data_"
-            + slugify(store.trade_platform)
-            + "_"
-            + slugify(asset)
-            + ".csv"
-        )
+        filename = self.get_filename_of_historic_data(asset)
         if not os.path.exists(filename):
             print(f"⛔ {filename}: File missing!")
             return False
@@ -233,9 +234,8 @@ class History:
             )
             return False
 
-        # loop through all rows
-        if True is False:
-
+        # naive loop (slow, disabled)
+        if False is True:
             minutes = 0
             for index, row in df.iterrows():
                 # if time is weekend and it is non OTC, check if None
@@ -261,5 +261,55 @@ class History:
                 )
                 return False
 
+        # vectorized validation (much faster than iterrows)
+        if True is True:
+
+            # create expected time series vectorized
+            expected_times = pd.date_range(
+                start=first_time, periods=len(df), freq="1min"  # 1 minute
+            )
+
+            # check all times at once
+            time_matches = (df["Zeitpunkt"] == expected_times).all()
+            if not time_matches:
+                # find first wrong time
+                wrong_index = (df["Zeitpunkt"] != expected_times).idxmax()
+                expected_time = expected_times[wrong_index]
+                found_time = df["Zeitpunkt"].iloc[wrong_index]
+                print(
+                    f"⛔ {filename}: Invalid time in line {wrong_index + 1} for {asset}! - Expected: {expected_time} - Found: {found_time}"
+                )
+                return False
+
+            # check values vectorized (only for non-OTC and non-weekend)
+            if "otc" not in store.trade_asset:
+                weekend_mask = df.apply(utils.ist_wochenende, axis=1)
+                invalid_values = df[
+                    ~weekend_mask & (df["Wert"].isna() | (df["Wert"] == "None"))
+                ]
+                if not invalid_values.empty:
+                    first_invalid = invalid_values.index[0]
+                    print(
+                        f"⛔ {filename}: Invalid value in line {first_invalid + 1} for {asset}!"
+                    )
+                    return False
+
+            # final time check
+            expected_last_time = first_time + pd.Timedelta(minutes=len(df) - 1)
+            if expected_last_time != last_time:
+                print(
+                    f"⛔ {filename}: Last time does not match for {asset}! - Expected: {expected_last_time} - Found: {last_time}"
+                )
+                return False
+
         print(f"✅ {filename} completely correct.")
         return True
+
+    def get_filename_of_historic_data(self, asset: str) -> str:
+        return (
+            "data/historic_data_"
+            + slugify(store.trade_platform)
+            + "_"
+            + slugify(asset)
+            + ".csv"
+        )

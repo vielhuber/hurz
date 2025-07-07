@@ -520,7 +520,7 @@ class WebSocket:
             print("WAS IST DA LOS???? _1")
 
             # reconnect (this is needed because no ping pong is sent on training etc.)
-            if not ws.open:
+            if ws.closed:
                 print("WAS IST DA LOS???? _2")
                 print("WAS IST DA LOS???? _2")
                 print("WAS IST DA LOS???? _2")

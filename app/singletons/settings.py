@@ -4,7 +4,7 @@ import os
 from slugify import slugify
 from dotenv import load_dotenv
 
-from app.utils.singletons import settings, store
+from app.utils.singletons import settings, store, history
 from app.utils.helpers import singleton
 
 
@@ -63,12 +63,8 @@ class Settings:
                 print("⚠️ Error loading settings:", e)
 
     def refresh_dependent_settings(self) -> None:
-        store.filename_historic_data = (
-            "data/historic_data_"
-            + slugify(store.trade_platform)
-            + "_"
-            + slugify(store.trade_asset)
-            + ".csv"
+        store.filename_historic_data = history.get_filename_of_historic_data(
+            store.trade_asset
         )
 
         store.filename_model = (

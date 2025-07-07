@@ -113,18 +113,10 @@ class AutoTrade:
                     # determine next
                     line_count = 0
                     if os.path.exists(
-                        "data/historic_data_"
-                        + slugify(store.trade_platform)
-                        + "_"
-                        + slugify(eintrag["name"])
-                        + ".csv"
+                        history.get_filename_of_historic_data(eintrag["name"])
                     ):
                         with open(
-                            "data/historic_data_"
-                            + slugify(store.trade_platform)
-                            + "_"
-                            + slugify(eintrag["name"])
-                            + ".csv",
+                            history.get_filename_of_historic_data(eintrag["name"]),
                             "r",
                             encoding="utf-8",
                         ) as f:
