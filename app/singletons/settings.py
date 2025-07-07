@@ -2,7 +2,7 @@ import importlib.util
 import json
 import os
 from slugify import slugify
-
+from dotenv import load_dotenv
 
 from app.utils.singletons import settings, store
 from app.utils.helpers import singleton
@@ -10,6 +10,9 @@ from app.utils.helpers import singleton
 
 @singleton
 class Settings:
+
+    def load_env(self) -> None:
+        load_dotenv()
 
     def load_externals(self) -> None:
         for file in os.listdir("external"):
@@ -57,7 +60,7 @@ class Settings:
                     settings.refresh_dependent_settings()
 
             except Exception as e:
-                print("⚠️ Fehler beim Laden der Einstellungen:", e)
+                print("⚠️ Error loading settings:", e)
 
     def refresh_dependent_settings(self) -> None:
         store.filename_historic_data = (
@@ -102,4 +105,4 @@ class Settings:
                     indent=2,
                 )
         except Exception as e:
-            print("⚠️ Fehler beim Speichern der Einstellungen:", e)
+            print("⚠️ Error saving settings:", e)

@@ -244,7 +244,8 @@ class Menu:
                 await self.auswahl_auto_trade_menue()
 
             elif antworten["auswahl"] == option10:
-                await history.verify_data()
+                await utils.run_sync_as_async(history.verify_data_all)
+                await asyncio.sleep(10)
 
             elif antworten["auswahl"] == option11:
                 print("Programm wird beendet.")
@@ -353,7 +354,7 @@ class Menu:
                 else store.trade_amount
             )
         except ValueError:
-            print("⚠️ Ungültige Eingabe, Standardwert 15 wird verwendet.")
+            print("⚠️ Invalid input, default value 15 will be used.")
             auswahl_trade_amount = 15
 
         # repeat
@@ -368,7 +369,7 @@ class Menu:
                 else store.trade_repeat
             )
         except ValueError:
-            print("⚠️ Ungültige Eingabe, Standardwert 10 wird verwendet.")
+            print("⚠️ Invalid input, default value 10 will be used.")
             auswahl_trade_repeat = 10
 
         # distance
@@ -383,7 +384,7 @@ class Menu:
                 else store.trade_distance
             )
         except ValueError:
-            print("⚠️ Ungültige Eingabe, Standardwert 30 wird verwendet.")
+            print("⚠️ Invalid input, default value 30 will be used.")
             auswahl_trade_distance = 30
 
         # time
@@ -398,7 +399,7 @@ class Menu:
                 else store.trade_time
             )
         except ValueError:
-            print("⚠️ Ungültige Eingabe, Standardwert 60 wird verwendet.")
+            print("⚠️ Invalid input, default value 60 will be used.")
             auswahl_trade_time = 60
 
         # confidence
@@ -413,7 +414,7 @@ class Menu:
                 else store.trade_confidence
             )
         except ValueError:
-            print("⚠️ Ungültige Eingabe, Standardwert 55 wird verwendet.")
+            print("⚠️ Invalid input, default value 55 will be used.")
             auswahl_trade_confidence = 55
 
         # sound

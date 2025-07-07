@@ -69,7 +69,7 @@ class WebSocket:
                 hours=2
             )  # 2 hours
             if status == "running" and not zu_alt:
-                print("⚠️ Verbindung läuft bereits. Starte nicht erneut.")
+                print("⚠️ Connection already running. Not starting again.")
                 return None
 
         # write status
@@ -94,7 +94,7 @@ class WebSocket:
                 "https://api.ipify.org?format=json", proxy=proxy_url
             ) as resp:
                 data = await resp.json()
-                print("🌍 Öffentliche IP:", data["ip"])
+                print("🌍 Public IP:", data["ip"])
                 store.current_ip_address = data["ip"]
 
         ws = await websockets.connect(
@@ -116,7 +116,7 @@ class WebSocket:
         if handshake.startswith("0"):
             # confirm connection
             await ws.send("40")
-            print("Verbindung bestätigt (40 gesendet)")
+            print("Connection confirmed (40 sent)")
 
         # wait for confirmation from server ("40")
         server_response = await ws.recv()
@@ -124,7 +124,7 @@ class WebSocket:
 
         # send authentication
         await ws.send(pocketoption_auth_payload)
-        print("Authentifizierung gesendet:", pocketoption_auth_payload)
+        print("Authentication sent:", pocketoption_auth_payload)
 
         # get answer from authentication
         auth_response = await ws.recv()
@@ -178,7 +178,7 @@ class WebSocket:
                 if isinstance(message, str) and message == "2":
                     print("↔️  Erhalte PING")
                     await ws.send("3")
-                    print("↔️  Automatisch PONG gesendet")
+                    print("↔️  Automatically PONG sent")
                 elif isinstance(message, str) and message.startswith("451-"):
                     print(message)
                     if '"successupdateBalance"' in message:
@@ -215,7 +215,7 @@ class WebSocket:
                             and json_data["data"][0]["open"] is not None
                             and all(k in json_data for k in ["asset", "index", "data"])
                         ):
-                            print("✅ Gewünschte historische Daten erhalten!")
+                            print("✅ Desired historical data received!")
                             asset = json_data["asset"]
                             index = json_data["index"]
                             data = json_data["data"]
@@ -265,10 +265,10 @@ class WebSocket:
                                         encoding="utf-8",
                                     ) as file:
                                         file.write("done")
-                                    print("✅ Alle Daten empfangen.")
+                                    print("✅ All data received.")
                                     store.target_time = None
                         else:
-                            print("❗❗❗Keine vernünftigen Daten erhalten!❗❗❗")
+                            print("❗❗❗No reasonable data received!❗❗❗")
                             # debug
                             with open(
                                 "tmp/debug_wrong_data.json", "w", encoding="utf-8"
@@ -280,7 +280,7 @@ class WebSocket:
                                 encoding="utf-8",
                             ) as file:
                                 file.write("done")
-                            print("✅ Beende Anfragen!")
+                            print("✅ Ending requests!")
                             store.target_time = None
 
                     elif store.binary_expected_event == "successupdateBalance":
@@ -383,7 +383,7 @@ class WebSocket:
                         store.binary_expected_event = None
 
                     elif store.binary_expected_event == "successopenOrder":
-                        print("✅ Erfolgreich geöffnet:", message)
+                        print("✅ Successfully opened:", message)
                         decoded = message.decode("utf-8")
                         data = json.loads(decoded)
                         print(data)
@@ -417,7 +417,7 @@ class WebSocket:
 
                         store.binary_expected_event = None
                     elif store.binary_expected_event == "successcloseOrder":
-                        print("✅ Erfolgreich geschlossen:", message)
+                        print("✅ Successfully closed:", message)
                         decoded = message.decode("utf-8")
                         data = json.loads(decoded)
                         print(data)
@@ -509,11 +509,11 @@ class WebSocket:
                         store.binary_expected_event = None
 
         except websockets.ConnectionClosedOK as e:
-            print(f"✅ WebSocket normal geschlossen (Code {e.code}): {e.reason}")
+            print(f"✅ WebSocket normally closed (Code {e.code}): {e.reason}")
             await boot.shutdown()
             store.stop_event.set()
         except websockets.ConnectionClosedError as e:
-            print(f"❌ Verbindung unerwartet geschlossen ({e.code}): {e.reason}")
+            print(f"❌ Connection unexpectedly closed ({e.code}): {e.reason}")
 
             print("WAS IST DA LOS???? _1")
             print("WAS IST DA LOS???? _1")

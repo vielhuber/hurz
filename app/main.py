@@ -1,6 +1,5 @@
 import asyncio
 import sys
-from dotenv import load_dotenv
 
 from app.utils.singletons import store, utils, settings, boot, websocket, menu
 
@@ -10,7 +9,7 @@ async def run() -> None:
     try:
         store.setup()
         utils.create_folders()
-        load_dotenv()
+        settings.load_env()
         settings.load_externals()
         settings.load_settings()
         boot.register_shutdown_sync()
@@ -30,6 +29,6 @@ async def run() -> None:
         await boot.shutdown()  # is also done via atexit.register(boot.shutdown_sync)
         print("FULLY SHUT DOWN")
     except KeyboardInterrupt:
-        print("🚪 STRG+C er....kannt – beende Programm...................")
+        print("🚪 CTRL+C detected – stopping program...................")
         await boot.shutdown()
         sys.exit(0)

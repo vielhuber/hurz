@@ -33,11 +33,11 @@ class FullTest:
             end_index = len(df) - 1
 
         if start_index is None or end_index is None or end_index <= start_index:
-            print("⚠️ Ungültiger Zeitbereich für Fulltest.")
+            print("⚠️ Invalid time range for Fulltest.")
             return None
 
         # --- fulltest ---
-        print("✅ Starte Fulltest")
+        print("✅ Starting Fulltest")
         print(f"🚀 Trade confidence: {store.trade_confidence}")
 
         i = 0

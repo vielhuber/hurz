@@ -91,19 +91,19 @@ class LiveStats:
                         pygame.mixer.init()
                         pygame.mixer.music.load("assets/deal-open.mp3")
                         pygame.mixer.music.play()
-                        print("🦄 Sound abspielen")
+                        print("🦄 Playing sound")
                     if win_count_last is not None and win_count != win_count_last:
                         pygame.init()
                         pygame.mixer.init()
                         pygame.mixer.music.load("assets/deal-win.mp3")
                         pygame.mixer.music.play()
-                        print("🦄 Sound abspielen")
+                        print("🦄 Playing sound")
                     if loose_count_last is not None and loose_count != loose_count_last:
                         pygame.init()
                         pygame.mixer.init()
                         pygame.mixer.music.load("assets/deal-loose.mp3")
                         pygame.mixer.music.play()
-                        print("🦄 Sound abspielen")
+                        print("🦄 Playing sound")
 
                 all_count_last = all_count
                 win_count_last = win_count
@@ -521,16 +521,16 @@ class LiveStats:
                 print()
                 print(f"...und {(len(live_data_deals) - 10)} weitere.")
                 print()
-                print('Drücke "c" um zurück zum Hauptmenü zu gelangen.')
+                print('Press "c" to return to main menu.')
                 print("###############################################")
                 await asyncio.sleep(1)
         except KeyboardInterrupt:
             store.stop_thread = True
 
-        print("⬅️ Zurück zum Hauptmenü...")
+        print("⬅️ Back to main menu...")
 
     def print_live_stats_listen_for_exit(self) -> None:
-        print("⏹️ Beenden durch Tastendruck. Drücke 'c' zum Beenden.")
+        print("⏹️ Exit by keypress. Press 'c' to exit.")
         while True:
             taste = readchar.readkey().lower()
             if taste == "c":

@@ -9,7 +9,7 @@ from app.utils.helpers import singleton
 class Diagrams:
 
     def print_diagrams(self) -> None:
-        print("Drucke Diagramme...")
+        print("Printing diagrams...")
 
         # load data from csv
         df = pd.read_csv(store.filename_historic_data)

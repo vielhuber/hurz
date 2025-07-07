@@ -16,6 +16,10 @@ class Order:
 
         print("Purchase option is being executed.")
 
+        if history.verify_data_of_asset(store.active_model) is False:
+            print(f"⛔ Training aborted for {store.active_model} due to invalid data.")
+            return False
+
         # load small amount
         await history.load_data(
             "tmp/tmp_live_data.csv",
@@ -28,7 +32,7 @@ class Order:
             fulltest.run_fulltest, "tmp/tmp_live_data.csv", None, None
         )
         if fulltest_result is None:
-            print("⚠️ Fulltest konnte nicht durchgeführt werden.")
+            print("⚠️ Fulltest could not be performed.")
             return
         print(fulltest_result["report"])
 
@@ -72,7 +76,7 @@ class Order:
 
         # make purchase decision (example)
         if doCall == 1:
-            print(f"✅ CALL-Option (steigend) kaufen!")
+            print(f"✅ Buy CALL option (rising)!")
             await self.send_order(
                 store.trade_asset,
                 amount=store.trade_amount,
@@ -80,7 +84,7 @@ class Order:
                 duration=duration,
             )
         elif doCall == 0:
-            print(f"✅ PUT-Option (fallend) kaufen!")
+            print(f"✅ Buy PUT option (falling)!")
             await self.send_order(
                 store.trade_asset,
                 amount=store.trade_amount,
@@ -89,7 +93,7 @@ class Order:
             )
         else:
             print(
-                f"⛔ UNSCHLÜSSIG! ÜBERSPRINGE! trade_confidence: {store.trade_confidence}"
+                f"⛔ INDECISIVE! SKIPPING! trade_confidence: {store.trade_confidence}"
             )
 
     async def send_order(
@@ -112,7 +116,7 @@ class Order:
         with open("tmp/command.json", "w", encoding="utf-8") as f:
             json.dump(order_payload, f)
 
-        print(f"📤 Order gesendet: {order_payload}")
+        print(f"📤 Order sent: {order_payload}")
 
     def get_additional_information_from_id(self, id: str) -> Dict[str, Any]:
         csv_path = "data/db_orders.csv"
@@ -202,7 +206,7 @@ class Order:
                     [
                         deal.get("id").split("-")[0],
                         utils.format_waehrung(deal.get("asset")),
-                        "ja" if deal.get("isDemo") == 1 else "nein",
+                        "yes" if deal.get("isDemo") == 1 else "no",
                         self.get_additional_information_from_id(deal.get("id"))[
                             "model"
                         ],

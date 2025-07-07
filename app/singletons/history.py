@@ -40,7 +40,7 @@ class History:
                 if len(zeilen) > 1:
                     letzte = zeilen[-1].split(",")
                     zeitstempel_str = letzte[1]
-                    print(f"📅 Letzter Zeitwert: {zeitstempel_str}")
+                    print(f"📅 Last time value: {zeitstempel_str}")
                     this_timestamp = int(
                         pytz.timezone("Europe/Berlin")
                         .localize(
@@ -103,11 +103,11 @@ class History:
                 json.dump(history_request, f)
 
             print(
-                f'Historische Daten angefordert für Zeitraum bis: {utils.correct_datetime_to_string(request_time, "%d.%m.%y %H:%M:%S", False)}'
+                f'Historical data requested for time period until: {utils.correct_datetime_to_string(request_time, "%d.%m.%y %H:%M:%S", False)}'
             )
             if store.target_time is not None:
                 print(
-                    f"❗❗Prozent: {(round(100*(1-((request_time - store.target_time) / (current_time - store.target_time)))))}%"
+                    f"❗❗Percent: {(round(100*(1-((request_time - store.target_time) / (current_time - store.target_time)))))}%"
                 )
 
             request_time -= offset - overlap
@@ -185,57 +185,81 @@ class History:
                     break
             await asyncio.sleep(1)  # small pause to breathe
 
-    def verify_data(self) -> None:
+    def verify_data_all(self) -> None:
         with open("tmp/assets.json", "r", encoding="utf-8") as f:
             assets = json.load(f)
 
         for assets__value in assets:
-            filename = (
-                "data/historic_data_"
-                + slugify(store.trade_platform)
-                + "_"
-                + slugify(assets__value["name"])
-                + ".csv"
+            if store.stop_event.is_set():
+                break
+            # if "otc" not in assets__value["name"]:
+            #   continue
+            self.verify_data_of_asset(assets__value["name"])
+
+    def verify_data_of_asset(self, asset: str) -> bool:
+        filename = (
+            "data/historic_data_"
+            + slugify(store.trade_platform)
+            + "_"
+            + slugify(asset)
+            + ".csv"
+        )
+        if not os.path.exists(filename):
+            print(f"⛔ {filename}: File missing!")
+            return False
+
+        df = pd.read_csv(filename, na_values=["None"])
+        df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
+
+        # determine first and last time
+        first_time = df["Zeitpunkt"].min()
+        last_time = df["Zeitpunkt"].max()
+
+        # check if first time is newer than 3 months
+        if first_time.tz_localize("utc") > (
+            datetime.now(pytz.utc) - pd.DateOffset(months=2)
+        ):
+            print(
+                f"⛔ {filename}: First time {first_time} is newer than 2 months for {asset}!"
             )
-            if not os.path.exists(filename):
-                print(f"❗❗Fehler: Datei {filename} fehlt!")
-                continue
+            return False
 
-            df = pd.read_csv(filename, na_values=["None"])
-            df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
+        # check if last time is older than 1 week
+        if last_time.tz_localize("utc") < (
+            datetime.now(pytz.utc) - pd.DateOffset(weeks=1)
+        ):
+            print(
+                f"⛔ {filename}: Last time {last_time} is older than 1 week for {asset}!"
+            )
+            return False
 
-            # determine first and last time
-            first_time = df["Zeitpunkt"].min()
-            last_time = df["Zeitpunkt"].max()
+        # loop through all rows
+        if True is False:
 
-            # loop through all rows
             minutes = 0
             for index, row in df.iterrows():
                 # if time is weekend and it is non OTC, check if None
                 if "otc" not in store.trade_asset and not utils.ist_wochenende(row):
                     if pd.isna(row["Wert"]) or row["Wert"] == "None":
                         print(
-                            f"❗❗Fehler: Ungültiger Wert in Zeile {index + 1} für {assets__value['name']}!"
+                            f"⛔ {filename}: Invalid value in line {index + 1} for {asset}!"
                         )
-                        continue
+                        return False
 
                 # check if time is valid
                 if row["Zeitpunkt"] != first_time + pd.Timedelta(minutes=minutes):
                     print(
-                        f"❗❗Fehler: Ungültige Zeit in Zeile {index + 1} für {assets__value['name']}!"
+                        f"⛔ {filename}: Invalid time in line {index + 1} for {asset}! - Expected: {first_time + pd.Timedelta(minutes=minutes)} - Found: {row['Zeitpunkt']}"
                     )
-                    print(f"  Erwartet: {first_time + pd.Timedelta(minutes=minutes)}")
-                    print(f"  Gefunden: {row['Zeitpunkt']}")
-                    continue
+                    return False
 
                 minutes += 1
 
             if first_time + pd.Timedelta(minutes=minutes - 1) != last_time:
                 print(
-                    f"❗❗Fehler: Letzte Zeit stimmt nicht überein für {assets__value['name']}!"
+                    f"⛔ {filename}: Last time does not match for {asset}! - Expected: {first_time + pd.Timedelta(minutes=minutes - 1)} - Found: {last_time}"
                 )
-                print(f"  Erwartet: {first_time + pd.Timedelta(minutes=minutes - 1)}")
-                print(f"  Gefunden: {last_time}")
-                continue
+                return False
 
-            print(f"✅ Datei {filename} Analyse abgeschlossen.")
+        print(f"✅ {filename} completely correct.")
+        return True
