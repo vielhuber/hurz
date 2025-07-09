@@ -521,7 +521,7 @@ class LiveStats:
                 print()
                 print(f"...und {(len(live_data_deals) - 10)} weitere.")
                 print()
-                print('Press "c" to return to main menu.')
+                print("Press ENTER to return to main menu.")
                 print("###############################################")
                 await asyncio.sleep(1)
         except KeyboardInterrupt:
@@ -530,10 +530,10 @@ class LiveStats:
         print("⬅️ Back to main menu...")
 
     def print_live_stats_listen_for_exit(self) -> None:
-        print("⏹️ Exit by keypress. Press 'c' to exit.")
         while True:
             taste = readchar.readkey().lower()
             if taste == "c":
+                print(taste)
                 print("⏹️ Beenden durch Tastendruck.")
                 store.stop_thread = True
                 break

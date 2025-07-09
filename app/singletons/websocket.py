@@ -162,6 +162,7 @@ class WebSocket:
                         content = f.read().strip()
                     if content and content != last_content:
                         last_content = content
+                        print("📤 Sende Input:", content)
                         with open("tmp/command.json", "w", encoding="utf-8") as f:
                             f.write("")
                         await ws.send(f"42{content}")

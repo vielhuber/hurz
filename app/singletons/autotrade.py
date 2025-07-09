@@ -51,7 +51,6 @@ class AutoTrade:
 
         threading.Thread(target=warte_auf_eingabe, daemon=True).start()
 
-
         if mode == "data" or mode == "fulltest" or mode == "train":
             for assets__key, assets__value in enumerate(assets):
                 # show percent
@@ -83,70 +82,23 @@ class AutoTrade:
         if mode == "trade":
 
             used_assets = []
+            print_output = False
+            store.trades_overall = 0
 
-            while store.auto_mode_active:
+            # first sort out non otc
+            if non_otc_available:
+                assets = [
+                    assets__value
+                    for assets__value in assets
+                    if "otc" not in assets__value["name"]
+                ]
 
-                active_asset = None
-                active_asset_information = None
-                active_asset_return_percent = None
-
-                # determine next optimal trading pair
-                # random.shuffle(assets)
-                if non_otc_available:
-                    assets = [
-                        assets__value
-                        for assets__value in assets
-                        if "otc" not in assets__value["name"]
-                    ]
-                assets = sorted(
-                    assets, key=lambda x: float(x["return_percent"]), reverse=True
+            # determine potential quote for every asset beforehand
+            for assets__value in assets:
+                asset_information = asset.get_asset_information(
+                    store.trade_platform, store.active_model, assets__value["name"]
                 )
-                tries = 0
-                for assets__value in assets:
-                    print(f"inspecting {assets__value['name']}...")
-                    tries += 1
-
-                    # only 10 tries
-                    if tries > 10:
-                        print("tried too many assets, resetting...")
-                        used_assets = []
-                        tries = 0
-
-                    # get asset information
-                    asset_information = asset.get_asset_information(
-                        store.trade_platform, store.active_model, assets__value["name"]
-                    )
-                    if asset_information is not None:
-                        print(asset_information["last_trade_confidence"])
-                        print(asset_information["last_fulltest_quote_trading"])
-                        print(asset_information["last_fulltest_quote_success"])
-                        print(asset_information["updated_at"])
-
-                    # never use already used assets
-                    if assets__value["name"] in used_assets:
-                        print("already used...")
-                        continue
-
-                    # never use otc, if others are available
-                    if non_otc_available is True and "otc" in assets__value["name"]:
-                        print("dont take otc since others are available...")
-                        continue
-
-                    # determine next
-                    line_count = 0
-                    if os.path.exists(
-                        history.get_filename_of_historic_data(assets__value["name"])
-                    ):
-                        with open(
-                            history.get_filename_of_historic_data(
-                                assets__value["name"]
-                            ),
-                            "r",
-                            encoding="utf-8",
-                        ) as f:
-                            for line in f:
-                                line_count += 1
-
+                if asset_information is not None:
                     potential_quote = float("inf")
                     potential_win = (
                         asset_information["last_fulltest_quote_success"] / 100
@@ -156,38 +108,112 @@ class AutoTrade:
                     )
                     if potential_loss > 0:
                         potential_quote = potential_win / potential_loss
+                    assets__value["potential_quote"] = potential_quote
+                else:
+                    assets__value["potential_quote"] = float("inf")
 
-                    print(f"EXAMINING: {assets__value['name']}")
-                    print(
-                        f"last_fulltest_quote_trading: {asset_information['last_fulltest_quote_trading']}"
+            # sort assets by return percent
+            assets = sorted(
+                assets, key=lambda x: float(x["return_percent"]), reverse=True
+            )
+
+            # sort assets by potential quote
+            assets = sorted(
+                assets, key=lambda x: float(x["potential_quote"]), reverse=True
+            )
+
+            # now do endlessly trades
+            while store.auto_mode_active:
+
+                active_asset = None
+                active_asset_information = None
+                active_asset_return_percent = None
+
+                tries_in_this_loop = 0
+                for assets__value in assets:
+                    if print_output:
+                        print(f"-------------------------------------")
+                        print(f"-------------------------------------")
+                        print(f"-------------------------------------")
+                        print(f"inspecting {assets__value['name']}...")
+                        print(f"-------------------------------------")
+
+                    tries_in_this_loop += 1
+
+                    if not store.auto_mode_active:
+                        print("Auto mode cancelled by user.")
+                        return
+
+                    # only 100 trades overall
+                    if store.trades_overall >= 100:
+                        if print_output:
+                            print("trades overall > 100, stopping...")
+                        store.auto_mode_active = False
+                        return
+
+                    # only 10 tries_in_this_loop (disabled)
+                    if True is True and tries_in_this_loop >= 10:
+                        if print_output:
+                            print("tried too many assets, resetting...")
+                        used_assets = []
+                        tries_in_this_loop = 0
+
+                    # get asset information
+                    asset_information = asset.get_asset_information(
+                        store.trade_platform, store.active_model, assets__value["name"]
                     )
-                    print(
-                        f"last_trade_confidence: {asset_information['last_trade_confidence']}"
-                    )
-                    print(
-                        f"last_fulltest_quote_success: {asset_information['last_fulltest_quote_success']}"
-                    )
-                    print(f"return_percent: {assets__value['return_percent']}")
-                    print(f"potential_quote: {potential_quote}")
+                    # if asset_information is not None:
+                    #    print(asset_information["last_trade_confidence"])
+                    #    print(asset_information["last_fulltest_quote_trading"])
+                    #    print(asset_information["last_fulltest_quote_success"])
+                    #    print(asset_information["updated_at"])
+
+                    # never use already used assets
+                    if assets__value["name"] in used_assets:
+                        if print_output:
+                            print("already used...")
+                        continue
+
+                    if print_output:
+                        print(f"EXAMINING: {assets__value['name']}")
+                        print(
+                            f"last_fulltest_quote_trading: {asset_information['last_fulltest_quote_trading']}"
+                        )
+                        print(
+                            f"last_trade_confidence: {asset_information['last_trade_confidence']}"
+                        )
+                        print(
+                            f"last_fulltest_quote_success: {asset_information['last_fulltest_quote_success']}"
+                        )
+                        print(f"return_percent: {assets__value['return_percent']}")
+                        print(f"potential_quote: {assets__value['potential_quote']}")
                     if (
                         asset_information["last_fulltest_quote_trading"] > 0.20
                         and asset_information["last_trade_confidence"] > 0.5
-                        and potential_quote > 1
+                        and assets__value["potential_quote"] > 1
                     ):
-                        print(f"TAKE {assets__value['name']}")
                         used_assets.append(assets__value["name"])
                         active_asset = assets__value["name"]
                         active_asset_information = asset_information
                         active_asset_return_percent = assets__value["return_percent"]
-                        await asyncio.sleep(5)
+                        print(
+                            f"TAKE {assets__value['name']} - potential_quote {assets__value['potential_quote']:.2f} - last_fulltest_quote_trading: {asset_information['last_fulltest_quote_trading']} - last_trade_confidence: {asset_information['last_trade_confidence']} - last_fulltest_quote_success: {asset_information['last_fulltest_quote_success']} - return_percent: {assets__value['return_percent']}"
+                        )
+                        # await asyncio.sleep(1)
                         break
                     else:
-                        print(f"Don't take {assets__value['name']}")
-                        await asyncio.sleep(10)
+                        if print_output:
+                            print(f"Don't take {assets__value['name']}")
+                            await asyncio.sleep(10)
 
                 if active_asset is None:
                     print("count not determine any provider!")
-                    return
+                    break
+
+                # debug
+                if False is True:
+                    store.trades_overall += 1
+                    continue
 
                 await self.doit(
                     mode,
@@ -253,14 +279,20 @@ class AutoTrade:
                 )
                 print(fulltest_result["report"])
 
-                if store.trade_confidence <= 0 or (
-                    last_quote_success is not None
-                    and fulltest_result["data"]["quote_success"] < last_quote_success
-                    and fulltest_result["data"]["quote_success"]
-                    < (active_asset_return_percent + 0.1)
-                    and fulltest_result["data"]["quote_success"] > 10
-                    and last_quote_trading > 10
+                if (
+                    store.trade_confidence <= 0
+                    or (last_quote_trading is not None and last_quote_trading >= 100)
+                    or (
+                        last_quote_success is not None
+                        and fulltest_result["data"]["quote_success"]
+                        < last_quote_success
+                        and fulltest_result["data"]["quote_success"]
+                        < (active_asset_return_percent + 0.1)
+                        and fulltest_result["data"]["quote_success"] > 10
+                        and last_quote_trading > 10
+                    )
                 ):
+                    print("✅✅✅ TAKING LAST CONFIDENCE")
                     # store asset information
                     asset.set_asset_information(
                         store.trade_platform,
@@ -288,11 +320,11 @@ class AutoTrade:
                 elif (
                     fulltest_result["data"]["quote_trading"] - last_quote_trading
                 ) < 0:
-                    store.trade_confidence -= 5
+                    store.trade_confidence -= 8
                 elif (
                     fulltest_result["data"]["quote_trading"] - last_quote_trading
                 ) < 2:
-                    store.trade_confidence -= 4
+                    store.trade_confidence -= 5
                 elif (
                     fulltest_result["data"]["quote_trading"] - last_quote_trading
                 ) < 4:
@@ -308,4 +340,6 @@ class AutoTrade:
 
         # do live trading (one trade)
         if mode == "trade":
-            await order.do_buy_sell_order()
+            doCall = await order.do_buy_sell_order()
+            if doCall == 0 or doCall == 1:
+                store.trades_overall += 1

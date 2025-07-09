@@ -103,6 +103,13 @@ class History:
                 },
             ]
 
+            # wait until file does not exist or is empty
+            while (
+                not os.path.exists("tmp/command.json")
+                or os.path.getsize("tmp/command.json") > 0
+            ):
+                print("Waiting for previous command to finish...")
+                await asyncio.sleep(1)
             with open("tmp/command.json", "w", encoding="utf-8") as f:
                 json.dump(history_request, f)
 
@@ -111,7 +118,7 @@ class History:
             )
             if store.target_time is not None:
                 print(
-                    f"❗❗Percent: {(round(100*(1-((request_time - store.target_time) / (current_time - store.target_time)))))}%"
+                    f"❗❗Percent: {(round(100*((1-((request_time - store.target_time) / (current_time - store.target_time))))))}%"
                 )
 
             if show_overall_estimation is True:
@@ -239,6 +246,11 @@ class History:
 
     def verify_data_of_asset(self, asset: str) -> bool:
         filename = self.get_filename_of_historic_data(asset)
+
+        # debug
+        # if "audcad.csv" not in filename:
+        #    return True
+
         if not os.path.exists(filename):
             print(f"⛔ {filename}: File missing!")
             return False
@@ -316,17 +328,54 @@ class History:
                 return False
 
             # check values vectorized (only for non-OTC and non-weekend)
-            if "otc" not in store.trade_asset:
+            if "otc" not in asset:
                 weekend_mask = df.apply(utils.ist_wochenende, axis=1)
-                invalid_values = df[
-                    ~weekend_mask & (df["Wert"].isna() | (df["Wert"] == "None"))
-                ]
-                if not invalid_values.empty:
-                    first_invalid = invalid_values.index[0]
+
+                # write weekend_mask to file
+                with open("tmp/weekend_mask.json", "w", encoding="utf-8") as f:
+                    json.dump(weekend_mask.tolist(), f)
+
+                # Check for weekdays with missing values (which is an error)
+                invalid_weekdays = df[~weekend_mask & df["Wert"].isna()]
+                if not invalid_weekdays.empty:
+                    first_invalid = invalid_weekdays.index[0]
                     print(
-                        f"⛔ {filename}: Invalid value in line {first_invalid + 1} for {asset}!"
+                        f"⛔ {filename}: Invalid value (None) on a weekday in line {first_invalid + 1} for {asset}!"
                     )
                     return False
+
+                # Check for weekends with actual values (which is an error)
+                invalid_weekends = df[weekend_mask & ~df["Wert"].isna()]
+                if not invalid_weekends.empty:
+                    first_invalid = invalid_weekends.index[0]
+                    print(
+                        f"⛔ {filename}: Invalid value (should be None) on a weekend in line {first_invalid + 1} for {asset}!"
+                    )
+                    return False
+
+            # Check for long streaks of identical values
+            consecutive_threshold = 70
+            # Create a grouper for consecutive values, ignoring NaNs
+            streaks = (df["Wert"].ne(df["Wert"].shift())).cumsum()
+            # Count the size of each streak
+            streak_counts = df.groupby(streaks)["Wert"].count()
+            # Filter for long streaks
+            long_streaks = streak_counts[streak_counts >= consecutive_threshold]
+            if not long_streaks.empty:
+                # Find the start index of the first long streak for reporting
+                first_long_streak_id = long_streaks.index[0]
+                streak_indices = df.index[streaks == first_long_streak_id]
+                first_invalid_index = streak_indices[0]
+                value_of_streak = df.loc[first_invalid_index, "Wert"]
+                # Check if the streak is of NaN values, which we can ignore
+                if not pd.isna(value_of_streak):
+                    numeric_value = pd.to_numeric(value_of_streak, errors="coerce")
+                    # Only report streaks for values greater than 0.0005
+                    if numeric_value is not None and numeric_value > 0.0005:
+                        print(
+                            f'⛔ {filename}: Found a streak of {long_streaks.iloc[0]} identical values ("{value_of_streak}") starting at line {first_invalid_index + 1}.'
+                        )
+                        return False
 
             # final time check
             expected_last_time = first_time + pd.Timedelta(minutes=len(df) - 1)

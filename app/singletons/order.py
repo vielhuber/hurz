@@ -1,3 +1,4 @@
+import asyncio
 import csv
 import json
 import os
@@ -16,8 +17,8 @@ class Order:
 
         print("Purchase option is being executed.")
 
-        if history.verify_data_of_asset(store.active_model) is False:
-            print(f"⛔ Training aborted for {store.active_model} due to invalid data.")
+        if history.verify_data_of_asset(store.trade_asset) is False:
+            print(f"⛔ Training aborted for {store.trade_asset} due to invalid data.")
             return False
 
         # load small amount
@@ -33,7 +34,7 @@ class Order:
         )
         if fulltest_result is None:
             print("⚠️ Fulltest could not be performed.")
-            return
+            return False
         print(fulltest_result["report"])
 
         # load live data (already collected for 5 minutes)
@@ -96,6 +97,8 @@ class Order:
                 f"⛔ INDECISIVE! SKIPPING! trade_confidence: {store.trade_confidence}"
             )
 
+        return doCall
+
     async def send_order(
         self, asset: str, amount: float, action: str, duration: int
     ) -> None:
@@ -113,6 +116,12 @@ class Order:
             },
         ]
 
+        while (
+            not os.path.exists("tmp/command.json")
+            or os.path.getsize("tmp/command.json") > 0
+        ):
+            print("Waiting for previous command to finish...")
+            await asyncio.sleep(1)
         with open("tmp/command.json", "w", encoding="utf-8") as f:
             json.dump(order_payload, f)
 
@@ -206,7 +215,7 @@ class Order:
                     [
                         deal.get("id").split("-")[0],
                         utils.format_waehrung(deal.get("asset")),
-                        "yes" if deal.get("isDemo") == 1 else "no",
+                        "1" if deal.get("isDemo") == 1 else "0",
                         self.get_additional_information_from_id(deal.get("id"))[
                             "model"
                         ],

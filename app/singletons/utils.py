@@ -2,6 +2,7 @@ import asyncio
 import os
 import pytz
 import re
+import sys
 from functools import partial
 from datetime import datetime, timezone, time as time2
 from typing import Optional, Any
@@ -67,7 +68,7 @@ class Utils:
         return await loop.run_in_executor(None, partial(func, *args, **kwargs))
 
     def ist_wochenende(self, row: Any) -> bool:
-        wd = row["Zeitpunkt"].weekday
+        wd = row["Zeitpunkt"].weekday()
         t = row["Zeitpunkt"].time()
         if wd == 5 and t >= time2(1, 0):  # saturday from 01:00
             return True

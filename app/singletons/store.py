@@ -32,3 +32,4 @@ class Store:
         self.train_horizon = 1  # prediction window, 1 minute
         self.stop_event = asyncio.Event()
         self.auto_mode_active = False
+        self.trades_overall = 0
