@@ -73,9 +73,7 @@ class Menu:
 
             option9 = "Auto-Trade Mode"
 
-            option10 = "Verify historical data"
-
-            option11 = "Exit"
+            option10 = "Exit"
 
             live_data_balance = 0
             if os.path.exists("data/live_data_balance.json"):
@@ -136,11 +134,10 @@ class Menu:
                             option8,
                             option9,
                             option10,
-                            option11,
                             help_text,
                         ]
                         if store._ws_connection is not None
-                        else [option6, option8, option11, help_text]
+                        else [option6, option8, option10, help_text]
                     ),
                     default=store.main_menu_default,
                 ),
@@ -242,12 +239,9 @@ class Menu:
 
             elif antworten["auswahl"] == option9:
                 await self.auswahl_auto_trade_menue()
+                print("Auto-Trade Modus beendet.")
 
             elif antworten["auswahl"] == option10:
-                await utils.run_sync_as_async(history.verify_data_all)
-                await asyncio.sleep(3)
-
-            elif antworten["auswahl"] == option11:
                 print("Programm wird beendet.")
                 store.stop_event.set()
                 for t in asyncio.all_tasks():
@@ -259,7 +253,7 @@ class Menu:
                     )
                 return
 
-            await asyncio.sleep(0.1)  # kurz durchatmen
+            await asyncio.sleep(0.5)  # kurz durchatmen
 
     async def auswahl_menue(self) -> None:
 
@@ -487,7 +481,9 @@ class Menu:
                 message="Modus",
                 choices=[
                     (f"Load all historical data", "data"),
+                    (f"Verify all historical data", "verify"),
                     (f"Train all models", "train"),
+                    (f"Run fulltest on all", "fulltest"),
                     (f"Buy optimally", "trade"),
                     (f"Back", "back"),
                 ],
@@ -500,5 +496,10 @@ class Menu:
         if answer["mode"] == "back":
             return
 
-        print("🚀 Starting auto mode in background...")
-        asyncio.create_task(autotrade.start_auto_mode(answer["mode"]))
+        elif answer["mode"] == "verify":
+            await utils.run_sync_as_async(history.verify_data_all)
+            await asyncio.sleep(3)
+
+        else:
+            print("🚀 Starting auto mode in background...")
+            await asyncio.create_task(autotrade.start_auto_mode(answer["mode"]))

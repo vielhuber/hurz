@@ -102,9 +102,8 @@ class WebSocket:
             additional_headers=pocketoption_headers,
             ssl=ssl.create_default_context(),
             proxy=proxy_connect_setting,
-            # ping_interval=None  # ← keep alive manually
-            ping_interval=25,  # send ping every 20 seconds
-            ping_timeout=20,  # if no response after 10s -> error
+            ping_interval=None,  # <-- Deaktiviert, da wir einen eigenen Keepalive-Mechanismus haben
+            ping_timeout=None,
         )
 
         store._ws_connection = ws
@@ -176,11 +175,11 @@ class WebSocket:
             while True:
                 message = await ws.recv()
                 if isinstance(message, str) and message == "2":
-                    print("↔️  Erhalte PING")
+                    # print("↔️  Erhalte PING")
                     await ws.send("3")
-                    print("↔️  Automatically PONG sent")
+                    # print("↔️  Automatically PONG sent")
                 elif isinstance(message, str) and message.startswith("451-"):
-                    print(message)
+                    # print(message)
                     if '"successupdateBalance"' in message:
                         store.binary_expected_event = "successupdateBalance"
                     elif '"updateOpenedDeals"' in message:
@@ -570,7 +569,7 @@ class WebSocket:
     async def ws_keepalive(self, ws: WebSocketClientProtocol) -> None:
         while True:
             try:
-                print("PING")
+                # print("PING")
                 # await ws.send('42["ping-server"]')  # <- socket.io-ping
                 await ws.send('42["ps"]')  # <- socket.io-ping
                 # await ws.send('3')  # <- socket.io-ping

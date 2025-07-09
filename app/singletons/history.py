@@ -16,7 +16,11 @@ from app.utils.helpers import singleton
 class History:
 
     async def load_data(
-        self, filename: str, time_back_in_minutes: float, delete_old: bool = False
+        self,
+        filename: str,
+        time_back_in_minutes: float,
+        delete_old: bool = False,
+        show_overall_estimation: bool = False,
     ) -> None:
 
         # delete old file
@@ -110,6 +114,31 @@ class History:
                     f"❗❗Percent: {(round(100*(1-((request_time - store.target_time) / (current_time - store.target_time)))))}%"
                 )
 
+            if show_overall_estimation is True:
+                estimation_count_all = 0
+                estimation_count_done = 0
+                with open("tmp/assets.json", "r", encoding="utf-8") as f:
+                    assets = json.load(f)
+                    estimation_count_all = len(assets)
+                    for assets__value in assets:
+                        if (
+                            os.path.exists(
+                                self.get_filename_of_historic_data(
+                                    assets__value["name"]
+                                )
+                            )
+                            and os.path.getsize(
+                                self.get_filename_of_historic_data(
+                                    assets__value["name"]
+                                )
+                            )
+                            > 1024 * 1024
+                        ):
+                            estimation_count_done += 1
+                print(
+                    f"Estimated progress: {estimation_count_done}/{estimation_count_all} assets done."
+                )
+
             request_time -= offset - overlap
 
             await asyncio.sleep(1)  # small break
@@ -192,16 +221,21 @@ class History:
         for assets__value in assets:
             if store.stop_event.is_set():
                 break
-            # if "otc" not in assets__value["name"]:
-            #   continue
-            result = self.verify_data_of_asset(assets__value["name"])
+
+            # try/catch
+            try:
+                result = self.verify_data_of_asset(assets__value["name"])
+            except Exception as e:
+                print(f"⛔ Error while verifying data of {assets__value['name']}: {e}")
+                continue
+
             # delete file if verification fails (disabled)
-            continue
-            if result is False:
-                filename = self.get_filename_of_historic_data(assets__value["name"])
-                if os.path.exists(filename):
-                    os.remove(filename)
-                    print(f"⛔ {filename} deleted due to invalid data.")
+            if True is False:
+                if result is False:
+                    filename = self.get_filename_of_historic_data(assets__value["name"])
+                    if os.path.exists(filename):
+                        os.remove(filename)
+                        print(f"⛔ {filename} deleted due to invalid data.")
 
     def verify_data_of_asset(self, asset: str) -> bool:
         filename = self.get_filename_of_historic_data(asset)

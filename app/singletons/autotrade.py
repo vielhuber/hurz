@@ -3,7 +3,9 @@ import json
 import pandas as pd
 import os
 import random
+import select
 import time
+import sys
 import threading
 from slugify import slugify
 from datetime import datetime, timedelta, timezone
@@ -30,26 +32,44 @@ class AutoTrade:
             assets = json.load(f)
 
         non_otc_available = False
-        for eintrag in assets:
-            if not "otc" in eintrag["name"]:
+        for assets__value in assets:
+            if not "otc" in assets__value["name"]:
                 non_otc_available = True
                 break
 
         store.auto_mode_active = True
 
         def warte_auf_eingabe():
-            input("Press [Enter] to cancel...\n")
-            store.auto_mode_active = False
+            print("Press [Enter] to cancel...")
+            while store.auto_mode_active:
+                # Check if there is input on stdin
+                rlist, _, _ = select.select([sys.stdin], [], [], 1)
+                if rlist:
+                    store.auto_mode_active = False
+                    break
+                time.sleep(0.1)
 
         threading.Thread(target=warte_auf_eingabe, daemon=True).start()
 
-        if mode == "data" or mode == "train":
-            for eintrag in assets:
-                active_asset = eintrag["name"]
-                active_asset_information = asset.get_asset_information(
-                    store.trade_platform, store.active_model, eintrag["name"]
+
+        if mode == "data" or mode == "fulltest" or mode == "train":
+            for assets__key, assets__value in enumerate(assets):
+                # show percent
+                print("----------------------------------------")
+                print("----------------------------------------")
+                print(
+                    "OVERALL PROGRESS: "
+                    + str(int(assets__key / len(assets) * 100))
+                    + "%"
                 )
-                active_asset_return_percent = eintrag["return_percent"]
+                print("----------------------------------------")
+                print("----------------------------------------")
+
+                active_asset = assets__value["name"]
+                active_asset_information = asset.get_asset_information(
+                    store.trade_platform, store.active_model, assets__value["name"]
+                )
+                active_asset_return_percent = assets__value["return_percent"]
                 await self.doit(
                     mode,
                     active_asset,
@@ -74,14 +94,16 @@ class AutoTrade:
                 # random.shuffle(assets)
                 if non_otc_available:
                     assets = [
-                        eintrag for eintrag in assets if "otc" not in eintrag["name"]
+                        assets__value
+                        for assets__value in assets
+                        if "otc" not in assets__value["name"]
                     ]
                 assets = sorted(
                     assets, key=lambda x: float(x["return_percent"]), reverse=True
                 )
                 tries = 0
-                for eintrag in assets:
-                    print(f"inspecting {eintrag['name']}...")
+                for assets__value in assets:
+                    print(f"inspecting {assets__value['name']}...")
                     tries += 1
 
                     # only 10 tries
@@ -92,7 +114,7 @@ class AutoTrade:
 
                     # get asset information
                     asset_information = asset.get_asset_information(
-                        store.trade_platform, store.active_model, eintrag["name"]
+                        store.trade_platform, store.active_model, assets__value["name"]
                     )
                     if asset_information is not None:
                         print(asset_information["last_trade_confidence"])
@@ -101,22 +123,24 @@ class AutoTrade:
                         print(asset_information["updated_at"])
 
                     # never use already used assets
-                    if eintrag["name"] in used_assets:
+                    if assets__value["name"] in used_assets:
                         print("already used...")
                         continue
 
                     # never use otc, if others are available
-                    if non_otc_available is True and "otc" in eintrag["name"]:
+                    if non_otc_available is True and "otc" in assets__value["name"]:
                         print("dont take otc since others are available...")
                         continue
 
                     # determine next
                     line_count = 0
                     if os.path.exists(
-                        history.get_filename_of_historic_data(eintrag["name"])
+                        history.get_filename_of_historic_data(assets__value["name"])
                     ):
                         with open(
-                            history.get_filename_of_historic_data(eintrag["name"]),
+                            history.get_filename_of_historic_data(
+                                assets__value["name"]
+                            ),
                             "r",
                             encoding="utf-8",
                         ) as f:
@@ -126,14 +150,14 @@ class AutoTrade:
                     potential_quote = float("inf")
                     potential_win = (
                         asset_information["last_fulltest_quote_success"] / 100
-                    ) * (eintrag["return_percent"] / 100)
+                    ) * (assets__value["return_percent"] / 100)
                     potential_loss = 1 - (
                         asset_information["last_fulltest_quote_success"] / 100
                     )
                     if potential_loss > 0:
                         potential_quote = potential_win / potential_loss
 
-                    print(f"EXAMINING: {eintrag['name']}")
+                    print(f"EXAMINING: {assets__value['name']}")
                     print(
                         f"last_fulltest_quote_trading: {asset_information['last_fulltest_quote_trading']}"
                     )
@@ -143,22 +167,22 @@ class AutoTrade:
                     print(
                         f"last_fulltest_quote_success: {asset_information['last_fulltest_quote_success']}"
                     )
-                    print(f"return_percent: {eintrag['return_percent']}")
+                    print(f"return_percent: {assets__value['return_percent']}")
                     print(f"potential_quote: {potential_quote}")
                     if (
                         asset_information["last_fulltest_quote_trading"] > 0.20
                         and asset_information["last_trade_confidence"] > 0.5
                         and potential_quote > 1
                     ):
-                        print(f"TAKE {eintrag['name']}")
-                        used_assets.append(eintrag["name"])
-                        active_asset = eintrag["name"]
+                        print(f"TAKE {assets__value['name']}")
+                        used_assets.append(assets__value["name"])
+                        active_asset = assets__value["name"]
                         active_asset_information = asset_information
-                        active_asset_return_percent = eintrag["return_percent"]
+                        active_asset_return_percent = assets__value["return_percent"]
                         await asyncio.sleep(5)
                         break
                     else:
-                        print(f"Don't take {eintrag['name']}")
+                        print(f"Don't take {assets__value['name']}")
                         await asyncio.sleep(10)
 
                 if active_asset is None:
@@ -194,9 +218,7 @@ class AutoTrade:
             > (60 if mode == "data" else 120)
         ):
             await history.load_data(
-                store.filename_historic_data,
-                3 * 30.25 * 24 * 60,
-                False,
+                store.filename_historic_data, 3 * 30.25 * 24 * 60, False, True
             )
 
         # train model (if too old)
@@ -210,22 +232,22 @@ class AutoTrade:
             )
 
         # run fulltest and determine optimal trade_confidence
-        if (mode == "train" or mode == "trade") and (
+        if (mode == "fulltest" or mode == "trade") and (
             active_asset_information is None
             or active_asset_information["last_trade_confidence"] is None
             or active_asset_information["updated_at"] is None
             or (
-                utils.correct_string_to_datetime(
+                datetime.now(timezone.utc)
+                - utils.correct_string_to_datetime(
                     active_asset_information["updated_at"], "%Y-%m-%d %H:%M:%S"
                 )
-                - datetime.now(timezone.utc)
                 > timedelta(minutes=(240 if mode == "train" else 480))
             )
         ):
             store.trade_confidence = 100
             last_quote_trading = None
             last_quote_success = None
-            while True:
+            while store.auto_mode_active:
                 fulltest_result = await utils.run_sync_as_async(
                     fulltest.run_fulltest, store.filename_historic_data, None, None
                 )
