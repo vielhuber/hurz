@@ -33,3 +33,4 @@ class Store:
         self.stop_event = asyncio.Event()
         self.auto_mode_active = False
         self.trades_overall = 0
+        self.verbosity_level = 0

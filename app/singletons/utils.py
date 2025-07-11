@@ -2,13 +2,12 @@ import asyncio
 import os
 import pytz
 import re
-import sys
 from functools import partial
 from datetime import datetime, timezone, time as time2
-from typing import Optional, Any
-import time
+from typing import Any
 
 from app.utils.helpers import singleton
+from app.utils.singletons import store
 
 
 @singleton
@@ -77,3 +76,17 @@ class Utils:
         if wd == 0 and t < time2(1, 0):  # monday before 01:00
             return True
         return False
+
+    def print(self, msg: str, verbosity_level: int) -> None:
+        if verbosity_level == 0 or not hasattr(store, "verbosity_level"):
+            print(msg)
+        elif verbosity_level == 1 and store.verbosity_level >= 1:
+            print(msg)
+        elif verbosity_level == 2 and store.verbosity_level >= 2:
+            print(msg)
+        # append message also in log file
+        with open("tmp/log.txt", "a", encoding="utf-8") as f:
+            f.write(f"{datetime.now(timezone.utc).isoformat()} - {msg}\n")
+
+    def clear_console(self) -> None:
+        os.system("cls" if os.name == "nt" else "clear")

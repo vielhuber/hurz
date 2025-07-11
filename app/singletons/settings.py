@@ -4,7 +4,7 @@ import os
 from slugify import slugify
 from dotenv import load_dotenv
 
-from app.utils.singletons import settings, store, history
+from app.utils.singletons import settings, store, history, utils
 from app.utils.helpers import singleton
 
 
@@ -60,7 +60,7 @@ class Settings:
                     settings.refresh_dependent_settings()
 
             except Exception as e:
-                print("⚠️ Error loading settings:", e)
+                utils.print(f"⛔ Error loading settings: {e}", 1)
 
     def refresh_dependent_settings(self) -> None:
         store.filename_historic_data = history.get_filename_of_historic_data(
@@ -101,4 +101,4 @@ class Settings:
                     indent=2,
                 )
         except Exception as e:
-            print("⚠️ Error saving settings:", e)
+            utils.print(f"⛔ Error saving settings: {e}", 1)

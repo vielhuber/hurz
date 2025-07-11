@@ -15,6 +15,10 @@
 
 -   `python3 watcher.py`
 
+## show log
+
+-   `tail -f -n 10 ./tmp/log.txt`
+
 ## models
 
 -   place your custom models inside `external` (see `random.py`)

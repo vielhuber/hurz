@@ -1,15 +1,19 @@
 import asyncio
 import json
 import os
-import pygame
 import pytz
 import readchar
 import threading
+import warnings
 from datetime import datetime
 from tabulate import tabulate
 
 from app.utils.singletons import order, store, utils
 from app.utils.helpers import singleton
+
+warnings.filterwarnings("ignore", category=UserWarning, module="pygame.pkgdata")
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
+import pygame
 
 
 @singleton
@@ -91,19 +95,19 @@ class LiveStats:
                         pygame.mixer.init()
                         pygame.mixer.music.load("assets/deal-open.mp3")
                         pygame.mixer.music.play()
-                        print("🦄 Playing sound")
+                        utils.print("ℹ️ Playing sound", 2)
                     if win_count_last is not None and win_count != win_count_last:
                         pygame.init()
                         pygame.mixer.init()
                         pygame.mixer.music.load("assets/deal-win.mp3")
                         pygame.mixer.music.play()
-                        print("🦄 Playing sound")
+                        utils.print("ℹ️ Playing sound", 2)
                     if loose_count_last is not None and loose_count != loose_count_last:
                         pygame.init()
                         pygame.mixer.init()
                         pygame.mixer.music.load("assets/deal-loose.mp3")
                         pygame.mixer.music.play()
-                        print("🦄 Playing sound")
+                        utils.print("ℹ️ Playing sound", 2)
 
                 all_count_last = all_count
                 win_count_last = win_count
@@ -469,32 +473,33 @@ class LiveStats:
                     )
 
                 # clear console (Windows/Linux)
-                os.system("cls" if os.name == "nt" else "clear")
+                utils.clear_console()
 
-                print("###############################################")
-                print(
-                    f'Zeit: {utils.correct_datetime_to_string(datetime.now().timestamp(),"%d.%m.%Y %H:%M:%S", False)} | Kontostand: {live_data_balance_formatted} $'
+                utils.print("###############################################", 0)
+                utils.print(
+                    f'Zeit: {utils.correct_datetime_to_string(datetime.now().timestamp(),"%d.%m.%Y %H:%M:%S", False)} | Kontostand: {live_data_balance_formatted} $',
+                    0,
                 )
-                print()
-                print(
+                utils.print("", 0)
+                utils.print(
                     tabulate(
                         [
                             [
-                                "Gewinnrate",
+                                "Win rate",
                                 f"{percent_win_rate_all:.1f}%",
                                 f"{percent_win_rate_100:.1f}%",
                                 f"{percent_win_rate_today:.1f}%",
                                 f"{needed_percent_rate:.1f}%",
                             ],
                             [
-                                "Einsatz",
+                                "Amount",
                                 f"{abs_amount_rate_all:.1f}$",
                                 f"{abs_amount_rate_100:.1f}$",
                                 f"{abs_amount_rate_today:.1f}$",
                                 "---",
                             ],
                             [
-                                "Gewinn",
+                                "Win rate",
                                 f"{abs_win_rate_all:.1f}$",
                                 f"{abs_win_rate_100:.1f}$",
                                 f"{abs_win_rate_today:.1f}$",
@@ -503,37 +508,38 @@ class LiveStats:
                         ],
                         headers=[
                             "",
-                            "insgesamt",
-                            "letzte 100 Trades",
-                            "heute",
-                            "benötigt",
+                            "overall",
+                            "last 100",
+                            "today",
+                            "needed",
                         ],
                         tablefmt="plain",
                         stralign="left",
                         numalign="right",
                         colalign=None,
-                    )
+                    ),
+                    0,
                 )
 
-                print()
-                print(f"Letzte Trades:")
-                print(f"{live_data_deals_output}")
-                print()
-                print(f"...und {(len(live_data_deals) - 10)} weitere.")
-                print()
-                print("Press ENTER to return to main menu.")
-                print("###############################################")
+                utils.print("", 0)
+                utils.print(f"Last trades:", 0)
+                utils.print(f"{live_data_deals_output}", 0)
+                utils.print("", 0)
+                utils.print(f"...and {(len(live_data_deals) - 10)} more.", 0)
+                utils.print("", 0)
+                utils.print("Press ENTER to return to main menu.", 0)
+                utils.print("###############################################", 0)
                 await asyncio.sleep(1)
         except KeyboardInterrupt:
             store.stop_thread = True
 
-        print("⬅️ Back to main menu...")
+        utils.print("ℹ️ Back to main menu...", 1)
 
     def print_live_stats_listen_for_exit(self) -> None:
         while True:
             taste = readchar.readkey().lower()
             if taste == "c":
-                print(taste)
-                print("⏹️ Beenden durch Tastendruck.")
+                utils.print(taste, 1)
+                utils.print("ℹ️ Closing because of keypress.", 1)
                 store.stop_thread = True
                 break

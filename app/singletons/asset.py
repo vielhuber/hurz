@@ -110,7 +110,7 @@ class Asset:
         assets = []
         with open("tmp/assets.json", "r", encoding="utf-8") as f:
             assets = json.load(f)
-        if any(eintrag["name"] == asset for eintrag in assets):
+        if any(assets__value["name"] == asset for assets__value in assets):
             return True
         else:
             return False

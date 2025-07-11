@@ -109,6 +109,8 @@ class Menu:
                 f" | "
                 f"SOUND: {'AN' if store.sound_effects == 1 else 'AUS'}"
                 f" | "
+                f"VERBOSITY: {store.verbosity_level}"
+                f" | "
                 f"MODEL: {store.active_model}"
                 f" | "
                 f"CURRENCY: {utils.format_waehrung(store.trade_asset)}"
@@ -156,14 +158,15 @@ class Menu:
                 break
 
             if antworten is None:
-                print("❌ Auswahl wurde abgebrochen. Programm wird beendet.")
+                utils.print("⛔ Selection aborted. Program will be terminated.", 0)
                 return
 
             if (antworten["auswahl"] == option5) and asset.asset_is_available(
                 store.trade_asset
             ) is False:
-                print(
-                    f"❌ Handelspaar {store.trade_asset} ist nicht verfügbar. Bitte wähle ein anderes."
+                utils.print(
+                    f"⛔ Pair {store.trade_asset} not available. Please chose another!",
+                    0,
                 )
                 await asyncio.sleep(3)
                 continue
@@ -189,7 +192,7 @@ class Menu:
                 fulltest_result = await utils.run_sync_as_async(
                     fulltest.run_fulltest, store.filename_historic_data, None, None
                 )
-                print(fulltest_result["report"])
+                utils.print(fulltest_result["report"], 0)
                 await asyncio.sleep(5)
 
             elif antworten["auswahl"] == option4 and os.path.exists(
@@ -203,14 +206,15 @@ class Menu:
             ):
 
                 if (store.trade_repeat * store.trade_amount) > live_data_balance:
-                    print(
-                        f"❌ Nicht genügend Guthaben ({live_data_balance:.2f}$) für {store.trade_repeat} Trades à {store.trade_amount}$."
+                    utils.print(
+                        f"⛔ Not enough funds ({live_data_balance:.2f}$) for {store.trade_repeat} trades à {store.trade_amount}$.",
+                        0,
                     )
                     await asyncio.sleep(3)
                     continue
 
                 for i in range(store.trade_repeat):
-                    print(f"🚀 Orderdurchlauf {i+1}/{store.trade_repeat}")
+                    utils.print(f"ℹ️🚀 Order run {i+1}/{store.trade_repeat}", 0)
 
                     await order.do_buy_sell_order()
 
@@ -221,8 +225,9 @@ class Menu:
                         )
                         wartezeit = max(0, store.trade_distance + abweichung)
                         wartezeit = int(round(wartezeit))
-                        print(
-                            f"⏳ Warte {wartezeit} Sekunden, bevor die nächste Order folgt..."
+                        utils.print(
+                            f"ℹ️ Wait {wartezeit} seconds, before the next order happens...",
+                            0,
                         )
                         await asyncio.sleep(wartezeit)
 
@@ -234,22 +239,20 @@ class Menu:
                 await self.auswahl_menue()
 
             elif antworten["auswahl"] == option8:
-                print("Ansicht wird aktualisiert...")
+                utils.print("ℹ️ View is updating...", 0)
                 settings.load_settings()
 
             elif antworten["auswahl"] == option9:
                 await self.auswahl_auto_trade_menue()
-                print("Auto-Trade Modus beendet.")
+                utils.print("ℹ️ Closing auto trade mode.", 0)
 
             elif antworten["auswahl"] == option10:
-                print("Programm wird beendet.")
+                utils.print("ℹ️ Program will be ended.", 0)
                 store.stop_event.set()
                 for t in asyncio.all_tasks():
-                    print(
-                        "🧩 Aktiver Task:",
-                        t.get_coro().__name__,
-                        "running:",
-                        not t.done(),
+                    utils.print(
+                        f"ℹ️ Active task: {t.get_coro().__name__} - running: {not t.done()}",
+                        1,
                     )
                 return
 
@@ -296,16 +299,16 @@ class Menu:
         with open("tmp/assets.json", "r", encoding="utf-8") as f:
             assets = json.load(f)
         choices = []
-        for eintrag in assets:
+        for assets__value in assets:
             choices.append(
                 (
-                    (f"[x]" if store.trade_asset == eintrag["name"] else "[ ]")
+                    (f"[x]" if store.trade_asset == assets__value["name"] else "[ ]")
                     + " "
-                    + eintrag["label"]
+                    + assets__value["label"]
                     + " ("
-                    + str(eintrag["return_percent"])
+                    + str(assets__value["return_percent"])
                     + "%)",
-                    eintrag["name"],
+                    assets__value["name"],
                 )
             )
         asset_frage = [
@@ -338,7 +341,7 @@ class Menu:
 
         # amount
         try:
-            os.system("cls" if os.name == "nt" else "clear")
+            utils.clear_console()
             auswahl_trade_amount_input = input(
                 f"Einsatz in $? (aktuell: {store.trade_amount}): "
             ).strip()
@@ -348,12 +351,12 @@ class Menu:
                 else store.trade_amount
             )
         except ValueError:
-            print("⚠️ Invalid input, default value 15 will be used.")
+            utils.print("⛔ Invalid input, default value 15 will be used.", 0)
             auswahl_trade_amount = 15
 
         # repeat
         try:
-            os.system("cls" if os.name == "nt" else "clear")
+            utils.clear_console()
             auswahl_trade_repeat_input = input(
                 f"Wiederholungen? (aktuell: {store.trade_repeat}): "
             ).strip()
@@ -363,12 +366,12 @@ class Menu:
                 else store.trade_repeat
             )
         except ValueError:
-            print("⚠️ Invalid input, default value 10 will be used.")
+            utils.print("⛔ Invalid input, default value 10 will be used.", 0)
             auswahl_trade_repeat = 10
 
         # distance
         try:
-            os.system("cls" if os.name == "nt" else "clear")
+            utils.clear_console()
             auswahl_trade_distance_input = input(
                 f"Abstand in s? (aktuell: {store.trade_distance}): "
             ).strip()
@@ -378,12 +381,12 @@ class Menu:
                 else store.trade_distance
             )
         except ValueError:
-            print("⚠️ Invalid input, default value 30 will be used.")
+            utils.print("⛔ Invalid input, default value 30 will be used.", 0)
             auswahl_trade_distance = 30
 
         # time
         try:
-            os.system("cls" if os.name == "nt" else "clear")
+            utils.clear_console()
             auswahl_trade_time_input = input(
                 f"Trading-Dauer s? (aktuell: {store.trade_time}): "
             ).strip()
@@ -393,12 +396,12 @@ class Menu:
                 else store.trade_time
             )
         except ValueError:
-            print("⚠️ Invalid input, default value 60 will be used.")
+            utils.print("⛔ Invalid input, default value 60 will be used.", 0)
             auswahl_trade_time = 60
 
         # confidence
         try:
-            os.system("cls" if os.name == "nt" else "clear")
+            utils.clear_console()
             auswahl_trade_confidence_input = input(
                 f"Sicherheitsfaktor in % (z.B. 55) ? (aktuell: {store.trade_confidence}): "
             ).strip()
@@ -408,7 +411,7 @@ class Menu:
                 else store.trade_confidence
             )
         except ValueError:
-            print("⚠️ Invalid input, default value 55 will be used.")
+            utils.print("⛔ Invalid input, default value 55 will be used.", 0)
             auswahl_trade_confidence = 55
 
         # sound
@@ -427,6 +430,34 @@ class Menu:
             None, lambda: inquirer.prompt(store.sound_effects_frage)
         )
 
+        # verbosity_level
+        store.verbosity_level_frage = [
+            inquirer.List(
+                "verbosity_level",
+                message="Verbosity level?",
+                choices=[
+                    (
+                        (f"[x]" if store.verbosity_level == 0 else "[ ]")
+                        + " 0 (niedrig)",
+                        0,
+                    ),
+                    (
+                        (f"[x]" if store.verbosity_level == 1 else "[ ]")
+                        + " 1 (mittel)",
+                        1,
+                    ),
+                    (
+                        (f"[x]" if store.verbosity_level == 2 else "[ ]") + " 2 (hoch)",
+                        2,
+                    ),
+                ],
+                default=store.verbosity_level,
+            )
+        ]
+        auswahl_verbosity_level = await asyncio.get_event_loop().run_in_executor(
+            None, lambda: inquirer.prompt(store.verbosity_level_frage)
+        )
+
         if (
             auswahl_asset
             and auswahl_demo
@@ -436,6 +467,7 @@ class Menu:
             and auswahl_trade_distance
             and auswahl_trade_time
             and auswahl_sound_effects
+            and auswahl_verbosity_level
             and auswahl_trade_platform
             and auswahl_trade_confidence
         ):
@@ -447,10 +479,11 @@ class Menu:
             neues_trade_distance = auswahl_trade_distance
             neues_trade_time = auswahl_trade_time
             neues_sound_effects = auswahl_sound_effects["sound_effects"]
+            neues_verbosity_level = auswahl_verbosity_level["verbosity_level"]
             neues_trade_platform = auswahl_trade_platform["trade_platform"]
             neues_trade_confidence = auswahl_trade_confidence
 
-            print("🔁 Starte neu...")
+            utils.print("ℹ️ Restart...", 1)
             restart = False
             if store.is_demo_account != neuer_demo:
                 restart = True
@@ -464,6 +497,7 @@ class Menu:
             store.trade_distance = neues_trade_distance
             store.trade_time = neues_trade_time
             store.sound_effects = neues_sound_effects
+            store.verbosity_level = neues_verbosity_level
 
             settings.refresh_dependent_settings()
             settings.save_current_settings()
@@ -501,5 +535,5 @@ class Menu:
             await asyncio.sleep(3)
 
         else:
-            print("🚀 Starting auto mode in background...")
+            utils.print("ℹ️ Starting auto mode in background...", 1)
             await asyncio.create_task(autotrade.start_auto_mode(answer["mode"]))

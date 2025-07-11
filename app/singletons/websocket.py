@@ -69,7 +69,7 @@ class WebSocket:
                 hours=2
             )  # 2 hours
             if status == "running" and not zu_alt:
-                print("⚠️ Connection already running. Not starting again.")
+                utils.print("⚠️ Connection already running. Not starting again.", 1)
                 return None
 
         # write status
@@ -81,7 +81,7 @@ class WebSocket:
         if proxy_arg is not None and proxy_arg.strip() != "":
             proxy_url = "socks5://" + proxy_arg.strip()
             os.environ["wss_proxy"] = proxy_url
-            print(urllib.request.getproxies())
+            utils.print(urllib.request.getproxies(), 1)
             # sys.exit()
             proxy_connect_setting = True
         else:
@@ -94,7 +94,7 @@ class WebSocket:
                 "https://api.ipify.org?format=json", proxy=proxy_url
             ) as resp:
                 data = await resp.json()
-                print("🌍 Public IP:", data["ip"])
+                utils.print(f"ℹ️ Public ip: {data['ip']}", 1)
                 store.current_ip_address = data["ip"]
 
         ws = await websockets.connect(
@@ -110,24 +110,24 @@ class WebSocket:
 
         # first message (handshake) received
         handshake = await ws.recv()
-        print("Handshake:", handshake)
+        utils.print(f"ℹ️ Handshake: {handshake}", 1)
 
         if handshake.startswith("0"):
             # confirm connection
             await ws.send("40")
-            print("Connection confirmed (40 sent)")
+            utils.print("ℹ️ Connection confirmed (40 sent)", 1)
 
         # wait for confirmation from server ("40")
         server_response = await ws.recv()
-        print("Server Antwort:", server_response)
+        utils.print(f"ℹ️ Server answer: {server_response}", 1)
 
         # send authentication
         await ws.send(pocketoption_auth_payload)
-        print("Authentication sent:", pocketoption_auth_payload)
+        utils.print(f"ℹ️ Authentication sent: {pocketoption_auth_payload}", 1)
 
         # get answer from authentication
         auth_response = await ws.recv()
-        print("Auth Antwort:", auth_response)
+        utils.print(f"ℹ️ Auth answer: {auth_response}", 1)
 
         # this is always sent before auth
         if "updateAssets" in auth_response:
@@ -135,7 +135,7 @@ class WebSocket:
 
         # now you are authentication successfully
         if auth_response.startswith("451-") or "successauth" in auth_response:
-            print("✅ Auth erfolgreich, weitere Events senden...")
+            utils.print("✅ Auth successful, send more events...", 1)
 
             # start tasks in parallel
             store.laufende_tasks.append(asyncio.create_task(websocket.ws_keepalive(ws)))
@@ -148,7 +148,7 @@ class WebSocket:
             return
 
         else:
-            print("⛔ Auth fehlgeschlagen")
+            utils.print("⛔ Auth failed", 0)
             await boot.shutdown()
             sys.exit(0)
 
@@ -162,12 +162,12 @@ class WebSocket:
                         content = f.read().strip()
                     if content and content != last_content:
                         last_content = content
-                        print("📤 Sende Input:", content)
+                        utils.print(f"ℹ️ Send input: {content}", 1)
                         with open("tmp/command.json", "w", encoding="utf-8") as f:
                             f.write("")
                         await ws.send(f"42{content}")
             except Exception as e:
-                print("⚠️ Fehler beim Senden von Input:", e)
+                utils.print(f"⛔ Error sending input: {e}")
                 # sys.exit()
             await asyncio.sleep(1)  # breathe
 
@@ -176,11 +176,11 @@ class WebSocket:
             while True:
                 message = await ws.recv()
                 if isinstance(message, str) and message == "2":
-                    # print("↔️  Erhalte PING")
+                    # utils.print("ℹ️ Get PING", 2)
                     await ws.send("3")
-                    # print("↔️  Automatically PONG sent")
+                    # utils.print("ℹ️ Automatically PONG sent", 2)
                 elif isinstance(message, str) and message.startswith("451-"):
-                    # print(message)
+                    utils.print(f"ℹ️ {message}", 2)
                     if '"successupdateBalance"' in message:
                         store.binary_expected_event = "successupdateBalance"
                     elif '"updateOpenedDeals"' in message:
@@ -205,8 +205,7 @@ class WebSocket:
                         or store.binary_expected_event == "loadHistoryPeriodFast"
                     ):
                         json_data = json.loads(message.decode("utf-8"))
-                        # print(f"ERHALTEN?")
-                        # print(json_data)
+                        # utils.print(json_data, 2)
                         if (
                             isinstance(json_data, dict)
                             and isinstance(json_data["data"], list)
@@ -215,23 +214,30 @@ class WebSocket:
                             and json_data["data"][0]["open"] is not None
                             and all(k in json_data for k in ["asset", "index", "data"])
                         ):
-                            print("✅ Desired historical data received!")
+                            utils.print("✅ Desired historical data received!", 1)
                             asset = json_data["asset"]
                             index = json_data["index"]
                             data = json_data["data"]
 
-                            print(
-                                f"-------------------------------------------------------------------"
+                            utils.print(
+                                f"-------------------------------------------------------------------",
+                                1,
                             )
-                            print(
-                                f"Asset: {asset}, Index: {index}, Anzahl der Datenpunkte: {len(data)}"
+                            utils.print(
+                                f"Asset: {asset}, Index: {index}, Length: {len(data)}",
+                                1,
                             )
-                            print(
-                                f"-------------------------------------------------------------------"
+                            utils.print(
+                                f"-------------------------------------------------------------------",
+                                1,
                             )
                             if isinstance(data, list) and store.target_time is not None:
-                                print(datetime.fromtimestamp(data[0]["time"]))
-                                print(datetime.fromtimestamp(data[-1]["time"]))
+                                utils.print(
+                                    f'ℹ️ {datetime.fromtimestamp(data[0]["time"])}', 1
+                                )
+                                utils.print(
+                                    f'ℹ️ {datetime.fromtimestamp(data[-1]["time"])}', 1
+                                )
 
                                 daten = []
 
@@ -239,10 +245,10 @@ class WebSocket:
                                     zeitpunkt_beginn = utils.correct_datetime_to_string(
                                         tick["time"], "%Y-%m-%d %H:%M:%S.%f", False
                                     )
-                                    # print(f"!!!{zeitpunkt_beginn}")
-                                    # print("!!!!!!!!!!!!")
-                                    # print(tick)
-                                    # print("!!!!!!!!!!!!")
+                                    # utils.print(f"!!!{zeitpunkt_beginn}")
+                                    # utils.print("!!!!!!!!!!!!")
+                                    # utils.print(tick)
+                                    # utils.print("!!!!!!!!!!!!")
                                     wert_beginn = f"{float(tick['open']):.5f}"  # explicit float and exactly 5 decimal places!
                                     daten.append([asset, zeitpunkt_beginn, wert_beginn])
 
@@ -265,10 +271,10 @@ class WebSocket:
                                         encoding="utf-8",
                                     ) as file:
                                         file.write("done")
-                                    print("✅ All data received.")
+                                    utils.print("✅ All data received.", 1)
                                     store.target_time = None
                         else:
-                            print("❗❗❗No reasonable data received!❗❗❗")
+                            utils.print("⛔ No reasonable data received!", 1)
                             # debug
                             with open(
                                 "tmp/debug_wrong_data.json", "w", encoding="utf-8"
@@ -280,7 +286,7 @@ class WebSocket:
                                 encoding="utf-8",
                             ) as file:
                                 file.write("done")
-                            print("✅ Ending requests!")
+                            utils.print("✅ Ending requests!", 1)
                             store.target_time = None
 
                     elif store.binary_expected_event == "successupdateBalance":
@@ -311,21 +317,22 @@ class WebSocket:
                             "data/live_data_deals.json", "r+", encoding="utf-8"
                         ) as f:
                             try:
-                                vorhandene_deals = json.load(f)
+                                deals_existing = json.load(f)
                             except json.JSONDecodeError:
-                                vorhandene_deals = []
+                                deals_existing = []
                             # delete all currently opened
                             for deal in data:
-                                vorhandene_deals = [
-                                    eintrag
-                                    for eintrag in vorhandene_deals
-                                    if eintrag[0] != deal.get("id").split("-")[0]
+                                deals_existing = [
+                                    deals_existing__value
+                                    for deals_existing__value in deals_existing
+                                    if deals_existing__value[0]
+                                    != deal.get("id").split("-")[0]
                                 ]
                             # add all opened
-                            print(data)
-                            vorhandene_deals.extend(order.format_deals(data, "open"))
+                            utils.print(data, 1)
+                            deals_existing.extend(order.format_deals(data, "open"))
                             # sort
-                            vorhandene_deals.sort(
+                            deals_existing.sort(
                                 key=lambda x: datetime.strptime(
                                     x[order.format_deals_get_column("date_from")],
                                     "%d.%m.%y %H:%M:%S",
@@ -334,7 +341,7 @@ class WebSocket:
                             )
                             # permanently store
                             f.seek(0)
-                            json.dump(vorhandene_deals, f, indent=2)
+                            json.dump(deals_existing, f, indent=2)
                             f.truncate()
 
                         store.binary_expected_event = None
@@ -352,23 +359,24 @@ class WebSocket:
                             "data/live_data_deals.json", "r+", encoding="utf-8"
                         ) as f:
                             try:
-                                vorhandene_deals = json.load(f)
+                                deals_existing = json.load(f)
                             except json.JSONDecodeError:
-                                vorhandene_deals = []
+                                deals_existing = []
 
                             # delete deals that are added again
                             for deal in data:
-                                vorhandene_deals = [
-                                    eintrag
-                                    for eintrag in vorhandene_deals
-                                    if eintrag[0] != deal.get("id").split("-")[0]
+                                deals_existing = [
+                                    deals_existing__value
+                                    for deals_existing__value in deals_existing
+                                    if deals_existing__value[0]
+                                    != deal.get("id").split("-")[0]
                                 ]
 
                             # add again
-                            vorhandene_deals.extend(order.format_deals(data, "closed"))
+                            deals_existing.extend(order.format_deals(data, "closed"))
 
                             # sort
-                            vorhandene_deals.sort(
+                            deals_existing.sort(
                                 key=lambda x: datetime.strptime(
                                     x[order.format_deals_get_column("date_from")],
                                     "%d.%m.%y %H:%M:%S",
@@ -377,16 +385,16 @@ class WebSocket:
                             )
                             # permanently store
                             f.seek(0)
-                            json.dump(vorhandene_deals, f, indent=2)
+                            json.dump(deals_existing, f, indent=2)
                             f.truncate()
 
                         store.binary_expected_event = None
 
                     elif store.binary_expected_event == "successopenOrder":
-                        print("✅ Successfully opened:", message)
+                        utils.print(f"✅ Successfully opened: {message}", 1)
                         decoded = message.decode("utf-8")
                         data = json.loads(decoded)
-                        print(data)
+                        utils.print(data, 1)
 
                         if not os.path.exists("data/live_data_deals.json"):
                             with open(
@@ -397,13 +405,13 @@ class WebSocket:
                             "data/live_data_deals.json", "r+", encoding="utf-8"
                         ) as f:
                             try:
-                                vorhandene_deals = json.load(f)
+                                deals_existing = json.load(f)
                             except json.JSONDecodeError:
-                                vorhandene_deals = []
+                                deals_existing = []
                             # add newly opened deal
-                            vorhandene_deals.extend(order.format_deals([data], "open"))
+                            deals_existing.extend(order.format_deals([data], "open"))
                             # sort
-                            vorhandene_deals.sort(
+                            deals_existing.sort(
                                 key=lambda x: datetime.strptime(
                                     x[order.format_deals_get_column("date_from")],
                                     "%d.%m.%y %H:%M:%S",
@@ -412,15 +420,15 @@ class WebSocket:
                             )
                             # permanently store
                             f.seek(0)
-                            json.dump(vorhandene_deals, f, indent=2)
+                            json.dump(deals_existing, f, indent=2)
                             f.truncate()
 
                         store.binary_expected_event = None
                     elif store.binary_expected_event == "successcloseOrder":
-                        print("✅ Successfully closed:", message)
+                        utils.print(f"✅ Successfully closed: {message}", 1)
                         decoded = message.decode("utf-8")
                         data = json.loads(decoded)
-                        print(data)
+                        utils.print(data, 1)
 
                         if not os.path.exists("data/live_data_deals.json"):
                             with open(
@@ -431,22 +439,23 @@ class WebSocket:
                             "data/live_data_deals.json", "r+", encoding="utf-8"
                         ) as f:
                             try:
-                                vorhandene_deals = json.load(f)
+                                deals_existing = json.load(f)
                             except json.JSONDecodeError:
-                                vorhandene_deals = []
+                                deals_existing = []
                             # delete deals that are added again
                             for deal in data.get("deals"):
-                                vorhandene_deals = [
-                                    eintrag
-                                    for eintrag in vorhandene_deals
-                                    if eintrag[0] != deal.get("id").split("-")[0]
+                                deals_existing = [
+                                    deals_existing__value
+                                    for deals_existing__value in deals_existing
+                                    if deals_existing__value[0]
+                                    != deal.get("id").split("-")[0]
                                 ]
                             # add again
-                            vorhandene_deals.extend(
+                            deals_existing.extend(
                                 order.format_deals(data.get("deals"), "closed")
                             )
                             # sort
-                            vorhandene_deals.sort(
+                            deals_existing.sort(
                                 key=lambda x: datetime.strptime(
                                     x[order.format_deals_get_column("date_from")],
                                     "%d.%m.%y %H:%M:%S",
@@ -455,13 +464,13 @@ class WebSocket:
                             )
                             # permanently store
                             f.seek(0)
-                            json.dump(vorhandene_deals, f, indent=2)
+                            json.dump(deals_existing, f, indent=2)
                             f.truncate()
 
                         store.binary_expected_event = None
 
                     elif store.binary_expected_event == "failopenOrder":
-                        print("❌ Order fehlgeschlagen:", message)
+                        utils.print(f"⛔ Order failed: {message}", 1)
                         store.binary_expected_event = None
 
                     elif store.binary_expected_event == "updateAssets":
@@ -473,17 +482,17 @@ class WebSocket:
                             json.dump(data, f, indent=2)
 
                         gefilterte = []
-                        for eintrag in data:
+                        for data__value in data:
                             if (
-                                len(eintrag) > 3
-                                and eintrag[3] == "currency"
-                                and eintrag[14] is True
+                                len(data__value) > 3
+                                and data__value[3] == "currency"
+                                and data__value[14] is True
                             ):
                                 gefilterte.append(
                                     {
-                                        "name": eintrag[1],
-                                        "label": eintrag[2],
-                                        "return_percent": eintrag[5],
+                                        "name": data__value[1],
+                                        "label": data__value[2],
+                                        "return_percent": data__value[5],
                                     }
                                 )
 
@@ -509,33 +518,19 @@ class WebSocket:
                         store.binary_expected_event = None
 
         except websockets.ConnectionClosedOK as e:
-            print(f"✅ WebSocket normally closed (Code {e.code}): {e.reason}")
+            utils.print(f"✅ WebSocket normally closed (Code {e.code}): {e.reason}", 1)
             await boot.shutdown()
             store.stop_event.set()
         except websockets.ConnectionClosedError as e:
-            print(f"❌ Connection unexpectedly closed ({e.code}): {e.reason}")
+            utils.print(f"⛔ Connection unexpectedly closed ({e.code}): {e.reason}", 1)
 
-            print("WAS IST DA LOS???? _1")
-            print("WAS IST DA LOS???? _1")
-            print("WAS IST DA LOS???? _1")
+            utils.print("⛔ _1", 2)
 
             # reconnect (this is needed because no ping pong is sent on training etc.)
             if ws.closed:
-                print("WAS IST DA LOS???? _2")
-                print("WAS IST DA LOS???? _2")
-                print("WAS IST DA LOS???? _2")
+                utils.print("⛔ _2", 2)
 
-                print("🔄 reconnect wird gestartet.")
-                print("🔄 reconnect wird gestartet.")
-                print("🔄 reconnect wird gestartet.")
-                print("🔄 reconnect wird gestartet.")
-                print("🔄 reconnect wird gestartet.")
-                print("🔄 reconnect wird gestartet.")
-                print("🔄 reconnect wird gestartet.")
-                print("🔄 reconnect wird gestartet.")
-                print("🔄 reconnect wird gestartet.")
-                print("🔄 reconnect wird gestartet.")
-                print("🔄 reconnect wird gestartet.")
+                utils.print("ℹ️ Reconnect started.", 2)
 
                 # reconnect only on first try or after every 5 minutes (prevent endless reconnects)
                 if store.reconnect_last_try is None or (
@@ -551,30 +546,23 @@ class WebSocket:
                 return
 
             else:
-                print("WAS IST DA LOS???? _3")
-                print("WAS IST DA LOS???? _3")
-                print("WAS IST DA LOS???? _3")
-
-                print("VERSUCHE SHUTDOWN!")
-                print("VERSUCHE SHUTDOWN!")
-                print("VERSUCHE SHUTDOWN!")
-                print("VERSUCHE SHUTDOWN!")
-                print("VERSUCHE SHUTDOWN!")
+                utils.print("⛔ _3", 2)
+                utils.print("ℹ️ Trying shutdown.", 2)
                 await boot.shutdown()
                 store.stop_event.set()
 
         except Exception as e:
-            print(f"⚠️ Fehler in websocket.ws_receive_loop: {e}")
+            utils.print(f"⛔ Error in websocket.ws_receive_loop: {e}", 1)
             traceback.print_exc()
 
     async def ws_keepalive(self, ws: WebSocketClientProtocol) -> None:
         while True:
             try:
-                # print("PING")
+                # utils.print("ℹ️ PING", 1)
                 # await ws.send('42["ping-server"]')  # <- socket.io-ping
                 await ws.send('42["ps"]')  # <- socket.io-ping
                 # await ws.send('3')  # <- socket.io-ping
             except Exception as e:
-                print("⚠️ Ping fehlgeschlagen:", e)
+                utils.print(f"⛔ Ping failed: {e}", 0)
                 break
             await asyncio.sleep(30)

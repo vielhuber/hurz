@@ -2,7 +2,7 @@ import pandas as pd
 import time
 from typing import Optional, Dict, Any
 
-from app.utils.singletons import store
+from app.utils.singletons import store, utils
 from app.utils.helpers import singleton
 
 
@@ -33,12 +33,12 @@ class FullTest:
             end_index = len(df) - 1
 
         if start_index is None or end_index is None or end_index <= start_index:
-            print("⚠️ Invalid time range for Fulltest.")
+            utils.print("⛔ Invalid time range for fulltest.", 1)
             return None
 
         # --- fulltest ---
-        print("✅ Starting Fulltest")
-        print(f"🚀 Trade confidence: {store.trade_confidence}")
+        utils.print("✅ Starting fulltest", 1)
+        utils.print(f"ℹ️ Trade confidence: {store.trade_confidence}", 1)
 
         i = 0
 
@@ -100,14 +100,14 @@ class FullTest:
 
             i += 1
 
-        print(f"⏱ #0.1 {time.perf_counter() - performance_start:.4f}s")
+        utils.print(f"ℹ️ #0.1 {time.perf_counter() - performance_start:.4f}s", 2)
         performance_start = time.perf_counter()
 
         prognosen = store.model_classes[store.active_model].model_run_fulltest(
             store.filename_model, X_test, store.trade_confidence
         )
 
-        print(f"⏱ #0.2 {time.perf_counter() - performance_start:.4f}s")
+        utils.print(f"ℹ️ #0.2 {time.perf_counter() - performance_start:.4f}s", 2)
         performance_start = time.perf_counter()
 
         # check results
@@ -124,6 +124,7 @@ class FullTest:
             if prognosen[i] == 0.5:
                 result_is_correct = None
 
+            """
             if i == 0 or i == 1 or i == len(prognosen) - 1 or i == 1342 or i == 1343:
                 with open("tmp/debug_fulltest.txt", "a", encoding="utf-8") as f:
                     f.write(f"Step {i}\n")
@@ -132,6 +133,7 @@ class FullTest:
                     f.write(f"  prognose : {prognosen[i]}\n")
                     f.write(f"  result_is_correct : {result_is_correct}\n")
                     f.write("\n")
+            """
 
             if result_is_correct is None:
                 continue
@@ -140,7 +142,7 @@ class FullTest:
             if result_is_correct is True:
                 full_erfolge += 1
 
-        print(f"⏱ #0.3 {time.perf_counter() - performance_start:.4f}s")
+        utils.print(f"ℹ️ #0.3 {time.perf_counter() - performance_start:.4f}s", 2)
         performance_start = time.perf_counter()
 
         quote_trading = round((full_cases / gesamt_full) * 100, 2) if gesamt_full else 0

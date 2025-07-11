@@ -7,6 +7,7 @@ from app.utils.singletons import store, utils, settings, boot, websocket, menu
 async def run() -> None:
 
     try:
+        utils.print("ℹ️ Starting application...", 0)
         store.setup()
         utils.create_folders()
         settings.load_env()
@@ -14,7 +15,6 @@ async def run() -> None:
         settings.load_settings()
         boot.register_shutdown_sync()
         boot.register_stop_event()
-
         await websocket.setup_websockets()
 
         # await menu.initialize_main_menu()
@@ -27,8 +27,10 @@ async def run() -> None:
         )
 
         await boot.shutdown()  # is also done via atexit.register(boot.shutdown_sync)
-        print("FULLY SHUT DOWN")
+        utils.print("ℹ️ Fully shut down.", 1)
+        await asyncio.sleep(1)
+        utils.clear_console()
     except KeyboardInterrupt:
-        print("🚪 CTRL+C detected – stopping program...................")
+        utils.print("ℹ️ Ctrl+C detected. Stopping program...", 1)
         await boot.shutdown()
         sys.exit(0)

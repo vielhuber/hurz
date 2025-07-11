@@ -15,10 +15,12 @@ class Order:
 
     async def do_buy_sell_order(self) -> None:
 
-        print("Purchase option is being executed.")
+        utils.print("ℹ️ Purchase option is being executed.", 1)
 
         if history.verify_data_of_asset(store.trade_asset) is False:
-            print(f"⛔ Training aborted for {store.trade_asset} due to invalid data.")
+            utils.print(
+                f"⛔ Training aborted for {store.trade_asset} due to invalid data.", 0
+            )
             return False
 
         # load small amount
@@ -33,9 +35,9 @@ class Order:
             fulltest.run_fulltest, "tmp/tmp_live_data.csv", None, None
         )
         if fulltest_result is None:
-            print("⚠️ Fulltest could not be performed.")
+            utils.print("⛔ Fulltest could not be performed.", 0)
             return False
-        print(fulltest_result["report"])
+        utils.print(fulltest_result["report"], 0)
 
         # load live data (already collected for 5 minutes)
         df = pd.read_csv("tmp/tmp_live_data.csv", na_values=["None"])
@@ -77,7 +79,7 @@ class Order:
 
         # make purchase decision (example)
         if doCall == 1:
-            print(f"✅ Buy CALL option (rising)!")
+            utils.print(f"✅ Buy CALL option (rising)!", 0)
             await self.send_order(
                 store.trade_asset,
                 amount=store.trade_amount,
@@ -85,7 +87,7 @@ class Order:
                 duration=duration,
             )
         elif doCall == 0:
-            print(f"✅ Buy PUT option (falling)!")
+            utils.print(f"✅ Buy PUT option (falling)!", 0)
             await self.send_order(
                 store.trade_asset,
                 amount=store.trade_amount,
@@ -93,8 +95,9 @@ class Order:
                 duration=duration,
             )
         else:
-            print(
-                f"⛔ INDECISIVE! SKIPPING! trade_confidence: {store.trade_confidence}"
+            utils.print(
+                f"⛔ INDECISIVE! SKIPPING! trade_confidence: {store.trade_confidence}",
+                0,
             )
 
         return doCall
@@ -120,12 +123,12 @@ class Order:
             not os.path.exists("tmp/command.json")
             or os.path.getsize("tmp/command.json") > 0
         ):
-            print("Waiting for previous command to finish...")
+            utils.print("ℹ️ Waiting for previous command to finish...", 1)
             await asyncio.sleep(1)
         with open("tmp/command.json", "w", encoding="utf-8") as f:
             json.dump(order_payload, f)
 
-        print(f"📤 Order sent: {order_payload}")
+        utils.print(f"ℹ️ Order sent: {order_payload}", 1)
 
     def get_additional_information_from_id(self, id: str) -> Dict[str, Any]:
         csv_path = "data/db_orders.csv"
@@ -166,7 +169,6 @@ class Order:
                     store.trade_platform,
                 ]
             )
-            # print(f"💾 saved new model for id {id}: {store.active_model}")
             return {
                 "id": id,
                 "model": store.active_model,
@@ -248,7 +250,7 @@ class Order:
                     ]
                 )
             except Exception as e:
-                print("ERROR", e)
+                utils.print(f"⛔ ERROR {e}", 2)
                 exit()
 
         return tabelle

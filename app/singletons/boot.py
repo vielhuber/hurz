@@ -3,7 +3,7 @@ import atexit
 import os
 import signal
 
-from app.utils.singletons import store
+from app.utils.singletons import store, utils
 from app.utils.helpers import singleton
 
 
@@ -28,31 +28,31 @@ class Boot:
                     f.seek(0)
                     f.write("closed")
                     f.truncate()
-                    print("✅ Writing file.")
+                    utils.print("ℹ️ Writing file.", 1)
 
         if store.laufende_tasks:
-            print("Closing tasks..........", store.laufende_tasks)
+            utils.print(f"ℹ️ Closing tasks... {store.laufende_tasks}", 1)
             for task in store.laufende_tasks:
                 task.cancel()
                 try:
                     await task
                 except asyncio.CancelledError:
-                    print(f"🛑 Task {task.get_coro().__name__} was stopped.")
+                    utils.print(f"⛔ Task {task.get_coro().__name__} was stopped.", 1)
             store.laufende_tasks.clear()
 
         if store._ws_connection and not store._ws_connection.close_code is None:
             try:
-                print("🔌 Closing WebSocket...................")
+                utils.print("ℹ️ Closing websocket...", 1)
                 await store._ws_connection.close()
-                print("✅ Connection closed.")
+                utils.print("ℹ️ Connection closed.", 1)
             except Exception as e:
-                print("⚠️ Error closing:", e)
+                utils.print(f"⛔ Error closing: {e}", 1)
 
         # fix console
         os.system("stty sane")
 
     def handle_sigint(self, signum, frame):
-        print("🔔 SIGINT received – .........ending...")
+        utils.print("ℹ️ SIGINT received - ending...", 1)
         store.stop_event.set()
 
     def register_stop_event(self):

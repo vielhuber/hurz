@@ -26,7 +26,7 @@ class History:
         # delete old file
         if delete_old is True and os.path.exists(filename):
             os.remove(filename)
-            print(f"✅ Old file {filename} deleted.")
+            utils.print(f"✅ Old file {filename} deleted.", 1)
 
         # current time (now)
         current_time = int(time.time())
@@ -44,7 +44,7 @@ class History:
                 if len(zeilen) > 1:
                     letzte = zeilen[-1].split(",")
                     zeitstempel_str = letzte[1]
-                    print(f"📅 Last time value: {zeitstempel_str}")
+                    utils.print(f"ℹ️ Last time value: {zeitstempel_str}", 1)
                     this_timestamp = int(
                         pytz.timezone("Europe/Berlin")
                         .localize(
@@ -57,20 +57,24 @@ class History:
                         store.target_time = this_timestamp
 
         if request_time <= store.target_time:
-            print(f"ERROR")
-            print(f"request_time: {request_time}")
-            print(
-                f"request_time #2: {utils.correct_datetime_to_string(request_time, '%d.%m.%y %H:%M:%S', False)}"
+            utils.print(f"⛔ Error received...", 1)
+            utils.print(f"⛔ request_time: {request_time}", 1)
+            utils.print(
+                f"⛔ request_time #2: {utils.correct_datetime_to_string(request_time, '%d.%m.%y %H:%M:%S', False)}",
+                1,
             )
-            print(
-                f"request_time #3: {utils.correct_datetime_to_string(request_time, '%d.%m.%y %H:%M:%S', True)}"
+            utils.print(
+                f"⛔ request_time #3: {utils.correct_datetime_to_string(request_time, '%d.%m.%y %H:%M:%S', True)}",
+                1,
             )
-            print(f"target_time: {store.target_time}")
-            print(
-                f"target_time #2: {utils.correct_datetime_to_string(store.target_time, '%d.%m.%y %H:%M:%S', False)}"
+            utils.print(f"⛔ target_time: {store.target_time}", 1)
+            utils.print(
+                f"ℹ⛔ target_time #2: {utils.correct_datetime_to_string(store.target_time, '%d.%m.%y %H:%M:%S', False)}",
+                1,
             )
-            print(
-                f"target_time #3: {utils.correct_datetime_to_string(store.target_time, '%d.%m.%y %H:%M:%S', True)}"
+            utils.print(
+                f"⛔ target_time #3: {utils.correct_datetime_to_string(store.target_time, '%d.%m.%y %H:%M:%S', True)}",
+                1,
             )
             sys.exit()
 
@@ -108,17 +112,19 @@ class History:
                 not os.path.exists("tmp/command.json")
                 or os.path.getsize("tmp/command.json") > 0
             ):
-                print("Waiting for previous command to finish...")
+                utils.print("ℹ️ Waiting for previous command to finish...", 1)
                 await asyncio.sleep(1)
             with open("tmp/command.json", "w", encoding="utf-8") as f:
                 json.dump(history_request, f)
 
-            print(
-                f'Historical data requested for time period until: {utils.correct_datetime_to_string(request_time, "%d.%m.%y %H:%M:%S", False)}'
+            utils.print(
+                f'ℹ️ Historical data requested for time period until: {utils.correct_datetime_to_string(request_time, "%d.%m.%y %H:%M:%S", False)}',
+                1,
             )
             if store.target_time is not None:
-                print(
-                    f"❗❗Percent: {(round(100*((1-((request_time - store.target_time) / (current_time - store.target_time))))))}%"
+                utils.print(
+                    f"ℹ️ Percent: {(round(100*((1-((request_time - store.target_time) / (current_time - store.target_time))))))}%",
+                    1,
                 )
 
             if show_overall_estimation is True:
@@ -142,8 +148,9 @@ class History:
                             > 1024 * 1024
                         ):
                             estimation_count_done += 1
-                print(
-                    f"Estimated progress: {estimation_count_done}/{estimation_count_all} assets done."
+                utils.print(
+                    f"ℹ️ Estimated progress: {estimation_count_done}/{estimation_count_all} assets done.",
+                    1,
                 )
 
             request_time -= offset - overlap
@@ -233,7 +240,9 @@ class History:
             try:
                 result = self.verify_data_of_asset(assets__value["name"])
             except Exception as e:
-                print(f"⛔ Error while verifying data of {assets__value['name']}: {e}")
+                utils.print(
+                    f"⛔ Error while verifying data of {assets__value['name']}: {e}"
+                )
                 continue
 
             # delete file if verification fails (disabled)
@@ -242,7 +251,7 @@ class History:
                     filename = self.get_filename_of_historic_data(assets__value["name"])
                     if os.path.exists(filename):
                         os.remove(filename)
-                        print(f"⛔ {filename} deleted due to invalid data.")
+                        utils.print(f"⛔ {filename} deleted due to invalid data.", 1)
 
     def verify_data_of_asset(self, asset: str) -> bool:
         filename = self.get_filename_of_historic_data(asset)
@@ -252,7 +261,7 @@ class History:
         #    return True
 
         if not os.path.exists(filename):
-            print(f"⛔ {filename}: File missing!")
+            utils.print(f"⛔ {filename}: File missing!", 1)
             return False
 
         df = pd.read_csv(filename, na_values=["None"])
@@ -266,8 +275,9 @@ class History:
         if first_time.tz_localize("utc") > (
             datetime.now(pytz.utc) - pd.DateOffset(months=2)
         ):
-            print(
-                f"⛔ {filename}: First time {first_time} is newer than 2 months for {asset}!"
+            utils.print(
+                f"⛔ {filename}: First time {first_time} is newer than 2 months for {asset}!",
+                0,
             )
             return False
 
@@ -275,8 +285,9 @@ class History:
         if last_time.tz_localize("utc") < (
             datetime.now(pytz.utc) - pd.DateOffset(weeks=1)
         ):
-            print(
-                f"⛔ {filename}: Last time {last_time} is older than 1 week for {asset}!"
+            utils.print(
+                f"⛔ {filename}: Last time {last_time} is older than 1 week for {asset}!",
+                0,
             )
             return False
 
@@ -287,23 +298,26 @@ class History:
                 # if time is weekend and it is non OTC, check if None
                 if "otc" not in store.trade_asset and not utils.ist_wochenende(row):
                     if pd.isna(row["Wert"]) or row["Wert"] == "None":
-                        print(
-                            f"⛔ {filename}: Invalid value in line {index + 1} for {asset}!"
+                        utils.print(
+                            f"⛔ {filename}: Invalid value in line {index + 1} for {asset}!",
+                            0,
                         )
                         return False
 
                 # check if time is valid
                 if row["Zeitpunkt"] != first_time + pd.Timedelta(minutes=minutes):
-                    print(
-                        f"⛔ {filename}: Invalid time in line {index + 1} for {asset}! - Expected: {first_time + pd.Timedelta(minutes=minutes)} - Found: {row['Zeitpunkt']}"
+                    utils.print(
+                        f"⛔ {filename}: Invalid time in line {index + 1} for {asset}! - Expected: {first_time + pd.Timedelta(minutes=minutes)} - Found: {row['Zeitpunkt']}",
+                        0,
                     )
                     return False
 
                 minutes += 1
 
             if first_time + pd.Timedelta(minutes=minutes - 1) != last_time:
-                print(
-                    f"⛔ {filename}: Last time does not match for {asset}! - Expected: {first_time + pd.Timedelta(minutes=minutes - 1)} - Found: {last_time}"
+                utils.print(
+                    f"⛔ {filename}: Last time does not match for {asset}! - Expected: {first_time + pd.Timedelta(minutes=minutes - 1)} - Found: {last_time}",
+                    0,
                 )
                 return False
 
@@ -322,8 +336,9 @@ class History:
                 wrong_index = (df["Zeitpunkt"] != expected_times).idxmax()
                 expected_time = expected_times[wrong_index]
                 found_time = df["Zeitpunkt"].iloc[wrong_index]
-                print(
-                    f"⛔ {filename}: Invalid time in line {wrong_index + 1} for {asset}! - Expected: {expected_time} - Found: {found_time}"
+                utils.print(
+                    f"⛔ {filename}: Invalid time in line {wrong_index + 1} for {asset}! - Expected: {expected_time} - Found: {found_time}",
+                    0,
                 )
                 return False
 
@@ -339,8 +354,9 @@ class History:
                 invalid_weekdays = df[~weekend_mask & df["Wert"].isna()]
                 if not invalid_weekdays.empty:
                     first_invalid = invalid_weekdays.index[0]
-                    print(
-                        f"⛔ {filename}: Invalid value (None) on a weekday in line {first_invalid + 1} for {asset}!"
+                    utils.print(
+                        f"⛔ {filename}: Invalid value (None) on a weekday in line {first_invalid + 1} for {asset}!",
+                        0,
                     )
                     return False
 
@@ -348,8 +364,9 @@ class History:
                 invalid_weekends = df[weekend_mask & ~df["Wert"].isna()]
                 if not invalid_weekends.empty:
                     first_invalid = invalid_weekends.index[0]
-                    print(
-                        f"⛔ {filename}: Invalid value (should be None) on a weekend in line {first_invalid + 1} for {asset}!"
+                    utils.print(
+                        f"⛔ {filename}: Invalid value (should be None) on a weekend in line {first_invalid + 1} for {asset}!",
+                        0,
                     )
                     return False
 
@@ -372,20 +389,22 @@ class History:
                     numeric_value = pd.to_numeric(value_of_streak, errors="coerce")
                     # Only report streaks for values greater than 0.0005
                     if numeric_value is not None and numeric_value > 0.0005:
-                        print(
-                            f'⛔ {filename}: Found a streak of {long_streaks.iloc[0]} identical values ("{value_of_streak}") starting at line {first_invalid_index + 1}.'
+                        utils.print(
+                            f'⛔ {filename}: Found a streak of {long_streaks.iloc[0]} identical values ("{value_of_streak}") starting at line {first_invalid_index + 1}.',
+                            0,
                         )
                         return False
 
             # final time check
             expected_last_time = first_time + pd.Timedelta(minutes=len(df) - 1)
             if expected_last_time != last_time:
-                print(
-                    f"⛔ {filename}: Last time does not match for {asset}! - Expected: {expected_last_time} - Found: {last_time}"
+                utils.print(
+                    f"⛔ {filename}: Last time does not match for {asset}! - Expected: {expected_last_time} - Found: {last_time}",
+                    0,
                 )
                 return False
 
-        print(f"✅ {filename} completely correct.")
+        utils.print(f"✅ {filename} completely correct.", 0)
         return True
 
     def get_filename_of_historic_data(self, asset: str) -> str:

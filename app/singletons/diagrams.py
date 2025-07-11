@@ -1,7 +1,7 @@
 import pandas as pd
 import plotext as plt
 
-from app.utils.singletons import store
+from app.utils.singletons import store, utils
 from app.utils.helpers import singleton
 
 
@@ -9,7 +9,7 @@ from app.utils.helpers import singleton
 class Diagrams:
 
     def print_diagrams(self) -> None:
-        print("Printing diagrams...")
+        utils.print("ℹ️ Printing diagrams...", 1)
 
         # load data from csv
         df = pd.read_csv(store.filename_historic_data)
