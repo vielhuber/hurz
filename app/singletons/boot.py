@@ -37,7 +37,7 @@ class Boot:
                 try:
                     await task
                 except asyncio.CancelledError:
-                    utils.print(f"⛔ Task {task.get_coro().__name__} was stopped.", 1)
+                    utils.print(f"ℹ️ Task {task.get_coro().__name__} was stopped.", 1)
             store.laufende_tasks.clear()
 
         if store._ws_connection and not store._ws_connection.close_code is None:

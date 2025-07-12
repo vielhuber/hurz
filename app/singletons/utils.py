@@ -2,9 +2,13 @@ import asyncio
 import os
 import pytz
 import re
+import pyfiglet
 from functools import partial
 from datetime import datetime, timezone, time as time2
 from typing import Any
+from rich.console import Console
+from rich.color import Color
+from rich.style import Style
 
 from app.utils.helpers import singleton
 from app.utils.singletons import store
@@ -90,3 +94,31 @@ class Utils:
 
     def clear_console(self) -> None:
         os.system("cls" if os.name == "nt" else "clear")
+
+    def print_logo(self) -> None:
+        console = Console()
+        ascii_text = pyfiglet.figlet_format("HURZ", font="banner")
+        rainbow_colors_rgb = [
+            (255, 0, 0),
+            (255, 127, 0),
+            (255, 255, 0),
+            (0, 255, 0),
+            (0, 0, 255),
+            (75, 0, 130),
+            (148, 0, 211),
+        ]
+        lines = ascii_text.strip().split("\n")
+        max_line_length = max(len(line) for line in lines) if lines else 1
+        num_colors = len(rainbow_colors_rgb)
+        for line_idx, line in enumerate(lines):
+            output_segments_line = []
+            for char_idx, char in enumerate(line):
+                if char == " ":
+                    output_segments_line.append(" ")
+                    continue
+                color_idx = int((char_idx / max_line_length) * num_colors * 0.99)
+                color_idx = min(color_idx, num_colors - 1)
+                color_rgb = rainbow_colors_rgb[color_idx]
+                style = Style(color=Color.from_rgb(*color_rgb))
+                output_segments_line.append(f"[{style}]{char}[/]")
+            console.print("".join(output_segments_line))

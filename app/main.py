@@ -29,7 +29,6 @@ async def run() -> None:
         await boot.shutdown()  # is also done via atexit.register(boot.shutdown_sync)
         utils.print("ℹ️ Fully shut down.", 1)
         await asyncio.sleep(1)
-        utils.clear_console()
     except KeyboardInterrupt:
         utils.print("ℹ️ Ctrl+C detected. Stopping program...", 1)
         await boot.shutdown()
