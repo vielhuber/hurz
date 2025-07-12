@@ -180,13 +180,13 @@ class Menu:
                     # 7 * 24 * 60,  # 1 week
                     False,
                 )
-                await asyncio.sleep(3)
+                await asyncio.sleep(4)
 
             elif antworten["main_selection"] == option2:
                 await utils.run_sync_as_async(
                     training.train_active_model, store.filename_historic_data
                 )
-                await asyncio.sleep(5)
+                await asyncio.sleep(4)
 
             elif antworten["main_selection"] == option3 and os.path.exists(
                 store.filename_model
@@ -195,13 +195,13 @@ class Menu:
                     fulltest.run_fulltest, store.filename_historic_data, None, None
                 )
                 utils.print(fulltest_result["report"], 0)
-                await asyncio.sleep(5)
+                await asyncio.sleep(4)
 
             elif antworten["main_selection"] == option4 and os.path.exists(
                 store.filename_historic_data
             ):
                 diagrams.print_diagrams()
-                await asyncio.sleep(5)
+                await asyncio.sleep(4)
 
             elif antworten["main_selection"] == option5 and os.path.exists(
                 store.filename_model
@@ -221,21 +221,20 @@ class Menu:
                     await order.do_buy_sell_order()
 
                     if i < store.trade_repeat - 1:
-                        toleranz = 0.20  # 20 percent
+                        tolerance = 0.20  # 20 percent
                         abweichung = store.trade_distance * random.uniform(
-                            -toleranz, toleranz
+                            -tolerance, tolerance
                         )
-                        wartezeit = max(0, store.trade_distance + abweichung)
-                        wartezeit = int(round(wartezeit))
+                        waiting_time = max(0, store.trade_distance + abweichung)
+                        waiting_time = int(round(waiting_time))
                         utils.print(
-                            f"ℹ️ Wait {wartezeit} seconds, before the next order happens...",
+                            f"ℹ️ Wait {waiting_time} seconds, before the next order happens...",
                             0,
                         )
-                        await asyncio.sleep(wartezeit)
+                        await asyncio.sleep(waiting_time)
 
             elif antworten["main_selection"] == option6:
                 await livestats.print_live_stats()
-                await asyncio.sleep(1)
 
             elif antworten["main_selection"] == option7:
                 await self.selection_menue()

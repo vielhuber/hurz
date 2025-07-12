@@ -15,9 +15,16 @@ class Order:
 
     async def do_buy_sell_order(self) -> None:
 
-        utils.print("ℹ️ Purchase option is being executed.", 1)
+        utils.print(
+            msg=f"ℹ️ TRADING {store.trade_asset} ... (confidence: {store.trade_confidence}):",
+            verbosity_level=0,
+            new_line=False,
+        )
 
-        if history.verify_data_of_asset(store.trade_asset) is False:
+        if (
+            history.verify_data_of_asset(asset=store.trade_asset, output_success=False)
+            is False
+        ):
             utils.print(
                 f"⛔ Training aborted for {store.trade_asset} due to invalid data.", 0
             )
@@ -37,7 +44,7 @@ class Order:
         if fulltest_result is None:
             utils.print("⛔ Fulltest could not be performed.", 0)
             return False
-        utils.print(fulltest_result["report"], 0)
+        utils.print(fulltest_result["report"], 1)
 
         # load live data (already collected for 5 minutes)
         df = pd.read_csv("tmp/tmp_live_data.csv", na_values=["None"])
@@ -61,9 +68,6 @@ class Order:
 
         # important: exact structure as in training (DataFrame and not just flatten)
         X_df = pd.DataFrame([X])  # ✅ important: correct structure (1 row, x columns)
-
-        # current stock price (last value)
-        aktueller_kurs = X[-1]
 
         doCall = None
 
@@ -96,7 +100,7 @@ class Order:
             )
         else:
             utils.print(
-                f"⛔ INDECISIVE! SKIPPING! trade_confidence: {store.trade_confidence}",
+                f"⛔ Low confidence - skipping order.",
                 0,
             )
 
@@ -204,7 +208,7 @@ class Order:
 
         for deal in data:
 
-            result = "???"
+            result = "⚠️"
             if type == "closed":
                 if float(deal.get("profit")) > 0:
                     result = "✅"
@@ -238,12 +242,12 @@ class Order:
                         ),
                         "---",
                         f"{deal.get('amount')}$",
-                        f"{deal.get('profit')}$" if type == "closed" else "???",
+                        f"{deal.get('profit')}$" if type == "closed" else "⚠️",
                         # f"{deal.get('percentProfit')} %",
                         # f"{deal.get('percentLoss')} %",
                         # deal.get('openPrice'),
                         # deal.get('closePrice'),
-                        "⬇️" if deal.get("command") == 1 else "⬆️",
+                        "↓" if deal.get("command") == 1 else "↑",
                         result,
                         #'Demo' if deal.get('isDemo') == 1 else 'Live',
                         type,

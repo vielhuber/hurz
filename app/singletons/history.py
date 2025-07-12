@@ -238,7 +238,9 @@ class History:
 
             # try/catch
             try:
-                result = self.verify_data_of_asset(assets__value["name"])
+                result = self.verify_data_of_asset(
+                    asset=assets__value["name"], output_success=True
+                )
             except Exception as e:
                 utils.print(
                     f"⛔ Error while verifying data of {assets__value['name']}: {e}"
@@ -253,7 +255,7 @@ class History:
                         os.remove(filename)
                         utils.print(f"⛔ {filename} deleted due to invalid data.", 1)
 
-    def verify_data_of_asset(self, asset: str) -> bool:
+    def verify_data_of_asset(self, asset: str, output_success: bool = True) -> bool:
         filename = self.get_filename_of_historic_data(asset)
 
         # debug
@@ -404,7 +406,9 @@ class History:
                 )
                 return False
 
-        utils.print(f"✅ {filename} completely correct.", 0)
+        if output_success is True:
+            utils.print(f"✅ {filename} completely correct.", 0)
+
         return True
 
     def get_filename_of_historic_data(self, asset: str) -> str:

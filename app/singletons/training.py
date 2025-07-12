@@ -7,7 +7,10 @@ class Training:
 
     def train_active_model(self, filename: str) -> None:
         utils.print(f"✅ Starting training for {filename}", 0)
-        if history.verify_data_of_asset(store.trade_asset) is False:
+        if (
+            history.verify_data_of_asset(asset=store.trade_asset, output_success=True)
+            is False
+        ):
             utils.print(
                 f"⛔ Training aborted for {store.trade_asset} due to invalid data.", 0
             )

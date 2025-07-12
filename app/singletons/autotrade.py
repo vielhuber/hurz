@@ -1,4 +1,3 @@
-import asyncio
 import json
 import os
 import select
@@ -36,17 +35,7 @@ class AutoTrade:
 
         store.auto_mode_active = True
 
-        def warte_auf_eingabe():
-            utils.print("ℹ️ Press [Enter] to cancel...", 0)
-            while store.auto_mode_active:
-                # Check if there is input on stdin
-                rlist, _, _ = select.select([sys.stdin], [], [], 1)
-                if rlist:
-                    store.auto_mode_active = False
-                    break
-                time.sleep(0.1)
-
-        threading.Thread(target=warte_auf_eingabe, daemon=True).start()
+        threading.Thread(target=self.waiting_for_input, daemon=True).start()
 
         if mode == "data" or mode == "fulltest" or mode == "train":
             for assets__key, assets__value in enumerate(assets):
@@ -340,3 +329,13 @@ class AutoTrade:
             doCall = await order.do_buy_sell_order()
             if doCall == 0 or doCall == 1:
                 store.trades_overall += 1
+
+    def waiting_for_input(self):
+        utils.print("ℹ️ Press [Enter] to cancel...", 0)
+        while store.auto_mode_active:
+            # Check if there is input on stdin
+            rlist, _, _ = select.select([sys.stdin], [], [], 1)
+            if rlist:
+                store.auto_mode_active = False
+                break
+            time.sleep(0.1)

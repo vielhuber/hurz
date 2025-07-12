@@ -63,8 +63,5 @@ LIVE_SESSION_ID="${
     ).match(/s:32:"([a-f0-9]{32})"/)?.[1]
 }"
 DEMO_SESSION_ID="${AppData.demoSessionId}"
-ZIP_PASSWORD="${Array.from(crypto.getRandomValues(new Uint8Array(32)), (x) =>
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?'.charAt(x % 89)
-).join('')}"
 `);
 ```

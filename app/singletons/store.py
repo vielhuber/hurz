@@ -22,7 +22,7 @@ class Store:
         self.filename_model = None
         self.current_ip_address = "127.0.0.1"
         self._ws_connection = None
-        self.stop_thread = False
+        self.livestats_stop = False
         self.target_time = None
         self.laufende_tasks = []
         self.main_menu_default = None

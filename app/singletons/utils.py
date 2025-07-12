@@ -81,16 +81,18 @@ class Utils:
             return True
         return False
 
-    def print(self, msg: str, verbosity_level: int) -> None:
-        if verbosity_level == 0 or not hasattr(store, "verbosity_level"):
-            print(msg)
-        elif verbosity_level == 1 and store.verbosity_level >= 1:
-            print(msg)
-        elif verbosity_level == 2 and store.verbosity_level >= 2:
-            print(msg)
-        # append message also in log file
-        with open("tmp/log.txt", "a", encoding="utf-8") as f:
-            f.write(f"{datetime.now(timezone.utc).isoformat()} - {msg}\n")
+    def print(
+        self, msg: str, verbosity_level: int, log: bool = True, new_line: bool = True
+    ) -> None:
+        if (
+            (verbosity_level == 0 or not hasattr(store, "verbosity_level"))
+            or (verbosity_level == 1 and store.verbosity_level >= 1)
+            or (verbosity_level == 2 and store.verbosity_level >= 2)
+        ):
+            print(msg, end="\n" if new_line is True else "")
+        if log is True:
+            with open("tmp/log.txt", "a", encoding="utf-8") as f:
+                f.write(f"{datetime.now(timezone.utc).isoformat()} - {msg}\n")
 
     def clear_console(self) -> None:
         os.system("cls" if os.name == "nt" else "clear")

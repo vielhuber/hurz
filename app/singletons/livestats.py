@@ -2,7 +2,9 @@ import asyncio
 import json
 import os
 import pytz
-import readchar
+import select
+import sys
+import time
 import threading
 import warnings
 from datetime import datetime
@@ -20,7 +22,7 @@ import pygame
 class LiveStats:
 
     async def print_live_stats(self) -> None:
-        store.stop_thread = False
+        store.livestats_stop = False
 
         listener_thread = threading.Thread(
             target=self.print_live_stats_listen_for_exit, daemon=True
@@ -35,7 +37,7 @@ class LiveStats:
         loose_count_last = None
 
         try:
-            while not store.stop_thread:
+            while not store.livestats_stop:
 
                 if os.path.exists("data/live_data_balance.json"):
                     try:
@@ -63,19 +65,19 @@ class LiveStats:
 
                 headers = [
                     "ID",  # 0
-                    "Währung",  # 1
+                    "Asset",  # 1
                     "Demo",  # 2
                     "Model",  # 3
-                    "Sekunden",  # 4
-                    "Sicherheit",  # 5
-                    "Plattform",  # 6
-                    "Beginn",  # 7
-                    "Ende",  # 8
+                    "Seconds",  # 4
+                    "Confidence",  # 5
+                    "Platform",  # 6
+                    "Begin",  # 7
+                    "End",  # 8
                     "Rest",  # 9
-                    "Einsatz",  # 10
-                    "Gewinn",  # 11
-                    "Typ",  # 12
-                    "Ergebnis",  # 13
+                    "Amount",  # 10
+                    "Win",  # 11
+                    "Type",  # 12
+                    "Result",  # 13
                     "Status",  # 14
                 ]
 
@@ -134,7 +136,7 @@ class LiveStats:
                 live_data_deals_output = tabulate(
                     live_data_deals[:10],
                     headers=headers,
-                    tablefmt="plain",
+                    tablefmt="fancy_outline",
                     stralign="left",  # col content left aligned
                     numalign="right",  # integers right aligned
                     colalign=None,  # or ["left", "right", "right"]
@@ -475,12 +477,18 @@ class LiveStats:
                 # clear console (Windows/Linux)
                 utils.clear_console()
 
-                utils.print("###############################################", 0)
                 utils.print(
-                    f'Zeit: {utils.correct_datetime_to_string(datetime.now().timestamp(),"%d.%m.%Y %H:%M:%S", False)} | Kontostand: {live_data_balance_formatted} $',
+                    f'TIME: {utils.correct_datetime_to_string(datetime.now().timestamp(),"%d.%m.%Y %H:%M:%S", False)} | BALANCE: {live_data_balance_formatted} $',
                     0,
+                    False,
                 )
-                utils.print("", 0)
+                utils.print("", 0, False)
+                utils.print(
+                    "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0, False
+                )
+                utils.print("", 0, False)
+                utils.print(f"📊 STATS", 0, False)
+                utils.print("", 0, False)
                 utils.print(
                     tabulate(
                         [
@@ -508,38 +516,55 @@ class LiveStats:
                         ],
                         headers=[
                             "",
-                            "overall",
-                            "last 100",
-                            "today",
-                            "needed",
+                            "Overall",
+                            "Last 100",
+                            "Today",
+                            "Needed",
                         ],
-                        tablefmt="plain",
+                        tablefmt="fancy_outline",
                         stralign="left",
                         numalign="right",
                         colalign=None,
                     ),
                     0,
+                    False,
                 )
 
-                utils.print("", 0)
-                utils.print(f"Last trades:", 0)
-                utils.print(f"{live_data_deals_output}", 0)
-                utils.print("", 0)
-                utils.print(f"...and {(len(live_data_deals) - 10)} more.", 0)
-                utils.print("", 0)
-                utils.print("Press ENTER to return to main menu.", 0)
-                utils.print("###############################################", 0)
+                utils.print("", 0, False)
+                utils.print(f"🎯 LAST TRADES", 0, False)
+                utils.print("", 0, False)
+                utils.print(f"{live_data_deals_output}", 0, False)
+                utils.print("", 0, False)
+                utils.print(f"...and {(len(live_data_deals) - 10)} more.", 0, False)
+                utils.print("", 0, False)
+                utils.print(
+                    "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0, False
+                )
+                utils.print("", 0, False)
+                utils.print("Press [ENTER] to return to main menu.", 0, False)
+
+                # split waiting (for better reacting to user input)
+                # await asyncio.sleep(5)
+
                 await asyncio.sleep(1)
+                if store.livestats_stop is False:
+                    await asyncio.sleep(1)
+                if store.livestats_stop is False:
+                    await asyncio.sleep(1)
+                if store.livestats_stop is False:
+                    await asyncio.sleep(1)
+                if store.livestats_stop is False:
+                    await asyncio.sleep(1)
+
         except KeyboardInterrupt:
-            store.stop_thread = True
+            store.livestats_stop = True
 
         utils.print("ℹ️ Back to main menu...", 1)
 
     def print_live_stats_listen_for_exit(self) -> None:
-        while True:
-            taste = readchar.readkey().lower()
-            if taste == "c":
-                utils.print(taste, 1)
-                utils.print("ℹ️ Closing because of keypress.", 1)
-                store.stop_thread = True
+        while not store.livestats_stop:
+            rlist, _, _ = select.select([sys.stdin], [], [], 1)
+            if rlist:
+                store.livestats_stop = True
                 break
+            time.sleep(0.1)
