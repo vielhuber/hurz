@@ -28,11 +28,18 @@ class AutoTrade:
         with open("tmp/assets.json", "r", encoding="utf-8") as f:
             assets = json.load(f)
 
+        # first sort all otc
         non_otc_available = False
         for assets__value in assets:
             if not "otc" in assets__value["name"]:
                 non_otc_available = True
                 break
+        if non_otc_available:
+            assets = [
+                assets__value
+                for assets__value in assets
+                if "otc" not in assets__value["name"]
+            ]
 
         store.auto_mode_active = True
 
@@ -67,14 +74,6 @@ class AutoTrade:
 
             used_assets = []
             store.trades_overall = 0
-
-            # first sort out non otc
-            if non_otc_available:
-                assets = [
-                    assets__value
-                    for assets__value in assets
-                    if "otc" not in assets__value["name"]
-                ]
 
             # determine potential quote for every asset beforehand
             for assets__value in assets:
