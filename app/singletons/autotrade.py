@@ -55,7 +55,7 @@ class AutoTrade:
 
                 utils.print(f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0)
                 utils.print(
-                    f"{active_asset}... ({str(int(assets__key / len(assets) * 100))}%)",
+                    f"{active_asset} [{str(int(assets__key / len(assets) * 100))}%]",
                     0,
                 )
                 utils.print(f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0)
@@ -73,7 +73,7 @@ class AutoTrade:
         if mode in ["trade", "all"]:
 
             used_assets = []
-            store.trades_overall = 0
+            store.trades_overall_cur = 0
 
             # determine potential quote for every asset beforehand
             for assets__value in assets:
@@ -122,8 +122,11 @@ class AutoTrade:
                         return
 
                     # only 100 trades overall
-                    if store.trades_overall >= 100:
-                        utils.print("ℹ️ Trades overall > 100, stopping...", 0)
+                    if store.trades_overall_cur >= store.trades_overall_max:
+                        utils.print(
+                            f"ℹ️ Trades overall > {store.trades_overall_max}, stopping...",
+                            0,
+                        )
                         store.auto_mode_active = False
                         return
 
@@ -198,18 +201,18 @@ class AutoTrade:
 
                 # debug
                 if False is True:
-                    store.trades_overall += 1
+                    store.trades_overall_cur += 1
                     continue
 
                 utils.print(f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0)
                 utils.print(
-                    f"{active_asset}...%)",
+                    f"{active_asset} [{str(int((store.trades_overall_cur/store.trades_overall_max)*100))}%]",
                     0,
                 )
                 utils.print(f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0)
 
                 await self.doit(
-                    "train",
+                    "trade",
                     active_asset,
                     active_asset_return_percent,
                     active_asset_information,
@@ -386,7 +389,7 @@ class AutoTrade:
             utils.print("⏳ DO LIVE TRADING...", 0)
             doCall = await order.do_buy_sell_order()
             if doCall == 0 or doCall == 1:
-                store.trades_overall += 1
+                store.trades_overall_cur += 1
 
                 waiting_time = order.get_random_waiting_time()
                 utils.print(

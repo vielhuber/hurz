@@ -17,8 +17,8 @@ class Order:
 
         utils.print(
             msg=f"ℹ️ TRADING {store.trade_asset} ... (confidence: {store.trade_confidence}):",
-            verbosity_level=0,
-            new_line=False,
+            verbosity_level=1,
+            new_line=True,
         )
 
         if (
@@ -83,7 +83,10 @@ class Order:
 
         # make purchase decision (example)
         if doCall == 1:
-            utils.print(f"✅ Buy CALL option (rising)!", 0)
+            utils.print(
+                f"✅ Buy CALL option (rising) with confidence {store.trade_confidence}%.",
+                0,
+            )
             await self.send_order(
                 store.trade_asset,
                 amount=store.trade_amount,
@@ -91,7 +94,10 @@ class Order:
                 duration=duration,
             )
         elif doCall == 0:
-            utils.print(f"✅ Buy PUT option (falling)!", 0)
+            utils.print(
+                f"✅ Buy PUT option (falling) with confidence {store.trade_confidence}%.",
+                0,
+            )
             await self.send_order(
                 store.trade_asset,
                 amount=store.trade_amount,
@@ -100,7 +106,7 @@ class Order:
             )
         else:
             utils.print(
-                f"⛔ Low confidence - skipping order.",
+                f"⛔ Skipping order because of low confidence.",
                 0,
             )
 
