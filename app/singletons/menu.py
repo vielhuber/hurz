@@ -221,12 +221,7 @@ class Menu:
                     await order.do_buy_sell_order()
 
                     if i < store.trade_repeat - 1:
-                        tolerance = 0.20  # 20 percent
-                        abweichung = store.trade_distance * random.uniform(
-                            -tolerance, tolerance
-                        )
-                        waiting_time = max(0, store.trade_distance + abweichung)
-                        waiting_time = int(round(waiting_time))
+                        waiting_time = order.get_random_waiting_time()
                         utils.print(
                             f"ℹ️ Wait {waiting_time} seconds, before the next order happens...",
                             0,
@@ -562,13 +557,14 @@ class Menu:
             {
                 "type": "list",
                 "name": "mode",
-                "message": "Modus",
+                "message": "AUTO TRADING",
                 "choices": [
                     Choice("data", name=(f"Load all historical data")),
                     Choice("verify", name=(f"Verify all historical data")),
                     Choice("train", name=(f"Train all models")),
                     Choice("fulltest", name=(f"Run fulltest on all")),
                     Choice("trade", name=(f"Buy optimally")),
+                    Choice("all", name=(f"Do all of the above")),
                     Choice("back", name=(f"Back")),
                 ],
             }
@@ -577,10 +573,6 @@ class Menu:
 
         if answer["mode"] == "back":
             return
-
-        elif answer["mode"] == "verify":
-            await utils.run_sync_as_async(history.verify_data_all)
-            await asyncio.sleep(3)
 
         else:
             utils.print("ℹ️ Starting auto mode in background...", 1)

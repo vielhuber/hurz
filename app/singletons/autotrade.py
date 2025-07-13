@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import select
@@ -37,21 +38,21 @@ class AutoTrade:
 
         threading.Thread(target=self.waiting_for_input, daemon=True).start()
 
-        if mode == "data" or mode == "fulltest" or mode == "train":
+        if mode in ["data", "fulltest", "verify", "train", "all"]:
             for assets__key, assets__value in enumerate(assets):
-                # show percent
-                utils.print(
-                    "Overall progress: "
-                    + str(int(assets__key / len(assets) * 100))
-                    + "%",
-                    0,
-                )
-
                 active_asset = assets__value["name"]
                 active_asset_information = asset.get_asset_information(
                     store.trade_platform, store.active_model, assets__value["name"]
                 )
                 active_asset_return_percent = assets__value["return_percent"]
+
+                utils.print(f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0)
+                utils.print(
+                    f"{active_asset}... ({str(int(assets__key / len(assets) * 100))}%)",
+                    0,
+                )
+                utils.print(f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0)
+
                 await self.doit(
                     mode,
                     active_asset,
@@ -62,7 +63,7 @@ class AutoTrade:
                     utils.print("ℹ️ Auto mode cancelled by user.", 1)
                     return
 
-        if mode == "trade":
+        if mode in ["trade", "all"]:
 
             used_assets = []
             store.trades_overall = 0
@@ -123,7 +124,7 @@ class AutoTrade:
 
                     # only 100 trades overall
                     if store.trades_overall >= 100:
-                        utils.print("ℹ️ Trades overall > 100, stopping...", 2)
+                        utils.print("ℹ️ Trades overall > 100, stopping...", 0)
                         store.auto_mode_active = False
                         return
 
@@ -201,8 +202,15 @@ class AutoTrade:
                     store.trades_overall += 1
                     continue
 
+                utils.print(f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0)
+                utils.print(
+                    f"{active_asset}...%)",
+                    0,
+                )
+                utils.print(f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0)
+
                 await self.doit(
-                    mode,
+                    "train",
                     active_asset,
                     active_asset_return_percent,
                     active_asset_information,
@@ -213,122 +221,180 @@ class AutoTrade:
     async def doit(
         self, mode, active_asset, active_asset_return_percent, active_asset_information
     ):
-        utils.print(f"ℹ️ Starting guided auto mode for asset {active_asset}...", 1)
-
         # change other settings (without saving)
         store.trade_asset = active_asset
         store.trade_repeat = 1
         store.sound_effects = 0
         if active_asset_information is not None:
-            store.trade_confidence = active_asset_information["last_trade_confidence"]
+            store.trade_confidence = int(
+                active_asset_information["last_trade_confidence"]
+            )
         settings.refresh_dependent_settings()
 
         # load historic data (if too old)
-        if (mode == "data" or mode == "trade") and (
-            not os.path.exists(store.filename_historic_data)
-            or utils.file_modified_before_minutes(store.filename_historic_data)
-            > (60 if mode == "data" else 120)
-        ):
-            await history.load_data(
-                store.filename_historic_data, 3 * 30.25 * 24 * 60, False, True
+        if mode in ["data", "all"]:
+            utils.print("⏳ LOADING HISTORIC DATA...", 0)
+            if not os.path.exists(
+                store.filename_historic_data
+            ) or utils.file_modified_before_minutes(store.filename_historic_data) > (
+                60 if mode == "data" else 120
+            ):
+                await history.load_data(
+                    store.filename_historic_data, 3 * 30.25 * 24 * 60, False, True
+                )
+                utils.print(
+                    f"✅ Data successfully loaded.",
+                    0,
+                )
+            else:
+                utils.print(
+                    f"✅ Data already fresh.",
+                    0,
+                )
+
+        # verify data
+        if mode in ["verify", "all"]:
+            utils.print("⏳ VERIFYING HISTORIC DATA...", 0)
+            result = await utils.run_sync_as_async(
+                history.verify_data_of_asset,
+                asset=store.trade_asset,
+                output_success=False,
             )
+            if result is True:
+                utils.print(
+                    f"✅ Data successfully verified.",
+                    0,
+                )
 
         # train model (if too old)
-        if (mode == "train" or mode == "trade") and (
-            not os.path.exists(store.filename_model)
-            or utils.file_modified_before_minutes(store.filename_model)
-            > (240 if mode == "train" else 480)
-        ):
-            await utils.run_sync_as_async(
-                training.train_active_model, store.filename_historic_data
-            )
+        if mode in ["train", "all"]:
+            utils.print("⏳ TRAINING MODEL...", 0)
+            if not os.path.exists(
+                store.filename_model
+            ) or utils.file_modified_before_minutes(store.filename_model) > (
+                240 if mode == "train" else 480
+            ):
+                await utils.run_sync_as_async(
+                    training.train_active_model, store.filename_historic_data
+                )
+                utils.print(
+                    f"✅ Model successfully trained.",
+                    0,
+                )
+            else:
+                utils.print(
+                    f"✅ Model already fresh.",
+                    0,
+                )
 
         # run fulltest and determine optimal trade_confidence
-        if (mode == "fulltest" or mode == "trade") and (
-            active_asset_information is None
-            or active_asset_information["last_trade_confidence"] is None
-            or active_asset_information["updated_at"] is None
-            or (
-                datetime.now(timezone.utc)
-                - utils.correct_string_to_datetime(
-                    active_asset_information["updated_at"], "%Y-%m-%d %H:%M:%S"
-                )
-                > timedelta(minutes=(240 if mode == "train" else 480))
-            )
-        ):
-            store.trade_confidence = 100
-            last_quote_trading = None
-            last_quote_success = None
-            while store.auto_mode_active:
-                fulltest_result = await utils.run_sync_as_async(
-                    fulltest.run_fulltest, store.filename_historic_data, None, None
-                )
-                utils.print(fulltest_result["report"], 1)
-
-                if (
-                    store.trade_confidence <= 0
-                    or (last_quote_trading is not None and last_quote_trading >= 100)
-                    or (
-                        last_quote_success is not None
-                        and fulltest_result["data"]["quote_success"]
-                        < last_quote_success
-                        and fulltest_result["data"]["quote_success"]
-                        < (active_asset_return_percent + 0.1)
-                        and fulltest_result["data"]["quote_success"] > 10
-                        and last_quote_trading > 10
+        if mode in ["fulltest", "all"]:
+            utils.print("⏳ RUNNING FULLTEST...", 0)
+            if (
+                active_asset_information is None
+                or active_asset_information["last_trade_confidence"] is None
+                or active_asset_information["updated_at"] is None
+                or (
+                    datetime.now(timezone.utc)
+                    - utils.correct_string_to_datetime(
+                        active_asset_information["updated_at"], "%Y-%m-%d %H:%M:%S"
                     )
-                ):
-                    utils.print("✅ Taking last confidence...", 1)
-                    # store asset information
-                    asset.set_asset_information(
-                        store.trade_platform,
-                        store.active_model,
-                        store.trade_asset,
-                        {
-                            "last_trade_confidence": store.trade_confidence,
-                            "last_fulltest_quote_trading": fulltest_result["data"][
-                                "quote_trading"
-                            ],
-                            "last_fulltest_quote_success": fulltest_result["data"][
-                                "quote_success"
-                            ],
-                            "updated_at": utils.correct_datetime_to_string(
-                                datetime.now().timestamp(),
-                                "%Y-%m-%d %H:%M:%S",
-                                False,
-                            ),
-                        },
+                    > timedelta(minutes=(240 if mode == "train" else 480))
+                )
+            ):
+                store.trade_confidence = 100
+                last_quote_trading = None
+                last_quote_success = None
+                while store.auto_mode_active:
+                    fulltest_result = await utils.run_sync_as_async(
+                        fulltest.run_fulltest, store.filename_historic_data, None, None
                     )
-                    break
+                    utils.print(fulltest_result["report"], 1)
 
-                if last_quote_trading is None:
-                    store.trade_confidence -= 10
-                elif (
-                    fulltest_result["data"]["quote_trading"] - last_quote_trading
-                ) < 0:
-                    store.trade_confidence -= 8
-                elif (
-                    fulltest_result["data"]["quote_trading"] - last_quote_trading
-                ) < 2:
-                    store.trade_confidence -= 5
-                elif (
-                    fulltest_result["data"]["quote_trading"] - last_quote_trading
-                ) < 4:
-                    store.trade_confidence -= 3
-                elif (
-                    fulltest_result["data"]["quote_trading"] - last_quote_trading
-                ) < 6:
-                    store.trade_confidence -= 2
-                else:
-                    store.trade_confidence -= 1
-                last_quote_trading = fulltest_result["data"]["quote_trading"]
-                last_quote_success = fulltest_result["data"]["quote_success"]
+                    if (
+                        store.trade_confidence <= 0
+                        or (
+                            last_quote_trading is not None and last_quote_trading >= 100
+                        )
+                        or (
+                            last_quote_success is not None
+                            and fulltest_result["data"]["quote_success"]
+                            < last_quote_success
+                            and fulltest_result["data"]["quote_success"]
+                            < (active_asset_return_percent + 0.1)
+                            and fulltest_result["data"]["quote_success"] > 10
+                            and last_quote_trading > 10
+                        )
+                    ):
+                        utils.print("✅ Taking last confidence...", 1)
+                        # store asset information
+                        asset.set_asset_information(
+                            store.trade_platform,
+                            store.active_model,
+                            store.trade_asset,
+                            {
+                                "last_trade_confidence": store.trade_confidence,
+                                "last_fulltest_quote_trading": fulltest_result["data"][
+                                    "quote_trading"
+                                ],
+                                "last_fulltest_quote_success": fulltest_result["data"][
+                                    "quote_success"
+                                ],
+                                "updated_at": utils.correct_datetime_to_string(
+                                    datetime.now().timestamp(),
+                                    "%Y-%m-%d %H:%M:%S",
+                                    False,
+                                ),
+                            },
+                        )
+                        break
+
+                    if last_quote_trading is None:
+                        store.trade_confidence -= 10
+                    elif (
+                        fulltest_result["data"]["quote_trading"] - last_quote_trading
+                    ) < 0:
+                        store.trade_confidence -= 8
+                    elif (
+                        fulltest_result["data"]["quote_trading"] - last_quote_trading
+                    ) < 2:
+                        store.trade_confidence -= 5
+                    elif (
+                        fulltest_result["data"]["quote_trading"] - last_quote_trading
+                    ) < 4:
+                        store.trade_confidence -= 3
+                    elif (
+                        fulltest_result["data"]["quote_trading"] - last_quote_trading
+                    ) < 6:
+                        store.trade_confidence -= 2
+                    else:
+                        store.trade_confidence -= 1
+                    last_quote_trading = fulltest_result["data"]["quote_trading"]
+                    last_quote_success = fulltest_result["data"]["quote_success"]
+                utils.print(
+                    f"✅ Fulltest done.",
+                    0,
+                )
+            else:
+                utils.print(
+                    f"✅ Using last fulltest result.",
+                    0,
+                )
 
         # do live trading (one trade)
-        if mode == "trade":
+        # no "all" here, because of structure of calling this function
+        if mode in ["trade"]:
+            utils.print("⏳ DO LIVE TRADING...", 0)
             doCall = await order.do_buy_sell_order()
             if doCall == 0 or doCall == 1:
                 store.trades_overall += 1
+
+                waiting_time = order.get_random_waiting_time()
+                utils.print(
+                    f"ℹ️ Wait {waiting_time} seconds...",
+                    0,
+                )
+                await asyncio.sleep(waiting_time)
 
     def waiting_for_input(self):
         utils.print("ℹ️ Press [Enter] to cancel...", 0)

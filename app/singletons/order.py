@@ -258,3 +258,10 @@ class Order:
                 exit()
 
         return tabelle
+
+    def get_random_waiting_time(self) -> int:
+        tolerance = 0.20  # 20 percent
+        deviation = store.trade_distance * random.uniform(-tolerance, tolerance)
+        waiting_time = max(0, store.trade_distance + deviation)
+        waiting_time = int(round(waiting_time))
+        return waiting_time

@@ -6,9 +6,9 @@ from app.utils.helpers import singleton
 class Training:
 
     def train_active_model(self, filename: str) -> None:
-        utils.print(f"✅ Starting training for {filename}", 0)
+        utils.print(f"✅ Starting training for {filename}", 1)
         if (
-            history.verify_data_of_asset(asset=store.trade_asset, output_success=True)
+            history.verify_data_of_asset(asset=store.trade_asset, output_success=False)
             is False
         ):
             utils.print(
