@@ -21,10 +21,10 @@ class Store:
         self.filename_historic_data = None
         self.filename_model = None
         self.current_ip_address = "127.0.0.1"
-        self._ws_connection = None
+        self.websockets_connecion = None
         self.livestats_stop = False
         self.target_time = None
-        self.laufende_tasks = []
+        self.running_tasks = []
         self.main_menu_default = None
         self.reconnect_last_try = None
         self.binary_expected_event = None
@@ -35,3 +35,4 @@ class Store:
         self.trades_overall_cur = 0
         self.trades_overall_max = 1000
         self.verbosity_level = 0
+        self.auto_trade_refresh_time = 60

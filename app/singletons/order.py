@@ -190,15 +190,17 @@ class Order:
     def format_deals_get_column(self, type: str) -> Optional[int]:
         if type == "id":
             return 0
+        if type == "asset":
+            return 1
         if type == "date_from":
             return 7
         if type == "date_until":
             return 8
         if type == "rest":
             return 9
-        if type == "einsatz":
+        if type == "amount":
             return 10
-        if type == "gewinn":
+        if type == "win":
             return 11
         if type == "result":
             return 13

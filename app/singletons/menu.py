@@ -62,7 +62,7 @@ class Menu:
                 f" | "
                 f"BALANCE: {live_data_balance_formatted}$"
                 f" | "
-                f"WEBSOCKETS: {'AN' if store._ws_connection is not None else 'AUS'}"
+                f"WEBSOCKETS: {'AN' if store.websockets_connection is not None else 'AUS'}"
                 f" | "
                 f"IP: {store.current_ip_address}"
                 f"\n"
@@ -145,25 +145,25 @@ class Menu:
                             option9,
                             option10,
                         ]
-                        if store._ws_connection is not None
+                        if store.websockets_connection is not None
                         else [option6, option8, option10]
                     ),
                     "default": store.main_menu_default,
                 },
             ]
 
-            antworten = await prompt_async(questions=questions)
+            answers = await prompt_async(questions=questions)
 
-            store.main_menu_default = antworten["main_selection"]
+            store.main_menu_default = answers["main_selection"]
 
             if store.stop_event.is_set():
                 break
 
-            if antworten is None:
+            if answers is None:
                 utils.print("⛔ Selection aborted. Program will be terminated.", 0)
                 return
 
-            if (antworten["main_selection"] == option5) and asset.asset_is_available(
+            if (answers["main_selection"] == option5) and asset.asset_is_available(
                 store.trade_asset
             ) is False:
                 utils.print(
@@ -173,7 +173,7 @@ class Menu:
                 await asyncio.sleep(3)
                 continue
 
-            if antworten["main_selection"] == option1:
+            if answers["main_selection"] == option1:
                 await history.load_data(
                     store.filename_historic_data,
                     3 * 30.25 * 24 * 60,  # 3 months
@@ -182,13 +182,13 @@ class Menu:
                 )
                 await asyncio.sleep(4)
 
-            elif antworten["main_selection"] == option2:
+            elif answers["main_selection"] == option2:
                 await utils.run_sync_as_async(
                     training.train_active_model, store.filename_historic_data
                 )
                 await asyncio.sleep(4)
 
-            elif antworten["main_selection"] == option3 and os.path.exists(
+            elif answers["main_selection"] == option3 and os.path.exists(
                 store.filename_model
             ):
                 fulltest_result = await utils.run_sync_as_async(
@@ -197,13 +197,13 @@ class Menu:
                 utils.print(fulltest_result["report"], 0)
                 await asyncio.sleep(4)
 
-            elif antworten["main_selection"] == option4 and os.path.exists(
+            elif answers["main_selection"] == option4 and os.path.exists(
                 store.filename_historic_data
             ):
                 diagrams.print_diagrams()
                 await asyncio.sleep(4)
 
-            elif antworten["main_selection"] == option5 and os.path.exists(
+            elif answers["main_selection"] == option5 and os.path.exists(
                 store.filename_model
             ):
 
@@ -228,21 +228,21 @@ class Menu:
                         )
                         await asyncio.sleep(waiting_time)
 
-            elif antworten["main_selection"] == option6:
+            elif answers["main_selection"] == option6:
                 await livestats.print_live_stats()
 
-            elif antworten["main_selection"] == option7:
+            elif answers["main_selection"] == option7:
                 await self.selection_menue()
 
-            elif antworten["main_selection"] == option8:
+            elif answers["main_selection"] == option8:
                 utils.print("ℹ️ View is updating...", 0)
                 settings.load_settings()
 
-            elif antworten["main_selection"] == option9:
+            elif answers["main_selection"] == option9:
                 await self.selection_auto_trade_menue()
                 utils.print("ℹ️ Closing auto trade mode.", 0)
 
-            elif antworten["main_selection"] == option10:
+            elif answers["main_selection"] == option10:
                 utils.print("ℹ️ Program will be ended.", 0)
                 store.stop_event.set()
                 for t in asyncio.all_tasks():

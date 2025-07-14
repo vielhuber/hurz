@@ -30,7 +30,7 @@ class LiveStats:
         listener_thread.start()
 
         live_data_balance = 0
-        live_data_deals = []
+        self.live_data_deals = []
 
         all_count_last = None
         win_count_last = None
@@ -59,7 +59,7 @@ class LiveStats:
                         with open(
                             "data/live_data_deals.json", "r", encoding="utf-8"
                         ) as f:
-                            live_data_deals = json.load(f)
+                            self.live_data_deals = json.load(f)
                     except json.JSONDecodeError:
                         continue
 
@@ -82,10 +82,10 @@ class LiveStats:
                 ]
 
                 # play sound
-                all_count = len(live_data_deals)
+                all_count = len(self.live_data_deals)
                 win_count = 0
                 loose_count = 0
-                for deal in live_data_deals:
+                for deal in self.live_data_deals:
                     if deal[order.format_deals_get_column("result")] == "✅":
                         win_count += 1
                     elif deal[order.format_deals_get_column("result")] == "⛔":
@@ -116,7 +116,7 @@ class LiveStats:
                 loose_count_last = loose_count
 
                 # modify end time
-                for deal in live_data_deals:
+                for deal in self.live_data_deals:
                     local = pytz.timezone(
                         "Europe/Berlin"
                     )  # or your actual local timezone
@@ -134,7 +134,7 @@ class LiveStats:
                         deal[order.format_deals_get_column("rest")] = "---"
 
                 live_data_deals_output = tabulate(
-                    live_data_deals[:10],
+                    self.live_data_deals[:10],
                     headers=headers,
                     tablefmt="fancy_outline",
                     stralign="left",  # col content left aligned
@@ -142,337 +142,207 @@ class LiveStats:
                     colalign=None,  # or ["left", "right", "right"]
                 )
 
+                deals_all = [
+                    deal
+                    for deal in self.live_data_deals
+                    if deal[order.format_deals_get_column("status")] == "closed"
+                ]
+                deals_today = [
+                    deal
+                    for deal in self.live_data_deals
+                    if deal[order.format_deals_get_column("status")] == "closed"
+                    and datetime.strptime(
+                        deal[order.format_deals_get_column("date_from")],
+                        "%d.%m.%y %H:%M:%S",
+                    ).date()
+                    == datetime.now().date()
+                ]
+                deals_100 = [
+                    deal
+                    for deal in self.live_data_deals
+                    if deal[order.format_deals_get_column("status")] == "closed"
+                ][:100]
+
                 needed_percent_rate = 0
-                werte_gewinn = []
-                werte_einsatz = []
-                for deal in live_data_deals:
+                values_win = []
+                values_amount = []
+                for deal in self.live_data_deals:
                     if deal[order.format_deals_get_column("status")] == "closed":
                         if (
                             float(
-                                deal[order.format_deals_get_column("gewinn")].replace(
+                                deal[order.format_deals_get_column("win")].replace(
                                     "$", ""
                                 )
                             )
                             > 0
                         ):
-                            werte_gewinn.append(
+                            values_win.append(
                                 float(
-                                    deal[
-                                        order.format_deals_get_column("gewinn")
-                                    ].replace("$", "")
+                                    deal[order.format_deals_get_column("win")].replace(
+                                        "$", ""
+                                    )
                                 )
                             )
-                        werte_einsatz.append(
+                        values_amount.append(
                             float(
-                                deal[order.format_deals_get_column("einsatz")].replace(
+                                deal[order.format_deals_get_column("amount")].replace(
                                     "$", ""
                                 )
                             )
                         )
-                if werte_gewinn and werte_einsatz:
-                    werte_gewinn_durchschnitt = sum(werte_gewinn) / len(werte_gewinn)
-                    werte_einsatz_durchschnitt = sum(werte_einsatz) / len(werte_einsatz)
-                    needed_percent_rate = (100 * werte_einsatz_durchschnitt) / (
-                        werte_gewinn_durchschnitt + werte_einsatz_durchschnitt
+                if values_win and values_amount:
+                    values_win_average = sum(values_win) / len(values_win)
+                    values_amount_average = sum(values_amount) / len(values_amount)
+                    needed_percent_rate = (100 * values_amount_average) / (
+                        values_win_average + values_amount_average
                     )
 
                 percent_win_rate_100 = 0
-                if (
-                    len(
-                        [
-                            deal
-                            for deal in live_data_deals
-                            if deal[order.format_deals_get_column("status")] == "closed"
-                        ]
-                    )
-                    > 0
-                ):
+                if len(deals_all) > 0:
                     percent_win_rate_100 = (
                         len(
                             [
                                 deal2
-                                for deal2 in [
-                                    deal
-                                    for deal in live_data_deals
-                                    if deal[order.format_deals_get_column("status")]
-                                    == "closed"
-                                ][:100]
+                                for deal2 in deals_100
                                 if float(
-                                    deal2[
-                                        order.format_deals_get_column("gewinn")
-                                    ].replace("$", "")
+                                    deal2[order.format_deals_get_column("win")].replace(
+                                        "$", ""
+                                    )
                                 )
                                 > 0
                             ]
                         )
-                        / len(
-                            [
-                                deal
-                                for deal in live_data_deals
-                                if deal[order.format_deals_get_column("status")]
-                                == "closed"
-                            ][:100]
-                        )
+                        / len(deals_100)
                     ) * 100
 
                 percent_win_rate_all = 0
-                if (
-                    len(
-                        [
-                            deal
-                            for deal in live_data_deals
-                            if deal[order.format_deals_get_column("status")] == "closed"
-                        ]
-                    )
-                    > 0
-                ):
+                if len(deals_all) > 0:
                     percent_win_rate_all = (
                         len(
                             [
                                 deal2
-                                for deal2 in [
-                                    deal
-                                    for deal in live_data_deals
-                                    if deal[order.format_deals_get_column("status")]
-                                    == "closed"
-                                ]
+                                for deal2 in deals_all
                                 if float(
-                                    deal2[
-                                        order.format_deals_get_column("gewinn")
-                                    ].replace("$", "")
+                                    deal2[order.format_deals_get_column("win")].replace(
+                                        "$", ""
+                                    )
                                 )
                                 > 0
                             ]
                         )
-                        / len(
-                            [
-                                deal
-                                for deal in live_data_deals
-                                if deal[order.format_deals_get_column("status")]
-                                == "closed"
-                            ]
-                        )
+                        / len(deals_all)
                     ) * 100
 
                 percent_win_rate_today = 0
-                if (
-                    len(
-                        [
-                            deal
-                            for deal in live_data_deals
-                            if deal[order.format_deals_get_column("status")] == "closed"
-                            and datetime.strptime(
-                                deal[order.format_deals_get_column("date_from")],
-                                "%d.%m.%y %H:%M:%S",
-                            ).date()
-                            == datetime.now().date()
-                        ]
-                    )
-                    > 0
-                ):
+                if len(deals_today) > 0:
                     percent_win_rate_today = (
                         len(
                             [
                                 deal2
-                                for deal2 in [
-                                    deal
-                                    for deal in live_data_deals
-                                    if deal[order.format_deals_get_column("status")]
-                                    == "closed"
-                                    and datetime.strptime(
-                                        deal[
-                                            order.format_deals_get_column("date_from")
-                                        ],
-                                        "%d.%m.%y %H:%M:%S",
-                                    ).date()
-                                    == datetime.now().date()
-                                ]
+                                for deal2 in deals_today
                                 if float(
-                                    deal2[
-                                        order.format_deals_get_column("gewinn")
-                                    ].replace("$", "")
+                                    deal2[order.format_deals_get_column("win")].replace(
+                                        "$", ""
+                                    )
                                 )
                                 > 0
                             ]
                         )
-                        / len(
-                            [
-                                deal
-                                for deal in live_data_deals
-                                if deal[order.format_deals_get_column("status")]
-                                == "closed"
-                                and datetime.strptime(
-                                    deal[order.format_deals_get_column("date_from")],
-                                    "%d.%m.%y %H:%M:%S",
-                                ).date()
-                                == datetime.now().date()
-                            ]
-                        )
+                        / len(deals_today)
                     ) * 100
 
                 abs_amount_rate_100 = 0
-                if (
-                    len(
-                        [
-                            deal
-                            for deal in live_data_deals
-                            if deal[order.format_deals_get_column("status")] == "closed"
-                        ]
-                    )
-                    > 0
-                ):
+                if len(deals_100) > 0:
                     abs_amount_rate_100 = sum(
                         float(
-                            deal[order.format_deals_get_column("einsatz")].replace(
+                            deal[order.format_deals_get_column("amount")].replace(
                                 "$", ""
                             )
                         )
-                        for deal in [
-                            deal
-                            for deal in live_data_deals
-                            if deal[order.format_deals_get_column("status")] == "closed"
-                        ][:100]
+                        for deal in deals_100
                     )
 
                 abs_amount_rate_all = 0
-                if (
-                    len(
-                        [
-                            deal
-                            for deal in live_data_deals
-                            if deal[order.format_deals_get_column("status")] == "closed"
-                        ]
-                    )
-                    > 0
-                ):
+                if len(deals_all) > 0:
                     abs_amount_rate_all = sum(
                         float(
-                            deal[order.format_deals_get_column("einsatz")].replace(
+                            deal[order.format_deals_get_column("amount")].replace(
                                 "$", ""
                             )
                         )
-                        for deal in [
-                            deal
-                            for deal in live_data_deals
-                            if deal[order.format_deals_get_column("status")] == "closed"
-                        ]
+                        for deal in deals_all
                     )
 
                 abs_amount_rate_today = 0
-                if (
-                    len(
-                        [
-                            deal
-                            for deal in live_data_deals
-                            if deal[order.format_deals_get_column("status")] == "closed"
-                            and datetime.strptime(
-                                deal[order.format_deals_get_column("date_from")],
-                                "%d.%m.%y %H:%M:%S",
-                            ).date()
-                            == datetime.now().date()
-                        ]
-                    )
-                    > 0
-                ):
+                if len(deals_today) > 0:
                     abs_amount_rate_today = sum(
                         float(
-                            deal[order.format_deals_get_column("einsatz")].replace(
+                            deal[order.format_deals_get_column("amount")].replace(
                                 "$", ""
                             )
                         )
-                        for deal in [
-                            deal
-                            for deal in live_data_deals
-                            if deal[order.format_deals_get_column("status")] == "closed"
-                            and datetime.strptime(
-                                deal[order.format_deals_get_column("date_from")],
-                                "%d.%m.%y %H:%M:%S",
-                            ).date()
-                            == datetime.now().date()
-                        ]
+                        for deal in deals_today
                     )
 
                 abs_win_rate_100 = 0
-                if (
-                    len(
-                        [
-                            deal
-                            for deal in live_data_deals
-                            if deal[order.format_deals_get_column("status")] == "closed"
-                        ]
-                    )
-                    > 0
-                ):
+                if len(deals_100) > 0:
                     abs_win_rate_100 = sum(
                         float(
-                            deal[order.format_deals_get_column("gewinn")].replace(
-                                "$", ""
-                            )
+                            deal[order.format_deals_get_column("win")].replace("$", "")
                         )
-                        for deal in [
-                            deal
-                            for deal in live_data_deals
-                            if deal[order.format_deals_get_column("status")] == "closed"
-                        ][:100]
+                        for deal in deals_100
                     )
 
                 abs_win_rate_all = 0
-                if (
-                    len(
-                        [
-                            deal
-                            for deal in live_data_deals
-                            if deal[order.format_deals_get_column("status")] == "closed"
-                        ]
-                    )
-                    > 0
-                ):
+                if len(deals_all) > 0:
                     abs_win_rate_all = sum(
                         float(
-                            deal[order.format_deals_get_column("gewinn")].replace(
-                                "$", ""
-                            )
+                            deal[order.format_deals_get_column("win")].replace("$", "")
                         )
-                        for deal in [
-                            deal
-                            for deal in live_data_deals
-                            if deal[order.format_deals_get_column("status")] == "closed"
-                        ]
+                        for deal in deals_all
                     )
 
                 abs_win_rate_today = 0
-                if (
-                    len(
-                        [
-                            deal
-                            for deal in live_data_deals
-                            if deal[order.format_deals_get_column("status")] == "closed"
-                            and datetime.strptime(
-                                deal[order.format_deals_get_column("date_from")],
-                                "%d.%m.%y %H:%M:%S",
-                            ).date()
-                            == datetime.now().date()
-                        ]
-                    )
-                    > 0
-                ):
+                if len(deals_today) > 0:
                     abs_win_rate_today = sum(
                         float(
-                            deal[order.format_deals_get_column("gewinn")].replace(
-                                "$", ""
-                            )
+                            deal[order.format_deals_get_column("win")].replace("$", "")
                         )
-                        for deal in [
-                            deal
-                            for deal in live_data_deals
-                            if deal[order.format_deals_get_column("status")] == "closed"
-                            and datetime.strptime(
-                                deal[order.format_deals_get_column("date_from")],
-                                "%d.%m.%y %H:%M:%S",
-                            ).date()
-                            == datetime.now().date()
-                        ]
+                        for deal in deals_today
                     )
+
+                asset_spread_all = 0
+                if len(deals_all) > 0:
+                    asset_spread = []
+                    for deal in deals_all:
+                        asset_spread_asset_this = deal[
+                            order.format_deals_get_column("asset")
+                        ]
+                        if asset_spread_asset_this not in asset_spread:
+                            asset_spread.append(asset_spread_asset_this)
+                    asset_spread_all = len(asset_spread)
+
+                asset_spread_100 = 0
+                if len(deals_100) > 0:
+                    asset_spread = []
+                    for deal in deals_100:
+                        asset_spread_asset_this = deal[
+                            order.format_deals_get_column("asset")
+                        ]
+                        if asset_spread_asset_this not in asset_spread:
+                            asset_spread.append(asset_spread_asset_this)
+                    asset_spread_100 = len(asset_spread)
+
+                asset_spread_today = 0
+                if len(deals_today) > 0:
+                    asset_spread = []
+                    for deal in deals_today:
+                        asset_spread_asset_this = deal[
+                            order.format_deals_get_column("asset")
+                        ]
+                        if asset_spread_asset_this not in asset_spread:
+                            asset_spread.append(asset_spread_asset_this)
+                    asset_spread_today = len(asset_spread)
 
                 # clear console (Windows/Linux)
                 utils.clear_console()
@@ -507,10 +377,17 @@ class LiveStats:
                                 "---",
                             ],
                             [
-                                "Win rate",
+                                "Win",
                                 f"{abs_win_rate_all:.1f}$",
                                 f"{abs_win_rate_100:.1f}$",
                                 f"{abs_win_rate_today:.1f}$",
+                                "---",
+                            ],
+                            [
+                                "Asset spread",
+                                f"{asset_spread_all}",
+                                f"{asset_spread_100}",
+                                f"{asset_spread_today}",
                                 "---",
                             ],
                         ],
@@ -535,7 +412,9 @@ class LiveStats:
                 utils.print("", 0, False)
                 utils.print(f"{live_data_deals_output}", 0, False)
                 utils.print("", 0, False)
-                utils.print(f"...and {(len(live_data_deals) - 10)} more.", 0, False)
+                utils.print(
+                    f"...and {(len(self.live_data_deals) - 10)} more.", 0, False
+                )
                 utils.print("", 0, False)
                 utils.print(
                     "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0, False

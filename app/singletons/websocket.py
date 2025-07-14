@@ -106,7 +106,7 @@ class WebSocket:
             ping_timeout=None,
         )
 
-        store._ws_connection = ws
+        store.websockets_connection = ws
 
         # first message (handshake) received
         handshake = await ws.recv()
@@ -138,9 +138,9 @@ class WebSocket:
             utils.print("✅ Auth successful, send more events...", 1)
 
             # start tasks in parallel
-            store.laufende_tasks.append(asyncio.create_task(websocket.ws_keepalive(ws)))
-            store.laufende_tasks.append(asyncio.create_task(websocket.ws_send_loop(ws)))
-            store.laufende_tasks.append(
+            store.running_tasks.append(asyncio.create_task(websocket.ws_keepalive(ws)))
+            store.running_tasks.append(asyncio.create_task(websocket.ws_send_loop(ws)))
+            store.running_tasks.append(
                 asyncio.create_task(websocket.ws_receive_loop(ws))
             )
 

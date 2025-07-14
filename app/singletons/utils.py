@@ -92,7 +92,9 @@ class Utils:
             print(msg, end="\n" if new_line is True else "")
         if log is True:
             with open("tmp/log.txt", "a", encoding="utf-8") as f:
-                f.write(f"{datetime.now(timezone.utc).isoformat()} - {msg}\n")
+                f.write(
+                    f"{datetime.now(pytz.timezone('Europe/Berlin')).strftime('%Y-%m-%d %H:%M:%S')} - {msg}\n"
+                )
 
     def clear_console(self) -> None:
         os.system("cls" if os.name == "nt" else "clear")

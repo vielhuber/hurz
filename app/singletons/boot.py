@@ -21,7 +21,7 @@ class Boot:
         atexit.register(self.shutdown_sync)
 
     async def shutdown(self) -> None:
-        if store._ws_connection:
+        if store.websockets_connection:
             with open("tmp/ws.txt", "r+", encoding="utf-8") as f:
                 status = f.read().strip()
                 if status != "closed":
@@ -30,20 +30,23 @@ class Boot:
                     f.truncate()
                     utils.print("ℹ️ Writing file.", 1)
 
-        if store.laufende_tasks:
-            utils.print(f"ℹ️ Closing tasks... {store.laufende_tasks}", 1)
-            for task in store.laufende_tasks:
+        if store.running_tasks:
+            utils.print(f"ℹ️ Closing tasks... {store.running_tasks}", 1)
+            for task in store.running_tasks:
                 task.cancel()
                 try:
                     await task
                 except asyncio.CancelledError:
                     utils.print(f"ℹ️ Task {task.get_coro().__name__} was stopped.", 1)
-            store.laufende_tasks.clear()
+            store.running_tasks.clear()
 
-        if store._ws_connection and not store._ws_connection.close_code is None:
+        if (
+            store.websockets_connection
+            and not store.websockets_connection.close_code is None
+        ):
             try:
                 utils.print("ℹ️ Closing websocket...", 1)
-                await store._ws_connection.close()
+                await store.websockets_connection.close()
                 utils.print("ℹ️ Connection closed.", 1)
             except Exception as e:
                 utils.print(f"⛔ Error closing: {e}", 1)

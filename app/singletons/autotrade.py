@@ -239,7 +239,7 @@ class AutoTrade:
             if not os.path.exists(
                 store.filename_historic_data
             ) or utils.file_modified_before_minutes(store.filename_historic_data) > (
-                60 if mode == "data" else 120
+                store.auto_trade_refresh_time
             ):
                 await history.load_data(
                     store.filename_historic_data, 3 * 30.25 * 24 * 60, False, True
@@ -274,7 +274,7 @@ class AutoTrade:
             if not os.path.exists(
                 store.filename_model
             ) or utils.file_modified_before_minutes(store.filename_model) > (
-                240 if mode == "train" else 480
+                store.auto_trade_refresh_time
             ):
                 await utils.run_sync_as_async(
                     training.train_active_model, store.filename_historic_data
@@ -301,7 +301,7 @@ class AutoTrade:
                     - utils.correct_string_to_datetime(
                         active_asset_information["updated_at"], "%Y-%m-%d %H:%M:%S"
                     )
-                    > timedelta(minutes=(240 if mode == "train" else 480))
+                    > timedelta(minutes=(store.auto_trade_refresh_time))
                 )
             ):
                 store.trade_confidence = 100
