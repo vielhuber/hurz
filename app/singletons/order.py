@@ -44,7 +44,7 @@ class Order:
         if fulltest_result is None:
             utils.print("⛔ Fulltest could not be performed.", 0)
             return False
-        utils.print(fulltest_result["report"], 1)
+        utils.print("\n" + fulltest_result["report"].to_string(), 1)
 
         # load live data (already collected for 5 minutes)
         df = pd.read_csv("tmp/tmp_live_data.csv", na_values=["None"])
@@ -228,7 +228,7 @@ class Order:
                 tabelle.append(
                     [
                         deal.get("id").split("-")[0],
-                        utils.format_waehrung(deal.get("asset")),
+                        utils.format_asset_name(deal.get("asset")),
                         "1" if deal.get("isDemo") == 1 else "0",
                         self.get_additional_information_from_id(deal.get("id"))[
                             "model"

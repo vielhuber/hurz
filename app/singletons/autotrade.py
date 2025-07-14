@@ -51,7 +51,6 @@ class AutoTrade:
                 active_asset_information = asset.get_asset_information(
                     store.trade_platform, store.active_model, assets__value["name"]
                 )
-                active_asset_return_percent = assets__value["return_percent"]
 
                 utils.print(f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0)
                 utils.print(
@@ -63,7 +62,6 @@ class AutoTrade:
                 await self.doit(
                     mode,
                     active_asset,
-                    active_asset_return_percent,
                     active_asset_information,
                 )
                 if not store.auto_mode_active:
@@ -109,7 +107,6 @@ class AutoTrade:
 
                 active_asset = None
                 active_asset_information = None
-                active_asset_return_percent = None
 
                 tries_in_this_loop = 0
                 for assets__value in assets:
@@ -121,7 +118,7 @@ class AutoTrade:
                         utils.print("ℹ️ Auto mode cancelled by user.", 1)
                         return
 
-                    # only 100 trades overall
+                    # only X trades overall
                     if store.trades_overall_cur >= store.trades_overall_max:
                         utils.print(
                             f"ℹ️ Trades overall > {store.trades_overall_max}, stopping...",
@@ -178,14 +175,13 @@ class AutoTrade:
                     )
 
                     if (
-                        asset_information["last_fulltest_quote_trading"] > 0.20
+                        asset_information["last_fulltest_quote_trading"] > 0.10
                         and asset_information["last_trade_confidence"] > 0.5
                         and assets__value["potential_quote"] > 1
                     ):
                         used_assets.append(assets__value["name"])
                         active_asset = assets__value["name"]
                         active_asset_information = asset_information
-                        active_asset_return_percent = assets__value["return_percent"]
                         utils.print(
                             f"ℹ️ Take {assets__value['name']} - potential_quote {assets__value['potential_quote']:.2f} - last_fulltest_quote_trading: {asset_information['last_fulltest_quote_trading']} - last_trade_confidence: {asset_information['last_trade_confidence']} - last_fulltest_quote_success: {asset_information['last_fulltest_quote_success']} - return_percent: {assets__value['return_percent']}",
                             1,
@@ -214,15 +210,12 @@ class AutoTrade:
                 await self.doit(
                     "trade",
                     active_asset,
-                    active_asset_return_percent,
                     active_asset_information,
                 )
 
         store.auto_mode_active = False
 
-    async def doit(
-        self, mode, active_asset, active_asset_return_percent, active_asset_information
-    ):
+    async def doit(self, mode, active_asset, active_asset_information):
         # change other settings (without saving)
         store.trade_asset = active_asset
         store.trade_repeat = 1
@@ -304,75 +297,7 @@ class AutoTrade:
                     > timedelta(minutes=(store.auto_trade_refresh_time))
                 )
             ):
-                store.trade_confidence = 100
-                last_quote_trading = None
-                last_quote_success = None
-                while store.auto_mode_active:
-                    fulltest_result = await utils.run_sync_as_async(
-                        fulltest.run_fulltest, store.filename_historic_data, None, None
-                    )
-                    utils.print(fulltest_result["report"], 1)
-
-                    if (
-                        store.trade_confidence <= 0
-                        or (
-                            last_quote_trading is not None and last_quote_trading >= 100
-                        )
-                        or (
-                            last_quote_success is not None
-                            and fulltest_result["data"]["quote_success"]
-                            < last_quote_success
-                            and fulltest_result["data"]["quote_success"]
-                            < (active_asset_return_percent + 0.1)
-                            and fulltest_result["data"]["quote_success"] > 10
-                            and last_quote_trading > 10
-                        )
-                    ):
-                        utils.print("✅ Taking last confidence...", 1)
-                        # store asset information
-                        asset.set_asset_information(
-                            store.trade_platform,
-                            store.active_model,
-                            store.trade_asset,
-                            {
-                                "last_trade_confidence": store.trade_confidence,
-                                "last_fulltest_quote_trading": fulltest_result["data"][
-                                    "quote_trading"
-                                ],
-                                "last_fulltest_quote_success": fulltest_result["data"][
-                                    "quote_success"
-                                ],
-                                "updated_at": utils.correct_datetime_to_string(
-                                    datetime.now().timestamp(),
-                                    "%Y-%m-%d %H:%M:%S",
-                                    False,
-                                ),
-                            },
-                        )
-                        break
-
-                    if last_quote_trading is None:
-                        store.trade_confidence -= 10
-                    elif (
-                        fulltest_result["data"]["quote_trading"] - last_quote_trading
-                    ) < 0:
-                        store.trade_confidence -= 8
-                    elif (
-                        fulltest_result["data"]["quote_trading"] - last_quote_trading
-                    ) < 2:
-                        store.trade_confidence -= 5
-                    elif (
-                        fulltest_result["data"]["quote_trading"] - last_quote_trading
-                    ) < 4:
-                        store.trade_confidence -= 3
-                    elif (
-                        fulltest_result["data"]["quote_trading"] - last_quote_trading
-                    ) < 6:
-                        store.trade_confidence -= 2
-                    else:
-                        store.trade_confidence -= 1
-                    last_quote_trading = fulltest_result["data"]["quote_trading"]
-                    last_quote_success = fulltest_result["data"]["quote_success"]
+                await fulltest.determine_confidence_based_on_fulltests()
                 utils.print(
                     f"✅ Fulltest done.",
                     0,

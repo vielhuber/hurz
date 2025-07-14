@@ -59,7 +59,7 @@ class Utils:
             - (datetime.fromtimestamp(os.path.getmtime(filename), tz=timezone.utc))
         ).total_seconds() / 60
 
-    def format_waehrung(self, name: str) -> str:
+    def format_asset_name(self, name: str) -> str:
         # step 1: _ -> space
         name = name.replace("_", " ")
         # step 2: replace 6 consecutive uppercase letters with xxx/xxx

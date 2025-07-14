@@ -1,7 +1,7 @@
 import asyncio
 import json
 import os
-import random
+from colorama import Fore, Back, Style, init
 from datetime import datetime
 from InquirerPy import prompt_async
 from InquirerPy.validator import EmptyInputValidator
@@ -49,34 +49,43 @@ class Menu:
                 .replace("X", ".")
             )
 
+            init(autoreset=True)
             help_text = (
                 f"\n"
-                f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+                f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
                 f"\n"
                 f"\n"
-                f"VERSION: 0.0.2"
+                f"VERSION: {Style.BRIGHT}{Fore.YELLOW}0.0.2{Style.RESET_ALL}"
                 f" | "
-                f'TIME: {utils.correct_datetime_to_string(datetime.now().timestamp(),"%H:%M:%S", False)}'
+                f'TIME: {Style.BRIGHT}{Fore.YELLOW}{utils.correct_datetime_to_string(datetime.now().timestamp(),"%H:%M:%S", False)}{Style.RESET_ALL}'
                 f" | "
-                f"PLATFORM: {store.trade_platform}"
+                f"PLATFORM: {Style.BRIGHT}{Fore.YELLOW}{store.trade_platform}{Style.RESET_ALL}"
                 f" | "
-                f"BALANCE: {live_data_balance_formatted}$"
+                f"BALANCE: {Style.BRIGHT}{Fore.YELLOW}{live_data_balance_formatted}${Style.RESET_ALL}"
                 f" | "
-                f"WEBSOCKETS: {'AN' if store.websockets_connection is not None else 'AUS'}"
+                f"WEBSOCKETS: {Style.BRIGHT}{Fore.YELLOW}{'ON' if store.websockets_connection is not None else 'OFF'}{Style.RESET_ALL}"
                 f" | "
-                f"IP: {store.current_ip_address}"
+                f"IP: {Style.BRIGHT}{Fore.YELLOW}{store.current_ip_address}{Style.RESET_ALL}"
+                f" | "
+                f"DEMO: {Style.BRIGHT}{Fore.YELLOW}{'ON' if store.is_demo_account == 1 else 'OFF'}{Style.RESET_ALL}"
                 f"\n"
-                f"DEMO: {'AN' if store.is_demo_account == 1 else 'AUS'}"
+                f"SOUND: {Style.BRIGHT}{Fore.YELLOW}{'ON' if store.sound_effects == 1 else 'OFF'}{Style.RESET_ALL}"
                 f" | "
-                f"SOUND: {'AN' if store.sound_effects == 1 else 'AUS'}"
+                f"VERBOSITY: {Style.BRIGHT}{Fore.YELLOW}{store.verbosity_level}{Style.RESET_ALL}"
                 f" | "
-                f"VERBOSITY: {store.verbosity_level}"
+                f"MODEL: {Style.BRIGHT}{Fore.YELLOW}{store.active_model}{Style.RESET_ALL}"
                 f" | "
-                f"MODEL: {store.active_model}"
+                f"CURRENCY: {Style.BRIGHT}{Fore.YELLOW}{utils.format_asset_name(store.trade_asset)}{Style.RESET_ALL}"
                 f" | "
-                f"CURRENCY: {utils.format_waehrung(store.trade_asset)}"
+                f"AMOUNT: {Style.BRIGHT}{Fore.YELLOW}{store.trade_amount}${Style.RESET_ALL}"
                 f" | "
-                f"SETTINGS: {store.trade_amount}$ / {store.trade_time} / {store.trade_repeat}x / {store.trade_distance}s / {store.trade_confidence}%"
+                f"TIME: {Style.BRIGHT}{Fore.YELLOW}{store.trade_time}s{Style.RESET_ALL}"
+                f" | "
+                f"REPEAT: {Style.BRIGHT}{Fore.YELLOW}{store.trade_repeat}x{Style.RESET_ALL}"
+                f" | "
+                f"DISTANCE: {Style.BRIGHT}{Fore.YELLOW}{store.trade_distance}s{Style.RESET_ALL}"
+                f" | "
+                f"CONFIDENCE: {Style.BRIGHT}{Fore.YELLOW}{store.trade_confidence}%{Style.RESET_ALL}"
                 f"\n"
                 f"\n"
                 f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
@@ -95,9 +104,9 @@ class Menu:
             else:
                 option1 += " (Data not available)"
 
-            option2 = "Train model"
-            if os.path.exists(store.filename_model):
-                timestamp = os.path.getmtime(store.filename_model)
+            option2 = "Verify historical data"
+            if os.path.exists(store.filename_historic_data):
+                timestamp = os.path.getmtime(store.filename_historic_data)
                 datum = utils.correct_datetime_to_string(
                     timestamp, "%d.%m.%y %H:%M:%S", False
                 )
@@ -105,27 +114,37 @@ class Menu:
             else:
                 option2 += " (Data not available)"
 
-            option3 = "Perform fulltest"
-            if not os.path.exists(store.filename_model):
-                option3 += " (not possible)"
+            option3 = "Train model"
+            if os.path.exists(store.filename_model):
+                timestamp = os.path.getmtime(store.filename_model)
+                datum = utils.correct_datetime_to_string(
+                    timestamp, "%d.%m.%y %H:%M:%S", False
+                )
+                option3 += " (from " + datum + ")"
+            else:
+                option3 += " (Data not available)"
 
-            option4 = "Draw diagram"
-            if not os.path.exists(store.filename_historic_data):
+            option4 = "Determine confidence / run fulltest"
+            if not os.path.exists(store.filename_model):
                 option4 += " (not possible)"
 
-            option5 = "Place purchase option"
+            option5 = "Trade all optimally"
             if not os.path.exists(store.filename_model):
                 option5 += " (not possible)"
 
-            option6 = "Show live-status"
+            option6 = "Draw diagram"
+            if not os.path.exists(store.filename_historic_data):
+                option6 += " (not possible)"
 
-            option7 = "Change settings"
+            option7 = "Show live-status"
 
-            option8 = "Refresh view"
+            option8 = "Change settings"
 
-            option9 = "Auto-Trade Mode"
+            option9 = "Refresh view"
 
-            option10 = "Exit"
+            option10 = "Auto-Trade Mode"
+
+            option11 = "Exit"
 
             questions = [
                 {
@@ -144,9 +163,10 @@ class Menu:
                             option8,
                             option9,
                             option10,
+                            option11,
                         ]
                         if store.websockets_connection is not None
-                        else [option6, option8, option10]
+                        else [option7, option9, option11]
                     ),
                     "default": store.main_menu_default,
                 },
@@ -163,7 +183,7 @@ class Menu:
                 utils.print("⛔ Selection aborted. Program will be terminated.", 0)
                 return
 
-            if (answers["main_selection"] == option5) and asset.asset_is_available(
+            if (answers["main_selection"] == option6) and asset.asset_is_available(
                 store.trade_asset
             ) is False:
                 utils.print(
@@ -180,28 +200,31 @@ class Menu:
                     # 7 * 24 * 60,  # 1 week
                     False,
                 )
-                await asyncio.sleep(4)
+                await asyncio.sleep(1)
 
-            elif answers["main_selection"] == option2:
+            if answers["main_selection"] == option2:
+                await utils.run_sync_as_async(
+                    history.verify_data_of_asset,
+                    asset=store.trade_asset,
+                    output_success=True,
+                )
+                await asyncio.sleep(1)
+
+            elif answers["main_selection"] == option3:
                 await utils.run_sync_as_async(
                     training.train_active_model, store.filename_historic_data
                 )
-                await asyncio.sleep(4)
+                await asyncio.sleep(1)
 
-            elif answers["main_selection"] == option3 and os.path.exists(
+            elif answers["main_selection"] == option4 and os.path.exists(
                 store.filename_model
             ):
+                await fulltest.determine_confidence_based_on_fulltests()
                 fulltest_result = await utils.run_sync_as_async(
                     fulltest.run_fulltest, store.filename_historic_data, None, None
                 )
-                utils.print(fulltest_result["report"], 0)
-                await asyncio.sleep(4)
-
-            elif answers["main_selection"] == option4 and os.path.exists(
-                store.filename_historic_data
-            ):
-                diagrams.print_diagrams()
-                await asyncio.sleep(4)
+                utils.print("\n" + fulltest_result["report"].to_string(), 0)
+                await asyncio.sleep(1)
 
             elif answers["main_selection"] == option5 and os.path.exists(
                 store.filename_model
@@ -228,21 +251,27 @@ class Menu:
                         )
                         await asyncio.sleep(waiting_time)
 
-            elif answers["main_selection"] == option6:
-                await livestats.print_live_stats()
+            elif answers["main_selection"] == option6 and os.path.exists(
+                store.filename_historic_data
+            ):
+                diagrams.print_diagrams()
+                await asyncio.sleep(3)
 
             elif answers["main_selection"] == option7:
-                await self.selection_menue()
+                await livestats.print_live_stats()
 
             elif answers["main_selection"] == option8:
+                await self.selection_menue()
+
+            elif answers["main_selection"] == option9:
                 utils.print("ℹ️ View is updating...", 0)
                 settings.load_settings()
 
-            elif answers["main_selection"] == option9:
+            elif answers["main_selection"] == option10:
                 await self.selection_auto_trade_menue()
                 utils.print("ℹ️ Closing auto trade mode.", 0)
 
-            elif answers["main_selection"] == option10:
+            elif answers["main_selection"] == option11:
                 utils.print("ℹ️ Program will be ended.", 0)
                 store.stop_event.set()
                 for t in asyncio.all_tasks():
@@ -562,8 +591,10 @@ class Menu:
                     Choice("data", name=(f"Load all historical data")),
                     Choice("verify", name=(f"Verify all historical data")),
                     Choice("train", name=(f"Train all models")),
-                    Choice("fulltest", name=(f"Run fulltest on all")),
-                    Choice("trade", name=(f"Buy optimally")),
+                    Choice(
+                        "fulltest", name=(f"Determine confidence / run fulltest on all")
+                    ),
+                    Choice("trade", name=(f"Trade all optimally")),
                     Choice("all", name=(f"Do all of the above")),
                     Choice("back", name=(f"Back")),
                 ],

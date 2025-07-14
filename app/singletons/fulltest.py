@@ -1,8 +1,9 @@
 import pandas as pd
 import time
+from datetime import datetime
 from typing import Optional, Dict, Any
 
-from app.utils.singletons import store, utils
+from app.utils.singletons import store, utils, asset, settings
 from app.utils.helpers import singleton
 
 
@@ -103,7 +104,7 @@ class FullTest:
         utils.print(f"ℹ️ #0.1 {time.perf_counter() - performance_start:.4f}s", 2)
         performance_start = time.perf_counter()
 
-        prognosen = store.model_classes[store.active_model].model_run_fulltest(
+        predictions = store.model_classes[store.active_model].model_run_fulltest(
             store.filename_model, X_test, store.trade_confidence
         )
 
@@ -113,24 +114,24 @@ class FullTest:
         # check results
         full_erfolge = 0
         full_cases = 0
-        gesamt_full = len(prognosen)
+        gesamt_full = len(predictions)
 
         for i in range(gesamt_full):
             result_is_correct = False
-            if prognosen[i] == 1 and zielwerte[i] > letzte_werte[i]:
+            if predictions[i] == 1 and zielwerte[i] > letzte_werte[i]:
                 result_is_correct = True
-            if prognosen[i] == 0 and zielwerte[i] < letzte_werte[i]:
+            if predictions[i] == 0 and zielwerte[i] < letzte_werte[i]:
                 result_is_correct = True
-            if prognosen[i] == 0.5:
+            if predictions[i] == 0.5:
                 result_is_correct = None
 
             """
-            if i == 0 or i == 1 or i == len(prognosen) - 1 or i == 1342 or i == 1343:
+            if i == 0 or i == 1 or i == len(predictions) - 1 or i == 1342 or i == 1343:
                 with open("tmp/debug_fulltest.txt", "a", encoding="utf-8") as f:
                     f.write(f"Step {i}\n")
                     f.write(f"  letzter wert : {letzte_werte[i]}\n")
                     f.write(f"  zielwert : {zielwerte[i]}\n")
-                    f.write(f"  prognose : {prognosen[i]}\n")
+                    f.write(f"  prognose : {predictions[i]}\n")
                     f.write(f"  result_is_correct : {result_is_correct}\n")
                     f.write("\n")
             """
@@ -166,3 +167,58 @@ class FullTest:
                 ]
             ),
         }
+
+    async def determine_confidence_based_on_fulltests(self) -> int:
+        store.trade_confidence = 100
+
+        last_quote_trading = None
+        last_quote_success = None
+        while True:
+            fulltest_result = await utils.run_sync_as_async(
+                self.run_fulltest, store.filename_historic_data, None, None
+            )
+            utils.print("\n" + fulltest_result["report"].to_string(), 1)
+
+            if store.trade_confidence <= 0 or (
+                fulltest_result["data"]["quote_trading"] is not None
+                and fulltest_result["data"]["quote_trading"] >= 10
+            ):
+                utils.print("✅ Taking last confidence...", 1)
+                # store asset information
+                asset.set_asset_information(
+                    store.trade_platform,
+                    store.active_model,
+                    store.trade_asset,
+                    {
+                        "last_trade_confidence": store.trade_confidence,
+                        "last_fulltest_quote_trading": fulltest_result["data"][
+                            "quote_trading"
+                        ],
+                        "last_fulltest_quote_success": fulltest_result["data"][
+                            "quote_success"
+                        ],
+                        "updated_at": utils.correct_datetime_to_string(
+                            datetime.now().timestamp(),
+                            "%Y-%m-%d %H:%M:%S",
+                            False,
+                        ),
+                    },
+                )
+                break
+
+            if last_quote_trading is None:
+                store.trade_confidence -= 10
+            elif (fulltest_result["data"]["quote_trading"] - last_quote_trading) < 0:
+                store.trade_confidence -= 8
+            elif (fulltest_result["data"]["quote_trading"] - last_quote_trading) < 2:
+                store.trade_confidence -= 5
+            elif (fulltest_result["data"]["quote_trading"] - last_quote_trading) < 4:
+                store.trade_confidence -= 3
+            elif (fulltest_result["data"]["quote_trading"] - last_quote_trading) < 6:
+                store.trade_confidence -= 2
+            else:
+                store.trade_confidence -= 1
+            last_quote_trading = fulltest_result["data"]["quote_trading"]
+            last_quote_success = fulltest_result["data"]["quote_success"]
+
+        settings.save_current_settings()

@@ -114,3 +114,12 @@ class Asset:
             return True
         else:
             return False
+
+    def asset_get_return_percent(self, asset: str) -> float:
+        assets = []
+        with open("tmp/assets.json", "r", encoding="utf-8") as f:
+            assets = json.load(f)
+        for assets__value in assets:
+            if assets__value["name"] == asset:
+                return float(assets__value["return_percent"])
+        return 0.0

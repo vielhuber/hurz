@@ -1,6 +1,7 @@
 import json
 import random
-from typing import List, Any
+import pandas as pd
+from typing import List
 
 
 class RandomModel:
@@ -15,32 +16,29 @@ class RandomModel:
             json.dump([], f)
 
     def model_buy_sell_order(
-        X_df: Any, filename_model: str, trade_confidence: int
+        X_df: pd.DataFrame, filename_model: str, trade_confidence: int
     ) -> float:
-        # random probability between 0 and 1
-        prob = random.uniform(0, 1)
-        upper = trade_confidence / 100  # everything above is buy
-        lower = 1 - upper  # everything below is sell
-        if prob > upper:
+        prediction = random.uniform(0, 1)
+        upper = trade_confidence / 100
+        lower = 1 - upper
+        if prediction > upper:
             return 1
-        if prob < lower:
+        if prediction < lower:
             return 0
         return 0.5
 
     def model_run_fulltest(
         filename_model: str, X_test: List[List[float]], trade_confidence: int
     ) -> List[float]:
-        prognosen = []
-        upper = trade_confidence / 100  # everything above is buy
-        lower = 1 - upper  # everything below is sell
+        predictions = []
+        upper = trade_confidence / 100
+        lower = 1 - upper
         for i in range(len(X_test)):
-            # random probability between 0 and 1
             prob = random.uniform(0, 1)
-            # define thresholds
             if prob > upper:
-                prognosen.append(1)  # buy
+                predictions.append(1)
             elif prob < lower:
-                prognosen.append(0)  # sell
+                predictions.append(0)
             else:
-                prognosen.append(0.5)  # undecided
-        return prognosen
+                predictions.append(0.5)
+        return predictions

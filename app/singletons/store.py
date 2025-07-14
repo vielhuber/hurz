@@ -21,7 +21,7 @@ class Store:
         self.filename_historic_data = None
         self.filename_model = None
         self.current_ip_address = "127.0.0.1"
-        self.websockets_connecion = None
+        self.websockets_connection = None
         self.livestats_stop = False
         self.target_time = None
         self.running_tasks = []
