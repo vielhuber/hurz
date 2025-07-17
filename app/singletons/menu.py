@@ -52,7 +52,7 @@ class Menu:
             init(autoreset=True)
             help_text = (
                 f"\n"
-                f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+                f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
                 f"\n"
                 f"\n"
                 f"VERSION: {Style.BRIGHT}{Fore.YELLOW}0.0.2{Style.RESET_ALL}"
@@ -63,18 +63,20 @@ class Menu:
                 f" | "
                 f"BALANCE: {Style.BRIGHT}{Fore.YELLOW}{live_data_balance_formatted}${Style.RESET_ALL}"
                 f" | "
+                f"SESSION: {Style.BRIGHT}{Fore.YELLOW}{store.session_id.split('-')[0]}{Style.RESET_ALL}"
+                f"\n"
                 f"WEBSOCKETS: {Style.BRIGHT}{Fore.YELLOW}{'ON' if store.websockets_connection is not None else 'OFF'}{Style.RESET_ALL}"
                 f" | "
                 f"IP: {Style.BRIGHT}{Fore.YELLOW}{store.current_ip_address}{Style.RESET_ALL}"
                 f" | "
                 f"DEMO: {Style.BRIGHT}{Fore.YELLOW}{'ON' if store.is_demo_account == 1 else 'OFF'}{Style.RESET_ALL}"
-                f"\n"
+                f" | "
                 f"SOUND: {Style.BRIGHT}{Fore.YELLOW}{'ON' if store.sound_effects == 1 else 'OFF'}{Style.RESET_ALL}"
                 f" | "
                 f"VERBOSITY: {Style.BRIGHT}{Fore.YELLOW}{store.verbosity_level}{Style.RESET_ALL}"
                 f" | "
                 f"MODEL: {Style.BRIGHT}{Fore.YELLOW}{store.active_model}{Style.RESET_ALL}"
-                f" | "
+                f"\n"
                 f"CURRENCY: {Style.BRIGHT}{Fore.YELLOW}{utils.format_asset_name(store.trade_asset)}{Style.RESET_ALL}"
                 f" | "
                 f"AMOUNT: {Style.BRIGHT}{Fore.YELLOW}{store.trade_amount}${Style.RESET_ALL}"
@@ -83,20 +85,22 @@ class Menu:
                 f" | "
                 f"REPEAT: {Style.BRIGHT}{Fore.YELLOW}{store.trade_repeat}x{Style.RESET_ALL}"
                 f" | "
+                f"HISTORIC PERIOD: {Style.BRIGHT}{Fore.YELLOW}{store.historic_data_period_in_months}m{Style.RESET_ALL}"
+                f" | "
                 f"DISTANCE: {Style.BRIGHT}{Fore.YELLOW}{store.trade_distance}s{Style.RESET_ALL}"
                 f" | "
                 f"CONFIDENCE: {Style.BRIGHT}{Fore.YELLOW}{store.trade_confidence}%{Style.RESET_ALL}"
                 f"\n"
                 f"\n"
-                f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+                f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
             )
             utils.clear_console()
             utils.print_logo()
             print(help_text)
 
             option1 = "Load historical data"
-            if os.path.exists(store.filename_historic_data):
-                timestamp = os.path.getmtime(store.filename_historic_data)
+            if os.path.exists(store.historic_data_filename):
+                timestamp = os.path.getmtime(store.historic_data_filename)
                 datum = utils.correct_datetime_to_string(
                     timestamp, "%d.%m.%y %H:%M:%S", False
                 )
@@ -105,8 +109,8 @@ class Menu:
                 option1 += " (Data not available)"
 
             option2 = "Verify historical data"
-            if os.path.exists(store.filename_historic_data):
-                timestamp = os.path.getmtime(store.filename_historic_data)
+            if os.path.exists(store.historic_data_filename):
+                timestamp = os.path.getmtime(store.historic_data_filename)
                 datum = utils.correct_datetime_to_string(
                     timestamp, "%d.%m.%y %H:%M:%S", False
                 )
@@ -128,12 +132,12 @@ class Menu:
             if not os.path.exists(store.filename_model):
                 option4 += " (not possible)"
 
-            option5 = "Trade all optimally"
+            option5 = "Trade optimally"
             if not os.path.exists(store.filename_model):
                 option5 += " (not possible)"
 
             option6 = "Draw diagram"
-            if not os.path.exists(store.filename_historic_data):
+            if not os.path.exists(store.historic_data_filename):
                 option6 += " (not possible)"
 
             option7 = "Show live-status"
@@ -195,10 +199,11 @@ class Menu:
 
             if answers["main_selection"] == option1:
                 await history.load_data(
-                    store.filename_historic_data,
-                    3 * 30.25 * 24 * 60,  # 3 months
-                    # 7 * 24 * 60,  # 1 week
-                    False,
+                    filename=store.historic_data_filename,
+                    delete_old=False,
+                    show_overall_estimation=False,
+                    time_back_in_months=store.historic_data_period_in_months,
+                    time_back_in_hours=None,
                 )
                 await asyncio.sleep(1)
 
@@ -212,7 +217,7 @@ class Menu:
 
             elif answers["main_selection"] == option3:
                 await utils.run_sync_as_async(
-                    training.train_active_model, store.filename_historic_data
+                    training.train_active_model, store.historic_data_filename
                 )
                 await asyncio.sleep(1)
 
@@ -221,7 +226,7 @@ class Menu:
             ):
                 await fulltest.determine_confidence_based_on_fulltests()
                 fulltest_result = await utils.run_sync_as_async(
-                    fulltest.run_fulltest, store.filename_historic_data, None, None
+                    fulltest.run_fulltest, store.historic_data_filename, None, None
                 )
                 utils.print("\n" + fulltest_result["report"].to_string(), 0)
                 await asyncio.sleep(1)
@@ -252,7 +257,7 @@ class Menu:
                         await asyncio.sleep(waiting_time)
 
             elif answers["main_selection"] == option6 and os.path.exists(
-                store.filename_historic_data
+                store.historic_data_filename
             ):
                 diagrams.print_diagrams()
                 await asyncio.sleep(3)
@@ -425,6 +430,23 @@ class Menu:
 
         utils.clear_console()
 
+        # historic_data_period_in_months
+        selection_historic_data_period_in_months = await prompt_async(
+            questions=[
+                {
+                    "type": "number",
+                    "message": f"Historic data back in months? (currently: {store.historic_data_period_in_months}):",
+                    "min_allowed": 0,
+                    "max_allowed": 1000,
+                    "validate": EmptyInputValidator(),
+                    "default": store.historic_data_period_in_months,
+                    "replace_mode": True,
+                }
+            ]
+        )
+
+        utils.clear_console()
+
         # distance
         selection_trade_distance = await prompt_async(
             questions=[
@@ -535,6 +557,7 @@ class Menu:
             and selection_model
             and selection_trade_amount
             and selection_trade_repeat
+            and selection_historic_data_period_in_months
             and selection_trade_distance
             and selection_trade_time
             and selection_sound_effects
@@ -547,6 +570,9 @@ class Menu:
             new_model = selection_model["model"]
             new_trade_amount = int(selection_trade_amount[0])
             new_trade_repeat = int(selection_trade_repeat[0])
+            new_historic_data_period_in_months = int(
+                selection_historic_data_period_in_months[0]
+            )
             new_trade_distance = int(selection_trade_distance[0])
             new_trade_time = int(selection_trade_time[0])
             new_sound_effects = selection_sound_effects["sound_effects"]
@@ -565,6 +591,7 @@ class Menu:
             store.trade_confidence = new_trade_confidence
             store.trade_amount = new_trade_amount
             store.trade_repeat = new_trade_repeat
+            store.historic_data_period_in_months = new_historic_data_period_in_months
             store.trade_distance = new_trade_distance
             store.trade_time = new_trade_time
             store.sound_effects = new_sound_effects

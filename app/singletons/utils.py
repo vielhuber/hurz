@@ -126,3 +126,25 @@ class Utils:
                 style = Style(color=Color.from_rgb(*color_rgb))
                 output_segments_line.append(f"[{style}]{char}[/]")
             console.print("".join(output_segments_line))
+
+    def calculate_months_ago(
+        self, current_timestamp: int, time_back_in_months: int
+    ) -> int:
+        dt_current = datetime.fromtimestamp(current_timestamp)
+        current_year = dt_current.year
+        current_month = dt_current.month
+        current_day = dt_current.day
+        target_month = current_month - time_back_in_months
+        target_year = current_year
+        if target_month <= 0:
+            target_month += 12
+            target_year -= 1
+        try:
+            dt_three_months_ago = datetime(target_year, target_month, current_day)
+        except ValueError:
+            target_month += 1
+            if target_month > 12:
+                target_month = 1
+                target_year += 1
+            dt_three_months_ago = datetime(target_year, target_month, 1)
+        return int(dt_three_months_ago.timestamp())

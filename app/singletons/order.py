@@ -32,9 +32,11 @@ class Order:
 
         # load small amount
         await history.load_data(
-            "tmp/tmp_live_data.csv",
-            240,  # ~2 hours
-            True,  # delete old data
+            filename="tmp/tmp_live_data.csv",
+            delete_old=True,
+            show_overall_estimation=False,
+            time_back_in_months=None,
+            time_back_in_hours=4,  # min. 2 hours needed because of window
         )
 
         # run fulltest (only for information)
@@ -154,6 +156,7 @@ class Order:
                         "trade_time",
                         "trade_confidence",
                         "trade_platform",
+                        "session_id",
                     ]
                 )  # write header
 
@@ -177,6 +180,7 @@ class Order:
                     store.trade_time,
                     store.trade_confidence,
                     store.trade_platform,
+                    store.session_id,
                 ]
             )
             return {
@@ -185,27 +189,30 @@ class Order:
                 "trade_time": store.trade_time,
                 "trade_confidence": store.trade_confidence,
                 "trade_platform": store.trade_platform,
+                "session_id": store.session_id,
             }
 
     def format_deals_get_column(self, type: str) -> Optional[int]:
         if type == "id":
             return 0
-        if type == "asset":
+        if type == "session_id":
             return 1
+        if type == "asset":
+            return 2
         if type == "date_from":
-            return 7
-        if type == "date_until":
             return 8
-        if type == "rest":
+        if type == "date_until":
             return 9
-        if type == "amount":
+        if type == "rest":
             return 10
-        if type == "win":
+        if type == "amount":
             return 11
+        if type == "win":
+            return 12
         if type == "result":
-            return 13
-        if type == "status":
             return 14
+        if type == "status":
+            return 15
         return None
 
     def format_deals(self, data: list, type: str) -> list:
@@ -228,6 +235,9 @@ class Order:
                 tabelle.append(
                     [
                         deal.get("id").split("-")[0],
+                        self.get_additional_information_from_id(deal.get("id"))[
+                            "session_id"
+                        ].split("-")[0],
                         utils.format_asset_name(deal.get("asset")),
                         "1" if deal.get("isDemo") == 1 else "0",
                         self.get_additional_information_from_id(deal.get("id"))[

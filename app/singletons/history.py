@@ -18,9 +18,10 @@ class History:
     async def load_data(
         self,
         filename: str,
-        time_back_in_minutes: float,
         delete_old: bool = False,
         show_overall_estimation: bool = False,
+        time_back_in_months: int = 3,
+        time_back_in_hours: float = None,
     ) -> None:
 
         # delete old file
@@ -31,13 +32,19 @@ class History:
         # current time (now)
         current_time = int(time.time())
 
-        # startzeit
+        # start time
         request_time = current_time
 
-        # zielzeit (x minuten zurück)
-        store.target_time = current_time - (time_back_in_minutes * 60)
+        # calculate target time
+        if time_back_in_hours is not None:
+            store.target_time = current_time - (time_back_in_hours * 60 * 60)
+        else:
+            store.target_time = utils.calculate_months_ago(
+                current_time, time_back_in_months
+            )
 
         # zielzeit dynamisch anpassen, damit nicht doppelte daten abgerufen werden
+        """
         if os.path.exists(filename):
             with open(filename, "r", encoding="utf-8") as f:
                 zeilen = [zeile.strip() for zeile in f if zeile.strip()]
@@ -55,6 +62,7 @@ class History:
                     )
                     if store.target_time < this_timestamp:
                         store.target_time = this_timestamp
+        """
 
         if request_time <= store.target_time:
             utils.print(f"⛔ Error received...", 1)
@@ -95,6 +103,74 @@ class History:
             json.dump([], file)
 
         while store.target_time is not None and request_time > store.target_time:
+
+            # skip this request if this period is completely loaded already
+            if os.path.exists(filename):
+                # read data
+                df = pd.read_csv(filename, na_values=["None"])
+                df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"], errors="coerce")
+                df.dropna(subset=["Zeitpunkt"], inplace=True)
+                # Check if all minute values in the current chunk already exist.
+                start_check_time = pd.to_datetime(request_time - offset, unit="s")
+                end_check_time = pd.to_datetime(request_time, unit="s")
+                expected_minutes = pd.date_range(
+                    start=start_check_time, end=end_check_time, freq="min"
+                )
+
+                # debug print
+                utils.print(
+                    f"ℹ️ Start check time: {utils.correct_datetime_to_string(start_check_time.timestamp(), '%d.%m.%y %H:%M:%S', False)} - End check time: {utils.correct_datetime_to_string(end_check_time.timestamp(), '%d.%m.%y %H:%M:%S', False)}",
+                    1,
+                )
+                utils.print(
+                    f"ℹ️ Expected minutes: {len(expected_minutes)}",
+                    1,
+                )
+
+                if len(expected_minutes) > 0:
+                    # Filter the dataframe for the relevant time range to make the check faster
+                    mask = df["Zeitpunkt"].between(start_check_time, end_check_time)
+                    existing_minutes = df.loc[mask, "Zeitpunkt"].dt.floor("min")
+
+                    # --- Start Debugging Snippet ---
+                    # 1. Ensure expected_minutes is a floored, unique pandas Series of Timestamps.
+                    expected_series_floored = (
+                        pd.to_datetime(pd.Series(expected_minutes))
+                        .dt.floor("min")
+                        .drop_duplicates()
+                    )
+                    existing_minutes_floored = existing_minutes.drop_duplicates()
+
+                    # 2. Compare the two series.
+                    are_present = expected_series_floored.isin(existing_minutes_floored)
+
+                    # 3. Check if all expected minutes are present.
+                    if are_present.all():
+                        utils.print(
+                            f"✅✅✅ Data for {store.trade_asset} in period until {utils.correct_datetime_to_string(request_time, '%d.%m.%y %H:%M:%S', False)} already complete. Skipping.",
+                            1,
+                        )
+                        request_time -= offset - overlap
+                        await asyncio.sleep(3)
+                        continue
+                    else:
+                        # If not all minutes are present, print debug info and proceed to fetch data.
+                        missing_minutes = expected_series_floored[~are_present]
+                        utils.print(
+                            f"ℹ️ℹ️ℹ️ Data for {store.trade_asset} in period until {utils.correct_datetime_to_string(request_time, '%d.%m.%y %H:%M:%S', False)} is incomplete. Proceeding with request.",
+                            1,
+                        )
+                        utils.print(
+                            "DEBUG: Die folgenden erwarteten Minuten fehlen in den Daten:",
+                            1,
+                        )
+                        utils.print(f"{missing_minutes.to_list()}", 1)
+                        utils.print(
+                            "\nDEBUG: Vorhandene Minuten im DataFrame (erste 5):", 1
+                        )
+                        utils.print(f"{existing_minutes_floored.head().to_list()}", 1)
+                        await asyncio.sleep(3)
+                    # --- End Debugging Snippet ---
 
             history_request = [
                 "loadHistoryPeriod",

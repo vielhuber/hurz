@@ -175,7 +175,7 @@ class FullTest:
         last_quote_success = None
         while True:
             fulltest_result = await utils.run_sync_as_async(
-                self.run_fulltest, store.filename_historic_data, None, None
+                self.run_fulltest, store.historic_data_filename, None, None
             )
             utils.print("\n" + fulltest_result["report"].to_string(), 1)
 

@@ -5,6 +5,7 @@ import os
 import ssl
 import sys
 import traceback
+import uuid
 import urllib.request
 import websockets
 from websockets.client import WebSocketClientProtocol
@@ -56,25 +57,30 @@ class WebSocket:
         pocketoption_auth_payload = f'42["auth",{{"session":"{pocketoption_session_string}","isDemo":{store.is_demo_account},"uid":{user_id},"platform":2}}]'
 
         # ensure file exists
-        if not os.path.exists("tmp/ws.txt"):
-            with open("tmp/ws.txt", "w", encoding="utf-8") as f:
+        if not os.path.exists("tmp/session.txt"):
+            with open("tmp/session.txt", "w", encoding="utf-8") as f:
                 f.write("")
 
-        with open("tmp/ws.txt", "r", encoding="utf-8") as f:
-            status = f.read().strip()
+        with open("tmp/session.txt", "r", encoding="utf-8") as f:
+            session = f.read().strip()
             zu_alt = (
                 (datetime.now())
-                - (datetime.fromtimestamp(os.path.getmtime("tmp/ws.txt")))
+                - (datetime.fromtimestamp(os.path.getmtime("tmp/session.txt")))
             ) > timedelta(
                 hours=2
             )  # 2 hours
-            if status == "running" and not zu_alt:
-                utils.print("⚠️ Connection already running. Not starting again.", 1)
+            if session != "closed" and session != "" and not zu_alt:
+                utils.print(
+                    "⚠️ Connection already running. Not starting again. Using existing session",
+                    1,
+                )
+                store.session_id = session
                 return None
 
-        # write status
-        with open("tmp/ws.txt", "w", encoding="utf-8") as f:
-            f.write("running")
+        # write session
+        with open("tmp/session.txt", "w", encoding="utf-8") as f:
+            store.session_id = str(uuid.uuid4())
+            f.write(store.session_id)
 
         # with
         proxy_arg = os.getenv("PROXY")
@@ -553,7 +559,7 @@ class WebSocket:
 
         except Exception as e:
             utils.print(f"⛔ Error in websocket.ws_receive_loop: {e}", 1)
-            traceback.print_exc()
+            utils.print(f"⛔ {traceback.format_exc()}", 1)
 
     async def ws_keepalive(self, ws: WebSocketClientProtocol) -> None:
         while True:

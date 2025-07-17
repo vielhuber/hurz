@@ -49,6 +49,10 @@ class Settings:
                     store.trade_repeat = einstellungen.get(
                         "trade_repeat", store.trade_repeat
                     )
+                    store.historic_data_period_in_months = einstellungen.get(
+                        "historic_data_period_in_months",
+                        store.historic_data_period_in_months,
+                    )
                     store.trade_distance = einstellungen.get(
                         "trade_distance", store.trade_distance
                     )
@@ -63,7 +67,7 @@ class Settings:
                 utils.print(f"⛔ Error loading settings: {e}", 1)
 
     def refresh_dependent_settings(self) -> None:
-        store.filename_historic_data = history.get_filename_of_historic_data(
+        store.historic_data_filename = history.get_filename_of_historic_data(
             store.trade_asset
         )
 
@@ -93,6 +97,7 @@ class Settings:
                         "trade_confidence": store.trade_confidence,
                         "trade_amount": store.trade_amount,
                         "trade_repeat": store.trade_repeat,
+                        "historic_data_period_in_months": store.historic_data_period_in_months,
                         "trade_distance": store.trade_distance,
                         "trade_time": store.trade_time,
                         "sound_effects": store.sound_effects,

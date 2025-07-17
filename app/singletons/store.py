@@ -7,18 +7,22 @@ from app.utils.helpers import singleton
 class Store:
 
     def setup(self) -> None:
-        self.model_classes = {}
-        self.trade_asset = "AUDCAD_otc"
-        self.is_demo_account = 1
+        # settings
         self.active_model = "random"
         self.trade_platform = "pocketoption"
+        self.trade_asset = "AUDCAD_otc"
+        self.is_demo_account = 1
         self.trade_confidence = 55
         self.trade_amount = 15
-        self.trade_repeat = 10
+        self.trade_repeat = 100
+        self.historic_data_period_in_months = 3
         self.trade_distance = 30
         self.trade_time = 60
         self.sound_effects = 1
-        self.filename_historic_data = None
+
+        # misc
+        self.model_classes = {}
+        self.historic_data_filename = None
         self.filename_model = None
         self.current_ip_address = "127.0.0.1"
         self.websockets_connection = None
@@ -33,6 +37,6 @@ class Store:
         self.stop_event = asyncio.Event()
         self.auto_mode_active = False
         self.trades_overall_cur = 0
-        self.trades_overall_max = 1000
         self.verbosity_level = 0
         self.auto_trade_refresh_time = 60
+        self.session_id = None

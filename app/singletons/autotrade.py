@@ -1,9 +1,10 @@
 import asyncio
 import json
 import os
+import random
 import select
-import time
 import sys
+import time
 import threading
 from datetime import datetime, timedelta, timezone
 
@@ -43,7 +44,9 @@ class AutoTrade:
 
         store.auto_mode_active = True
 
+        utils.print("", 0, False)
         threading.Thread(target=self.waiting_for_input, daemon=True).start()
+        utils.print("", 0, False)
 
         if mode in ["data", "fulltest", "verify", "train", "all"]:
             for assets__key, assets__value in enumerate(assets):
@@ -119,9 +122,9 @@ class AutoTrade:
                         return
 
                     # only X trades overall
-                    if store.trades_overall_cur >= store.trades_overall_max:
+                    if store.trades_overall_cur >= store.trade_repeat:
                         utils.print(
-                            f"ℹ️ Trades overall > {store.trades_overall_max}, stopping...",
+                            f"ℹ️ Trades overall > {store.trade_repeat}, stopping...",
                             0,
                         )
                         store.auto_mode_active = False
@@ -192,8 +195,14 @@ class AutoTrade:
                         utils.print(f"ℹ️ Don't take {assets__value['name']}", 2)
 
                 if active_asset is None:
-                    utils.print("⛔ Count not determine any provider!", 1)
-                    break
+                    utils.print("⚠️ Count not determine any provider! Take random...", 1)
+                    active_asset = random.choice(
+                        [assets__value["name"] for assets__value in assets]
+                    )
+                    asset_information = asset.get_asset_information(
+                        store.trade_platform, store.active_model, active_asset
+                    )
+                    # break
 
                 # debug
                 if False is True:
@@ -202,7 +211,7 @@ class AutoTrade:
 
                 utils.print(f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0)
                 utils.print(
-                    f"{active_asset} [{str(int((store.trades_overall_cur/store.trades_overall_max)*100))}%]",
+                    f"{active_asset} [{str(int((store.trades_overall_cur/store.trade_repeat)*100))}%]",
                     0,
                 )
                 utils.print(f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0)
@@ -218,7 +227,6 @@ class AutoTrade:
     async def doit(self, mode, active_asset, active_asset_information):
         # change other settings (without saving)
         store.trade_asset = active_asset
-        store.trade_repeat = 1
         store.sound_effects = 0
         if active_asset_information is not None:
             store.trade_confidence = int(
@@ -230,12 +238,16 @@ class AutoTrade:
         if mode in ["data", "all"]:
             utils.print("⏳ LOADING HISTORIC DATA...", 0)
             if not os.path.exists(
-                store.filename_historic_data
-            ) or utils.file_modified_before_minutes(store.filename_historic_data) > (
+                store.historic_data_filename
+            ) or utils.file_modified_before_minutes(store.historic_data_filename) > (
                 store.auto_trade_refresh_time
             ):
                 await history.load_data(
-                    store.filename_historic_data, 3 * 30.25 * 24 * 60, False, True
+                    filename=store.historic_data_filename,
+                    delete_old=False,
+                    show_overall_estimation=True,
+                    time_back_in_months=store.historic_data_period_in_months,
+                    time_back_in_hours=None,
                 )
                 utils.print(
                     f"✅ Data successfully loaded.",
@@ -270,7 +282,7 @@ class AutoTrade:
                 store.auto_trade_refresh_time
             ):
                 await utils.run_sync_as_async(
-                    training.train_active_model, store.filename_historic_data
+                    training.train_active_model, store.historic_data_filename
                 )
                 utils.print(
                     f"✅ Model successfully trained.",
@@ -324,7 +336,7 @@ class AutoTrade:
                 await asyncio.sleep(waiting_time)
 
     def waiting_for_input(self):
-        utils.print("ℹ️ Press [Enter] to cancel...", 0)
+        utils.print("ℹ️ Press [ENTER] to cancel...", 0)
         while store.auto_mode_active:
             # Check if there is input on stdin
             rlist, _, _ = select.select([sys.stdin], [], [], 1)

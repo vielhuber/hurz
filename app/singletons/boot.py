@@ -22,7 +22,7 @@ class Boot:
 
     async def shutdown(self) -> None:
         if store.websockets_connection:
-            with open("tmp/ws.txt", "r+", encoding="utf-8") as f:
+            with open("tmp/session.txt", "r+", encoding="utf-8") as f:
                 status = f.read().strip()
                 if status != "closed":
                     f.seek(0)

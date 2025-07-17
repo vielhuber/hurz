@@ -12,7 +12,7 @@ class Diagrams:
         utils.print("ℹ️ Printing diagrams...", 1)
 
         # load data from csv
-        df = pd.read_csv(store.filename_historic_data)
+        df = pd.read_csv(store.historic_data_filename)
         df["Zeitpunkt"] = pd.to_datetime(
             df["Zeitpunkt"], format="mixed", errors="coerce"
         )
