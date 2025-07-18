@@ -43,27 +43,13 @@ class History:
                 current_time, time_back_in_months
             )
 
-        # zielzeit dynamisch anpassen, damit nicht doppelte daten abgerufen werden
-        """
-        if os.path.exists(filename):
-            with open(filename, "r", encoding="utf-8") as f:
-                zeilen = [zeile.strip() for zeile in f if zeile.strip()]
-                if len(zeilen) > 1:
-                    letzte = zeilen[-1].split(",")
-                    zeitstempel_str = letzte[1]
-                    utils.print(f"ℹ️ Last time value: {zeitstempel_str}", 1)
-                    this_timestamp = int(
-                        pytz.timezone("Europe/Berlin")
-                        .localize(
-                            datetime.strptime(zeitstempel_str, "%Y-%m-%d %H:%M:%S.%f")
-                        )
-                        .astimezone(pytz.utc)
-                        .timestamp()
-                    )
-                    if store.target_time < this_timestamp:
-                        store.target_time = this_timestamp
-        """
+        # output target time
+        utils.print(
+            f"ℹ️ Target time: {utils.correct_datetime_to_string(store.target_time, '%d.%m.%y %H:%M:%S', True)}",
+            1,
+        )
 
+        # debug error
         if request_time <= store.target_time:
             utils.print(f"⛔ Error received...", 1)
             utils.print(f"⛔ request_time: {request_time}", 1)
@@ -92,20 +78,27 @@ class History:
 
         index = 174336071151  # ✅ random unique number
 
+        # create cache for faster testing later on
+        cache = None
+        if os.path.exists(filename):
+            cache = pd.read_csv(filename, na_values=["None"])
+            cache["Zeitpunkt"] = pd.to_datetime(cache["Zeitpunkt"], errors="coerce")
+            cache.dropna(subset=["Zeitpunkt"], inplace=True)
+
         # create file if not exists
         if not os.path.exists(filename):
             with open(filename, "w", encoding="utf-8") as file:
                 file.write("Waehrung,Zeitpunkt,Wert\n")  # header of csv file
 
         with open("tmp/historic_data_status.json", "w", encoding="utf-8") as file:
-            file.write("pending")
+            file.write("")
         with open("tmp/historic_data_raw.json", "w", encoding="utf-8") as file:
             json.dump([], file)
 
         while store.target_time is not None and request_time > store.target_time:
 
             # skip this request if this period is completely loaded already
-            if self.data_is_already_loaded(filename, request_time, offset) is True:
+            if self.data_is_already_loaded(request_time, offset, cache) is True:
                 request_time -= offset - overlap
                 continue
 
@@ -129,6 +122,9 @@ class History:
                 await asyncio.sleep(1)
             with open("tmp/command.json", "w", encoding="utf-8") as f:
                 json.dump(history_request, f)
+
+            with open("tmp/historic_data_status.json", "w", encoding="utf-8") as file:
+                file.write("pending")
 
             utils.print(
                 f'ℹ️ Historical data requested for time period until: {utils.correct_datetime_to_string(request_time, "%d.%m.%y %H:%M:%S", False)}',
@@ -168,7 +164,13 @@ class History:
 
             request_time -= offset - overlap
 
-            await asyncio.sleep(1)  # small break
+            # wait until last request is done
+            while True:
+                with open("tmp/historic_data_status.json", "r", encoding="utf-8") as f:
+                    content = f.read().strip()
+                if content and content == "done":
+                    break
+                await asyncio.sleep(1)  # small pause to breathe
 
         while True:
             with open("tmp/historic_data_status.json", "r", encoding="utf-8") as f:
@@ -213,6 +215,19 @@ class History:
                     # remove duplicate lines
                     df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"], errors="coerce")
                     df.dropna(subset=["Zeitpunkt"], inplace=True)
+
+                    # delete all values before target time
+                    if store.target_time is not None:
+                        utils.print(
+                            f"ℹ️ Truncate data to {utils.correct_datetime_to_string(store.target_time, '%d.%m.%y %H:%M:%S', False)}",
+                            1,
+                        )
+                        processed_target_time = (
+                            pd.to_datetime(store.target_time, unit="s", utc=True)
+                            .tz_convert("Europe/Berlin")
+                            .tz_localize(None)
+                        )
+                        df = df[df["Zeitpunkt"] >= processed_target_time]
 
                     # remove weekends (trading free times) => Set to None!
                     if "otc" not in store.trade_asset:
@@ -286,22 +301,35 @@ class History:
         first_time = df["Zeitpunkt"].min()
         last_time = df["Zeitpunkt"].max()
 
-        # check if first time is newer than 3 months
-        if first_time.tz_localize("utc") > (
-            datetime.now(pytz.utc) - pd.DateOffset(months=2)
-        ):
-            utils.print(
-                f"⛔ {filename}: First time {first_time} is newer than 2 months for {asset}!",
-                0,
+        # check if first time is exactly last time minus historic_data_period_in_months
+        if store.historic_data_period_in_months is not None:
+            first_time_unix = int(
+                first_time.tz_localize(
+                    "Europe/Berlin", ambiguous="NaT", nonexistent="NaT"
+                ).timestamp()
             )
-            return False
+            last_time_unix = int(
+                last_time.tz_localize(
+                    "Europe/Berlin", ambiguous="NaT", nonexistent="NaT"
+                ).timestamp()
+            )
+            expected_first_time_unix = utils.calculate_months_ago(
+                last_time_unix,
+                store.historic_data_period_in_months,
+            )
+            if first_time_unix != expected_first_time_unix:
+                utils.print(
+                    f"⛔ {filename}: First time {utils.correct_datetime_to_string(first_time_unix, '%d.%m.%y %H:%M:%S', False)} != {utils.correct_datetime_to_string(expected_first_time_unix, '%d.%m.%y %H:%M:%S', False)} for {asset}!",
+                    0,
+                )
+                return False
 
-        # check if last time is older than 1 week
+        # check if last time is older than 3 days
         if last_time.tz_localize("utc") < (
-            datetime.now(pytz.utc) - pd.DateOffset(weeks=1)
+            datetime.now(pytz.utc) - pd.DateOffset(days=3)
         ):
             utils.print(
-                f"⛔ {filename}: Last time {last_time} is older than 1 week for {asset}!",
+                f"⛔ {filename}: Last time {last_time} is older than 3 days for {asset}!",
                 0,
             )
             return False
@@ -434,116 +462,60 @@ class History:
         )
 
     def data_is_already_loaded(
-        self, filename: str, request_time: int, offset: int
+        self, request_time: int, offset: int, cache: pd.DataFrame = None
     ) -> bool:
 
-        if os.path.exists(filename):
-            # read data
-            df = pd.read_csv(filename, na_values=["None"])
-            df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"], errors="coerce")
-            df.dropna(subset=["Zeitpunkt"], inplace=True)
+        if cache is not None:
+
             # Check if all minute values in the current chunk already exist.
-            start_check_time = pd.to_datetime(request_time - offset, unit="s")
-            end_check_time = pd.to_datetime(request_time, unit="s")
+            start_check_time = pd.to_datetime(request_time, unit="s")
+            end_check_time = pd.to_datetime(request_time + offset, unit="s")
             expected_minutes = pd.date_range(
                 start=start_check_time,
                 end=end_check_time - pd.Timedelta(minutes=1),
                 freq="min",
             )
 
-            # debug print
-            """
-            utils.print(
-                f"ℹ️ Start check time: {utils.correct_datetime_to_string(start_check_time.timestamp(), '%d.%m.%y %H:%M:%S', True)} - End check time: {utils.correct_datetime_to_string(end_check_time.timestamp(), '%d.%m.%y %H:%M:%S', True)}",
-                1,
-            )
-            utils.print(
-                f"ℹ️ Expected minutes: {len(expected_minutes)}",
-                1,
-            )
-            """
-
             if len(expected_minutes) > 0:
-                # Berechne die effektiven Start- und Endzeitpunkte für den Filter
-                # start_check_time.floor("min") stellt sicher, dass wir die gesamte Startminute erfassen.
                 effective_start_filter = start_check_time.floor("min")
-
-                # end_check_time.ceil("min") - pd.Timedelta(microseconds=1) stellt sicher,
-                # dass wir alle Zeitstempel bis zum Ende der letzten relevanten Minute erfassen
-                # (z.B. 12:24:09 -> ceil("min") ist 12:25:00 -> minus 1 µs ist 12:24:59.999999)
                 effective_end_filter = end_check_time.ceil("min") - pd.Timedelta(
                     microseconds=1
                 )
-
-                # Filter the dataframe for the relevant time range to make the check faster
-                mask = df["Zeitpunkt"].between(
+                mask = cache["Zeitpunkt"].between(
                     effective_start_filter, effective_end_filter
                 )
-                existing_minutes = df.loc[mask, "Zeitpunkt"].dt.floor("min")
-
-                # ... dein vorhandener Code ...
-                """
-                debug_expected_series_pre_floor = pd.to_datetime(
-                    pd.Series(expected_minutes)
-                )
-                utils.print(
-                    f"DEBUG: expected_series_pre_floor (erste 5): {debug_expected_series_pre_floor.head().to_list()}",
-                    1,
-                )
-                debug_expected_series_floored = (
-                    debug_expected_series_pre_floor.dt.floor("min").drop_duplicates()
-                )
-                utils.print(
-                    f"DEBUG: expected_series_floored (erste 5): {debug_expected_series_floored.head().to_list()}",
-                    1,
-                )
-                """
-                # ... dein restlicher Code ...
-
-                # --- Start Debugging Snippet ---
-                # 1. Ensure expected_minutes is a floored, unique pandas Series of Timestamps.
+                existing_minutes = cache.loc[mask, "Zeitpunkt"].dt.floor("min")
                 expected_series_floored = (
                     pd.to_datetime(pd.Series(expected_minutes))
                     .dt.floor("min")
                     .drop_duplicates()
                 )
                 existing_minutes_floored = existing_minutes.drop_duplicates()
-
-                # 2. Compare the two series.
                 are_present = expected_series_floored.isin(existing_minutes_floored)
-
-                # 3. Check if all expected minutes are present.
                 if are_present.all():
-                    utils.print(
-                        f"✅✅✅ Data for {store.trade_asset} in period until {utils.correct_datetime_to_string(request_time, '%d.%m.%y %H:%M:%S', False)} already complete. Skipping.",
-                        1,
-                    )
+                    if True is False:
+                        utils.print(
+                            f"✅✅✅ Data for {store.trade_asset} in period until {utils.correct_datetime_to_string(request_time, '%d.%m.%y %H:%M:%S', False)} already complete. Skipping.",
+                            1,
+                        )
+                        utils.print(
+                            f"EXISTING: {existing_minutes_floored.to_list()}",
+                            1,
+                        )
+                        utils.print(
+                            f"EXPECTED: {expected_series_floored.to_list()}",
+                            1,
+                        )
+                        sys.exit()
+
                     return True
                 else:
-                    """
-                    # If not all minutes are present, print debug info and proceed to fetch data.
-                    missing_minutes = expected_series_floored[~are_present]
-                    utils.print(
-                        f"ℹ️ℹ️ℹ️ Data for {store.trade_asset} in period until {utils.correct_datetime_to_string(request_time, '%d.%m.%y %H:%M:%S', False)} is incomplete. Proceeding with request.",
-                        1,
-                    )
-                    utils.print(
-                        "DEBUG: Die folgenden erwarteten Minuten fehlen in den Daten:",
-                        1,
-                    )
-                    utils.print(f"{missing_minutes.to_list()}", 1)
-                    utils.print(
-                        "\nDEBUG: Vorhandene Minuten im DataFrame (erste 5):", 1
-                    )
-                    utils.print(f"{existing_minutes_floored.head().to_list()}", 1)
-                    # utils.print(expected_minutes, 1)
-                    # utils.print(existing_minutes_floored, 1)
-                    """
-                    utils.print(
-                        f"ℹ️ℹ️ℹ️ Data for {store.trade_asset} in period until {utils.correct_datetime_to_string(request_time, '%d.%m.%y %H:%M:%S', False)} incomplete. Downloading.",
-                        1,
-                    )
+                    if True is False:
+                        utils.print(
+                            f"ℹ️ℹ️ℹ️ Data for {store.trade_asset} in period until {utils.correct_datetime_to_string(request_time, '%d.%m.%y %H:%M:%S', False)} incomplete. Downloading.",
+                            1,
+                        )
+
                     return False
-                # --- End Debugging Snippet ---
 
         return False
