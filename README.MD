@@ -1,4 +1,10 @@
-## setup
+## usage
+
+-   `python3 hurz.py`
+
+## installation
+
+#### install requirements
 
 -   `sudo apt install -y git unzip python3 python3-pip python3-venv`
 -   install nvidia cuda according to https://developer.nvidia.com/cuda-downloads
@@ -7,27 +13,18 @@
 -   `pip3 install -r requirements.txt`
 -   `cp .env.example .env`
 
-## usage
+#### setup local database
 
--   `python3 hurz.py`
+-   `mysql -u root -p`
+-   `CREATE DATABASE IF NOT EXISTS hurz;`
+-   `exit;`
+-   modify `.env` and fill in credentials for `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`
 
-## watch changes
-
--   `python3 watcher.py`
-
-## show log
-
--   `tail -f -n 10 ./tmp/log.txt`
-
-## models
-
--   place your custom models inside `external` (see `random.py`)
-
-## create .env
+#### get trading platform variables
 
 -   log into https://pocketoption.com
 -   go to https://pocketoption.com/cabinet/demo-quick-high-low
--   run in console
+-   run in console and copy in `.env`
 
 ```js
 console.log(`IP_ADDRESS="${
@@ -65,3 +62,21 @@ LIVE_SESSION_ID="${
 DEMO_SESSION_ID="${AppData.demoSessionId}"
 `);
 ```
+
+## add proxy (optional)
+
+-   modify `PROXY="USERNAME:PASSWORD@IP_ADDRESS:PORT"` in .env
+
+## premium models (optional)
+
+-   place your custom models inside `external` (see `random.py`)
+
+## development
+
+#### watch changes
+
+-   `python3 watcher.py`
+
+#### show log
+
+-   `tail -f -n 10 ./tmp/log.txt`
