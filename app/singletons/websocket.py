@@ -56,6 +56,10 @@ class WebSocket:
             pocketoption_session_string = pocketoption_session_id
         pocketoption_auth_payload = f'42["auth",{{"session":"{pocketoption_session_string}","isDemo":{store.is_demo_account},"uid":{user_id},"platform":2}}]'
 
+        # reset command
+        with open("tmp/command.json", "w", encoding="utf-8") as f:
+            f.write("")
+
         # ensure file exists
         if not os.path.exists("tmp/session.txt"):
             with open("tmp/session.txt", "w", encoding="utf-8") as f:
@@ -237,7 +241,7 @@ class WebSocket:
                                 f"-------------------------------------------------------------------",
                                 1,
                             )
-                            if isinstance(data, list) and store.target_time is not None:
+                            if isinstance(data, list):
                                 utils.print(
                                     f'ℹ️ {datetime.fromtimestamp(data[0]["time"])}', 1
                                 )
@@ -270,15 +274,13 @@ class WebSocket:
                                     json.dump(existing, f, indent=2)
                                     f.truncate()
 
-                                if data[0]["time"] <= store.target_time:
-                                    with open(
-                                        "tmp/historic_data_status.json",
-                                        "w",
-                                        encoding="utf-8",
-                                    ) as file:
-                                        file.write("done")
-                                    utils.print("✅ All data received.", 1)
-                                    store.target_time = None
+                                with open(
+                                    "tmp/historic_data_status.json",
+                                    "w",
+                                    encoding="utf-8",
+                                ) as file:
+                                    file.write("done")
+
                         else:
                             utils.print("⛔ No reasonable data received!", 1)
                             # debug
@@ -293,7 +295,6 @@ class WebSocket:
                             ) as file:
                                 file.write("done")
                             utils.print("✅ Ending requests!", 1)
-                            store.target_time = None
 
                     elif store.binary_expected_event == "successupdateBalance":
                         decoded = message.decode("utf-8")
