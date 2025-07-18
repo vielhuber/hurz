@@ -24,7 +24,7 @@
 
 -   log into https://pocketoption.com
 -   go to https://pocketoption.com/cabinet/demo-quick-high-low
--   run in console and copy in `.env`
+-   run in console and copy those values in `.env`
 
 ```js
 console.log(`IP_ADDRESS="${
@@ -63,11 +63,11 @@ DEMO_SESSION_ID="${AppData.demoSessionId}"
 `);
 ```
 
-## add proxy (optional)
+#### add proxy (optional)
 
 -   modify `PROXY="USERNAME:PASSWORD@IP_ADDRESS:PORT"` in .env
 
-## premium models (optional)
+#### premium models (optional)
 
 -   place your custom models inside `external` (see `random.py`)
 

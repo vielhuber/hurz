@@ -1,7 +1,7 @@
 import asyncio
 import sys
 
-from app.utils.singletons import store, utils, settings, boot, websocket, menu
+from app.utils.singletons import store, utils, settings, boot, websocket, menu, database
 
 
 async def run() -> None:
@@ -15,6 +15,7 @@ async def run() -> None:
         settings.load_settings()
         boot.register_shutdown_sync()
         boot.register_stop_event()
+        database.setup_database()
         await websocket.setup_websockets()
 
         # await menu.initialize_main_menu()

@@ -252,15 +252,15 @@ class WebSocket:
                                 daten = []
 
                                 for tick in data:
-                                    zeitpunkt_beginn = utils.correct_datetime_to_string(
+                                    time_begin = utils.correct_datetime_to_string(
                                         tick["time"], "%Y-%m-%d %H:%M:%S.%f", False
                                     )
-                                    # utils.print(f"!!!{zeitpunkt_beginn}")
+                                    # utils.print(f"!!!{time_begin}")
                                     # utils.print("!!!!!!!!!!!!")
                                     # utils.print(tick)
                                     # utils.print("!!!!!!!!!!!!")
-                                    wert_beginn = f"{float(tick['open']):.5f}"  # explicit float and exactly 5 decimal places!
-                                    daten.append([asset, zeitpunkt_beginn, wert_beginn])
+                                    value_begin = f"{float(tick['open']):.5f}"  # explicit float and exactly 5 decimal places!
+                                    daten.append([asset, time_begin, value_begin])
 
                                 with open(
                                     "tmp/historic_data_raw.json", "r+", encoding="utf-8"

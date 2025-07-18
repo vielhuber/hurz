@@ -4,7 +4,7 @@ import os
 from slugify import slugify
 from dotenv import load_dotenv
 
-from app.utils.singletons import settings, store, history, utils
+from app.utils.singletons import store, history, utils
 from app.utils.helpers import singleton
 
 
@@ -61,7 +61,7 @@ class Settings:
                         "sound_effects", store.sound_effects
                     )
 
-                    settings.refresh_dependent_settings()
+                    self.refresh_dependent_settings()
 
             except Exception as e:
                 utils.print(f"⛔ Error loading settings: {e}", 1)

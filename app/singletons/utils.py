@@ -70,7 +70,7 @@ class Utils:
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, partial(func, *args, **kwargs))
 
-    def ist_wochenende(self, row: Any) -> bool:
+    def is_weekend(self, row: Any) -> bool:
         wd = row["Zeitpunkt"].weekday()
         t = row["Zeitpunkt"].time()
         if wd == 5 and t >= time2(1, 0):  # saturday from 01:00

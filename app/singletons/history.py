@@ -235,8 +235,8 @@ class History:
                         df_tmp["Zeitpunkt"] = pd.to_datetime(
                             df_tmp["Zeitpunkt"], errors="coerce"
                         )
-                        wochenende_mask = df_tmp.apply(utils.ist_wochenende, axis=1)
-                        df.loc[wochenende_mask, "Wert"] = None
+                        weekend_mask = df_tmp.apply(utils.is_weekend, axis=1)
+                        df.loc[weekend_mask, "Wert"] = None
 
                     # sort all by time
                     df = df.sort_values("Zeitpunkt").drop_duplicates(
@@ -339,7 +339,7 @@ class History:
             minutes = 0
             for index, row in df.iterrows():
                 # if time is weekend and it is non OTC, check if None
-                if "otc" not in store.trade_asset and not utils.ist_wochenende(row):
+                if "otc" not in store.trade_asset and not utils.is_weekend(row):
                     if pd.isna(row["Wert"]) or row["Wert"] == "None":
                         utils.print(
                             f"⛔ {filename}: Invalid value in line {index + 1} for {asset}!",
@@ -387,7 +387,7 @@ class History:
 
             # check values vectorized (only for non-OTC and non-weekend)
             if "otc" not in asset:
-                weekend_mask = df.apply(utils.ist_wochenende, axis=1)
+                weekend_mask = df.apply(utils.is_weekend, axis=1)
 
                 # write weekend_mask to file
                 with open("tmp/weekend_mask.json", "w", encoding="utf-8") as f:
