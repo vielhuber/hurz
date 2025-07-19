@@ -6,7 +6,7 @@ import pandas as pd
 import random
 from typing import Optional, Dict, Any
 
-from app.utils.singletons import fulltest, history, store, utils
+from app.utils.singletons import fulltest, history, store, utils, database
 from app.utils.helpers import singleton
 
 
@@ -142,56 +142,6 @@ class Order:
 
         utils.print(f"ℹ️ Order sent: {order_payload}", 1)
 
-    def get_additional_information_from_id(self, id: str) -> Dict[str, Any]:
-        csv_path = "data/db_orders.csv"
-
-        # create file if it does not exist
-        if not os.path.exists(csv_path):
-            with open(csv_path, "w", newline="", encoding="utf-8") as f:
-                writer = csv.writer(f)
-                writer.writerow(
-                    [
-                        "id",
-                        "model",
-                        "trade_time",
-                        "trade_confidence",
-                        "trade_platform",
-                        "session_id",
-                    ]
-                )  # write header
-
-        # read file
-        with open(csv_path, "r", newline="", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            eintraege = list(reader)
-
-        # search for id
-        for zeile in eintraege:
-            if zeile["id"] == id:
-                return zeile
-
-        # id not found -> save new entry
-        with open(csv_path, "a", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow(
-                [
-                    id,
-                    store.active_model,
-                    store.trade_time,
-                    store.trade_confidence,
-                    store.trade_platform,
-                    store.session_id,
-                ]
-            )
-            return {
-                "id": id,
-                "model": store.active_model,
-                "trade_time": store.trade_time,
-                "trade_confidence": store.trade_confidence,
-                "trade_platform": store.trade_platform,
-                "session_id": store.session_id,
-            }
-
     def format_deals_get_column(self, type: str) -> Optional[int]:
         if type == "id":
             return 0
@@ -232,26 +182,72 @@ class Order:
 
             try:
 
+                additional_information = {
+                    "id": deal.get("id"),
+                    "model": store.active_model,
+                    "trade_time": store.trade_time,
+                    "trade_confidence": store.trade_confidence,
+                    "trade_platform": store.trade_platform,
+                    "session_id": store.session_id,
+                }
+                additional_information_db = database.select(
+                    "SELECT * FROM trades WHERE id = %s", (deal.get("id"),)
+                )
+                if additional_information_db:
+                    additional_information = additional_information_db[0]
+                else:
+                    # save new entry in database
+                    database.query(
+                        """
+                        INSERT INTO trades
+                        (
+                            id,
+                            session_id,
+                            asset_name,
+                            is_demo,
+                            model,
+                            trade_time,
+                            trade_confidence,
+                            trade_platform,
+                            open_timestamp,
+                            close_timestamp,
+                            amount,
+                            profit,
+                            direction,
+                            success,
+                            status
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (
+                            additional_information["id"],
+                            additional_information["session_id"],
+                            "",
+                            0,
+                            additional_information["model"],
+                            additional_information["trade_time"],
+                            additional_information["trade_confidence"],
+                            additional_information["trade_platform"],
+                            "2000-01-01 00:00:00",
+                            "2000-01-01 00:00:00",
+                            0,
+                            0,
+                            1,
+                            1,
+                            "open",
+                        ),
+                    )
+
                 tabelle.append(
                     [
-                        deal.get("id").split("-")[0],
-                        self.get_additional_information_from_id(deal.get("id"))[
-                            "session_id"
-                        ].split("-")[0],
+                        additional_information["id"].split("-")[0],
+                        additional_information["session_id"].split("-")[0],
                         utils.format_asset_name(deal.get("asset")),
                         "1" if deal.get("isDemo") == 1 else "0",
-                        self.get_additional_information_from_id(deal.get("id"))[
-                            "model"
-                        ],
-                        self.get_additional_information_from_id(deal.get("id"))[
-                            "trade_time"
-                        ],
-                        self.get_additional_information_from_id(deal.get("id"))[
-                            "trade_confidence"
-                        ],
-                        self.get_additional_information_from_id(deal.get("id"))[
-                            "trade_platform"
-                        ],
+                        additional_information["model"],
+                        additional_information["trade_time"],
+                        additional_information["trade_confidence"],
+                        additional_information["trade_platform"],
                         utils.correct_datetime_to_string(
                             deal["openTimestamp"], "%d.%m.%y %H:%M:%S", True
                         ),
@@ -261,13 +257,8 @@ class Order:
                         "---",
                         f"{deal.get('amount')}$",
                         f"{deal.get('profit')}$" if type == "closed" else "⚠️",
-                        # f"{deal.get('percentProfit')} %",
-                        # f"{deal.get('percentLoss')} %",
-                        # deal.get('openPrice'),
-                        # deal.get('closePrice'),
                         "↓" if deal.get("command") == 1 else "↑",
                         result,
-                        #'Demo' if deal.get('isDemo') == 1 else 'Live',
                         type,
                     ]
                 )

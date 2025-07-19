@@ -69,15 +69,8 @@ class Database:
     def create_tables(self) -> None:
         with self.db_conn.cursor() as cursor:
 
-            # first check if table already exists
-            cursor.execute("SHOW TABLES LIKE 'assets'")
-            result = cursor.fetchone()
-            if result:
-                utils.print("ℹ️ Database table 'assets' already exists.", 1)
-                return
-
-            try:
-                query = """
+            tables = {
+                "assets": """
                     CREATE TABLE IF NOT EXISTS assets (
                         platform VARCHAR(50) NOT NULL,
                         model VARCHAR(50) NOT NULL,
@@ -87,13 +80,46 @@ class Database:
                         last_fulltest_quote_success DECIMAL(5,2),
                         updated_at DATETIME
                     );
-                """
-                cursor.execute(query)
-                self.db_conn.commit()
-                utils.print(f"✅ Successfully created database tables.", 1)
+                """,
+                "trades": """
+                    CREATE TABLE IF NOT EXISTS trades (
+                        id VARCHAR(36) NOT NULL PRIMARY KEY,
+                        session_id VARCHAR(36) NOT NULL,
+                        asset_name VARCHAR(50) NOT NULL,
+                        is_demo BOOLEAN NOT NULL,
+                        model VARCHAR(50) NOT NULL,
+                        trade_time INT NOT NULL,
+                        trade_confidence INT NOT NULL,
+                        trade_platform VARCHAR(50) NOT NULL,
+                        open_timestamp DATETIME NOT NULL,
+                        close_timestamp DATETIME NOT NULL,
+                        amount DECIMAL(10, 2) NOT NULL,
+                        profit DECIMAL(10, 2) NULL,
+                        direction BOOLEAN NOT NULL,
+                        success BOOLEAN NULL,
+                        status VARCHAR(10) NOT NULL
+                    );
+                """,
+            }
 
-            except mysql.connector.Error as err:
-                utils.print(f"❌ Database error: {err}", 0)
+            for table_name, create_statement in tables.items():
+
+                # first check if table already exists
+                cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
+                result = cursor.fetchone()
+                if result:
+                    utils.print(f"ℹ️ Database table '{table_name}' already exists.", 1)
+                    continue
+
+                try:
+                    cursor.execute(create_statement)
+                    self.db_conn.commit()
+                    utils.print(
+                        f"✅ Successfully created database table '{table_name}'.", 1
+                    )
+
+                except mysql.connector.Error as err:
+                    utils.print(f"❌ Database error: {err}", 0)
 
     def select(self, query: str, params: Optional[Tuple] = None) -> list:
         with self.db_conn.cursor() as cursor:
@@ -117,7 +143,7 @@ class Database:
                 return results
 
             except mysql.connector.Error as err:
-                utils.print(f"❌ Database error: {err}", 0)
+                utils.print(f"❌ Database (select: {query}) error: {err}", 0)
                 return []
 
     def query(self, query: str, params: Optional[Tuple] = None) -> None:
@@ -132,7 +158,7 @@ class Database:
                 utils.print("✅ Query successfully executed.", 1)
 
             except mysql.connector.Error as err:
-                utils.print(f"❌ Database error: {err}", 0)
+                utils.print(f"❌ Database (query) error: {err}", 0)
 
     def close_connection(self) -> None:
         if self.db_conn and self.db_conn.is_connected():
