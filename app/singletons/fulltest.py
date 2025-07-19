@@ -189,20 +189,9 @@ class FullTest:
                     store.trade_platform,
                     store.active_model,
                     store.trade_asset,
-                    {
-                        "last_trade_confidence": store.trade_confidence,
-                        "last_fulltest_quote_trading": fulltest_result["data"][
-                            "quote_trading"
-                        ],
-                        "last_fulltest_quote_success": fulltest_result["data"][
-                            "quote_success"
-                        ],
-                        "updated_at": utils.correct_datetime_to_string(
-                            datetime.now().timestamp(),
-                            "%Y-%m-%d %H:%M:%S",
-                            False,
-                        ),
-                    },
+                    store.trade_confidence,
+                    fulltest_result["data"]["quote_trading"],
+                    fulltest_result["data"]["quote_success"],
                 )
                 break
 

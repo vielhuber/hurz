@@ -3,7 +3,7 @@ import atexit
 import os
 import signal
 
-from app.utils.singletons import store, utils
+from app.utils.singletons import store, utils, database
 from app.utils.helpers import singleton
 
 
@@ -21,6 +21,8 @@ class Boot:
         atexit.register(self.shutdown_sync)
 
     async def shutdown(self) -> None:
+        database.close_connection()
+
         if store.websockets_connection:
             with open("tmp/session.txt", "r+", encoding="utf-8") as f:
                 status = f.read().strip()

@@ -17,36 +17,8 @@ async def run() -> None:
         boot.register_stop_event()
 
         database.init_connection()
-        database.reset_tables()
+        # database.reset_tables()
         database.create_tables()
-        database.query(
-            """
-            INSERT INTO assets (
-                platform,
-                model,
-                asset,
-                last_trade_confidence,
-                last_fulltest_quote_trading,
-                last_fulltest_quote_success,
-                updated_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """,
-            (
-                "pocketoption",
-                "XGBoost",
-                "AUDCHF",
-                55,
-                18.35,
-                68.47,
-                "2025-07-18 17:48:53",
-            ),
-        )
-        assets = database.select("SELECT * FROM assets")
-        print(assets)
-        for assets__value in assets:
-            print(assets__value)
-        database.close_connection()
-        sys.exit()
 
         await websocket.setup_websockets()
 
