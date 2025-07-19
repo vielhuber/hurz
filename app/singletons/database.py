@@ -1,84 +1,152 @@
 import os
 import mysql.connector
+from typing import Optional, Tuple
 
-from app.utils.singletons import store, utils
+from app.utils.singletons import utils
 from app.utils.helpers import singleton
 
 
 @singleton
 class Database:
 
-    def setup_database(self) -> None:
-        """
-        Versucht, eine Verbindung zu einer MySQL-Datenbank herzustellen.
-        Falls die angegebene Datenbank existiert, wird versucht, die Tabelle
-        'assets' zu erstellen, falls diese noch nicht existiert.
-
-        WICHTIG: Die Datenbank selbst ('hurz_trading_db') muss bereits existieren.
-                Falls nicht, erstelle sie bitte über die MySQL-Kommandozeile
-                (siehe vorherige Antwort: `CREATE DATABASE IF NOT EXISTS hurz_trading_db;`).
-        """
-        print("ℹ️ Versuche, mich mit der MySQL-Datenbank zu verbinden...")
-        conn = None  # Initialisiere conn auf None für den finally-Block
-        cursor = None  # Initialisiere cursor auf None
+    def init_connection(self) -> None:
+        self.db_conn = None
+        self.db_cursor = None
 
         try:
-            # Verbindung zur MySQL-Datenbank herstellen
-            # Wir versuchen, uns direkt mit der spezifischen Datenbank zu verbinden.
-            DB_HOST = os.getenv("DB_HOST")
-            DB_PORT = os.getenv("DB_PORT")
-            DB_USERNAME = os.getenv("DB_USERNAME")
-            DB_PASSWORD = os.getenv("DB_PASSWORD")
-            DB_NAME = os.getenv("DB_NAME")
-
-            conn = mysql.connector.connect(
-                host=DB_HOST,
-                user=DB_USERNAME,
-                password=DB_PASSWORD,
-                database=DB_NAME,  # Versucht, sich mit dieser Datenbank zu verbinden,
-                port=DB_PORT,
+            self.DB_HOST = os.getenv("DB_HOST")
+            self.DB_PORT = os.getenv("DB_PORT")
+            self.DB_USERNAME = os.getenv("DB_USERNAME")
+            self.DB_PASSWORD = os.getenv("DB_PASSWORD")
+            self.DB_NAME = os.getenv("DB_NAME")
+            self.db_conn = mysql.connector.connect(
+                host=self.DB_HOST,
+                user=self.DB_USERNAME,
+                password=self.DB_PASSWORD,
+                database=self.DB_NAME,
+                port=self.DB_PORT,
             )
-            cursor = conn.cursor()
-            print(f"✅ Erfolgreich mit MySQL-Datenbank '{DB_NAME}' verbunden.")
-
-            # SQL-Befehl zum Erstellen der Tabelle, falls sie nicht existiert
-            # Mit den vorgeschlagenen Datentypen und einem zusammengesetzten Primärschlüssel.
-            create_table_query = f"""
-            CREATE TABLE IF NOT EXISTS assets (
-                platform VARCHAR(50) NOT NULL,
-                model VARCHAR(50) NOT NULL,
-                asset VARCHAR(10) NOT NULL,
-                last_trade_confidence SMALLINT,
-                last_fulltest_quote_trading DECIMAL(5,2),
-                last_fulltest_quote_success DECIMAL(5,2),
-                updated_at DATETIME,
-                PRIMARY KEY (platform, model, asset) -- Eindeutiger Schlüssel für jedes Asset pro Plattform/Modell
-            );
-            """
-
-            cursor.execute(create_table_query)
-            conn.commit()  # Änderungen in der Datenbank bestätigen (für DDL-Befehle)
-            print(f"✅ Tabelle assets existiert oder wurde erfolgreich erstellt.")
+            self.db_cursor = self.db_conn.cursor()
+            utils.print(
+                f"✅ Sucessfully connected to mysql database '{self.DB_NAME}'.", 1
+            )
 
         except mysql.connector.Error as err:
-            # Fehlerbehandlung für gängige MySQL-Probleme
             if err.errno == mysql.connector.errorcode.ER_ACCESS_DENIED_ERROR:
-                print("❌ Fehler: Zugangsdaten (Benutzername/Passwort) sind falsch.")
+                utils.print("❌ Database error: wrong credentials.", 0)
             elif err.errno == mysql.connector.errorcode.ER_BAD_DB_ERROR:
-                print(
-                    f"❌ Fehler: Datenbank '{DB_NAME}' existiert nicht. Bitte erstelle sie zuerst über die MySQL-Kommandozeile."
-                )
-                print(
-                    f"   (Befehl im MySQL-Client: CREATE DATABASE IF NOT EXISTS {DB_NAME};)"
+                utils.print(
+                    f"❌ Database error: Database '{self.DB_NAME}' does not exist.", 0
                 )
             else:
-                print(f"❌ Ein allgemeiner Fehler ist aufgetreten: {err}")
+                utils.print(f"❌ Database error: {err}", 0)
+
         except Exception as e:
-            print(f"❌ Ein unerwarteter Python-Fehler ist aufgetreten: {e}")
+            utils.print(f"❌ Database error: {e}", 0)
+
         finally:
-            # Sicherstellen, dass Cursor und Verbindung geschlossen werden
-            if cursor:
-                cursor.close()
-            if conn and conn.is_connected():
-                conn.close()
-                print("Verbindung zu MySQL geschlossen.")
+            if self.db_cursor:
+                self.db_cursor.close()
+
+    def reset_tables(self) -> None:
+        self.db_cursor = self.db_conn.cursor()
+
+        try:
+            self.db_cursor.execute("SHOW TABLES")
+            tables = self.db_cursor.fetchall()
+            if not tables:
+                utils.print(f"ℹ️ No tables in database '{self.DB_NAME}'.", 1)
+                return
+            for table_tuple in tables:
+                table_name = table_tuple[0]
+                drop_query = f"DROP TABLE IF EXISTS `{table_name}`;"
+                self.db_cursor.execute(drop_query)
+            self.db_conn.commit()
+            utils.print(f"✅ Successfully deleted all tables in '{self.DB_NAME}'.", 1)
+
+        except mysql.connector.Error as err:
+            utils.print(f"❌ Database error: {err}", 0)
+
+        except Exception as e:
+            utils.print(f"❌ Database error: {e}", 0)
+
+        finally:
+            self.db_cursor.close()
+
+    def create_tables(self) -> None:
+        self.db_cursor = self.db_conn.cursor()
+
+        # first check if table already exists
+        self.db_cursor.execute("SHOW TABLES LIKE 'assets'")
+        result = self.db_cursor.fetchone()
+        if result:
+            utils.print("ℹ️ Database table 'assets' already exists.", 1)
+            return
+
+        try:
+            query = """
+                CREATE TABLE IF NOT EXISTS assets (
+                    platform VARCHAR(50) NOT NULL,
+                    model VARCHAR(50) NOT NULL,
+                    asset VARCHAR(10) NOT NULL,
+                    last_trade_confidence SMALLINT,
+                    last_fulltest_quote_trading DECIMAL(5,2),
+                    last_fulltest_quote_success DECIMAL(5,2),
+                    updated_at DATETIME
+                );
+            """
+            self.db_cursor.execute(query)
+            self.db_conn.commit()
+            utils.print(f"✅ Successfully created database tables.", 1)
+
+        except mysql.connector.Error as err:
+            utils.print(f"❌ Database error: {err}", 0)
+
+        finally:
+            self.db_cursor.close()
+
+    def select(self, query: str, params: Optional[Tuple] = None) -> list:
+        self.db_cursor = self.db_conn.cursor()
+
+        try:
+            if params:
+                self.db_cursor.execute(query, params)
+            else:
+                self.db_cursor.execute(query)
+                column_names = [i[0] for i in self.db_cursor.description]
+                rows = self.db_cursor.fetchall()
+                results = []
+                for row in rows:
+                    results.append(dict(zip(column_names, row)))
+                return results
+
+        except mysql.connector.Error as err:
+            utils.print(f"❌ Database error: {err}", 0)
+            return []
+
+        finally:
+            self.db_cursor.close()
+
+    def query(self, query: str, params: Optional[Tuple] = None) -> None:
+        self.db_cursor = self.db_conn.cursor()
+
+        try:
+            if params:
+                self.db_cursor.execute(query, params)
+            else:
+                self.db_cursor.execute(query)
+            self.db_conn.commit()
+            utils.print("✅ Query successfully executed.", 1)
+
+        except mysql.connector.Error as err:
+            utils.print(f"❌ Database error: {err}", 0)
+
+        finally:
+            self.db_cursor.close()
+
+    def close_connection(self) -> None:
+        if self.db_cursor:
+            self.db_cursor.close()
+        if self.db_conn and self.db_conn.is_connected():
+            self.db_conn.close()
+            utils.print("ℹ️ Database connection closed.", 1)
