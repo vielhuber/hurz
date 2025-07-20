@@ -172,14 +172,14 @@ class Database:
     def insert_many(self, query: str, data_to_insert: list = []) -> None:
         with self.db_conn.cursor() as cursor:
 
-            batch_size = 10000
+            batch_size = 50000
             for i in range(0, len(data_to_insert), batch_size):
                 batch = data_to_insert[i : i + batch_size]
                 try:
                     cursor.executemany(query, batch)
                     self.db_conn.commit()
                     utils.print(
-                        f"✅ Succcessfully inserted batch {i//batch_size + 1} (rows {i}-{min(i+batch_size, len(data_to_insert))})",
+                        f"✅ Successfully inserted batch {i//batch_size + 1} (rows {i}-{min(i+batch_size, len(data_to_insert))})",
                         1,
                     )
                 except mysql.connector.Error as err:

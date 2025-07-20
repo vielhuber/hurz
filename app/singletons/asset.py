@@ -29,6 +29,11 @@ class Asset:
             asset["last_fulltest_quote_success"] = float(
                 asset["last_fulltest_quote_success"]
             )
+            #  convert datetime to string
+            if isinstance(asset["updated_at"], datetime):
+                asset["updated_at"] = utils.correct_datetime_to_string(
+                    asset["updated_at"].timestamp(), "%Y-%m-%d %H:%M:%S", False
+                )
             return asset
 
         return None
