@@ -37,6 +37,8 @@ class Order:
             show_overall_estimation=False,
             time_back_in_months=None,
             time_back_in_hours=4,  # min. 2 hours needed because of window
+            trade_asset=store.trade_asset,
+            trade_platform=store.trade_platform,
         )
 
         # run fulltest (only for information)

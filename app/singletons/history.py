@@ -8,7 +8,7 @@ import time
 from datetime import datetime
 from slugify import slugify
 
-from app.utils.singletons import store, utils
+from app.utils.singletons import store, utils, database
 from app.utils.helpers import singleton
 
 
@@ -22,6 +22,8 @@ class History:
         show_overall_estimation: bool = False,
         time_back_in_months: int = 3,
         time_back_in_hours: float = None,
+        trade_asset: str = None,
+        trade_platform: str = None,
     ) -> None:
 
         # delete old file
@@ -200,12 +202,31 @@ class History:
                         "%Y-%m-%d %H:%M:%S.%f"
                     )
 
-                    # read existing file if available
-                    if os.path.exists(filename):
-                        df_alt = pd.read_csv(filename)
-                        df = pd.concat([df_alt, df_neu], ignore_index=True)
-                    else:
-                        df = df_neu
+                    # combine with existing data if available
+                    if True is True:
+                        if os.path.exists(filename):
+                            df_alt = pd.read_csv(filename)
+                            df = pd.concat([df_alt, df_neu], ignore_index=True)
+                        else:
+                            df = df_neu
+
+                    # fetch data from database
+                    if True is True:
+                        trading_data = database.select(
+                            "SELECT * FROM trading_data WHERE trade_asset = %s AND trade_platform = %s",
+                            (trade_asset, trade_platform),
+                        )
+                        if trading_data:
+                            df = pd.DataFrame(
+                                trading_data,
+                                columns=[
+                                    "trade_asset",
+                                    "trade_platform",
+                                    "timestamp",
+                                    "price",
+                                ],
+                            )
+                            df = pd.concat([df_alt, df_neu], ignore_index=True)
 
                     # keep 5 spaces after comma
                     df["Wert"] = pd.to_numeric(df["Wert"], errors="coerce").map(
@@ -247,12 +268,40 @@ class History:
                     df["Zeitpunkt"] = df["Zeitpunkt"].dt.strftime(
                         "%Y-%m-%d %H:%M:%S.%f"
                     )
-                    df.to_csv(filename, index=False, na_rep="None")
 
+                    # save to file
+                    if True is True:
+                        df.to_csv(filename, index=False, na_rep="None")
+
+                    # save to database
+                    if True is True:
+                        database.query(
+                            "DELETE FROM trading_data WHERE trade_asset = %s AND trade_platform = %s",
+                            (trade_asset, trade_platform),
+                        )
+                        df_tmp = df.copy()
+                        # temporarily add trade_platform
+                        df_tmp["trade_platform"] = store.trade_platform
+                        df_tmp = df_tmp[
+                            [
+                                "Waehrung",
+                                "trade_platform",
+                                "Zeitpunkt",
+                                "Wert",
+                            ]
+                        ]
+                        df_tmp = df_tmp.values.tolist()
+                        database.insert_many(
+                            "INSERT INTO trading_data (trade_asset, trade_platform, timestamp, price) VALUES (%s, %s, %s, %s)",
+                            df_tmp,
+                        )
+
+                    # reset tmp file
                     with open(
                         "tmp/historic_data_raw.json", "w", encoding="utf-8"
                     ) as file:
                         json.dump([], file)
+
                     break
             await asyncio.sleep(1)  # small pause to breathe
 

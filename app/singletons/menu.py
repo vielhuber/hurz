@@ -204,6 +204,8 @@ class Menu:
                     show_overall_estimation=False,
                     time_back_in_months=store.historic_data_period_in_months,
                     time_back_in_hours=None,
+                    trade_asset=store.trade_asset,
+                    trade_platform=store.trade_platform,
                 )
                 await asyncio.sleep(1)
 

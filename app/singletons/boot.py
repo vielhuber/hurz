@@ -56,9 +56,12 @@ class Boot:
         # fix console
         os.system("stty sane")
 
+    def register_stop_event(self):
+        utils.print("ℹ️ Registering stop event...", 1)
+        # sigint is often blocked by inquirer. we therefore also catch SIGHUP, which watcher.py also sends
+        signal.signal(signal.SIGINT, self.handle_sigint)
+        signal.signal(signal.SIGHUP, self.handle_sigint)
+
     def handle_sigint(self, signum, frame):
         utils.print("ℹ️ SIGINT received - ending...", 1)
         store.stop_event.set()
-
-    def register_stop_event(self):
-        signal.signal(signal.SIGINT, self.handle_sigint)

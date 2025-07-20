@@ -28,8 +28,11 @@ class Runner:
 
     def stop(self):
         if self.proc and self.proc.poll() is None:
+            os.system("cls" if os.name == "nt" else "clear")
             print("🛑 Sending SIGINT...")
             self.proc.send_signal(signal.SIGINT)
+            # also send SIGHUP, since some programs don't recognize SIGINT
+            self.proc.send_signal(signal.SIGHUP)
             try:
                 self.proc.wait(timeout=5)
             except subprocess.TimeoutExpired:

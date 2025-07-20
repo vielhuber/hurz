@@ -248,6 +248,8 @@ class AutoTrade:
                     show_overall_estimation=True,
                     time_back_in_months=store.historic_data_period_in_months,
                     time_back_in_hours=None,
+                    trade_asset=store.trade_asset,
+                    trade_platform=store.trade_platform,
                 )
                 utils.print(
                     f"✅ Data successfully loaded.",

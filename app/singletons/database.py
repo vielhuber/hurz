@@ -31,16 +31,16 @@ class Database:
 
         except mysql.connector.Error as err:
             if err.errno == mysql.connector.errorcode.ER_ACCESS_DENIED_ERROR:
-                utils.print("❌ Database error: wrong credentials.", 0)
+                utils.print("⛔ Database error: wrong credentials.", 0)
             elif err.errno == mysql.connector.errorcode.ER_BAD_DB_ERROR:
                 utils.print(
-                    f"❌ Database error: Database '{self.DB_NAME}' does not exist.", 0
+                    f"⛔ Database error: Database '{self.DB_NAME}' does not exist.", 0
                 )
             else:
-                utils.print(f"❌ Database error: {err}", 0)
+                utils.print(f"⛔ Database error: {err}", 0)
 
         except Exception as e:
-            utils.print(f"❌ Database error: {e}", 0)
+            utils.print(f"⛔ Database error: {e}", 0)
 
     def reset_tables(self) -> None:
         with self.db_conn.cursor() as cursor:
@@ -61,10 +61,10 @@ class Database:
                 )
 
             except mysql.connector.Error as err:
-                utils.print(f"❌ Database error: {err}", 0)
+                utils.print(f"⛔ Database error: {err}", 0)
 
             except Exception as e:
-                utils.print(f"❌ Database error: {e}", 0)
+                utils.print(f"⛔ Database error: {e}", 0)
 
     def create_tables(self) -> None:
         with self.db_conn.cursor() as cursor:
@@ -100,6 +100,15 @@ class Database:
                         status VARCHAR(10) NOT NULL
                     );
                 """,
+                "trading_data": """
+                    CREATE TABLE IF NOT EXISTS trading_data (
+                        trade_asset VARCHAR(50) NOT NULL,
+                        trade_platform VARCHAR(50) NOT NULL,
+                        timestamp DATETIME NOT NULL,
+                        price DECIMAL(10, 5) NOT NULL,
+                        PRIMARY KEY (trade_asset, trade_platform, timestamp)
+                    )
+                """,
             }
 
             for table_name, create_statement in tables.items():
@@ -119,7 +128,7 @@ class Database:
                     )
 
                 except mysql.connector.Error as err:
-                    utils.print(f"❌ Database error: {err}", 0)
+                    utils.print(f"⛔ Database error: {err}", 0)
 
     def select(self, query: str, params: Optional[Tuple] = None) -> list:
         with self.db_conn.cursor() as cursor:
@@ -143,7 +152,7 @@ class Database:
                 return results
 
             except mysql.connector.Error as err:
-                utils.print(f"❌ Database (select: {query}) error: {err}", 0)
+                utils.print(f"⛔ Database (select: {query}) error: {err}", 0)
                 return []
 
     def query(self, query: str, params: Optional[Tuple] = None) -> None:
@@ -158,7 +167,29 @@ class Database:
                 utils.print("✅ Query successfully executed.", 1)
 
             except mysql.connector.Error as err:
-                utils.print(f"❌ Database (query) error: {err}", 0)
+                utils.print(f"⛔ Database (query) error: {err}", 0)
+
+    def insert_many(self, query: str, data_to_insert: list = []) -> None:
+        with self.db_conn.cursor() as cursor:
+
+            batch_size = 10000
+            for i in range(0, len(data_to_insert), batch_size):
+                batch = data_to_insert[i : i + batch_size]
+                try:
+                    cursor.executemany(query, batch)
+                    self.db_conn.commit()
+                    utils.print(
+                        f"✅ Succcessfully inserted batch {i//batch_size + 1} (rows {i}-{min(i+batch_size, len(data_to_insert))})",
+                        1,
+                    )
+                except mysql.connector.Error as err:
+                    self.db_conn.rollback()
+                    utils.print(
+                        f"⛔ Error when inserting batch {i//batch_size + 1}: {err}",
+                        1,
+                    )
+                    break
+            utils.print("✅ Query successfully executed.", 1)
 
     def close_connection(self) -> None:
         if self.db_conn and self.db_conn.is_connected():
