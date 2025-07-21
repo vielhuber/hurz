@@ -59,6 +59,12 @@ class Utils:
             - (datetime.fromtimestamp(os.path.getmtime(filename), tz=timezone.utc))
         ).total_seconds() / 60
 
+    def date_is_minutes_old(self, timestamp: int) -> float:
+        return (
+            (datetime.now(timezone.utc))
+            - (datetime.fromtimestamp(timestamp, tz=timezone.utc))
+        ).total_seconds() / 60
+
     def format_asset_name(self, name: str) -> str:
         # step 1: _ -> space
         name = name.replace("_", " ")

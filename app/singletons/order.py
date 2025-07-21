@@ -30,10 +30,8 @@ class Order:
             )
             return False
 
-        # load small amount
+        # load latest amount
         await history.load_data(
-            filename="tmp/tmp_live_data.csv",
-            delete_old=True,
             show_overall_estimation=False,
             time_back_in_months=None,
             time_back_in_hours=4,  # min. 2 hours needed because of window
@@ -43,16 +41,19 @@ class Order:
 
         # run fulltest (only for information)
         fulltest_result = await utils.run_sync_as_async(
-            fulltest.run_fulltest, "tmp/tmp_live_data.csv", None, None
+            fulltest.run_fulltest, store.trade_asset, store.trade_platform, None, None
         )
         if fulltest_result is None:
             utils.print("⛔ Fulltest could not be performed.", 0)
             return False
         utils.print("\n" + fulltest_result["report"].to_string(), 1)
 
-        # load live data (already collected for 5 minutes)
-        df = pd.read_csv("tmp/tmp_live_data.csv", na_values=["None"])
+        # load live data (already collected)
+        df = database.select('SELECT * FROM trading_data WHERE trade_asset = %s AND trade_platform = %s', (store.trade_asset, store.trade_platform))
+        df = pd.DataFrame(df)
+        df = df.rename(columns={'trade_asset': 'Waehrung', 'trade_platform': 'Plattform', 'timestamp': 'Zeitpunkt', 'price': 'Wert'})
         df.dropna(subset=["Wert"], inplace=True)
+        df['Wert'] = df['Wert'].astype(float)
         df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
 
         # ensure data is sorted by time

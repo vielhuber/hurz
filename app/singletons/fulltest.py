@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 from typing import Optional, Dict, Any
 
-from app.utils.singletons import store, utils, asset, settings
+from app.utils.singletons import store, utils, asset, settings, database
 from app.utils.helpers import singleton
 
 
@@ -12,13 +12,17 @@ class FullTest:
 
     def run_fulltest(
         self,
-        filename: str,
+        trade_asset: str,
+        trade_platform: str,
         startzeit: Optional[Any] = None,
         endzeit: Optional[Any] = None,
     ) -> Optional[Dict[str, Any]]:
-        df = pd.read_csv(filename, na_values=["None"])
+        # load data
+        df = database.select('SELECT * FROM trading_data WHERE trade_asset = %s AND trade_platform = %s', (trade_asset,trade_platform))
+        df = pd.DataFrame(df)
+        df = df.rename(columns={'trade_asset': 'Waehrung', 'trade_platform': 'Plattform', 'timestamp': 'Zeitpunkt', 'price': 'Wert'})
         df.dropna(subset=["Wert"], inplace=True)
-        df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
+        df['Wert'] = df['Wert'].astype(float)
 
         # determine time range
         if startzeit is not None:
@@ -172,10 +176,9 @@ class FullTest:
         store.trade_confidence = 100
 
         last_quote_trading = None
-        last_quote_success = None
         while True:
             fulltest_result = await utils.run_sync_as_async(
-                self.run_fulltest, store.historic_data_filename, None, None
+                self.run_fulltest, store.trade_asset, store.trade_platform, None, None
             )
             utils.print("\n" + fulltest_result["report"].to_string(), 1)
 
@@ -208,6 +211,5 @@ class FullTest:
             else:
                 store.trade_confidence -= 1
             last_quote_trading = fulltest_result["data"]["quote_trading"]
-            last_quote_success = fulltest_result["data"]["quote_success"]
 
         settings.save_current_settings()

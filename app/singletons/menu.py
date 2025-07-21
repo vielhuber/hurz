@@ -11,6 +11,7 @@ from app.utils.singletons import (
     asset,
     autotrade,
     boot,
+    database,
     diagrams,
     fulltest,
     history,
@@ -98,23 +99,17 @@ class Menu:
             utils.print_logo()
             print(help_text)
 
+            last_timestamp_historic = asset.get_last_timestamp_historic(store.trade_asset, store.trade_platform)
+
             option1 = "Load historical data"
-            if os.path.exists(store.historic_data_filename):
-                timestamp = os.path.getmtime(store.historic_data_filename)
-                datum = utils.correct_datetime_to_string(
-                    timestamp, "%d.%m.%y %H:%M:%S", False
-                )
-                option1 += " (from " + datum + ")"
+            if last_timestamp_historic is not None:
+                option1 += " (from " + last_timestamp_historic + ")"
             else:
                 option1 += " (Data not available)"
 
             option2 = "Verify historical data"
-            if os.path.exists(store.historic_data_filename):
-                timestamp = os.path.getmtime(store.historic_data_filename)
-                datum = utils.correct_datetime_to_string(
-                    timestamp, "%d.%m.%y %H:%M:%S", False
-                )
-                option2 += " (from " + datum + ")"
+            if last_timestamp_historic is not None:
+                option2 += " (from " + last_timestamp_historic + ")"
             else:
                 option2 += " (Data not available)"
 
@@ -137,7 +132,7 @@ class Menu:
                 option5 += " (not possible)"
 
             option6 = "Draw diagram"
-            if not os.path.exists(store.historic_data_filename):
+            if last_timestamp_historic is None:
                 option6 += " (not possible)"
 
             option7 = "Show live-status"
@@ -199,8 +194,6 @@ class Menu:
 
             if answers["main_selection"] == option1:
                 await history.load_data(
-                    filename=store.historic_data_filename,
-                    delete_old=False,
                     show_overall_estimation=False,
                     time_back_in_months=store.historic_data_period_in_months,
                     time_back_in_hours=None,
@@ -219,7 +212,7 @@ class Menu:
 
             elif answers["main_selection"] == option3:
                 await utils.run_sync_as_async(
-                    training.train_active_model, store.historic_data_filename
+                    training.train_active_model
                 )
                 await asyncio.sleep(1)
 
@@ -228,7 +221,7 @@ class Menu:
             ):
                 await fulltest.determine_confidence_based_on_fulltests()
                 fulltest_result = await utils.run_sync_as_async(
-                    fulltest.run_fulltest, store.historic_data_filename, None, None
+                    fulltest.run_fulltest, store.trade_asset, store.trade_platform, None, None
                 )
                 utils.print("\n" + fulltest_result["report"].to_string(), 0)
                 await asyncio.sleep(1)
@@ -258,9 +251,7 @@ class Menu:
                         )
                         await asyncio.sleep(waiting_time)
 
-            elif answers["main_selection"] == option6 and os.path.exists(
-                store.historic_data_filename
-            ):
+            elif answers["main_selection"] == option6 and last_timestamp_historic is not None:
                 diagrams.print_diagrams()
                 await asyncio.sleep(3)
 
@@ -624,7 +615,8 @@ class Menu:
                         "fulltest", name=(f"Determine confidence / run fulltest on all")
                     ),
                     Choice("trade", name=(f"Trade all optimally")),
-                    Choice("all", name=(f"Do all of the above")),
+                    Choice("all_no_trade", name=(f"Do all of the above (without trading)")),
+                    Choice("all_trade", name=(f"Do all of the above (with trading)")),
                     Choice("back", name=(f"Back")),
                 ],
             }

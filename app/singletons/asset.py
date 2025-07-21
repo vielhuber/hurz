@@ -122,3 +122,15 @@ class Asset:
             if assets__value["name"] == asset:
                 return float(assets__value["return_percent"])
         return 0.0
+
+    def get_last_timestamp_historic(
+        self, trade_asset: str, trade_platform: str
+    ) -> Optional[str]:
+        last_timestamp_historic = database.select('SELECT timestamp FROM trading_data WHERE trade_asset = %s AND trade_platform = %s ORDER BY timestamp DESC LIMIT 1', (trade_asset, trade_platform))
+        if len(last_timestamp_historic) > 0:
+            last_timestamp_historic = utils.correct_datetime_to_string(
+                last_timestamp_historic[0]["timestamp"].timestamp(), "%d.%m.%y %H:%M:%S", False
+            )
+        else:
+            last_timestamp_historic = None
+        return last_timestamp_historic

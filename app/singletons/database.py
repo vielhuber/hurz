@@ -24,6 +24,7 @@ class Database:
                 password=self.DB_PASSWORD,
                 database=self.DB_NAME,
                 port=self.DB_PORT,
+                autocommit=True
             )
             utils.print(
                 f"✅ Sucessfully connected to mysql database '{self.DB_NAME}'.", 1

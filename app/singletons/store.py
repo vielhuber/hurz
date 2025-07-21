@@ -22,7 +22,6 @@ class Store:
 
         # misc
         self.model_classes = {}
-        self.historic_data_filename = None
         self.filename_model = None
         self.current_ip_address = "127.0.0.1"
         self.websockets_connection = None

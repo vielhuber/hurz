@@ -48,7 +48,7 @@ class AutoTrade:
         threading.Thread(target=self.waiting_for_input, daemon=True).start()
         utils.print("", 0, False)
 
-        if mode in ["data", "fulltest", "verify", "train", "all"]:
+        if mode in ["data", "fulltest", "verify", "train", "all_no_trade", "all_trade"]:
             for assets__key, assets__value in enumerate(assets):
                 active_asset = assets__value["name"]
                 active_asset_information = asset.get_asset_information(
@@ -71,7 +71,7 @@ class AutoTrade:
                     utils.print("ℹ️ Auto mode cancelled by user.", 1)
                     return
 
-        if mode in ["trade", "all"]:
+        if mode in ["trade", "all_trade"]:
 
             used_assets = []
             store.trades_overall_cur = 0
@@ -235,16 +235,13 @@ class AutoTrade:
         settings.refresh_dependent_settings()
 
         # load historic data (if too old)
-        if mode in ["data", "all"]:
+        if mode in ["data", "all_no_trade", "all_trade"]:
             utils.print("⏳ LOADING HISTORIC DATA...", 0)
-            if not os.path.exists(
-                store.historic_data_filename
-            ) or utils.file_modified_before_minutes(store.historic_data_filename) > (
+            last_timestamp_historic = asset.get_last_timestamp_historic(store.trade_asset, store.trade_platform)
+            if last_timestamp_historic is None or utils.date_is_minutes_old(last_timestamp_historic) > (
                 store.auto_trade_refresh_time
             ):
                 await history.load_data(
-                    filename=store.historic_data_filename,
-                    delete_old=False,
                     show_overall_estimation=True,
                     time_back_in_months=store.historic_data_period_in_months,
                     time_back_in_hours=None,
@@ -262,7 +259,7 @@ class AutoTrade:
                 )
 
         # verify data
-        if mode in ["verify", "all"]:
+        if mode in ["verify", "all_no_trade", "all_trade"]:
             utils.print("⏳ VERIFYING HISTORIC DATA...", 0)
             result = await utils.run_sync_as_async(
                 history.verify_data_of_asset,
@@ -276,7 +273,7 @@ class AutoTrade:
                 )
 
         # train model (if too old)
-        if mode in ["train", "all"]:
+        if mode in ["train", "all_no_trade", "all_trade"]:
             utils.print("⏳ TRAINING MODEL...", 0)
             if not os.path.exists(
                 store.filename_model
@@ -284,7 +281,7 @@ class AutoTrade:
                 store.auto_trade_refresh_time
             ):
                 await utils.run_sync_as_async(
-                    training.train_active_model, store.historic_data_filename
+                    training.train_active_model
                 )
                 utils.print(
                     f"✅ Model successfully trained.",
@@ -297,7 +294,7 @@ class AutoTrade:
                 )
 
         # run fulltest and determine optimal trade_confidence
-        if mode in ["fulltest", "all"]:
+        if mode in ["fulltest", "all_no_trade", "all_trade"]:
             utils.print("⏳ RUNNING FULLTEST...", 0)
             if (
                 active_asset_information is None

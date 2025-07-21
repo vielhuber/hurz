@@ -67,10 +67,6 @@ class Settings:
                 utils.print(f"⛔ Error loading settings: {e}", 1)
 
     def refresh_dependent_settings(self) -> None:
-        store.historic_data_filename = history.get_filename_of_historic_data(
-            store.trade_asset
-        )
-
         store.filename_model = (
             "models/model_"
             + slugify(store.trade_platform)

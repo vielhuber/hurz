@@ -17,19 +17,12 @@ class History:
 
     async def load_data(
         self,
-        filename: str,
-        delete_old: bool = False,
         show_overall_estimation: bool = False,
         time_back_in_months: int = 3,
         time_back_in_hours: float = None,
         trade_asset: str = None,
         trade_platform: str = None,
     ) -> None:
-
-        # delete old file
-        if delete_old is True and os.path.exists(filename):
-            os.remove(filename)
-            utils.print(f"✅ Old file {filename} deleted.", 1)
 
         # current time (now)
         current_time = int(time.time())
@@ -82,15 +75,12 @@ class History:
 
         # create cache for faster testing later on
         cache = None
-        if os.path.exists(filename):
-            cache = pd.read_csv(filename, na_values=["None"])
-            cache["Zeitpunkt"] = pd.to_datetime(cache["Zeitpunkt"], errors="coerce")
+        cache_db = database.select('SELECT * FROM trading_data WHERE trade_asset = %s AND trade_platform = %s', (trade_asset,trade_platform))
+        if len(cache_db) > 0:
+            cache = pd.DataFrame(cache_db)
+            cache = cache.rename(columns={'trade_asset': 'Waehrung', 'trade_platform': 'Plattform', 'timestamp': 'Zeitpunkt', 'price': 'Wert'})
             cache.dropna(subset=["Zeitpunkt"], inplace=True)
-
-        # create file if not exists
-        if not os.path.exists(filename):
-            with open(filename, "w", encoding="utf-8") as file:
-                file.write("Waehrung,Zeitpunkt,Wert\n")  # header of csv file
+            cache['Wert'] = cache['Wert'].astype(float)
 
         with open("tmp/historic_data_status.json", "w", encoding="utf-8") as file:
             file.write("")
@@ -146,17 +136,7 @@ class History:
                     estimation_count_all = len(assets)
                     for assets__value in assets:
                         if (
-                            os.path.exists(
-                                self.get_filename_of_historic_data(
-                                    assets__value["name"]
-                                )
-                            )
-                            and os.path.getsize(
-                                self.get_filename_of_historic_data(
-                                    assets__value["name"]
-                                )
-                            )
-                            > 1024 * 1024
+                            database.select('SELECT COUNT(*) as count FROM trading_data WHERE trade_asset = %s AND trade_platform = %s', (assets__value["name"], store.trade_platform))[0]["count"] > 0
                         ):
                             estimation_count_done += 1
                 utils.print(
@@ -204,28 +184,15 @@ class History:
 
                     # combine with existing data if available
                     if True is True:
-                        if os.path.exists(filename):
-                            df_alt = pd.read_csv(filename)
-                            df = pd.concat([df_alt, df_neu], ignore_index=True)
-                        else:
-                            df = df_neu
-
-                    # fetch data from database
-                    if True is True:
                         trading_data = database.select(
                             "SELECT * FROM trading_data WHERE trade_asset = %s AND trade_platform = %s",
                             (trade_asset, trade_platform),
                         )
                         if trading_data:
-                            df = pd.DataFrame(
-                                trading_data,
-                                columns=[
-                                    "trade_asset",
-                                    "trade_platform",
-                                    "timestamp",
-                                    "price",
-                                ],
-                            )
+                            df_alt = pd.DataFrame(trading_data)
+                            df_alt = cache.rename(columns={'trade_asset': 'Waehrung', 'trade_platform': 'Plattform', 'timestamp': 'Zeitpunkt', 'price': 'Wert'})
+                            df_alt.dropna(subset=["Zeitpunkt"], inplace=True)
+                            df_alt['Wert'] = df_alt['Wert'].astype(float)
                             df = pd.concat([df_alt, df_neu], ignore_index=True)
 
                     # keep 5 spaces after comma
@@ -268,10 +235,6 @@ class History:
                     df["Zeitpunkt"] = df["Zeitpunkt"].dt.strftime(
                         "%Y-%m-%d %H:%M:%S.%f"
                     )
-
-                    # save to file
-                    if True is True:
-                        df.to_csv(filename, index=False, na_rep="None")
 
                     # save to database
                     if True is True:
@@ -324,26 +287,16 @@ class History:
                 )
                 continue
 
-            # delete file if verification fails (disabled)
-            if True is False:
-                if result is False:
-                    filename = self.get_filename_of_historic_data(assets__value["name"])
-                    if os.path.exists(filename):
-                        os.remove(filename)
-                        utils.print(f"⛔ {filename} deleted due to invalid data.", 1)
-
     def verify_data_of_asset(self, asset: str, output_success: bool = True) -> bool:
-        filename = self.get_filename_of_historic_data(asset)
-
-        # debug
-        # if "audcad.csv" not in filename:
-        #    return True
-
-        if not os.path.exists(filename):
-            utils.print(f"⛔ {filename}: File missing!", 1)
+        # read from database
+        data = database.select('SELECT * FROM trading_data WHERE trade_asset = %s', (asset,))
+        if len(asset) == 0:
+            utils.print(f"⛔ {asset}: No data found in database for {asset}!", 1)
             return False
+        df = pd.DataFrame(data)
+        df = df.rename(columns={'trade_asset': 'Waehrung', 'trade_platform': 'Plattform', 'timestamp': 'Zeitpunkt', 'price': 'Wert'})
+        df['Wert'] = df['Wert'].astype(float)
 
-        df = pd.read_csv(filename, na_values=["None"])
         df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
 
         # determine first and last time
@@ -368,7 +321,7 @@ class History:
             )
             if first_time_unix != expected_first_time_unix:
                 utils.print(
-                    f"⛔ {filename}: First time {utils.correct_datetime_to_string(first_time_unix, '%d.%m.%y %H:%M:%S', False)} != {utils.correct_datetime_to_string(expected_first_time_unix, '%d.%m.%y %H:%M:%S', False)} for {asset}!",
+                    f"⛔ {asset}: First time {utils.correct_datetime_to_string(first_time_unix, '%d.%m.%y %H:%M:%S', False)} != {utils.correct_datetime_to_string(expected_first_time_unix, '%d.%m.%y %H:%M:%S', False)} for {asset}!",
                     0,
                 )
                 return False
@@ -378,7 +331,7 @@ class History:
             datetime.now(pytz.utc) - pd.DateOffset(days=3)
         ):
             utils.print(
-                f"⛔ {filename}: Last time {last_time} is older than 3 days for {asset}!",
+                f"⛔ {asset}: Last time {last_time} is older than 3 days for {asset}!",
                 0,
             )
             return False
@@ -391,7 +344,7 @@ class History:
                 if "otc" not in store.trade_asset and not utils.is_weekend(row):
                     if pd.isna(row["Wert"]) or row["Wert"] == "None":
                         utils.print(
-                            f"⛔ {filename}: Invalid value in line {index + 1} for {asset}!",
+                            f"⛔ {asset}: Invalid value in line {index + 1} for {asset}!",
                             0,
                         )
                         return False
@@ -399,7 +352,7 @@ class History:
                 # check if time is valid
                 if row["Zeitpunkt"] != first_time + pd.Timedelta(minutes=minutes):
                     utils.print(
-                        f"⛔ {filename}: Invalid time in line {index + 1} for {asset}! - Expected: {first_time + pd.Timedelta(minutes=minutes)} - Found: {row['Zeitpunkt']}",
+                        f"⛔ {asset}: Invalid time in line {index + 1} for {asset}! - Expected: {first_time + pd.Timedelta(minutes=minutes)} - Found: {row['Zeitpunkt']}",
                         0,
                     )
                     return False
@@ -408,7 +361,7 @@ class History:
 
             if first_time + pd.Timedelta(minutes=minutes - 1) != last_time:
                 utils.print(
-                    f"⛔ {filename}: Last time does not match for {asset}! - Expected: {first_time + pd.Timedelta(minutes=minutes - 1)} - Found: {last_time}",
+                    f"⛔ {asset}: Last time does not match for {asset}! - Expected: {first_time + pd.Timedelta(minutes=minutes - 1)} - Found: {last_time}",
                     0,
                 )
                 return False
@@ -429,7 +382,7 @@ class History:
                 expected_time = expected_times[wrong_index]
                 found_time = df["Zeitpunkt"].iloc[wrong_index]
                 utils.print(
-                    f"⛔ {filename}: Invalid time in line {wrong_index + 1} for {asset}! - Expected: {expected_time} - Found: {found_time}",
+                    f"⛔ {asset}: Invalid time in line {wrong_index + 1} for {asset}! - Expected: {expected_time} - Found: {found_time}",
                     0,
                 )
                 return False
@@ -447,7 +400,7 @@ class History:
                 if not invalid_weekdays.empty:
                     first_invalid = invalid_weekdays.index[0]
                     utils.print(
-                        f"⛔ {filename}: Invalid value (None) on a weekday in line {first_invalid + 1} for {asset}!",
+                        f"⛔ {asset}: Invalid value (None) on a weekday in line {first_invalid + 1} for {asset}!",
                         0,
                     )
                     return False
@@ -457,7 +410,7 @@ class History:
                 if not invalid_weekends.empty:
                     first_invalid = invalid_weekends.index[0]
                     utils.print(
-                        f"⛔ {filename}: Invalid value (should be None) on a weekend in line {first_invalid + 1} for {asset}!",
+                        f"⛔ {asset}: Invalid value (should be None) on a weekend in line {first_invalid + 1} for {asset}!",
                         0,
                     )
                     return False
@@ -482,7 +435,7 @@ class History:
                     # Only report streaks for values greater than 0.0005
                     if numeric_value is not None and numeric_value > 0.0005:
                         utils.print(
-                            f'⛔ {filename}: Found a streak of {long_streaks.iloc[0]} identical values ("{value_of_streak}") starting at line {first_invalid_index + 1}.',
+                            f'⛔ {asset}: Found a streak of {long_streaks.iloc[0]} identical values ("{value_of_streak}") starting at line {first_invalid_index + 1}.',
                             0,
                         )
                         return False
@@ -491,24 +444,15 @@ class History:
             expected_last_time = first_time + pd.Timedelta(minutes=len(df) - 1)
             if expected_last_time != last_time:
                 utils.print(
-                    f"⛔ {filename}: Last time does not match for {asset}! - Expected: {expected_last_time} - Found: {last_time}",
+                    f"⛔ {asset}: Last time does not match for {asset}! - Expected: {expected_last_time} - Found: {last_time}",
                     0,
                 )
                 return False
 
         if output_success is True:
-            utils.print(f"✅ {filename} completely correct.", 0)
+            utils.print(f"✅ {asset} completely correct.", 0)
 
         return True
-
-    def get_filename_of_historic_data(self, asset: str) -> str:
-        return (
-            "data/historic_data_"
-            + slugify(store.trade_platform)
-            + "_"
-            + slugify(asset)
-            + ".csv"
-        )
 
     def data_is_already_loaded(
         self, request_time: int, offset: int, cache: pd.DataFrame = None

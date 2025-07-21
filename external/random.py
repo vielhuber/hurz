@@ -9,7 +9,7 @@ class RandomModel:
     name = "random"
 
     def model_train_model(
-        filename: str, filename_model: str, train_window: int, train_horizon: int
+        trade_asset: str, trade_platform: str, filename_model: str, train_window: int, train_horizon: int
     ) -> None:
         # pseudo save
         with open(filename_model, "w", encoding="utf-8") as f:
