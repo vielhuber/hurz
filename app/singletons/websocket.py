@@ -177,7 +177,7 @@ class WebSocket:
                             f.write("")
                         await ws.send(f"42{content}")
             except Exception as e:
-                utils.print(f"⛔ Error sending input: {e}")
+                utils.print(f"⛔ Error sending input: {e}", 2)
                 # sys.exit()
             await asyncio.sleep(1)  # breathe
 
@@ -186,9 +186,9 @@ class WebSocket:
             while True:
                 message = await ws.recv()
                 if isinstance(message, str) and message == "2":
-                    # utils.print("ℹ️ Get PING", 2)
+                    utils.print("ℹ️ 🔌🔌🔌🔌🔌 ✅ GET PING", 2)
                     await ws.send("3")
-                    # utils.print("ℹ️ Automatically PONG sent", 2)
+                    utils.print("ℹ️ 🔌🔌🔌🔌🔌 ✅ SENT PONG", 2)
                 elif isinstance(message, str) and message.startswith("451-"):
                     utils.print(f"ℹ️ {message}", 2)
                     if '"successupdateBalance"' in message:
@@ -565,11 +565,11 @@ class WebSocket:
     async def ws_keepalive(self, ws: WebSocketClientProtocol) -> None:
         while True:
             try:
-                # utils.print("ℹ️ PING", 1)
+                utils.print("ℹ️ 🔌🔌🔌🔌🔌 ⚠️ SEND PING", 1)
                 # await ws.send('42["ping-server"]')  # <- socket.io-ping
                 await ws.send('42["ps"]')  # <- socket.io-ping
                 # await ws.send('3')  # <- socket.io-ping
             except Exception as e:
                 utils.print(f"⛔ Ping failed: {e}", 0)
                 break
-            await asyncio.sleep(30)
+            await asyncio.sleep(25)

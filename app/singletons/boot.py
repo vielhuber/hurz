@@ -33,7 +33,7 @@ class Boot:
                     utils.print("ℹ️ Writing file.", 1)
 
         if store.running_tasks:
-            utils.print(f"ℹ️ Closing tasks... {store.running_tasks}", 1)
+            utils.print(f"ℹ️ Closing tasks... ({len(store.running_tasks)}x)", 1)
             for task in store.running_tasks:
                 task.cancel()
                 try:

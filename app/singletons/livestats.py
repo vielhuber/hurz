@@ -10,7 +10,7 @@ import warnings
 from datetime import datetime
 from tabulate import tabulate
 
-from app.utils.singletons import order, store, utils
+from app.utils.singletons import order, store, utils, database
 from app.utils.helpers import singleton
 
 warnings.filterwarnings("ignore", category=UserWarning, module="pygame.pkgdata")
@@ -392,3 +392,47 @@ class LiveStats:
                 store.livestats_stop = True
                 break
             time.sleep(0.1)
+
+    async def print_data_progress(self) -> None:
+        store.livestats_stop = False
+
+        listener_thread = threading.Thread(
+            target=self.print_live_stats_listen_for_exit, daemon=True
+        )
+        listener_thread.start()
+
+        utils.print("ℹ️ Loading progress of trading data...", 0)
+
+        while not store.livestats_stop:
+            time_in_seconds_since_begin = database.select(
+            """
+            SELECT
+                TIMESTAMPDIFF(MINUTE,
+                    DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), '%Y-%m-01'),
+                    NOW() - INTERVAL 24 HOUR
+                ) as time
+            """
+            )
+            time_in_seconds_since_begin = int(time_in_seconds_since_begin[0]["time"])
+            data = database.select("""
+                SELECT
+                    trade_platform,
+                    trade_asset,
+                    MIN(timestamp),
+                    MAX(timestamp),
+                    ROUND((COUNT(*) / %s), 4) as progress
+                FROM trading_data
+                WHERE timestamp <= (NOW() - INTERVAL 24 HOUR)
+                GROUP BY trade_platform, trade_asset
+                ORDER BY trade_platform ASC, trade_asset ASC
+            """, (time_in_seconds_since_begin,))
+
+            total_progress_sum = sum(row['progress'] for row in data)
+            average_progress = total_progress_sum / len(data)
+
+            utils.clear_console()
+            print(tabulate(data, headers="keys", tablefmt="simple"))
+            utils.print(f"⚠️ Overall progress: {average_progress:.4f}", 0)
+            utils.print("ℹ️ Press [Enter] to exit...", 0)
+
+            await asyncio.sleep(60)

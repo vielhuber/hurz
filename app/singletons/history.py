@@ -5,6 +5,8 @@ import pandas as pd
 import pytz
 import sys
 import time
+import functools
+from tabulate import tabulate
 from datetime import datetime
 from slugify import slugify
 
@@ -169,14 +171,17 @@ class History:
                         df_neu["Zeitpunkt"], errors="coerce"
                     )
                     df_neu.dropna(subset=["Zeitpunkt"], inplace=True)
+
                     # resample to 1 second (only for time)
                     df_neu.set_index("Zeitpunkt", inplace=True)
                     df_neu = df_neu.resample("1s").last().dropna().reset_index()
                     df_neu["Wert"] = (
                         df_neu["Wert"].astype(float).map(lambda x: f"{x:.5f}")
                     )
+
                     # after resampling sort cols
                     df_neu = df_neu[["Waehrung", "Zeitpunkt", "Wert"]]
+
                     # format time
                     df_neu["Zeitpunkt"] = df_neu["Zeitpunkt"].dt.strftime(
                         "%Y-%m-%d %H:%M:%S.%f"
@@ -194,6 +199,33 @@ class History:
                             df_alt.dropna(subset=["Zeitpunkt"], inplace=True)
                             df_alt['Wert'] = df_alt['Wert'].astype(float)
                             df = pd.concat([df_alt, df_neu], ignore_index=True)
+                        else:
+                            df = df_neu
+
+                    # fill hole from 2025-03-30 02:00:00 to 2025-03-30 03:00:00
+                    target_time_value_dt = pd.to_datetime("2025-03-30 03:00:00")
+                    df_neu_temp_wert = pd.to_numeric(df["Wert"], errors='coerce')
+                    filtered_df = df_neu_temp_wert[df["Zeitpunkt"] == target_time_value_dt]
+                    if filtered_df.empty:
+                        utils.print(
+                            f"ℹ️ No data found for {target_time_value_dt} in {store.trade_asset}.",
+                            1,
+                        )
+                    if not filtered_df.empty:
+                        value_at_0300 = filtered_df.iloc[0]
+                        currency_at_0300 = df[df["Zeitpunkt"] == target_time_value_dt]["Waehrung"].iloc[0]
+                        start_missing = pd.to_datetime("2025-03-30 02:00:00")
+                        end_missing = pd.to_datetime("2025-03-30 02:59:00")
+                        missing_time_range = pd.date_range(start=start_missing, end=end_missing, freq='1min')
+                        missing_data_list = []
+                        for ts in missing_time_range:
+                            missing_data_list.append({
+                                "Waehrung": currency_at_0300,
+                                "Zeitpunkt": ts,
+                                "Wert": f"{value_at_0300:.5f}"
+                            })
+                        df_missing = pd.DataFrame(missing_data_list)
+                        df = pd.concat([df, df_missing], ignore_index=True)
 
                     # keep 5 spaces after comma
                     df["Wert"] = pd.to_numeric(df["Wert"], errors="coerce").map(
@@ -238,10 +270,18 @@ class History:
 
                     # save to database
                     if True is True:
+                        """
                         database.query(
                             "DELETE FROM trading_data WHERE trade_asset = %s AND trade_platform = %s",
                             (trade_asset, trade_platform),
                         )
+                        """
+                        await utils.run_sync_as_async(
+                            database.query,
+                            "DELETE FROM trading_data WHERE trade_asset = %s AND trade_platform = %s",
+                            (trade_asset, trade_platform),
+                        )
+
                         df_tmp = df.copy()
                         # temporarily add trade_platform
                         df_tmp["trade_platform"] = store.trade_platform
@@ -254,9 +294,16 @@ class History:
                             ]
                         ]
                         df_tmp = df_tmp.values.tolist()
+
+                        # insert into database (async)
+                        """
                         database.insert_many(
                             "INSERT INTO trading_data (trade_asset, trade_platform, timestamp, price) VALUES (%s, %s, %s, %s)",
                             df_tmp,
+                        )
+                        """
+                        await utils.run_sync_as_async(
+                            database.insert_many, "INSERT INTO trading_data (trade_asset, trade_platform, timestamp, price) VALUES (%s, %s, %s, %s)", df_tmp
                         )
 
                     # reset tmp file
@@ -290,7 +337,7 @@ class History:
     def verify_data_of_asset(self, asset: str, output_success: bool = True) -> bool:
         # read from database
         data = database.select('SELECT * FROM trading_data WHERE trade_asset = %s', (asset,))
-        if len(asset) == 0:
+        if len(data) == 0:
             utils.print(f"⛔ {asset}: No data found in database for {asset}!", 1)
             return False
         df = pd.DataFrame(data)

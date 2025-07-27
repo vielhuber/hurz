@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import threading
 from colorama import Fore, Back, Style, init
 from datetime import datetime
 from InquirerPy import prompt_async
@@ -100,6 +101,9 @@ class Menu:
             print(help_text)
 
             last_timestamp_historic = asset.get_last_timestamp_historic(store.trade_asset, store.trade_platform)
+            last_timestamp_historic = utils.correct_datetime_to_string(
+                last_timestamp_historic, "%d.%m.%y %H:%M:%S", False
+            )
 
             option1 = "Load historical data"
             if last_timestamp_historic is not None:
@@ -137,13 +141,15 @@ class Menu:
 
             option7 = "Show live-status"
 
-            option8 = "Change settings"
+            option8 = "Show data progress"
 
-            option9 = "Refresh view"
+            option9 = "Change settings"
 
-            option10 = "Auto-Trade Mode"
+            option10 = "Refresh view"
 
-            option11 = "Exit"
+            option11 = "Auto-Trade Mode"
+
+            option12 = "Exit"
 
             questions = [
                 {
@@ -163,9 +169,10 @@ class Menu:
                             option9,
                             option10,
                             option11,
+                            option12,
                         ]
                         if store.websockets_connection is not None
-                        else [option7, option9, option11]
+                        else [option7, option8, option10, option12]
                     ),
                     "default": store.main_menu_default,
                 },
@@ -193,6 +200,30 @@ class Menu:
                 continue
 
             if answers["main_selection"] == option1:
+                await asyncio.create_task(history.load_data(
+                    show_overall_estimation=False,
+                    time_back_in_months=store.historic_data_period_in_months,
+                    time_back_in_hours=None,
+                    trade_asset=store.trade_asset,
+                    trade_platform=store.trade_platform,
+                ))
+
+                """
+                thread = threading.Thread(
+                    target=utils.run_function_in_isolated_loop,
+                    args=(history.load_data, *(
+                        False,                                      # show_overall_estimation
+                        store.historic_data_period_in_months,       # time_back_in_months
+                        None,                                       # time_back_in_hours
+                        store.trade_asset,                          # trade_asset
+                        store.trade_platform,                       # trade_platform
+                    )),
+                    daemon=True
+                )
+                thread.start()
+                """
+
+                """
                 await history.load_data(
                     show_overall_estimation=False,
                     time_back_in_months=store.historic_data_period_in_months,
@@ -200,9 +231,11 @@ class Menu:
                     trade_asset=store.trade_asset,
                     trade_platform=store.trade_platform,
                 )
+                """
+
                 await asyncio.sleep(1)
 
-            if answers["main_selection"] == option2:
+            elif answers["main_selection"] == option2:
                 await utils.run_sync_as_async(
                     history.verify_data_of_asset,
                     asset=store.trade_asset,
@@ -259,17 +292,19 @@ class Menu:
                 await livestats.print_live_stats()
 
             elif answers["main_selection"] == option8:
-                await self.selection_menue()
+                await livestats.print_data_progress()
 
             elif answers["main_selection"] == option9:
+                await self.selection_menue()
+
+            elif answers["main_selection"] == option10:
                 utils.print("ℹ️ View is updating...", 0)
                 settings.load_settings()
 
-            elif answers["main_selection"] == option10:
-                await self.selection_auto_trade_menue()
-                utils.print("ℹ️ Closing auto trade mode.", 0)
-
             elif answers["main_selection"] == option11:
+                await self.selection_auto_trade_menue()
+
+            elif answers["main_selection"] == option12:
                 utils.print("ℹ️ Program will be ended.", 0)
                 store.stop_event.set()
                 for t in asyncio.all_tasks():
@@ -628,4 +663,10 @@ class Menu:
 
         else:
             utils.print("ℹ️ Starting auto mode in background...", 1)
-            await asyncio.create_task(autotrade.start_auto_mode(answer["mode"]))
+            # do this in a separate thread
+            #await asyncio.create_task(autotrade.start_auto_mode(answer["mode"]))
+            threading.Thread(
+                target=utils.run_function_in_isolated_loop,
+                args=(autotrade.start_auto_mode, answer["mode"]),
+                daemon=True
+            ).start()

@@ -106,8 +106,13 @@ class Database:
                         trade_asset VARCHAR(50) NOT NULL,
                         trade_platform VARCHAR(50) NOT NULL,
                         timestamp DATETIME NOT NULL,
-                        price DECIMAL(10, 5) NOT NULL,
-                        PRIMARY KEY (trade_asset, trade_platform, timestamp)
+                        price DECIMAL(10, 5) NULL,
+                        PRIMARY KEY (trade_asset, trade_platform, timestamp),
+
+                        INDEX idx_trade_asset (trade_asset ASC),
+                        INDEX idx_trade_platform (trade_platform ASC),
+                        INDEX idx_timestamp (timestamp ASC),
+                        INDEX idx_platform_asset_timestamp (trade_platform ASC, trade_asset ASC, timestamp ASC)
                     )
                 """,
             }
@@ -173,7 +178,7 @@ class Database:
     def insert_many(self, query: str, data_to_insert: list = []) -> None:
         with self.db_conn.cursor() as cursor:
 
-            batch_size = 50000
+            batch_size = 20000
             for i in range(0, len(data_to_insert), batch_size):
                 batch = data_to_insert[i : i + batch_size]
                 try:

@@ -146,7 +146,7 @@ class Utils:
             target_month += 12
             target_year -= 1
         try:
-            dt_three_months_ago = datetime(target_year, target_month, current_day)
+            dt_three_months_ago = datetime(target_year, target_month, 1)
         except ValueError:
             target_month += 1
             if target_month > 12:
@@ -154,3 +154,12 @@ class Utils:
                 target_year += 1
             dt_three_months_ago = datetime(target_year, target_month, 1)
         return int(dt_three_months_ago.timestamp())
+
+    def run_function_in_isolated_loop(self, func, *args, **kwargs):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(func(*args, **kwargs))
+        finally:
+            loop.close()
+            asyncio.set_event_loop(None)

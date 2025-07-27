@@ -69,6 +69,7 @@ class AutoTrade:
                 )
                 if not store.auto_mode_active:
                     utils.print("ℹ️ Auto mode cancelled by user.", 1)
+                    utils.clear_console()
                     return
 
         if mode in ["trade", "all_trade"]:
@@ -242,7 +243,7 @@ class AutoTrade:
                 store.auto_trade_refresh_time
             ):
                 await history.load_data(
-                    show_overall_estimation=True,
+                    show_overall_estimation=False,
                     time_back_in_months=store.historic_data_period_in_months,
                     time_back_in_hours=None,
                     trade_asset=store.trade_asset,
@@ -343,3 +344,5 @@ class AutoTrade:
                 store.auto_mode_active = False
                 break
             time.sleep(0.1)
+
+

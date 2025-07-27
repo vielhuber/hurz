@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 from typing import Optional, Dict, Any
 
-from app.utils.singletons import store, utils, asset, settings, database
+from app.utils.singletons import store, utils, asset, settings, database, history
 from app.utils.helpers import singleton
 
 
@@ -173,6 +173,15 @@ class FullTest:
         }
 
     async def determine_confidence_based_on_fulltests(self) -> int:
+        if (
+            history.verify_data_of_asset(asset=store.trade_asset, output_success=False)
+            is False
+        ):
+            utils.print(
+                f"⛔ Confidence determination aborted for {store.trade_asset} due to invalid data.", 0
+            )
+            return False
+
         store.trade_confidence = 100
 
         last_quote_trading = None
