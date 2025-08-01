@@ -10,7 +10,7 @@ import warnings
 from datetime import datetime
 from tabulate import tabulate
 
-from app.utils.singletons import order, store, utils, database
+from app.utils.singletons import order, store, utils, database, history
 from app.utils.helpers import singleton
 
 warnings.filterwarnings("ignore", category=UserWarning, module="pygame.pkgdata")
@@ -404,27 +404,17 @@ class LiveStats:
         utils.print("ℹ️ Loading progress of trading data...", 0)
 
         while not store.livestats_stop:
-            time_in_seconds_since_begin = database.select(
-            """
-            SELECT
-                TIMESTAMPDIFF(MINUTE,
-                    DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), '%Y-%m-01'),
-                    NOW() - INTERVAL 24 HOUR
-                ) as time
-            """
-            )
-            time_in_seconds_since_begin = int(time_in_seconds_since_begin[0]["time"])
+            time_in_seconds_since_begin = history.get_time_in_seconds_since_begin()
             data = database.select("""
                 SELECT
                     trade_platform,
                     trade_asset,
                     MIN(timestamp),
                     MAX(timestamp),
-                    ROUND((COUNT(*) / %s), 4) as progress
+                    LEAST(1, ROUND((COUNT(*) / %s), 4)) as progress
                 FROM trading_data
-                WHERE timestamp <= (NOW() - INTERVAL 24 HOUR)
                 GROUP BY trade_platform, trade_asset
-                ORDER BY trade_platform ASC, trade_asset ASC
+                ORDER BY progress DESC
             """, (time_in_seconds_since_begin,))
 
             total_progress_sum = sum(row['progress'] for row in data)
@@ -433,6 +423,10 @@ class LiveStats:
             utils.clear_console()
             print(tabulate(data, headers="keys", tablefmt="simple"))
             utils.print(f"⚠️ Overall progress: {average_progress:.4f}", 0)
-            utils.print("ℹ️ Press [Enter] to exit...", 0)
+            utils.print(
+                f"ℹ️ Last update: {utils.correct_datetime_to_string(time.time(), '%d.%m.%Y %H:%M:%S', False)}",
+                0,
+            )
+            utils.print("ℹ️ Press [Enter] to exit after next refresh...", 0)
 
-            await asyncio.sleep(60)
+            await asyncio.sleep(120)

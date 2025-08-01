@@ -42,7 +42,7 @@ class History:
 
         # output target time
         utils.print(
-            f"ℹ️ Target time: {utils.correct_datetime_to_string(store.target_time, '%d.%m.%y %H:%M:%S', True)}",
+            f"ℹ️ Target time: {utils.correct_datetime_to_string(store.target_time, '%d.%m.%y %H:%M:%S', False)}",
             1,
         )
 
@@ -75,6 +75,8 @@ class History:
 
         index = 174336071151  # ✅ random unique number
 
+        is_error = False
+
         # create cache for faster testing later on
         cache = None
         cache_db = database.select('SELECT * FROM trading_data WHERE trade_asset = %s AND trade_platform = %s', (trade_asset,trade_platform))
@@ -89,11 +91,24 @@ class History:
         with open("tmp/historic_data_raw.json", "w", encoding="utf-8") as file:
             json.dump([], file)
 
-        while store.target_time is not None and request_time > store.target_time:
+        while is_error is False and store.target_time is not None and request_time >= store.target_time - offset:
+
+            # format output
+            request_time_output_begin = utils.correct_datetime_to_string(
+                request_time - offset, "%d.%m.%y %H:%M:%S", False
+            )
+            request_time_output_end = utils.correct_datetime_to_string(request_time, "%d.%m.%y %H:%M:%S", False)
 
             # skip this request if this period is completely loaded already
-            if self.data_is_already_loaded(request_time, offset, cache) is True:
-                request_time -= offset - overlap
+            data_is_loaded = await self.data_is_already_loaded(request_time, offset, cache)
+            if data_is_loaded is True:
+                """
+                utils.print(
+                    f'ℹ️ OK [[{request_time_output_begin} - {request_time_output_end}]]',
+                    1,
+                )
+                """
+                request_time -= (offset - overlap)
                 continue
 
             history_request = [
@@ -113,7 +128,7 @@ class History:
                 or os.path.getsize("tmp/command.json") > 0
             ):
                 utils.print("ℹ️ Waiting for previous command to finish...", 1)
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.25)
             with open("tmp/command.json", "w", encoding="utf-8") as f:
                 json.dump(history_request, f)
 
@@ -121,7 +136,7 @@ class History:
                 file.write("pending")
 
             utils.print(
-                f'ℹ️ Historical data requested for time period until: {utils.correct_datetime_to_string(request_time, "%d.%m.%y %H:%M:%S", False)}',
+                f'⚠️ NO [[{request_time_output_begin} - {request_time_output_end}]]',
                 1,
             )
             if store.target_time is not None:
@@ -146,20 +161,27 @@ class History:
                     1,
                 )
 
-            request_time -= offset - overlap
+            request_time -= (offset - overlap)
 
             # wait until last request is done
             while True:
+                utils.print("ℹ️ Waiting for historical data to be loaded...", 1)
                 with open("tmp/historic_data_status.json", "r", encoding="utf-8") as f:
                     content = f.read().strip()
                 if content and content == "done":
                     break
-                await asyncio.sleep(1)  # small pause to breathe
+                if content and content == "error":
+                    is_error = True
+                    break
+                await asyncio.sleep(0.25)  # small pause to breathe
 
         while True:
             with open("tmp/historic_data_status.json", "r", encoding="utf-8") as f:
                 content = f.read().strip()
-            if content and content == "done":
+            if content and (content == "done" or content == "error"):
+                if content == "error":
+                    utils.print("⚠️ Not all historical data loaded. Saving anyway...", 0)
+
                 # sort and save
                 with open("tmp/historic_data_raw.json", "r", encoding="utf-8") as f:
                     raw = json.load(f)
@@ -187,7 +209,10 @@ class History:
                         "%Y-%m-%d %H:%M:%S.%f"
                     )
 
-                    # combine with existing data if available
+                    df = df_neu
+
+                    # combine with existing data if available (disabled)
+                    """
                     if True is True:
                         trading_data = database.select(
                             "SELECT * FROM trading_data WHERE trade_asset = %s AND trade_platform = %s",
@@ -201,6 +226,7 @@ class History:
                             df = pd.concat([df_alt, df_neu], ignore_index=True)
                         else:
                             df = df_neu
+                    """
 
                     # fill hole from 2025-03-30 02:00:00 to 2025-03-30 03:00:00
                     target_time_value_dt = pd.to_datetime("2025-03-30 03:00:00")
@@ -236,27 +262,22 @@ class History:
                     df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"], errors="coerce")
                     df.dropna(subset=["Zeitpunkt"], inplace=True)
 
-                    # delete all values before target time
-                    if store.target_time is not None:
-                        utils.print(
-                            f"ℹ️ Truncate data to {utils.correct_datetime_to_string(store.target_time, '%d.%m.%y %H:%M:%S', False)}",
-                            1,
-                        )
-                        processed_target_time = (
-                            pd.to_datetime(store.target_time, unit="s", utc=True)
-                            .tz_convert("Europe/Berlin")
-                            .tz_localize(None)
-                        )
-                        df = df[df["Zeitpunkt"] >= processed_target_time]
-
                     # remove weekends (trading free times) => Set to None!
                     if "otc" not in store.trade_asset:
+                        utils.print(
+                            f"ℹ️ Removing weekends.",
+                            1,
+                        )
                         df_tmp = df.copy()
                         df_tmp["Zeitpunkt"] = pd.to_datetime(
                             df_tmp["Zeitpunkt"], errors="coerce"
                         )
                         weekend_mask = df_tmp.apply(utils.is_weekend, axis=1)
                         df.loc[weekend_mask, "Wert"] = None
+                        utils.print(
+                            f"✅ Successfully removed weekends.",
+                            1,
+                        )
 
                     # sort all by time
                     df = df.sort_values("Zeitpunkt").drop_duplicates(
@@ -270,18 +291,6 @@ class History:
 
                     # save to database
                     if True is True:
-                        """
-                        database.query(
-                            "DELETE FROM trading_data WHERE trade_asset = %s AND trade_platform = %s",
-                            (trade_asset, trade_platform),
-                        )
-                        """
-                        await utils.run_sync_as_async(
-                            database.query,
-                            "DELETE FROM trading_data WHERE trade_asset = %s AND trade_platform = %s",
-                            (trade_asset, trade_platform),
-                        )
-
                         df_tmp = df.copy()
                         # temporarily add trade_platform
                         df_tmp["trade_platform"] = store.trade_platform
@@ -302,8 +311,50 @@ class History:
                             df_tmp,
                         )
                         """
+                        utils.print(
+                            f"ℹ️ Try to insert data in database.",
+                            1,
+                        )
+
+                        # debug
+                        with open("./tmp/df_tmp_list_debug.txt", "w") as f:
+                            f.write("--- begin ---\n")
+                            for row in df_tmp:
+                                f.write(str(row) + "\n")
+                            f.write("--- end ---\n")
+
                         await utils.run_sync_as_async(
-                            database.insert_many, "INSERT INTO trading_data (trade_asset, trade_platform, timestamp, price) VALUES (%s, %s, %s, %s)", df_tmp
+                            database.insert_many, """
+                                INSERT INTO trading_data
+                                (trade_asset, trade_platform, timestamp, price)
+                                VALUES (%s, %s, %s, %s)
+                                ON DUPLICATE KEY UPDATE
+                                price = VALUES(price)
+                            """, df_tmp
+                        )
+                        utils.print(
+                            f"✅ Successfully inserted data in database.",
+                            1,
+                        )
+
+                    # truncate all values before target time
+                    if store.target_time is not None:
+                        truncate_date = utils.correct_datetime_to_string(store.target_time, '%Y-%m-%d %H:%M:%S', False)
+                        utils.print(
+                            f"ℹ️ Truncate data to {truncate_date}...",
+                            1,
+                        )
+                        await utils.run_sync_as_async(
+                            database.query, """
+                                DELETE FROM trading_data
+                                WHERE trade_asset = %s
+                                AND trade_platform = %s
+                                AND timestamp < %s
+                            """, (trade_asset, trade_platform, truncate_date)
+                        )
+                        utils.print(
+                            f"✅ Successfully truncated data.",
+                            1,
                         )
 
                     # reset tmp file
@@ -313,7 +364,7 @@ class History:
                         json.dump([], file)
 
                     break
-            await asyncio.sleep(1)  # small pause to breathe
+            await asyncio.sleep(0.25)  # small pause to breathe
 
     def verify_data_all(self) -> None:
         with open("tmp/assets.json", "r", encoding="utf-8") as f:
@@ -501,15 +552,21 @@ class History:
 
         return True
 
-    def data_is_already_loaded(
+    async def data_is_already_loaded(
         self, request_time: int, offset: int, cache: pd.DataFrame = None
     ) -> bool:
 
         if cache is not None:
 
+            # correct request_time to local timezone
+            #utils.print(f"ℹ️ [[ {request_time} ]]", 1)
+            request_time = utils.correct_timestamp(request_time)
+            #utils.print(f"ℹ️ [[ {request_time} ]]", 1)
+
             # Check if all minute values in the current chunk already exist.
-            start_check_time = pd.to_datetime(request_time, unit="s")
-            end_check_time = pd.to_datetime(request_time + offset, unit="s")
+            start_check_time = pd.to_datetime(request_time - offset, unit="s")
+            end_check_time = pd.to_datetime(request_time, unit="s")
+
             expected_minutes = pd.date_range(
                 start=start_check_time,
                 end=end_check_time - pd.Timedelta(minutes=1),
@@ -521,6 +578,7 @@ class History:
                 effective_end_filter = end_check_time.ceil("min") - pd.Timedelta(
                     microseconds=1
                 )
+
                 mask = cache["Zeitpunkt"].between(
                     effective_start_filter, effective_end_filter
                 )
@@ -559,3 +617,16 @@ class History:
                     return False
 
         return False
+
+    def get_time_in_seconds_since_begin(self) -> int:
+        time_in_seconds_since_begin = database.select(
+            """
+            SELECT
+                TIMESTAMPDIFF(MINUTE,
+                    DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), '%Y-%m-01'),
+                    NOW() - INTERVAL 24 HOUR
+                ) as time
+            """
+        )
+        time_in_seconds_since_begin = int(time_in_seconds_since_begin[0]["time"])
+        return time_in_seconds_since_begin

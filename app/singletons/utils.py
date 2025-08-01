@@ -50,6 +50,10 @@ class Utils:
                 .strftime(format)
             )
 
+    def correct_timestamp(self, timestamp: int) -> int:
+        timezone_offset_seconds = datetime.now().astimezone().utcoffset().total_seconds()
+        return int(timestamp + timezone_offset_seconds)
+
     def file_modified_before_minutes(self, filename: str) -> float:
         if not os.path.exists(filename):
             return False
@@ -153,7 +157,8 @@ class Utils:
                 target_month = 1
                 target_year += 1
             dt_three_months_ago = datetime(target_year, target_month, 1)
-        return int(dt_three_months_ago.timestamp())
+        dt_three_months_ago = int(dt_three_months_ago.timestamp())
+        return dt_three_months_ago
 
     def run_function_in_isolated_loop(self, func, *args, **kwargs):
         loop = asyncio.new_event_loop()

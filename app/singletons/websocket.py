@@ -166,20 +166,20 @@ class WebSocket:
         # commands to send
         last_content = ""
         while True:
-            try:
-                if os.path.exists("tmp/command.json"):
-                    with open("tmp/command.json", "r", encoding="utf-8") as f:
-                        content = f.read().strip()
-                    if content and content != last_content:
-                        last_content = content
-                        utils.print(f"ℹ️ Send input: {content}", 1)
-                        with open("tmp/command.json", "w", encoding="utf-8") as f:
-                            f.write("")
-                        await ws.send(f"42{content}")
-            except Exception as e:
-                utils.print(f"⛔ Error sending input: {e}", 2)
-                # sys.exit()
-            await asyncio.sleep(1)  # breathe
+            if os.path.exists("tmp/command.json"):
+                with open("tmp/command.json", "r", encoding="utf-8") as f:
+                    content = f.read().strip()
+                if content and content != last_content:
+                    last_content = content
+                    utils.print(f"ℹ️ Send input: {content}", 1)
+                    with open("tmp/command.json", "w", encoding="utf-8") as f:
+                        f.write("")
+                try:
+                    await ws.send(f"42{content}")
+                except Exception as e:
+                    utils.print(f"⛔ Error sending input: {e}", 2)
+
+            await asyncio.sleep(0.25)  # breathe
 
     async def ws_receive_loop(self, ws: WebSocketClientProtocol) -> None:
         try:
@@ -293,7 +293,7 @@ class WebSocket:
                                 "w",
                                 encoding="utf-8",
                             ) as file:
-                                file.write("done")
+                                file.write("error")
                             utils.print("✅ Ending requests!", 1)
 
                     elif store.binary_expected_event == "successupdateBalance":
@@ -494,6 +494,8 @@ class WebSocket:
                                 len(data__value) > 3
                                 and data__value[3] == "currency"
                                 and data__value[14] is True
+                                # filter out assets that have no good history
+                                and data__value[1] not in ["UAHUSD_otc", "NGNUSD_otc", "KESUSD_otc", "ZARUSD_otc"]
                             ):
                                 gefilterte.append(
                                     {
@@ -511,9 +513,6 @@ class WebSocket:
                                 in x[
                                     "label"
                                 ],  # false (=0) comes first, true (=1) comes last
-                                -x[
-                                    "return_percent"
-                                ],  # sort inside non otc by percent descending
                                 x["label"],
                             ),
                         )
@@ -526,8 +525,13 @@ class WebSocket:
 
         except websockets.ConnectionClosedOK as e:
             utils.print(f"✅ WebSocket normally closed (Code {e.code}): {e.reason}", 1)
+
+            # try to reconnect
             await boot.shutdown()
-            store.stop_event.set()
+            await websocket.setup_websockets()
+
+            #await boot.shutdown()
+            #store.stop_event.set()
         except websockets.ConnectionClosedError as e:
             utils.print(f"⛔ Connection unexpectedly closed ({e.code}): {e.reason}", 1)
 
@@ -570,6 +574,14 @@ class WebSocket:
                 await ws.send('42["ps"]')  # <- socket.io-ping
                 # await ws.send('3')  # <- socket.io-ping
             except Exception as e:
-                utils.print(f"⛔ Ping failed: {e}", 0)
+                utils.print(f"🔌🔌🔌🔌🔌 ⛔ PING FAILED: {e}", 0)
                 break
-            await asyncio.sleep(25)
+
+            debug = True
+            if debug:
+                # do this 10 times
+                for _ in range(10):
+                    await asyncio.sleep(2)
+                    utils.print("🔌🔌🔌🔌🔌 ⚠️ PING SCRIPT ALIVE", 1)
+            else:
+                await asyncio.sleep(20)

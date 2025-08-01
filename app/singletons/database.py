@@ -109,10 +109,7 @@ class Database:
                         price DECIMAL(10, 5) NULL,
                         PRIMARY KEY (trade_asset, trade_platform, timestamp),
 
-                        INDEX idx_trade_asset (trade_asset ASC),
-                        INDEX idx_trade_platform (trade_platform ASC),
-                        INDEX idx_timestamp (timestamp ASC),
-                        INDEX idx_platform_asset_timestamp (trade_platform ASC, trade_asset ASC, timestamp ASC)
+                        INDEX idx_trading_data_trade_platform_trade_asset_timestamp (trade_platform ASC, trade_asset ASC, timestamp ASC)
                     )
                 """,
             }

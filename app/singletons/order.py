@@ -139,7 +139,7 @@ class Order:
             or os.path.getsize("tmp/command.json") > 0
         ):
             utils.print("ℹ️ Waiting for previous command to finish...", 1)
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.25)
         with open("tmp/command.json", "w", encoding="utf-8") as f:
             json.dump(order_payload, f)
 

@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.utils.singletons import (
     asset,
+    database,
     fulltest,
     history,
     order,
@@ -29,18 +30,42 @@ class AutoTrade:
         with open("tmp/assets.json", "r", encoding="utf-8") as f:
             assets = json.load(f)
 
-        # first sort all otc
-        non_otc_available = False
-        for assets__value in assets:
-            if not "otc" in assets__value["name"]:
-                non_otc_available = True
-                break
-        if non_otc_available:
-            assets = [
-                assets__value
-                for assets__value in assets
-                if "otc" not in assets__value["name"]
-            ]
+        # if mode is data, sort by progress
+        if mode == "data":
+            assets_order = database.select(
+                """
+                SELECT trade_asset
+                FROM trading_data
+                GROUP BY trade_platform, trade_asset
+                ORDER BY COUNT(*) ASC
+                """
+            )
+            # sort assets by manual sort (assets_order)
+            assets = sorted(
+                assets,
+                key=lambda x: next(
+                    (
+                        i
+                        for i, v in enumerate(assets_order)
+                        if v["trade_asset"] == x["name"]
+                    ),
+                    float("inf"),
+                ),
+            )
+
+        # sort out all otc
+        if mode in ["trade", "all_trade"]:
+            non_otc_available = False
+            for assets__value in assets:
+                if not "otc" in assets__value["name"]:
+                    non_otc_available = True
+                    break
+            if non_otc_available:
+                assets = [
+                    assets__value
+                    for assets__value in assets
+                    if "otc" not in assets__value["name"]
+                ]
 
         store.auto_mode_active = True
 
@@ -190,7 +215,6 @@ class AutoTrade:
                             f"ℹ️ Take {assets__value['name']} - potential_quote {assets__value['potential_quote']:.2f} - last_fulltest_quote_trading: {asset_information['last_fulltest_quote_trading']} - last_trade_confidence: {asset_information['last_trade_confidence']} - last_fulltest_quote_success: {asset_information['last_fulltest_quote_success']} - return_percent: {assets__value['return_percent']}",
                             1,
                         )
-                        # await asyncio.sleep(1)
                         break
                     else:
                         utils.print(f"ℹ️ Don't take {assets__value['name']}", 2)

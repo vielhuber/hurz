@@ -7,6 +7,7 @@ from datetime import datetime
 from InquirerPy import prompt_async
 from InquirerPy.validator import EmptyInputValidator
 from InquirerPy.base.control import Choice
+import faulthandler
 
 from app.utils.singletons import (
     asset,
@@ -241,7 +242,7 @@ class Menu:
                     asset=store.trade_asset,
                     output_success=True,
                 )
-                await asyncio.sleep(1)
+                await asyncio.sleep(5)
 
             elif answers["main_selection"] == option3:
                 await utils.run_sync_as_async(
@@ -664,9 +665,13 @@ class Menu:
         else:
             utils.print("ℹ️ Starting auto mode in background...", 1)
             # do this in a separate thread
-            #await asyncio.create_task(autotrade.start_auto_mode(answer["mode"]))
+            await asyncio.create_task(autotrade.start_auto_mode(answer["mode"]))
+
+            """
+            faulthandler.enable()
             threading.Thread(
                 target=utils.run_function_in_isolated_loop,
                 args=(autotrade.start_auto_mode, answer["mode"]),
                 daemon=True
             ).start()
+            """
