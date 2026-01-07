@@ -38,11 +38,9 @@ class Menu:
                 continue
 
             live_data_balance = 0
-            if os.path.exists("data/live_data_balance.json"):
+            if os.path.exists("tmp/live_data_balance.json"):
                 try:
-                    with open(
-                        "data/live_data_balance.json", "r", encoding="utf-8"
-                    ) as f:
+                    with open("tmp/live_data_balance.json", "r", encoding="utf-8") as f:
                         live_data_balance = float(f.read().strip())
                 except Exception:
                     live_data_balance = 0

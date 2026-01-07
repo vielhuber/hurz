@@ -20,7 +20,6 @@ class Utils:
     _version_cache = None
 
     def create_folders(self) -> None:
-        # create folders if not available
         for ordner in ["tmp", "data", "models"]:
             os.makedirs(ordner, exist_ok=True)
 

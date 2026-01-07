@@ -300,14 +300,14 @@ class WebSocket:
                         decoded = message.decode("utf-8")
                         data = json.loads(decoded)
 
-                        if not os.path.exists("data/live_data_balance.json"):
+                        if not os.path.exists("tmp/live_data_balance.json"):
                             with open(
-                                "data/live_data_balance.json", "w", encoding="utf-8"
+                                "tmp/live_data_balance.json", "w", encoding="utf-8"
                             ) as f:
                                 json.dump([], f)
 
                         with open(
-                            "data/live_data_balance.json", "w", encoding="utf-8"
+                            "tmp/live_data_balance.json", "w", encoding="utf-8"
                         ) as file:
                             file.write(str(data["balance"]))
                         store.binary_expected_event = None
@@ -495,7 +495,13 @@ class WebSocket:
                                 and data__value[3] == "currency"
                                 and data__value[14] is True
                                 # filter out assets that have no good history
-                                and data__value[1] not in ["UAHUSD_otc", "NGNUSD_otc", "KESUSD_otc", "ZARUSD_otc"]
+                                and data__value[1]
+                                not in [
+                                    "UAHUSD_otc",
+                                    "NGNUSD_otc",
+                                    "KESUSD_otc",
+                                    "ZARUSD_otc",
+                                ]
                             ):
                                 gefilterte.append(
                                     {
@@ -530,8 +536,8 @@ class WebSocket:
             await boot.shutdown()
             await websocket.setup_websockets()
 
-            #await boot.shutdown()
-            #store.stop_event.set()
+            # await boot.shutdown()
+            # store.stop_event.set()
         except websockets.ConnectionClosedError as e:
             utils.print(f"⛔ Connection unexpectedly closed ({e.code}): {e.reason}", 1)
 

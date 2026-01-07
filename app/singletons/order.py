@@ -1,5 +1,4 @@
 import asyncio
-import csv
 import json
 import os
 import pandas as pd
@@ -49,11 +48,21 @@ class Order:
         utils.print("\n" + fulltest_result["report"].to_string(), 1)
 
         # load live data (already collected)
-        df = database.select('SELECT * FROM trading_data WHERE trade_asset = %s AND trade_platform = %s', (store.trade_asset, store.trade_platform))
+        df = database.select(
+            "SELECT * FROM trading_data WHERE trade_asset = %s AND trade_platform = %s",
+            (store.trade_asset, store.trade_platform),
+        )
         df = pd.DataFrame(df)
-        df = df.rename(columns={'trade_asset': 'Waehrung', 'trade_platform': 'Plattform', 'timestamp': 'Zeitpunkt', 'price': 'Wert'})
+        df = df.rename(
+            columns={
+                "trade_asset": "Waehrung",
+                "trade_platform": "Plattform",
+                "timestamp": "Zeitpunkt",
+                "price": "Wert",
+            }
+        )
         df.dropna(subset=["Wert"], inplace=True)
-        df['Wert'] = df['Wert'].astype(float)
+        df["Wert"] = df["Wert"].astype(float)
         df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
 
         # ensure data is sorted by time

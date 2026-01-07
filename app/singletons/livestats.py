@@ -39,10 +39,10 @@ class LiveStats:
         try:
             while not store.livestats_stop:
 
-                if os.path.exists("data/live_data_balance.json"):
+                if os.path.exists("tmp/live_data_balance.json"):
                     try:
                         with open(
-                            "data/live_data_balance.json", "r", encoding="utf-8"
+                            "tmp/live_data_balance.json", "r", encoding="utf-8"
                         ) as f:
                             live_data_balance = float(f.read().strip())
                     except Exception:
@@ -405,7 +405,8 @@ class LiveStats:
 
         while not store.livestats_stop:
             time_in_seconds_since_begin = history.get_time_in_seconds_since_begin()
-            data = database.select("""
+            data = database.select(
+                """
                 SELECT
                     trade_platform,
                     trade_asset,
@@ -415,9 +416,11 @@ class LiveStats:
                 FROM trading_data
                 GROUP BY trade_platform, trade_asset
                 ORDER BY progress DESC
-            """, (time_in_seconds_since_begin,))
+            """,
+                (time_in_seconds_since_begin,),
+            )
 
-            total_progress_sum = sum(row['progress'] for row in data)
+            total_progress_sum = sum(row["progress"] for row in data)
             average_progress = total_progress_sum / len(data)
 
             utils.clear_console()
