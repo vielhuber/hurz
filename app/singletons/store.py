@@ -36,6 +36,5 @@ class Store:
         self.stop_event = asyncio.Event()
         self.auto_mode_active = False
         self.trades_overall_cur = 0
-        self.verbosity_level = 0
         self.auto_trade_refresh_time = 60
         self.session_id = None

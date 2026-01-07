@@ -5,10 +5,7 @@ import pandas as pd
 import pytz
 import sys
 import time
-import functools
-from tabulate import tabulate
 from datetime import datetime
-from slugify import slugify
 
 from app.utils.singletons import store, utils, database
 from app.utils.helpers import singleton
@@ -79,28 +76,46 @@ class History:
 
         # create cache for faster testing later on
         cache = None
-        cache_db = database.select('SELECT * FROM trading_data WHERE trade_asset = %s AND trade_platform = %s', (trade_asset,trade_platform))
+        cache_db = database.select(
+            "SELECT * FROM trading_data WHERE trade_asset = %s AND trade_platform = %s",
+            (trade_asset, trade_platform),
+        )
         if len(cache_db) > 0:
             cache = pd.DataFrame(cache_db)
-            cache = cache.rename(columns={'trade_asset': 'Waehrung', 'trade_platform': 'Plattform', 'timestamp': 'Zeitpunkt', 'price': 'Wert'})
+            cache = cache.rename(
+                columns={
+                    "trade_asset": "Waehrung",
+                    "trade_platform": "Plattform",
+                    "timestamp": "Zeitpunkt",
+                    "price": "Wert",
+                }
+            )
             cache.dropna(subset=["Zeitpunkt"], inplace=True)
-            cache['Wert'] = cache['Wert'].astype(float)
+            cache["Wert"] = cache["Wert"].astype(float)
 
         with open("tmp/historic_data_status.json", "w", encoding="utf-8") as file:
             file.write("")
         with open("tmp/historic_data_raw.json", "w", encoding="utf-8") as file:
             json.dump([], file)
 
-        while is_error is False and store.target_time is not None and request_time >= store.target_time - offset:
+        while (
+            is_error is False
+            and store.target_time is not None
+            and request_time >= store.target_time - offset
+        ):
 
             # format output
             request_time_output_begin = utils.correct_datetime_to_string(
                 request_time - offset, "%d.%m.%y %H:%M:%S", False
             )
-            request_time_output_end = utils.correct_datetime_to_string(request_time, "%d.%m.%y %H:%M:%S", False)
+            request_time_output_end = utils.correct_datetime_to_string(
+                request_time, "%d.%m.%y %H:%M:%S", False
+            )
 
             # skip this request if this period is completely loaded already
-            data_is_loaded = await self.data_is_already_loaded(request_time, offset, cache)
+            data_is_loaded = await self.data_is_already_loaded(
+                request_time, offset, cache
+            )
             if data_is_loaded is True:
                 """
                 utils.print(
@@ -108,7 +123,7 @@ class History:
                     1,
                 )
                 """
-                request_time -= (offset - overlap)
+                request_time -= offset - overlap
                 continue
 
             history_request = [
@@ -136,7 +151,7 @@ class History:
                 file.write("pending")
 
             utils.print(
-                f'⚠️ NO [[{request_time_output_begin} - {request_time_output_end}]]',
+                f"⚠️ NO [[{request_time_output_begin} - {request_time_output_end}]]",
                 1,
             )
             if store.target_time is not None:
@@ -153,7 +168,11 @@ class History:
                     estimation_count_all = len(assets)
                     for assets__value in assets:
                         if (
-                            database.select('SELECT COUNT(*) as count FROM trading_data WHERE trade_asset = %s AND trade_platform = %s', (assets__value["name"], store.trade_platform))[0]["count"] > 0
+                            database.select(
+                                "SELECT COUNT(*) as count FROM trading_data WHERE trade_asset = %s AND trade_platform = %s",
+                                (assets__value["name"], store.trade_platform),
+                            )[0]["count"]
+                            > 0
                         ):
                             estimation_count_done += 1
                 utils.print(
@@ -161,7 +180,7 @@ class History:
                     1,
                 )
 
-            request_time -= (offset - overlap)
+            request_time -= offset - overlap
 
             # wait until last request is done
             while True:
@@ -230,8 +249,10 @@ class History:
 
                     # fill hole from 2025-03-30 02:00:00 to 2025-03-30 03:00:00
                     target_time_value_dt = pd.to_datetime("2025-03-30 03:00:00")
-                    df_neu_temp_wert = pd.to_numeric(df["Wert"], errors='coerce')
-                    filtered_df = df_neu_temp_wert[df["Zeitpunkt"] == target_time_value_dt]
+                    df_neu_temp_wert = pd.to_numeric(df["Wert"], errors="coerce")
+                    filtered_df = df_neu_temp_wert[
+                        df["Zeitpunkt"] == target_time_value_dt
+                    ]
                     if filtered_df.empty:
                         utils.print(
                             f"ℹ️ No data found for {target_time_value_dt} in {store.trade_asset}.",
@@ -239,17 +260,23 @@ class History:
                         )
                     if not filtered_df.empty:
                         value_at_0300 = filtered_df.iloc[0]
-                        currency_at_0300 = df[df["Zeitpunkt"] == target_time_value_dt]["Waehrung"].iloc[0]
+                        currency_at_0300 = df[df["Zeitpunkt"] == target_time_value_dt][
+                            "Waehrung"
+                        ].iloc[0]
                         start_missing = pd.to_datetime("2025-03-30 02:00:00")
                         end_missing = pd.to_datetime("2025-03-30 02:59:00")
-                        missing_time_range = pd.date_range(start=start_missing, end=end_missing, freq='1min')
+                        missing_time_range = pd.date_range(
+                            start=start_missing, end=end_missing, freq="1min"
+                        )
                         missing_data_list = []
                         for ts in missing_time_range:
-                            missing_data_list.append({
-                                "Waehrung": currency_at_0300,
-                                "Zeitpunkt": ts,
-                                "Wert": f"{value_at_0300:.5f}"
-                            })
+                            missing_data_list.append(
+                                {
+                                    "Waehrung": currency_at_0300,
+                                    "Zeitpunkt": ts,
+                                    "Wert": f"{value_at_0300:.5f}",
+                                }
+                            )
                         df_missing = pd.DataFrame(missing_data_list)
                         df = pd.concat([df, df_missing], ignore_index=True)
 
@@ -324,13 +351,15 @@ class History:
                             f.write("--- end ---\n")
 
                         await utils.run_sync_as_async(
-                            database.insert_many, """
+                            database.insert_many,
+                            """
                                 INSERT INTO trading_data
                                 (trade_asset, trade_platform, timestamp, price)
                                 VALUES (%s, %s, %s, %s)
                                 ON DUPLICATE KEY UPDATE
                                 price = VALUES(price)
-                            """, df_tmp
+                            """,
+                            df_tmp,
                         )
                         utils.print(
                             f"✅ Successfully inserted data in database.",
@@ -339,18 +368,22 @@ class History:
 
                     # truncate all values before target time
                     if store.target_time is not None:
-                        truncate_date = utils.correct_datetime_to_string(store.target_time, '%Y-%m-%d %H:%M:%S', False)
+                        truncate_date = utils.correct_datetime_to_string(
+                            store.target_time, "%Y-%m-%d %H:%M:%S", False
+                        )
                         utils.print(
                             f"ℹ️ Truncate data to {truncate_date}...",
                             1,
                         )
                         await utils.run_sync_as_async(
-                            database.query, """
+                            database.query,
+                            """
                                 DELETE FROM trading_data
                                 WHERE trade_asset = %s
                                 AND trade_platform = %s
                                 AND timestamp < %s
-                            """, (trade_asset, trade_platform, truncate_date)
+                            """,
+                            (trade_asset, trade_platform, truncate_date),
                         )
                         utils.print(
                             f"✅ Successfully truncated data.",
@@ -387,13 +420,22 @@ class History:
 
     def verify_data_of_asset(self, asset: str, output_success: bool = True) -> bool:
         # read from database
-        data = database.select('SELECT * FROM trading_data WHERE trade_asset = %s', (asset,))
+        data = database.select(
+            "SELECT * FROM trading_data WHERE trade_asset = %s", (asset,)
+        )
         if len(data) == 0:
             utils.print(f"⛔ {asset}: No data found in database for {asset}!", 1)
             return False
         df = pd.DataFrame(data)
-        df = df.rename(columns={'trade_asset': 'Waehrung', 'trade_platform': 'Plattform', 'timestamp': 'Zeitpunkt', 'price': 'Wert'})
-        df['Wert'] = df['Wert'].astype(float)
+        df = df.rename(
+            columns={
+                "trade_asset": "Waehrung",
+                "trade_platform": "Plattform",
+                "timestamp": "Zeitpunkt",
+                "price": "Wert",
+            }
+        )
+        df["Wert"] = df["Wert"].astype(float)
 
         df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
 
@@ -514,7 +556,7 @@ class History:
                     return False
 
             # Check for long streaks of identical values
-            consecutive_threshold = 70
+            consecutive_threshold = 90
             # Create a grouper for consecutive values, ignoring NaNs
             streaks = (df["Wert"].ne(df["Wert"].shift())).cumsum()
             # Count the size of each streak
@@ -559,9 +601,9 @@ class History:
         if cache is not None:
 
             # correct request_time to local timezone
-            #utils.print(f"ℹ️ [[ {request_time} ]]", 1)
+            # utils.print(f"ℹ️ [[ {request_time} ]]", 1)
             request_time = utils.correct_timestamp(request_time)
-            #utils.print(f"ℹ️ [[ {request_time} ]]", 1)
+            # utils.print(f"ℹ️ [[ {request_time} ]]", 1)
 
             # Check if all minute values in the current chunk already exist.
             start_check_time = pd.to_datetime(request_time - offset, unit="s")

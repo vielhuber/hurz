@@ -368,5 +368,3 @@ class AutoTrade:
                 store.auto_mode_active = False
                 break
             time.sleep(0.1)
-
-

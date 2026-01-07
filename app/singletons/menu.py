@@ -55,7 +55,7 @@ class Menu:
             init(autoreset=True)
             help_text = (
                 f"\n"
-                f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+                f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
                 f"\n"
                 f"\n"
                 f"VERSION: {Style.BRIGHT}{Fore.YELLOW}0.0.2{Style.RESET_ALL}"
@@ -76,8 +76,6 @@ class Menu:
                 f" | "
                 f"SOUND: {Style.BRIGHT}{Fore.YELLOW}{'ON' if store.sound_effects == 1 else 'OFF'}{Style.RESET_ALL}"
                 f" | "
-                f"VERBOSITY: {Style.BRIGHT}{Fore.YELLOW}{store.verbosity_level}{Style.RESET_ALL}"
-                f" | "
                 f"MODEL: {Style.BRIGHT}{Fore.YELLOW}{store.active_model}{Style.RESET_ALL}"
                 f"\n"
                 f"CURRENCY: {Style.BRIGHT}{Fore.YELLOW}{utils.format_asset_name(store.trade_asset)}{Style.RESET_ALL}"
@@ -95,28 +93,30 @@ class Menu:
                 f"CONFIDENCE: {Style.BRIGHT}{Fore.YELLOW}{store.trade_confidence}%{Style.RESET_ALL}"
                 f"\n"
                 f"\n"
-                f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+                f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
             )
             utils.clear_console()
             utils.print_logo()
             print(help_text)
 
-            last_timestamp_historic = asset.get_last_timestamp_historic(store.trade_asset, store.trade_platform)
+            last_timestamp_historic = asset.get_last_timestamp_historic(
+                store.trade_asset, store.trade_platform
+            )
             last_timestamp_historic = utils.correct_datetime_to_string(
                 last_timestamp_historic, "%d.%m.%y %H:%M:%S", False
             )
 
             option1 = "Load historical data"
             if last_timestamp_historic is not None:
-                option1 += " (from " + last_timestamp_historic + ")"
+                option1 += " (last update " + last_timestamp_historic + ")"
             else:
-                option1 += " (Data not available)"
+                option1 += " (data not available)"
 
             option2 = "Verify historical data"
             if last_timestamp_historic is not None:
-                option2 += " (from " + last_timestamp_historic + ")"
+                option2 += " (last update " + last_timestamp_historic + ")"
             else:
-                option2 += " (Data not available)"
+                option2 += " (data not available)"
 
             option3 = "Train model"
             if os.path.exists(store.filename_model):
@@ -124,9 +124,9 @@ class Menu:
                 datum = utils.correct_datetime_to_string(
                     timestamp, "%d.%m.%y %H:%M:%S", False
                 )
-                option3 += " (from " + datum + ")"
+                option3 += " (last update " + datum + ")"
             else:
-                option3 += " (Data not available)"
+                option3 += " (data not available)"
 
             option4 = "Determine confidence / run fulltest"
             if not os.path.exists(store.filename_model):
@@ -201,13 +201,15 @@ class Menu:
                 continue
 
             if answers["main_selection"] == option1:
-                await asyncio.create_task(history.load_data(
-                    show_overall_estimation=False,
-                    time_back_in_months=store.historic_data_period_in_months,
-                    time_back_in_hours=None,
-                    trade_asset=store.trade_asset,
-                    trade_platform=store.trade_platform,
-                ))
+                await asyncio.create_task(
+                    history.load_data(
+                        show_overall_estimation=False,
+                        time_back_in_months=store.historic_data_period_in_months,
+                        time_back_in_hours=None,
+                        trade_asset=store.trade_asset,
+                        trade_platform=store.trade_platform,
+                    )
+                )
 
                 """
                 thread = threading.Thread(
@@ -245,9 +247,7 @@ class Menu:
                 await asyncio.sleep(5)
 
             elif answers["main_selection"] == option3:
-                await utils.run_sync_as_async(
-                    training.train_active_model
-                )
+                await utils.run_sync_as_async(training.train_active_model)
                 await asyncio.sleep(1)
 
             elif answers["main_selection"] == option4 and os.path.exists(
@@ -255,7 +255,11 @@ class Menu:
             ):
                 await fulltest.determine_confidence_based_on_fulltests()
                 fulltest_result = await utils.run_sync_as_async(
-                    fulltest.run_fulltest, store.trade_asset, store.trade_platform, None, None
+                    fulltest.run_fulltest,
+                    store.trade_asset,
+                    store.trade_platform,
+                    None,
+                    None,
                 )
                 utils.print("\n" + fulltest_result["report"].to_string(), 0)
                 await asyncio.sleep(1)
@@ -285,7 +289,10 @@ class Menu:
                         )
                         await asyncio.sleep(waiting_time)
 
-            elif answers["main_selection"] == option6 and last_timestamp_historic is not None:
+            elif (
+                answers["main_selection"] == option6
+                and last_timestamp_historic is not None
+            ):
                 diagrams.print_diagrams()
                 await asyncio.sleep(3)
 
@@ -550,36 +557,6 @@ class Menu:
 
         utils.clear_console()
 
-        # verbosity_level
-        verbosity_level_frage = [
-            {
-                "type": "list",
-                "name": "verbosity_level",
-                "message": f"Verbosity level?\n",
-                "choices": [
-                    Choice(
-                        0,
-                        name=(f"[x]" if store.verbosity_level == 0 else "[ ]")
-                        + " 0 (low)",
-                    ),
-                    Choice(
-                        1,
-                        name=(f"[x]" if store.verbosity_level == 1 else "[ ]")
-                        + " 1 (middle)",
-                    ),
-                    Choice(
-                        2,
-                        name=(f"[x]" if store.verbosity_level == 2 else "[ ]")
-                        + " 2 (heigh)",
-                    ),
-                ],
-                "default": store.verbosity_level,
-            }
-        ]
-        selection_verbosity_level = await prompt_async(questions=verbosity_level_frage)
-
-        utils.clear_console()
-
         if (
             selection_asset
             and selection_demo
@@ -590,7 +567,6 @@ class Menu:
             and selection_trade_distance
             and selection_trade_time
             and selection_sound_effects
-            and selection_verbosity_level
             and selection_trade_platform
             and selection_trade_confidence
         ):
@@ -605,7 +581,6 @@ class Menu:
             new_trade_distance = int(selection_trade_distance[0])
             new_trade_time = int(selection_trade_time[0])
             new_sound_effects = selection_sound_effects["sound_effects"]
-            new_verbosity_level = selection_verbosity_level["verbosity_level"]
             new_trade_platform = selection_trade_platform["trade_platform"]
             new_trade_confidence = int(selection_trade_confidence[0])
 
@@ -624,7 +599,6 @@ class Menu:
             store.trade_distance = new_trade_distance
             store.trade_time = new_trade_time
             store.sound_effects = new_sound_effects
-            store.verbosity_level = new_verbosity_level
 
             settings.refresh_dependent_settings()
             settings.save_current_settings()
@@ -651,7 +625,9 @@ class Menu:
                         "fulltest", name=(f"Determine confidence / run fulltest on all")
                     ),
                     Choice("trade", name=(f"Trade all optimally")),
-                    Choice("all_no_trade", name=(f"Do all of the above (without trading)")),
+                    Choice(
+                        "all_no_trade", name=(f"Do all of the above (without trading)")
+                    ),
                     Choice("all_trade", name=(f"Do all of the above (with trading)")),
                     Choice("back", name=(f"Back")),
                 ],

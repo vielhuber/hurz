@@ -11,7 +11,6 @@ from rich.color import Color
 from rich.style import Style
 
 from app.utils.helpers import singleton
-from app.utils.singletons import store
 
 
 @singleton
@@ -51,7 +50,9 @@ class Utils:
             )
 
     def correct_timestamp(self, timestamp: int) -> int:
-        timezone_offset_seconds = datetime.now().astimezone().utcoffset().total_seconds()
+        timezone_offset_seconds = (
+            datetime.now().astimezone().utcoffset().total_seconds()
+        )
         return int(timestamp + timezone_offset_seconds)
 
     def file_modified_before_minutes(self, filename: str) -> float:
@@ -92,18 +93,20 @@ class Utils:
         return False
 
     def print(
-        self, msg: str, verbosity_level: int, log: bool = True, new_line: bool = True
+        self,
+        msg: str,
+        verbosity_level: int,
+        log: bool = True,
+        new_line: bool = True,
+        output: bool = True,
     ) -> None:
-        if (
-            (verbosity_level == 0 or not hasattr(store, "verbosity_level"))
-            or (verbosity_level == 1 and store.verbosity_level >= 1)
-            or (verbosity_level == 2 and store.verbosity_level >= 2)
-        ):
-            print(msg, end="\n" if new_line is True else "")
+        if verbosity_level == 0:
+            if output:
+                print(msg, end="\n" if new_line is True else "")
         if log is True:
             with open("tmp/log.txt", "a", encoding="utf-8") as f:
                 f.write(
-                    f"{datetime.now(pytz.timezone('Europe/Berlin')).strftime('%Y-%m-%d %H:%M:%S')} - {msg}\n"
+                    f"LEVEL {verbosity_level} :: {datetime.now(pytz.timezone('Europe/Berlin')).strftime('%Y-%m-%d %H:%M:%S')} - {msg}\n"
                 )
 
     def clear_console(self) -> None:
