@@ -58,7 +58,7 @@ class Menu:
                 f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
                 f"\n"
                 f"\n"
-                f"VERSION: {Style.BRIGHT}{Fore.YELLOW}0.0.2{Style.RESET_ALL}"
+                f"VERSION: {Style.BRIGHT}{Fore.YELLOW}{utils.get_version()}{Style.RESET_ALL}"
                 f" | "
                 f'TIME: {Style.BRIGHT}{Fore.YELLOW}{utils.correct_datetime_to_string(datetime.now().timestamp(),"%H:%M:%S", False)}{Style.RESET_ALL}'
                 f" | "

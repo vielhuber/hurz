@@ -3,6 +3,7 @@ import os
 import pytz
 import re
 import pyfiglet
+import subprocess
 from functools import partial
 from datetime import datetime, timezone, time as time2
 from typing import Any
@@ -15,6 +16,8 @@ from app.utils.helpers import singleton
 
 @singleton
 class Utils:
+
+    _version_cache = None
 
     def create_folders(self) -> None:
         # create folders if not available
@@ -171,3 +174,26 @@ class Utils:
         finally:
             loop.close()
             asyncio.set_event_loop(None)
+
+    def get_version(self) -> str:
+        if self._version_cache is not None:
+            return self._version_cache
+        try:
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            result = subprocess.run(
+                ["git", "describe", "--tags", "--always"],
+                cwd=project_root,
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0:
+                version = result.stdout.strip()
+                if version:
+                    self._version_cache = version
+                    return version
+            self._version_cache = "unknown"
+            return "unknown"
+        except Exception as e:
+            self._version_cache = "unknown"
+            return "unknown"
