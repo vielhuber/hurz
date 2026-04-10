@@ -32,13 +32,14 @@ class AutoTrade:
 
         # if mode is data, sort by progress
         if mode == "data":
-            assets_order = database.select(
+            assets_order = await utils.run_sync_as_async(
+                database.select,
                 """
                 SELECT trade_asset
                 FROM trading_data
                 GROUP BY trade_platform, trade_asset
                 ORDER BY COUNT(*) ASC
-                """
+                """,
             )
             # sort assets by manual sort (assets_order)
             assets = sorted(

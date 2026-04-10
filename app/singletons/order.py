@@ -33,7 +33,7 @@ class Order:
         await history.load_data(
             show_overall_estimation=False,
             time_back_in_months=None,
-            time_back_in_hours=4,  # min. 2 hours needed because of window
+            time_back_in_hours=6,  # must be larger than train_window (240min=4h) plus buffer
             trade_asset=store.trade_asset,
             trade_platform=store.trade_platform,
         )
@@ -79,6 +79,9 @@ class Order:
         else:
             # if more data, then take the last ones
             X = X[-desired_length:]
+
+        # normalize relative to first value (must match training normalization)
+        X = X / X[0] - 1
 
         # important: exact structure as in training (DataFrame and not just flatten)
         X_df = pd.DataFrame([X])  # ✅ important: correct structure (1 row, x columns)

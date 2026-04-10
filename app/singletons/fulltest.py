@@ -64,7 +64,7 @@ class FullTest:
         while True:
             start = start_index + i
             ende = start + store.train_window
-            ziel = ende + store.train_horizon - 1
+            ziel = ende + store.train_horizon
 
             if ziel > end_index:
                 break
@@ -81,6 +81,9 @@ class FullTest:
                 zielwert = werte[ziel]
 
                 letzter_wert = fenster[-1]
+
+                # normalize relative to first value (must match training normalization)
+                fenster = fenster / fenster[0] - 1
 
                 X_test.append(fenster)
                 zielwerte.append(zielwert)

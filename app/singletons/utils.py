@@ -6,7 +6,7 @@ import pyfiglet
 import subprocess
 from functools import partial
 from datetime import datetime, timezone, time as time2
-from typing import Any
+from typing import Any, Optional
 from rich.console import Console
 from rich.color import Color
 from rich.style import Style
@@ -32,7 +32,10 @@ class Utils:
 
     def correct_datetime_to_string(
         self, timestamp: float, format: str, shift: bool = False
-    ) -> str:
+    ) -> Optional[str]:
+
+        if timestamp is None:
+            return None
 
         if shift is False:
             return (
@@ -84,8 +87,12 @@ class Utils:
         return await loop.run_in_executor(None, partial(func, *args, **kwargs))
 
     def is_weekend(self, row: Any) -> bool:
-        wd = row["Zeitpunkt"].weekday()
-        t = row["Zeitpunkt"].time()
+        # assumes Zeitpunkt is in Europe/Berlin (naive, no tz info)
+        ts = row["Zeitpunkt"]
+        if hasattr(ts, "tzinfo") and ts.tzinfo is not None:
+            ts = ts.astimezone(pytz.timezone("Europe/Berlin"))
+        wd = ts.weekday()
+        t = ts.time()
         if wd == 5 and t >= time2(1, 0):  # saturday from 01:00
             return True
         if wd == 6:  # whole sunday

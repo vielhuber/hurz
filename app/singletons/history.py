@@ -213,9 +213,9 @@ class History:
                     )
                     df_neu.dropna(subset=["Zeitpunkt"], inplace=True)
 
-                    # resample to 1 second (only for time)
+                    # resample to 1 minute
                     df_neu.set_index("Zeitpunkt", inplace=True)
-                    df_neu = df_neu.resample("1s").last().dropna().reset_index()
+                    df_neu = df_neu.resample("1min").last().dropna().reset_index()
                     df_neu["Wert"] = (
                         df_neu["Wert"].astype(float).map(lambda x: f"{x:.5f}")
                     )
@@ -247,24 +247,31 @@ class History:
                             df = df_neu
                     """
 
-                    # fill hole from 2025-03-30 02:00:00 to 2025-03-30 03:00:00
-                    target_time_value_dt = pd.to_datetime("2025-03-30 03:00:00")
-                    df_neu_temp_wert = pd.to_numeric(df["Wert"], errors="coerce")
-                    filtered_df = df_neu_temp_wert[
-                        df["Zeitpunkt"] == target_time_value_dt
-                    ]
-                    if filtered_df.empty:
-                        utils.print(
-                            f"ℹ️ No data found for {target_time_value_dt} in {store.trade_asset}.",
-                            1,
+                    # fill DST spring-forward holes (02:00-02:59) dynamically
+                    # in Europe/Berlin, clocks spring forward on the last Sunday of March
+                    df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"], errors="coerce")
+                    min_year = df["Zeitpunkt"].min().year
+                    max_year = df["Zeitpunkt"].max().year
+                    for year in range(min_year, max_year + 1):
+                        last_day = 31
+                        while datetime(year, 3, last_day).weekday() != 6:
+                            last_day -= 1
+                        dst_date = f"{year}-03-{last_day:02d}"
+                        target_time_value_dt = pd.to_datetime(f"{dst_date} 03:00:00")
+                        df_neu_temp_wert = pd.to_numeric(
+                            df["Wert"], errors="coerce"
                         )
-                    if not filtered_df.empty:
+                        filtered_df = df_neu_temp_wert[
+                            df["Zeitpunkt"] == target_time_value_dt
+                        ]
+                        if filtered_df.empty:
+                            continue
                         value_at_0300 = filtered_df.iloc[0]
-                        currency_at_0300 = df[df["Zeitpunkt"] == target_time_value_dt][
-                            "Waehrung"
-                        ].iloc[0]
-                        start_missing = pd.to_datetime("2025-03-30 02:00:00")
-                        end_missing = pd.to_datetime("2025-03-30 02:59:00")
+                        currency_at_0300 = df[
+                            df["Zeitpunkt"] == target_time_value_dt
+                        ]["Waehrung"].iloc[0]
+                        start_missing = pd.to_datetime(f"{dst_date} 02:00:00")
+                        end_missing = pd.to_datetime(f"{dst_date} 02:59:00")
                         missing_time_range = pd.date_range(
                             start=start_missing, end=end_missing, freq="1min"
                         )
@@ -445,26 +452,30 @@ class History:
 
         # check if first time is exactly last time minus historic_data_period_in_months
         if store.historic_data_period_in_months is not None:
-            first_time_unix = int(
-                first_time.tz_localize(
-                    "Europe/Berlin", ambiguous="NaT", nonexistent="NaT"
-                ).timestamp()
+            first_time_localized = first_time.tz_localize(
+                "Europe/Berlin", ambiguous="NaT", nonexistent="NaT"
             )
-            last_time_unix = int(
-                last_time.tz_localize(
-                    "Europe/Berlin", ambiguous="NaT", nonexistent="NaT"
-                ).timestamp()
+            last_time_localized = last_time.tz_localize(
+                "Europe/Berlin", ambiguous="NaT", nonexistent="NaT"
             )
-            expected_first_time_unix = utils.calculate_months_ago(
-                last_time_unix,
-                store.historic_data_period_in_months,
-            )
-            if first_time_unix != expected_first_time_unix:
+            if pd.isna(first_time_localized) or pd.isna(last_time_localized):
                 utils.print(
-                    f"⛔ {asset}: First time {utils.correct_datetime_to_string(first_time_unix, '%d.%m.%y %H:%M:%S', False)} != {utils.correct_datetime_to_string(expected_first_time_unix, '%d.%m.%y %H:%M:%S', False)} for {asset}!",
-                    0,
+                    f"⚠️ {asset}: Skipping period check — first/last time falls on DST transition.",
+                    1,
                 )
-                return False
+            else:
+                first_time_unix = int(first_time_localized.timestamp())
+                last_time_unix = int(last_time_localized.timestamp())
+                expected_first_time_unix = utils.calculate_months_ago(
+                    last_time_unix,
+                    store.historic_data_period_in_months,
+                )
+                if first_time_unix != expected_first_time_unix:
+                    utils.print(
+                        f"⛔ {asset}: First time {utils.correct_datetime_to_string(first_time_unix, '%d.%m.%y %H:%M:%S', False)} != {utils.correct_datetime_to_string(expected_first_time_unix, '%d.%m.%y %H:%M:%S', False)} for {asset}!",
+                        0,
+                    )
+                    return False
 
         # check if last time is older than 3 days
         if last_time.tz_localize("utc") < (
@@ -509,13 +520,37 @@ class History:
         # vectorized validation (much faster than iterrows)
         if True is True:
 
-            # create expected time series vectorized
+            # create expected time series from first to last time
             expected_times = pd.date_range(
-                start=first_time, periods=len(df), freq="1min"  # 1 minute
+                start=first_time, end=last_time, freq="1min"
             )
 
+            # remove DST spring-forward hours (02:00-02:59 on last Sunday of March)
+            # only if the data itself is also missing these hours
+            for year in range(first_time.year, last_time.year + 1):
+                last_day = 31
+                while datetime(year, 3, last_day).weekday() != 6:
+                    last_day -= 1
+                dst_start = pd.to_datetime(f"{year}-03-{last_day:02d} 02:00:00")
+                dst_end = pd.to_datetime(f"{year}-03-{last_day:02d} 02:59:00")
+                data_has_dst_hour = (
+                    (df["Zeitpunkt"] >= dst_start) & (df["Zeitpunkt"] <= dst_end)
+                ).any()
+                if not data_has_dst_hour:
+                    expected_times = expected_times[
+                        ~((expected_times >= dst_start) & (expected_times <= dst_end))
+                    ]
+
+            # check count matches
+            if len(expected_times) != len(df):
+                utils.print(
+                    f"⛔ {asset}: Row count mismatch! Expected: {len(expected_times)} - Found: {len(df)}",
+                    0,
+                )
+                return False
+
             # check all times at once
-            time_matches = (df["Zeitpunkt"] == expected_times).all()
+            time_matches = (df["Zeitpunkt"].values == expected_times.values).all()
             if not time_matches:
                 # find first wrong time
                 wrong_index = (df["Zeitpunkt"] != expected_times).idxmax()
@@ -580,8 +615,23 @@ class History:
                         )
                         return False
 
-            # final time check
-            expected_last_time = first_time + pd.Timedelta(minutes=len(df) - 1)
+            # final time check (account for DST spring-forward gaps only if missing)
+            dst_gaps_minutes = 0
+            for year in range(first_time.year, last_time.year + 1):
+                last_day = 31
+                while datetime(year, 3, last_day).weekday() != 6:
+                    last_day -= 1
+                dst_start = pd.to_datetime(f"{year}-03-{last_day:02d} 02:00:00")
+                dst_end = pd.to_datetime(f"{year}-03-{last_day:02d} 02:59:00")
+                if first_time <= dst_start and last_time >= dst_end:
+                    data_has_dst_hour = (
+                        (df["Zeitpunkt"] >= dst_start) & (df["Zeitpunkt"] <= dst_end)
+                    ).any()
+                    if not data_has_dst_hour:
+                        dst_gaps_minutes += 60
+            expected_last_time = first_time + pd.Timedelta(
+                minutes=len(df) - 1 + dst_gaps_minutes
+            )
             if expected_last_time != last_time:
                 utils.print(
                     f"⛔ {asset}: Last time does not match for {asset}! - Expected: {expected_last_time} - Found: {last_time}",
@@ -660,15 +710,17 @@ class History:
 
         return False
 
-    def get_time_in_seconds_since_begin(self) -> int:
+    def get_time_in_seconds_since_begin(self, months: int = None) -> int:
+        months = months if months is not None else store.historic_data_period_in_months
         time_in_seconds_since_begin = database.select(
             """
             SELECT
                 TIMESTAMPDIFF(MINUTE,
-                    DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), '%Y-%m-01'),
+                    DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL %s MONTH), '%Y-%m-01'),
                     NOW() - INTERVAL 24 HOUR
                 ) as time
-            """
+            """,
+            (months,),
         )
         time_in_seconds_since_begin = int(time_in_seconds_since_begin[0]["time"])
         return time_in_seconds_since_begin

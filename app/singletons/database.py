@@ -24,7 +24,7 @@ class Database:
                 password=self.DB_PASSWORD,
                 database=self.DB_NAME,
                 port=self.DB_PORT,
-                autocommit=True
+                autocommit=True,
             )
             utils.print(
                 f"✅ Sucessfully connected to mysql database '{self.DB_NAME}'.", 1
@@ -59,6 +59,23 @@ class Database:
                 self.db_conn.commit()
                 utils.print(
                     f"✅ Successfully deleted all tables in '{self.DB_NAME}'.", 1
+                )
+
+            except mysql.connector.Error as err:
+                utils.print(f"⛔ Database error: {err}", 0)
+
+            except Exception as e:
+                utils.print(f"⛔ Database error: {e}", 0)
+
+    def flush_historical_data(self) -> None:
+        with self.db_conn.cursor() as cursor:
+
+            try:
+                cursor.execute("TRUNCATE TABLE trading_data;")
+                self.db_conn.commit()
+                utils.print(
+                    f"✅ Successfully deleted all historical data from 'trading_data'.",
+                    1,
                 )
 
             except mysql.connector.Error as err:
@@ -172,7 +189,9 @@ class Database:
             except mysql.connector.Error as err:
                 utils.print(f"⛔ Database (query) error: {err}", 0)
 
-    def insert_many(self, query: str, data_to_insert: list = []) -> None:
+    def insert_many(self, query: str, data_to_insert: list = None) -> None:
+        if data_to_insert is None:
+            data_to_insert = []
         with self.db_conn.cursor() as cursor:
 
             batch_size = 20000

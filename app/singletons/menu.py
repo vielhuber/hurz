@@ -148,7 +148,9 @@ class Menu:
 
             option11 = "Auto-Trade Mode"
 
-            option12 = "Exit"
+            option12 = "Flush all data"
+
+            option13 = "Exit"
 
             questions = [
                 {
@@ -169,9 +171,10 @@ class Menu:
                             option10,
                             option11,
                             option12,
+                            option13,
                         ]
                         if store.websockets_connection is not None
-                        else [option7, option8, option10, option12]
+                        else [option7, option8, option10, option13]
                     ),
                     "default": store.main_menu_default,
                 },
@@ -311,6 +314,28 @@ class Menu:
                 await self.selection_auto_trade_menue()
 
             elif answers["main_selection"] == option12:
+                confirm = await prompt_async(
+                    questions=[
+                        {
+                            "type": "list",
+                            "name": "confirmed",
+                            "message": "Really delete ALL historical data? This cannot be undone!\n",
+                            "choices": [
+                                Choice(False, name="[ ] No, cancel"),
+                                Choice(True, name="[ ] Yes, delete everything"),
+                            ],
+                            "default": False,
+                        }
+                    ]
+                )
+                if confirm["confirmed"] is True:
+                    await utils.run_sync_as_async(database.flush_historical_data)
+                    utils.print("✅ All historical data has been flushed.", 0)
+                else:
+                    utils.print("ℹ️ Flush cancelled.", 0)
+                await asyncio.sleep(2)
+
+            elif answers["main_selection"] == option13:
                 utils.print("ℹ️ Program will be ended.", 0)
                 store.stop_event.set()
                 for t in asyncio.all_tasks():

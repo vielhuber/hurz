@@ -405,7 +405,8 @@ class LiveStats:
 
         while not store.livestats_stop:
             time_in_seconds_since_begin = history.get_time_in_seconds_since_begin()
-            data = database.select(
+            data = await utils.run_sync_as_async(
+                database.select,
                 """
                 SELECT
                     trade_platform,
