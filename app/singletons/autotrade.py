@@ -74,7 +74,7 @@ class AutoTrade:
         threading.Thread(target=self.waiting_for_input, daemon=True).start()
         utils.print("", 0, False)
 
-        if mode in ["data", "fulltest", "verify", "train", "all_no_trade", "all_trade"]:
+        if mode in ["data", "fulltest", "verify", "features", "train", "all_no_trade", "all_trade"]:
             for assets__key, assets__value in enumerate(assets):
                 active_asset = assets__value["name"]
                 active_asset_information = asset.get_asset_information(
@@ -297,6 +297,14 @@ class AutoTrade:
                     f"✅ Data successfully verified.",
                     0,
                 )
+
+        # compute features
+        if mode in ["features", "all_no_trade", "all_trade"]:
+            utils.print("⏳ COMPUTING FEATURES...", 0)
+            await utils.run_sync_as_async(
+                history.compute_features_of_asset,
+                asset=store.trade_asset,
+            )
 
         # train model (if too old)
         if mode in ["train", "all_no_trade", "all_trade"]:
