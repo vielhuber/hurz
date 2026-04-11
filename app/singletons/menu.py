@@ -643,6 +643,7 @@ class Menu:
                 "choices": [
                     Choice("data", name=(f"Load all historical data")),
                     Choice("verify", name=(f"Verify all historical data")),
+                    Choice("features", name=(f"Compute features for all assets")),
                     Choice("train", name=(f"Train all models")),
                     Choice(
                         "fulltest", name=(f"Determine confidence / run fulltest on all")
