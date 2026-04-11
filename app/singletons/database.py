@@ -124,6 +124,14 @@ class Database:
                         trade_platform VARCHAR(50) NOT NULL,
                         timestamp DATETIME NOT NULL,
                         price DECIMAL(10, 5) NULL,
+                        indicator_rsi_14 DECIMAL(15, 8) NULL,
+                        indicator_macd DECIMAL(15, 8) NULL,
+                        indicator_macd_signal DECIMAL(15, 8) NULL,
+                        indicator_macd_hist DECIMAL(15, 8) NULL,
+                        indicator_bb_pos DECIMAL(15, 8) NULL,
+                        indicator_atr_14 DECIMAL(15, 8) NULL,
+                        indicator_roc_10 DECIMAL(15, 8) NULL,
+                        indicator_vol_30 DECIMAL(15, 8) NULL,
                         PRIMARY KEY (trade_asset, trade_platform, timestamp),
 
                         INDEX idx_trading_data_trade_platform_trade_asset_timestamp (trade_platform ASC, trade_asset ASC, timestamp ASC)

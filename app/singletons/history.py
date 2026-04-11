@@ -448,12 +448,12 @@ class History:
         """Compute 8 technical indicators for a single asset and UPDATE the DB.
 
         Indicators:
-          - rsi_14
-          - macd / macd_signal / macd_hist (12, 26, 9)
-          - bb_pos  (Bollinger Band position, -1..+1, inside 20-period BB)
-          - atr_14  (Average True Range / price, normalized)
-          - roc_10  (Rate of Change over 10 minutes, in %)
-          - vol_30  (standard deviation of last 30 1-min returns)
+          - indicator_rsi_14
+          - indicator_macd / indicator_macd_signal / indicator_macd_hist (12, 26, 9)
+          - indicator_bb_pos  (Bollinger Band position, -1..+1, inside 20-period BB)
+          - indicator_atr_14  (Average True Range / price, normalized)
+          - indicator_roc_10  (Rate of Change over 10 minutes, in %)
+          - indicator_vol_30  (standard deviation of last 30 1-min returns)
         """
         import pandas_ta as ta
 
@@ -474,7 +474,7 @@ class History:
         close = df["price"]
 
         # RSI
-        df["rsi_14"] = ta.rsi(close, length=14)
+        df["indicator_rsi_14"] = ta.rsi(close, length=14)
 
         # MACD (12, 26, 9)
         macd = ta.macd(close, fast=12, slow=26, signal=9)
@@ -482,13 +482,13 @@ class History:
             macd_col = next((c for c in macd.columns if c.startswith("MACD_") and not c.startswith("MACDh") and not c.startswith("MACDs")), None)
             macds_col = next((c for c in macd.columns if c.startswith("MACDs_")), None)
             macdh_col = next((c for c in macd.columns if c.startswith("MACDh_")), None)
-            df["macd"] = macd[macd_col] if macd_col else None
-            df["macd_signal"] = macd[macds_col] if macds_col else None
-            df["macd_hist"] = macd[macdh_col] if macdh_col else None
+            df["indicator_macd"] = macd[macd_col] if macd_col else None
+            df["indicator_macd_signal"] = macd[macds_col] if macds_col else None
+            df["indicator_macd_hist"] = macd[macdh_col] if macdh_col else None
         else:
-            df["macd"] = None
-            df["macd_signal"] = None
-            df["macd_hist"] = None
+            df["indicator_macd"] = None
+            df["indicator_macd_signal"] = None
+            df["indicator_macd_hist"] = None
 
         # Bollinger Bands position (-1 = lower band, 0 = middle, +1 = upper band)
         # pandas-ta provides BBP as 0..1 (0 = lower band, 1 = upper band);
@@ -497,30 +497,31 @@ class History:
         if bb is not None:
             bbp_col = next((c for c in bb.columns if c.startswith("BBP_")), None)
             if bbp_col:
-                df["bb_pos"] = (bb[bbp_col] * 2) - 1
+                df["indicator_bb_pos"] = (bb[bbp_col] * 2) - 1
             else:
-                df["bb_pos"] = None
+                df["indicator_bb_pos"] = None
         else:
-            df["bb_pos"] = None
+            df["indicator_bb_pos"] = None
 
         # ATR(14) — but we only have close prices, so approximate with
         # rolling standard deviation of abs(close diff) (a close-only proxy).
         # Normalize by close price so it's scale-free.
         true_range = close.diff().abs()
         atr = true_range.rolling(window=14).mean()
-        df["atr_14"] = atr / close.replace(0, pd.NA)
+        df["indicator_atr_14"] = atr / close.replace(0, pd.NA)
 
         # Rate of Change (10 periods)
-        df["roc_10"] = ta.roc(close, length=10)
+        df["indicator_roc_10"] = ta.roc(close, length=10)
 
         # Volatility: std of last 30 1-min pct returns
         returns = close.pct_change()
-        df["vol_30"] = returns.rolling(window=30).std()
+        df["indicator_vol_30"] = returns.rolling(window=30).std()
 
         # Replace inf/nan with None for DB storage
         feature_cols = [
-            "rsi_14", "macd", "macd_signal", "macd_hist",
-            "bb_pos", "atr_14", "roc_10", "vol_30",
+            "indicator_rsi_14", "indicator_macd", "indicator_macd_signal",
+            "indicator_macd_hist", "indicator_bb_pos", "indicator_atr_14",
+            "indicator_roc_10", "indicator_vol_30",
         ]
         for col in feature_cols:
             df[col] = pd.to_numeric(df[col], errors="coerce")
