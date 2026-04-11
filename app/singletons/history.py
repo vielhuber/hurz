@@ -213,9 +213,12 @@ class History:
                     )
                     df_neu.dropna(subset=["Zeitpunkt"], inplace=True)
 
-                    # resample to 1 minute
+                    # resample to 1 minute; forward-fill gaps so every minute
+                    # in the range is represented (missing ticks inherit the
+                    # last known price instead of leaving holes in the series)
                     df_neu.set_index("Zeitpunkt", inplace=True)
-                    df_neu = df_neu.resample("1min").last().dropna().reset_index()
+                    df_neu = df_neu.resample("1min").last().ffill().reset_index()
+                    df_neu.dropna(subset=["Wert"], inplace=True)
                     df_neu["Wert"] = (
                         df_neu["Wert"].astype(float).map(lambda x: f"{x:.5f}")
                     )
@@ -424,6 +427,129 @@ class History:
                     f"⛔ Error while verifying data of {assets__value['name']}: {e}"
                 )
                 continue
+
+    def compute_features_all(self) -> None:
+        """Compute technical indicators for all assets and store them in the DB."""
+        with open("tmp/assets.json", "r", encoding="utf-8") as f:
+            assets = json.load(f)
+        for assets__value in assets:
+            if store.stop_event.is_set():
+                break
+            try:
+                self.compute_features_of_asset(asset=assets__value["name"])
+            except Exception as e:
+                utils.print(
+                    f"⛔ Error while computing features of {assets__value['name']}: {e}",
+                    0,
+                )
+                continue
+
+    def compute_features_of_asset(self, asset: str) -> bool:
+        """Compute 8 technical indicators for a single asset and UPDATE the DB.
+
+        Indicators:
+          - rsi_14
+          - macd / macd_signal / macd_hist (12, 26, 9)
+          - bb_pos  (Bollinger Band position, -1..+1, inside 20-period BB)
+          - atr_14  (Average True Range / price, normalized)
+          - roc_10  (Rate of Change over 10 minutes, in %)
+          - vol_30  (standard deviation of last 30 1-min returns)
+        """
+        import pandas_ta as ta
+
+        utils.print(f"⏳ Computing features for {asset}...", 1)
+
+        data = database.select(
+            "SELECT timestamp, price FROM trading_data WHERE trade_asset = %s ORDER BY timestamp",
+            (asset,),
+        )
+        if not data:
+            utils.print(f"⛔ No data for {asset}.", 1)
+            return False
+
+        df = pd.DataFrame(data)
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df["price"] = pd.to_numeric(df["price"], errors="coerce")
+
+        close = df["price"]
+
+        # RSI
+        df["rsi_14"] = ta.rsi(close, length=14)
+
+        # MACD (12, 26, 9)
+        macd = ta.macd(close, fast=12, slow=26, signal=9)
+        if macd is not None:
+            macd_col = next((c for c in macd.columns if c.startswith("MACD_") and not c.startswith("MACDh") and not c.startswith("MACDs")), None)
+            macds_col = next((c for c in macd.columns if c.startswith("MACDs_")), None)
+            macdh_col = next((c for c in macd.columns if c.startswith("MACDh_")), None)
+            df["macd"] = macd[macd_col] if macd_col else None
+            df["macd_signal"] = macd[macds_col] if macds_col else None
+            df["macd_hist"] = macd[macdh_col] if macdh_col else None
+        else:
+            df["macd"] = None
+            df["macd_signal"] = None
+            df["macd_hist"] = None
+
+        # Bollinger Bands position (-1 = lower band, 0 = middle, +1 = upper band)
+        # pandas-ta provides BBP as 0..1 (0 = lower band, 1 = upper band);
+        # rescale to -1..+1 for better symmetry
+        bb = ta.bbands(close, length=20, std=2)
+        if bb is not None:
+            bbp_col = next((c for c in bb.columns if c.startswith("BBP_")), None)
+            if bbp_col:
+                df["bb_pos"] = (bb[bbp_col] * 2) - 1
+            else:
+                df["bb_pos"] = None
+        else:
+            df["bb_pos"] = None
+
+        # ATR(14) — but we only have close prices, so approximate with
+        # rolling standard deviation of abs(close diff) (a close-only proxy).
+        # Normalize by close price so it's scale-free.
+        true_range = close.diff().abs()
+        atr = true_range.rolling(window=14).mean()
+        df["atr_14"] = atr / close.replace(0, pd.NA)
+
+        # Rate of Change (10 periods)
+        df["roc_10"] = ta.roc(close, length=10)
+
+        # Volatility: std of last 30 1-min pct returns
+        returns = close.pct_change()
+        df["vol_30"] = returns.rolling(window=30).std()
+
+        # Replace inf/nan with None for DB storage
+        feature_cols = [
+            "rsi_14", "macd", "macd_signal", "macd_hist",
+            "bb_pos", "atr_14", "roc_10", "vol_30",
+        ]
+        for col in feature_cols:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+            df[col] = df[col].replace([float("inf"), float("-inf")], pd.NA)
+
+        # Build update batch (vectorized: convert to numpy, then zip)
+        timestamps = df["timestamp"].dt.to_pydatetime()
+        feature_values = [
+            [None if pd.isna(v) else float(v) for v in df[col].values]
+            for col in feature_cols
+        ]
+        update_rows = []
+        for idx in range(len(df)):
+            row_values = [feature_values[c][idx] for c in range(len(feature_cols))]
+            update_rows.append(row_values + [asset, timestamps[idx]])
+
+        # UPDATE in batches
+        sql = (
+            "UPDATE trading_data SET "
+            + ", ".join(f"{c} = %s" for c in feature_cols)
+            + " WHERE trade_asset = %s AND timestamp = %s"
+        )
+        database.insert_many(sql, update_rows)
+
+        utils.print(
+            f"✅ {asset}: updated features for {len(update_rows)} rows.",
+            1,
+        )
+        return True
 
     def verify_data_of_asset(self, asset: str, output_success: bool = True) -> bool:
         # read from database
