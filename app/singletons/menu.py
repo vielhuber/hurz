@@ -116,41 +116,55 @@ class Menu:
             else:
                 option2 += " (data not available)"
 
-            option3 = "Train model"
+            option3 = "Compute features"
+            last_timestamp_features = asset.get_last_timestamp_features(
+                store.trade_asset, store.trade_platform
+            )
+            last_timestamp_features_str = utils.correct_datetime_to_string(
+                last_timestamp_features, "%d.%m.%y %H:%M:%S", False
+            )
+            if last_timestamp_historic is None:
+                option3 += " (data not available)"
+            elif last_timestamp_features_str is not None:
+                option3 += " (last update " + last_timestamp_features_str + ")"
+            else:
+                option3 += " (not computed)"
+
+            option4 = "Train model"
             if os.path.exists(store.filename_model):
                 timestamp = os.path.getmtime(store.filename_model)
                 datum = utils.correct_datetime_to_string(
                     timestamp, "%d.%m.%y %H:%M:%S", False
                 )
-                option3 += " (last update " + datum + ")"
+                option4 += " (last update " + datum + ")"
             else:
-                option3 += " (data not available)"
+                option4 += " (data not available)"
 
-            option4 = "Determine confidence / run fulltest"
-            if not os.path.exists(store.filename_model):
-                option4 += " (not possible)"
-
-            option5 = "Trade optimally"
+            option5 = "Determine confidence / run fulltest"
             if not os.path.exists(store.filename_model):
                 option5 += " (not possible)"
 
-            option6 = "Draw diagram"
-            if last_timestamp_historic is None:
+            option6 = "Trade optimally"
+            if not os.path.exists(store.filename_model):
                 option6 += " (not possible)"
 
-            option7 = "Show live-status"
+            option7 = "Draw diagram"
+            if last_timestamp_historic is None:
+                option7 += " (not possible)"
 
-            option8 = "Show data progress"
+            option8 = "Show live-status"
 
-            option9 = "Change settings"
+            option9 = "Show data progress"
 
-            option10 = "Refresh view"
+            option10 = "Change settings"
 
-            option11 = "Auto-Trade Mode"
+            option11 = "Refresh view"
 
-            option12 = "Flush all data"
+            option12 = "Auto-Trade Mode"
 
-            option13 = "Exit"
+            option13 = "Flush all data"
+
+            option14 = "Exit"
 
             questions = [
                 {
@@ -172,9 +186,10 @@ class Menu:
                             option11,
                             option12,
                             option13,
+                            option14,
                         ]
                         if store.websockets_connection is not None
-                        else [option7, option8, option10, option13]
+                        else [option8, option9, option11, option14]
                     ),
                     "default": store.main_menu_default,
                 },
@@ -191,7 +206,7 @@ class Menu:
                 utils.print("⛔ Selection aborted. Program will be terminated.", 0)
                 return
 
-            if (answers["main_selection"] == option6) and asset.asset_is_available(
+            if (answers["main_selection"] == option7) and asset.asset_is_available(
                 store.trade_asset
             ) is False:
                 utils.print(
@@ -248,10 +263,17 @@ class Menu:
                 await asyncio.sleep(5)
 
             elif answers["main_selection"] == option3:
+                await utils.run_sync_as_async(
+                    history.compute_features_of_asset,
+                    asset=store.trade_asset,
+                )
+                await asyncio.sleep(2)
+
+            elif answers["main_selection"] == option4:
                 await utils.run_sync_as_async(training.train_active_model)
                 await asyncio.sleep(1)
 
-            elif answers["main_selection"] == option4 and os.path.exists(
+            elif answers["main_selection"] == option5 and os.path.exists(
                 store.filename_model
             ):
                 await fulltest.determine_confidence_based_on_fulltests()
@@ -265,7 +287,7 @@ class Menu:
                 utils.print("\n" + fulltest_result["report"].to_string(), 0)
                 await asyncio.sleep(1)
 
-            elif answers["main_selection"] == option5 and os.path.exists(
+            elif answers["main_selection"] == option6 and os.path.exists(
                 store.filename_model
             ):
 
@@ -291,29 +313,29 @@ class Menu:
                         await asyncio.sleep(waiting_time)
 
             elif (
-                answers["main_selection"] == option6
+                answers["main_selection"] == option7
                 and last_timestamp_historic is not None
             ):
                 diagrams.print_diagrams()
                 await asyncio.sleep(3)
 
-            elif answers["main_selection"] == option7:
+            elif answers["main_selection"] == option8:
                 await livestats.print_live_stats()
 
-            elif answers["main_selection"] == option8:
+            elif answers["main_selection"] == option9:
                 await livestats.print_data_progress()
 
-            elif answers["main_selection"] == option9:
+            elif answers["main_selection"] == option10:
                 await self.selection_menue()
 
-            elif answers["main_selection"] == option10:
+            elif answers["main_selection"] == option11:
                 utils.print("ℹ️ View is updating...", 0)
                 settings.load_settings()
 
-            elif answers["main_selection"] == option11:
+            elif answers["main_selection"] == option12:
                 await self.selection_auto_trade_menue()
 
-            elif answers["main_selection"] == option12:
+            elif answers["main_selection"] == option13:
                 confirm = await prompt_async(
                     questions=[
                         {
@@ -335,7 +357,7 @@ class Menu:
                     utils.print("ℹ️ Flush cancelled.", 0)
                 await asyncio.sleep(2)
 
-            elif answers["main_selection"] == option13:
+            elif answers["main_selection"] == option14:
                 utils.print("ℹ️ Program will be ended.", 0)
                 store.stop_event.set()
                 for t in asyncio.all_tasks():

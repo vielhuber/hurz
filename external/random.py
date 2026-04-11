@@ -42,3 +42,9 @@ class RandomModel:
             else:
                 predictions.append(0.5)
         return predictions
+
+    def model_predict_probabilities(
+        filename_model: str, X_test: List[List[float]]
+    ) -> List[float]:
+        """Return raw BUY probabilities [0..1] for each sample."""
+        return [random.uniform(0, 1) for _ in range(len(X_test))]

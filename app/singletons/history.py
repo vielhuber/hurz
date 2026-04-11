@@ -213,11 +213,14 @@ class History:
                     )
                     df_neu.dropna(subset=["Zeitpunkt"], inplace=True)
 
-                    # resample to 1 minute; forward-fill gaps so every minute
-                    # in the range is represented (missing ticks inherit the
-                    # last known price instead of leaving holes in the series)
+                    # resample to 1 minute; forward-fill SMALL gaps only
+                    # (up to 30 consecutive minutes). Larger gaps stay NaN so
+                    # the verification catches incomplete source data instead
+                    # of silently filling months of bogus constant prices.
                     df_neu.set_index("Zeitpunkt", inplace=True)
-                    df_neu = df_neu.resample("1min").last().ffill().reset_index()
+                    df_neu = (
+                        df_neu.resample("1min").last().ffill(limit=30).reset_index()
+                    )
                     df_neu.dropna(subset=["Wert"], inplace=True)
                     df_neu["Wert"] = (
                         df_neu["Wert"].astype(float).map(lambda x: f"{x:.5f}")
@@ -457,7 +460,7 @@ class History:
         """
         import pandas_ta as ta
 
-        utils.print(f"⏳ Computing features for {asset}...", 1)
+        utils.print(f"⏳ Computing features for {asset}...", 0)
 
         data = database.select(
             "SELECT timestamp, price FROM trading_data WHERE trade_asset = %s ORDER BY timestamp",
@@ -518,38 +521,53 @@ class History:
         df["indicator_vol_30"] = returns.rolling(window=30).std()
 
         # Replace inf/nan with None for DB storage
-        feature_cols = [
-            "indicator_rsi_14", "indicator_macd", "indicator_macd_signal",
-            "indicator_macd_hist", "indicator_bb_pos", "indicator_atr_14",
-            "indicator_roc_10", "indicator_vol_30",
-        ]
+        feature_cols = store.indicator_columns
         for col in feature_cols:
             df[col] = pd.to_numeric(df[col], errors="coerce")
             df[col] = df[col].replace([float("inf"), float("-inf")], pd.NA)
 
-        # Build update batch (vectorized: convert to numpy, then zip)
+        # Build rows for bulk INSERT ... ON DUPLICATE KEY UPDATE
+        # (trade_asset, trade_platform, timestamp, 8 features)
         timestamps = df["timestamp"].dt.to_pydatetime()
         feature_values = [
             [None if pd.isna(v) else float(v) for v in df[col].values]
             for col in feature_cols
         ]
-        update_rows = []
+        rows = []
         for idx in range(len(df)):
-            row_values = [feature_values[c][idx] for c in range(len(feature_cols))]
-            update_rows.append(row_values + [asset, timestamps[idx]])
+            row_values = [asset, store.trade_platform, timestamps[idx]] + [
+                feature_values[c][idx] for c in range(len(feature_cols))
+            ]
+            rows.append(row_values)
 
-        # UPDATE in batches
-        sql = (
-            "UPDATE trading_data SET "
-            + ", ".join(f"{c} = %s" for c in feature_cols)
-            + " WHERE trade_asset = %s AND timestamp = %s"
-        )
-        database.insert_many(sql, update_rows)
+        total = len(rows)
+        utils.print(f"ℹ️ {asset}: writing features for {total} rows...", 0)
+        sys.stdout.flush()
 
-        utils.print(
-            f"✅ {asset}: updated features for {len(update_rows)} rows.",
-            1,
-        )
+        cols = ["trade_asset", "trade_platform", "timestamp"] + feature_cols
+        placeholders = "(" + ", ".join(["%s"] * len(cols)) + ")"
+        update_clause = ", ".join(f"{c} = VALUES({c})" for c in feature_cols)
+
+        batch_size = 5000
+        for i in range(0, total, batch_size):
+            batch = rows[i : i + batch_size]
+            values_sql = ", ".join([placeholders] * len(batch))
+            flat_values = [v for row in batch for v in row]
+            sql = (
+                f"INSERT INTO trading_data ({', '.join(cols)}) "
+                f"VALUES {values_sql} "
+                f"ON DUPLICATE KEY UPDATE {update_clause}"
+            )
+            with database.db_conn.cursor() as cursor:
+                cursor.execute(sql, flat_values)
+                database.db_conn.commit()
+            done = min(i + batch_size, total)
+            pct = round(100 * done / total)
+            utils.print(f"⏳ {asset}: {done}/{total} ({pct}%)", 0)
+            sys.stdout.flush()
+
+        utils.print(f"✅ {asset}: updated features for {total} rows.", 0)
+        sys.stdout.flush()
         return True
 
     def verify_data_of_asset(self, asset: str, output_success: bool = True) -> bool:

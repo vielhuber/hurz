@@ -130,3 +130,18 @@ class Asset:
         else:
             last_timestamp_historic = None
         return last_timestamp_historic
+
+    def get_last_timestamp_features(
+        self, trade_asset: str, trade_platform: str
+    ) -> Optional[float]:
+        """Latest timestamp for which indicator columns have been computed."""
+        result = database.select(
+            "SELECT timestamp FROM trading_data "
+            "WHERE trade_asset = %s AND trade_platform = %s "
+            "AND indicator_rsi_14 IS NOT NULL "
+            "ORDER BY timestamp DESC LIMIT 1",
+            (trade_asset, trade_platform),
+        )
+        if len(result) > 0:
+            return result[0]["timestamp"].timestamp()
+        return None

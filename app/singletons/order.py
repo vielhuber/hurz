@@ -48,9 +48,14 @@ class Order:
             return False
         utils.print("\n" + fulltest_result["report"].to_string(), 1)
 
-        # load live data (already collected)
+        indicator_cols = store.indicator_columns
+
+        # load live data including indicators
+        indicator_cols_sql = ", ".join(indicator_cols)
         df = database.select(
-            "SELECT * FROM trading_data WHERE trade_asset = %s AND trade_platform = %s",
+            f"SELECT trade_asset, trade_platform, timestamp, price, {indicator_cols_sql} "
+            f"FROM trading_data WHERE trade_asset = %s AND trade_platform = %s "
+            f"ORDER BY timestamp",
             (store.trade_asset, store.trade_platform),
         )
         df = pd.DataFrame(df)
@@ -64,22 +69,39 @@ class Order:
         )
         df.dropna(subset=["Wert"], inplace=True)
         df["Wert"] = df["Wert"].astype(float)
+        for col in indicator_cols:
+            df[col] = pd.to_numeric(df[col], errors="coerce").astype(float)
         df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
 
         # ensure data is sorted by time
         df.sort_values("Zeitpunkt", inplace=True)
+        df.reset_index(drop=True, inplace=True)
 
-        # prepare features (all existing values of the last 5 minutes)
-        X = df[["Wert"]].values.flatten()
+        # prepare price window (last train_window minutes)
+        X = df["Wert"].values
 
-        # adjust the number of features to the desired length if necessary (must be exactly as in training)
         desired_length = store.train_window
         if len(X) < desired_length:
             # if less data is available, fill with the first value at the beginning
             X = pd.Series(X).reindex(range(desired_length), method="ffill").values
+            indicator_row_idx = len(df) - 1
         else:
-            # if more data, then take the last ones
+            # take the last desired_length rows
             X = X[-desired_length:]
+            indicator_row_idx = len(df) - 1
+
+            # ensure the last 240 minutes are contiguous (no weekend gap)
+            last_rows = df.iloc[-desired_length:]
+            minutes = (
+                pd.to_datetime(last_rows["Zeitpunkt"]).values.astype("datetime64[s]").astype("int64") // 60
+            )
+            if minutes[-1] - minutes[0] != desired_length - 1:
+                utils.print(
+                    f"⛔ Last {desired_length} minutes for {store.trade_asset} "
+                    f"are not contiguous (gap/weekend) — skipping trade.",
+                    0,
+                )
+                return False
 
         # normalize relative to first value (must match training normalization)
         if X[0] == 0 or not np.isfinite(X[0]):
@@ -96,8 +118,23 @@ class Order:
             )
             return False
 
+        # indicator snapshot from the most recent row
+        indicator_snapshot = np.array(
+            [df[col].iloc[indicator_row_idx] for col in indicator_cols],
+            dtype=float,
+        )
+        if not np.all(np.isfinite(indicator_snapshot)):
+            utils.print(
+                f"⛔ Indicators for {store.trade_asset} contain inf/nan (warmup period not complete?).",
+                0,
+            )
+            return False
+
+        # combine: 240 normalized prices + 8 indicators = 248 features
+        feature_vec = np.concatenate([X, indicator_snapshot])
+
         # important: exact structure as in training (DataFrame and not just flatten)
-        X_df = pd.DataFrame([X])  # ✅ important: correct structure (1 row, x columns)
+        X_df = pd.DataFrame([feature_vec])  # ✅ important: correct structure (1 row, x columns)
 
         doCall = None
 
@@ -105,11 +142,8 @@ class Order:
             X_df, store.filename_model, store.trade_confidence
         )
 
-        # duration
-        if store.is_demo_account == 0:
-            duration = 60
-        else:
-            duration = 60
+        # duration matches training horizon (trade_time in seconds)
+        duration = int(store.trade_time)
 
         # make purchase decision (example)
         if doCall == 1:
