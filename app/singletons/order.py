@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import numpy as np
 import pandas as pd
 import random
 from typing import Optional, Dict, Any
@@ -81,7 +82,19 @@ class Order:
             X = X[-desired_length:]
 
         # normalize relative to first value (must match training normalization)
+        if X[0] == 0 or not np.isfinite(X[0]):
+            utils.print(
+                f"⛔ Cannot normalize window for {store.trade_asset}: first value is {X[0]}.",
+                0,
+            )
+            return False
         X = X / X[0] - 1
+        if not np.all(np.isfinite(X)):
+            utils.print(
+                f"⛔ Normalized window for {store.trade_asset} contains inf/nan.",
+                0,
+            )
+            return False
 
         # important: exact structure as in training (DataFrame and not just flatten)
         X_df = pd.DataFrame([X])  # ✅ important: correct structure (1 row, x columns)
