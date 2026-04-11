@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import time
 from datetime import datetime
@@ -83,11 +84,12 @@ class FullTest:
                 letzter_wert = fenster[-1]
 
                 # normalize relative to first value (must match training normalization)
-                fenster = fenster / fenster[0] - 1
-
-                X_test.append(fenster)
-                zielwerte.append(zielwert)
-                letzte_werte.append(letzter_wert)
+                if fenster[0] != 0 and np.isfinite(fenster[0]):
+                    fenster = fenster / fenster[0] - 1
+                    if np.all(np.isfinite(fenster)):
+                        X_test.append(fenster)
+                        zielwerte.append(zielwert)
+                        letzte_werte.append(letzter_wert)
 
             if i == 0 or i == 1 or ziel == end_index or i == 1342 or i == 1343:
                 with open("tmp/debug_fulltest.txt", "a", encoding="utf-8") as f:
