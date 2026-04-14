@@ -74,6 +74,171 @@ class AutoTrade:
         threading.Thread(target=self.waiting_for_input, daemon=True).start()
         utils.print("", 0, False)
 
+        # Parallel pre-load of historic data across all assets — one websocket
+        # connection, N concurrent load_data() coroutines, responses routed
+        # per-asset by the websocket handler.
+        #
+        # Semaphore caps how many assets load simultaneously. Extensive
+        # empirical testing showed:
+        #   - N=75 (unbounded) → server drops responses, ~20% timeouts
+        #   - N=10 → 30-second burst/silence cycles, ~10% timeouts. The
+        #            PocketOption server appears to silently drop requests
+        #            once more than ~5-7 loadHistoryPeriod calls are
+        #            outstanding on a single connection. Pushing past that
+        #            causes the whole pipeline to stall for 30 s at a time.
+        #   - N=5 → stable, no timeouts, ~9 chunks/s (~2× better when the
+        #            O(1) minute-set cache is used instead of the old
+        #            pandas filter).
+        # If you want to experiment, N=6-7 may still be safe. Don't go
+        # higher without monitoring — the server's threshold is unforgiving.
+        if mode in ["data", "all_no_trade", "all_trade"]:
+            parallel_limit = 5
+            utils.print(
+                f"⏳ PARALLEL PRE-LOADING historic data for {len(assets)} assets "
+                f"(max {parallel_limit} concurrent)...",
+                0,
+            )
+            preload_t0 = time.time()
+            semaphore = asyncio.Semaphore(parallel_limit)
+            completed_count = [0]  # list so inner closures can mutate
+            chunk_start = store.historic_data_chunk_count  # baseline
+
+            async def _bounded_load(asset_name):
+                async with semaphore:
+                    if not store.auto_mode_active:
+                        completed_count[0] += 1
+                        return
+                    try:
+                        await history.load_data(
+                            show_overall_estimation=False,
+                            time_back_in_months=store.historic_data_period_in_months,
+                            time_back_in_hours=None,
+                            trade_asset=asset_name,
+                            trade_platform=store.trade_platform,
+                        )
+                    except Exception as e:
+                        utils.print(
+                            f"⚠️ [{asset_name}] parallel load error: {e}", 0
+                        )
+                    finally:
+                        completed_count[0] += 1
+
+            async def _progress_reporter(total, asset_names):
+                """Emit a live overall-progress line every 5 s while the
+                parallel preload is running.
+
+                The overall percentage is a *weighted* average of each
+                asset's real progress-within-its-time-range (published by
+                load_data via store.historic_data_progress[asset]). That
+                means we see meaningful movement from second 1, not just
+                when a full asset's 1760 chunks are done.
+
+                ETA is estimated two ways and we pick the better one:
+                  a) pct-based: elapsed × (100 − pct) / pct
+                     — accurate once overall_pct > 0.1%
+                  b) chunk-based: (expected_chunks − chunks) / rate
+                     — gives an estimate right from the start, using a
+                     rough estimate of total expected chunks.
+                """
+                # Expected total chunks across all preloaded assets, used
+                # only for the chunk-based ETA fallback. Based on the time
+                # range and the 148-minute effective chunk stride.
+                months = store.historic_data_period_in_months
+                if months is None or months <= 0:
+                    months = 6
+                minutes_per_asset = months * 30 * 24 * 60  # rough calendar
+                chunk_stride = 148  # offset(150) − overlap(2)
+                expected_chunks = total * max(
+                    1, int(minutes_per_asset / chunk_stride)
+                )
+
+                try:
+                    while True:
+                        await asyncio.sleep(5)
+                        elapsed = time.time() - preload_t0
+                        done = completed_count[0]
+                        chunks = store.historic_data_chunk_count - chunk_start
+                        rate = chunks / elapsed if elapsed > 0 else 0.0
+
+                        # Weighted overall: sum of per-asset progress / N assets
+                        # Assets not yet started contribute 0 (they're in the
+                        # semaphore queue). Finished ones contribute 100.
+                        per_asset_sum = 0.0
+                        active = 0
+                        for name in asset_names:
+                            p = store.historic_data_progress.get(name, 0.0)
+                            per_asset_sum += p
+                            if 0.0 < p < 100.0:
+                                active += 1
+                        overall_pct = per_asset_sum / total if total > 0 else 0.0
+
+                        # ETA selection
+                        eta_pct = None
+                        if overall_pct > 0.1:
+                            eta_pct = elapsed * (100.0 - overall_pct) / overall_pct
+                        eta_chunks = None
+                        if rate > 0.1 and expected_chunks > chunks:
+                            eta_chunks = (expected_chunks - chunks) / rate
+                        # Prefer the pct-based estimate once it's
+                        # available (more accurate as it accounts for
+                        # cache-skip acceleration); fall back to the
+                        # chunk-based one early on.
+                        eta_s = eta_pct if eta_pct is not None else eta_chunks
+                        if eta_s is None:
+                            eta_str = "calculating"
+                        elif eta_s > 3600:
+                            eta_str = f"{eta_s/3600:.1f}h"
+                        else:
+                            eta_str = f"{eta_s/60:.1f}min"
+
+                        utils.print(
+                            f"⏳ Overall: {overall_pct:.2f}% | "
+                            f"{done}/{total} finished | "
+                            f"{active} active | "
+                            f"{chunks}/{expected_chunks} chunks @ {rate:.1f}/s | "
+                            f"elapsed {elapsed/60:.1f}min | "
+                            f"ETA {eta_str}",
+                            0,
+                        )
+                except asyncio.CancelledError:
+                    return
+
+            preload_tasks = []
+            preload_asset_names = []
+            for assets__value in assets:
+                if not store.auto_mode_active:
+                    break
+                last_ts = asset.get_last_timestamp_historic(
+                    assets__value["name"], store.trade_platform
+                )
+                if last_ts is None or utils.date_is_minutes_old(last_ts) > (
+                    store.auto_trade_refresh_time
+                ):
+                    preload_tasks.append(_bounded_load(assets__value["name"]))
+                    preload_asset_names.append(assets__value["name"])
+                else:
+                    utils.print(
+                        f"✅ [{assets__value['name']}] already fresh, skipping preload.",
+                        1,
+                    )
+            if preload_tasks:
+                progress_task = asyncio.create_task(
+                    _progress_reporter(len(preload_tasks), preload_asset_names)
+                )
+                try:
+                    await asyncio.gather(*preload_tasks, return_exceptions=True)
+                finally:
+                    progress_task.cancel()
+                    try:
+                        await progress_task
+                    except (asyncio.CancelledError, Exception):
+                        pass
+            utils.print(
+                f"✅ Parallel pre-load complete in {time.time() - preload_t0:.1f}s "
+                f"({store.historic_data_chunk_count - chunk_start} chunks total).",
+                0,
+            )
+
         if mode in ["data", "fulltest", "verify", "features", "train", "all_no_trade", "all_trade"]:
             for assets__key, assets__value in enumerate(assets):
                 active_asset = assets__value["name"]

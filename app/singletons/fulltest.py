@@ -227,10 +227,16 @@ class FullTest:
 
         Payout comes from the asset's `return_percent` (e.g. 73 for AUDCHF_otc).
         """
-        if (
-            history.verify_data_of_asset(asset=store.trade_asset, output_success=False)
-            is False
-        ):
+        # run in a thread so the event loop stays responsive for websocket
+        # ping/pong (verify_data reads ~280k rows + weekend masking + streak
+        # check → several seconds of pure-python work that would otherwise
+        # block PONG replies and trigger 1005 disconnects)
+        is_valid = await utils.run_sync_as_async(
+            history.verify_data_of_asset,
+            asset=store.trade_asset,
+            output_success=False,
+        )
+        if is_valid is False:
             utils.print(
                 f"⛔ Confidence determination aborted for {store.trade_asset} due to invalid data.", 0
             )
@@ -266,7 +272,16 @@ class FullTest:
             0,
         )
 
-        min_trades_required = max(50, int(total_samples * 0.005))  # at least 0.5% of data
+        # Minimum trade count to consider a confidence level.
+        # The old rule scaled with dataset size (0.5% of total), which made
+        # sense when the single-model predictions triggered tens of thousands
+        # of trades at every confidence level. With the calibrated ensemble
+        # the trade rate is < 1% for all interesting confidences (the edge
+        # lives in the top percentile), so the 0.5% rule would disqualify
+        # every positive-EV level and force the algorithm to pick an
+        # EV-negative one with more (noisier) trades. 50 is an absolute
+        # floor that still rejects cherry-picking from tiny samples.
+        min_trades_required = 50
         best_conf = None
         best_ev = -float("inf")
         best_metrics = None
@@ -313,16 +328,10 @@ class FullTest:
                 0,
             )
             store.trade_confidence = 55
-            fallback_quote_trading = 0.0
-            fallback_quote_success = 0.0
-            asset.set_asset_information(
-                store.trade_platform,
-                store.active_model,
-                store.trade_asset,
-                store.trade_confidence,
-                fallback_quote_trading,
-                fallback_quote_success,
-            )
+            final_trade_rate = 0.0
+            final_success_rate = 0.0
+            final_n_trades = 0
+            final_successes = 0
         else:
             store.trade_confidence = best_conf
             utils.print(
@@ -332,13 +341,36 @@ class FullTest:
                 f"EV {best_metrics['ev']:+.2f}",
                 0,
             )
-            asset.set_asset_information(
-                store.trade_platform,
-                store.active_model,
-                store.trade_asset,
-                store.trade_confidence,
-                round(best_metrics["trade_rate"] * 100, 2),
-                round(best_metrics["success_rate"] * 100, 2),
-            )
+            final_trade_rate = best_metrics["trade_rate"]
+            final_success_rate = best_metrics["success_rate"]
+            final_n_trades = best_metrics["n_trades"]
+            final_successes = int(final_success_rate * final_n_trades)
+
+        asset.set_asset_information(
+            store.trade_platform,
+            store.active_model,
+            store.trade_asset,
+            store.trade_confidence,
+            round(final_trade_rate * 100, 2),
+            round(final_success_rate * 100, 2),
+        )
 
         settings.save_current_settings()
+
+        # rebuild the report in the result dict to reflect the chosen confidence
+        # so that menu option 5 can print it directly without re-running the fulltest
+        fulltest_result["data"]["quote_trading"] = round(final_trade_rate * 100, 2)
+        fulltest_result["data"]["quote_success"] = round(final_success_rate * 100, 2)
+        fulltest_result["report"] = pd.DataFrame(
+            [
+                {
+                    "Typ": "Fulltest",
+                    "Erfolge": final_successes,
+                    "Cases": final_n_trades,
+                    "Gesamt": total_samples,
+                    "Trading-Quote (%)": round(final_trade_rate * 100, 2),
+                    "Erfolgsquote (%)": round(final_success_rate * 100, 2),
+                },
+            ]
+        )
+        return fulltest_result

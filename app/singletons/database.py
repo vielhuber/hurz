@@ -1,4 +1,5 @@
 import os
+import threading
 import mysql.connector
 from typing import Optional, Tuple
 
@@ -8,6 +9,8 @@ from app.utils.helpers import singleton
 
 @singleton
 class Database:
+
+    _lock = threading.Lock()
 
     def init_connection(self) -> None:
         self.db_conn = None
@@ -43,7 +46,30 @@ class Database:
         except Exception as e:
             utils.print(f"⛔ Database error: {e}", 0)
 
+    def _ensure_connection(self) -> None:
+        """Make sure the MySQL connection is alive; reconnect if it went stale.
+
+        MySQL servers close idle connections after `wait_timeout` (default 8h
+        but often lower in shared setups). Long-running processes like the
+        trade loop need to detect this and reconnect transparently.
+        """
+        try:
+            if self.db_conn is None:
+                self.init_connection()
+                return
+            # ping with auto-reconnect: mysql-connector-python will raise if
+            # the connection is truly dead and cannot be revived
+            self.db_conn.ping(reconnect=True, attempts=3, delay=1)
+        except Exception as e:
+            utils.print(f"⚠️ DB connection lost ({e}), reconnecting...", 1)
+            try:
+                self.init_connection()
+            except Exception as e2:
+                utils.print(f"⛔ DB reconnect failed: {e2}", 0)
+                raise
+
     def reset_tables(self) -> None:
+        self._ensure_connection()
         with self.db_conn.cursor() as cursor:
 
             try:
@@ -68,6 +94,7 @@ class Database:
                 utils.print(f"⛔ Database error: {e}", 0)
 
     def flush_historical_data(self) -> None:
+        self._ensure_connection()
         with self.db_conn.cursor() as cursor:
 
             try:
@@ -85,6 +112,7 @@ class Database:
                 utils.print(f"⛔ Database error: {e}", 0)
 
     def create_tables(self) -> None:
+        self._ensure_connection()
         with self.db_conn.cursor() as cursor:
 
             tables = {
@@ -159,67 +187,73 @@ class Database:
                     utils.print(f"⛔ Database error: {err}", 0)
 
     def select(self, query: str, params: Optional[Tuple] = None) -> list:
-        with self.db_conn.cursor() as cursor:
+        with self._lock:
+            self._ensure_connection()
+            with self.db_conn.cursor() as cursor:
 
-            try:
-                if params:
-                    cursor.execute(query, params)
-                else:
-                    cursor.execute(query)
-                results = []
-                while True:
-                    if cursor.description:
-                        column_names = [i[0] for i in cursor.description]
-                        rows = cursor.fetchall()
-                        current_set_results = []
-                        for row in rows:
-                            current_set_results.append(dict(zip(column_names, row)))
-                        results.extend(current_set_results)
-                    if not cursor.nextset():
-                        break
-                return results
+                try:
+                    if params:
+                        cursor.execute(query, params)
+                    else:
+                        cursor.execute(query)
+                    results = []
+                    while True:
+                        if cursor.description:
+                            column_names = [i[0] for i in cursor.description]
+                            rows = cursor.fetchall()
+                            current_set_results = []
+                            for row in rows:
+                                current_set_results.append(dict(zip(column_names, row)))
+                            results.extend(current_set_results)
+                        if not cursor.nextset():
+                            break
+                    return results
 
-            except mysql.connector.Error as err:
-                utils.print(f"⛔ Database (select: {query}) error: {err}", 0)
-                return []
+                except mysql.connector.Error as err:
+                    utils.print(f"⛔ Database (select: {query}) error: {err}", 0)
+                    return []
 
     def query(self, query: str, params: Optional[Tuple] = None) -> None:
-        with self.db_conn.cursor() as cursor:
+        with self._lock:
+            self._ensure_connection()
+            with self.db_conn.cursor() as cursor:
 
-            try:
-                if params:
-                    cursor.execute(query, params)
-                else:
-                    cursor.execute(query)
-                self.db_conn.commit()
-                utils.print("✅ Query successfully executed.", 1)
+                try:
+                    if params:
+                        cursor.execute(query, params)
+                    else:
+                        cursor.execute(query)
+                    self.db_conn.commit()
+                    utils.print("✅ Query successfully executed.", 1)
 
-            except mysql.connector.Error as err:
-                utils.print(f"⛔ Database (query) error: {err}", 0)
+                except mysql.connector.Error as err:
+                    utils.print(f"⛔ Database (query) error: {err}", 0)
 
     def insert_many(self, query: str, data_to_insert: list = None) -> None:
         if data_to_insert is None:
             data_to_insert = []
-        with self.db_conn.cursor() as cursor:
+        with self._lock:
+            self._ensure_connection()
+            with self.db_conn.cursor() as cursor:
 
-            batch_size = 20000
-            for i in range(0, len(data_to_insert), batch_size):
-                batch = data_to_insert[i : i + batch_size]
-                try:
-                    cursor.executemany(query, batch)
-                    self.db_conn.commit()
-                    utils.print(
-                        f"✅ Successfully inserted batch {i//batch_size + 1} (rows {i}-{min(i+batch_size, len(data_to_insert))})",
-                        1,
-                    )
-                except mysql.connector.Error as err:
-                    self.db_conn.rollback()
-                    utils.print(
-                        f"⛔ Error when inserting batch {i//batch_size + 1}: {err}",
-                        1,
-                    )
-                    break
-            utils.print("✅ Query successfully executed.", 1)
+                batch_size = 20000
+                for i in range(0, len(data_to_insert), batch_size):
+                    batch = data_to_insert[i : i + batch_size]
+                    try:
+                        cursor.executemany(query, batch)
+                        self.db_conn.commit()
+                        utils.print(
+                            f"✅ Successfully inserted batch {i//batch_size + 1} (rows {i}-{min(i+batch_size, len(data_to_insert))})",
+                            1,
+                        )
+                    except mysql.connector.Error as err:
+                        self.db_conn.rollback()
+                        utils.print(
+                            f"⛔ Error when inserting batch {i//batch_size + 1}: {err}",
+                            1,
+                        )
+                        break
+                utils.print("✅ Query successfully executed.", 1)
 
     def close_connection(self) -> None:
         if self.db_conn and self.db_conn.is_connected():

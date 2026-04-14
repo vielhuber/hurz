@@ -29,22 +29,27 @@ class History:
         # start time
         request_time = current_time
 
-        # calculate target time
+        # calculate target time (use local var so parallel load_data calls
+        # for different assets don't race on store.target_time)
         if time_back_in_hours is not None:
-            store.target_time = current_time - (time_back_in_hours * 60 * 60)
+            target_time = current_time - (time_back_in_hours * 60 * 60)
         else:
-            store.target_time = utils.calculate_months_ago(
+            target_time = utils.calculate_months_ago(
                 current_time, time_back_in_months
             )
+        # still publish to store for downstream code that reads store.target_time
+        # (truncation logic, compute_features, etc.) — all parallel assets use
+        # the same months_back, so the value is the same for all of them.
+        store.target_time = target_time
 
         # output target time
         utils.print(
-            f"ℹ️ Target time: {utils.correct_datetime_to_string(store.target_time, '%d.%m.%y %H:%M:%S', False)}",
+            f"ℹ️ [{trade_asset}] Target time: {utils.correct_datetime_to_string(target_time, '%d.%m.%y %H:%M:%S', False)}",
             1,
         )
 
         # debug error
-        if request_time <= store.target_time:
+        if request_time <= target_time:
             utils.print(f"⛔ Error received...", 1)
             utils.print(f"⛔ request_time: {request_time}", 1)
             utils.print(
@@ -67,6 +72,10 @@ class History:
             sys.exit()
 
         period = 60  # ✅ candles: 60 seconds
+        # PocketOption silently truncates loadHistoryPeriod responses at ~180-200
+        # candles regardless of what we request. Larger `offset` values do NOT
+        # speed anything up — they just cause the loop to skip over minutes we
+        # never actually received (row-count mismatch on verify). Stay at 150.
         offset = 150 * 60  # jump distance per request: 150 minutes
         overlap = 2 * 60  # ✅ overlapping of 2 minutes (120 seconds) per request
 
@@ -74,35 +83,46 @@ class History:
 
         is_error = False
 
-        # create cache for faster testing later on
-        cache = None
-        cache_db = database.select(
-            "SELECT * FROM trading_data WHERE trade_asset = %s AND trade_platform = %s",
-            (trade_asset, trade_platform),
+        # Cache of already-loaded minute timestamps (as integer minutes
+        # since epoch). Used by `data_is_already_loaded` to decide which
+        # chunks to skip without re-fetching them from the server.
+        #
+        # CRITICAL: we precompute a set once, rather than re-filtering a
+        # 280k-row pandas DataFrame on every chunk iteration. The previous
+        # implementation called .between() + .loc[mask] + .isin() per
+        # chunk, which took 50-200 ms of SYNCHRONOUS CPU work each time
+        # — and because that blocked the asyncio event loop, parallel
+        # load_data workers collectively froze the websocket receive loop
+        # for seconds at a time, causing spurious response timeouts.
+        # The set-based O(1) lookup makes each check sub-millisecond and
+        # releases the event loop cleanly.
+        cache_minutes = await asyncio.to_thread(
+            self._build_cache_minute_set, trade_asset, trade_platform
         )
-        if len(cache_db) > 0:
-            cache = pd.DataFrame(cache_db)
-            cache = cache.rename(
-                columns={
-                    "trade_asset": "Waehrung",
-                    "trade_platform": "Plattform",
-                    "timestamp": "Zeitpunkt",
-                    "price": "Wert",
-                }
-            )
-            cache.dropna(subset=["Zeitpunkt"], inplace=True)
-            cache["Wert"] = cache["Wert"].astype(float)
 
-        with open("tmp/historic_data_status.json", "w", encoding="utf-8") as file:
-            file.write("")
-        with open("tmp/historic_data_raw.json", "w", encoding="utf-8") as file:
-            json.dump([], file)
+        # Initialize the per-asset in-memory channels for this load run.
+        # `historic_data_raw[asset]` accumulates ALL received rows across all
+        # chunks. `historic_data_status[asset]` is flipped between
+        # "pending"/"done"/"error" by the websocket response handler.
+        store.historic_data_raw[trade_asset] = []
+        store.historic_data_status[trade_asset] = "done"
+        store.historic_data_progress[trade_asset] = 0.0
+        # Lazy-init the shared command.json lock (one across all parallel
+        # load_data tasks). Must be created inside a running event loop.
+        if store.historic_data_cmd_lock is None:
+            store.historic_data_cmd_lock = asyncio.Lock()
+
+        total_time_span = max(1, current_time - target_time)
 
         while (
             is_error is False
-            and store.target_time is not None
-            and request_time >= store.target_time - offset
+            and target_time is not None
+            and request_time >= target_time - offset
         ):
+
+            # publish per-asset progress (0..100) for the parallel reporter
+            progress_pct = 100.0 * (1.0 - (request_time - target_time) / total_time_span)
+            store.historic_data_progress[trade_asset] = max(0.0, min(100.0, progress_pct))
 
             # format output
             request_time_output_begin = utils.correct_datetime_to_string(
@@ -113,23 +133,17 @@ class History:
             )
 
             # skip this request if this period is completely loaded already
-            data_is_loaded = await self.data_is_already_loaded(
-                request_time, offset, cache
+            data_is_loaded = self.data_is_already_loaded(
+                request_time, offset, cache_minutes
             )
             if data_is_loaded is True:
-                """
-                utils.print(
-                    f'ℹ️ OK [[{request_time_output_begin} - {request_time_output_end}]]',
-                    1,
-                )
-                """
                 request_time -= offset - overlap
                 continue
 
             history_request = [
                 "loadHistoryPeriod",
                 {
-                    "asset": store.trade_asset,
+                    "asset": trade_asset,
                     "time": request_time,
                     "index": index,
                     "offset": offset * 1000,
@@ -137,26 +151,30 @@ class History:
                 },
             ]
 
-            # wait until file does not exist or is empty
-            while (
-                not os.path.exists("tmp/command.json")
-                or os.path.getsize("tmp/command.json") > 0
-            ):
-                utils.print("ℹ️ Waiting for previous command to finish...", 1)
-                await asyncio.sleep(0.25)
-            with open("tmp/command.json", "w", encoding="utf-8") as f:
-                json.dump(history_request, f)
-
-            with open("tmp/historic_data_status.json", "w", encoding="utf-8") as file:
-                file.write("pending")
+            # Serialize command.json writes across concurrent load_data tasks.
+            # The file-based channel is consumed by send_input_automatically
+            # with an ~50 ms polling interval, which acts as an implicit
+            # rate limiter (~20 cmds/s) that protects the server from
+            # request-burst overload. Direct ws.send bypassed this and
+            # caused the server to silently drop subsequent requests, so
+            # we stay with the file-based path.
+            async with store.historic_data_cmd_lock:
+                while (
+                    not os.path.exists("tmp/command.json")
+                    or os.path.getsize("tmp/command.json") > 0
+                ):
+                    await asyncio.sleep(0.05)
+                with open("tmp/command.json", "w", encoding="utf-8") as f:
+                    json.dump(history_request, f)
+                store.historic_data_status[trade_asset] = "pending"
 
             utils.print(
-                f"⚠️ NO [[{request_time_output_begin} - {request_time_output_end}]]",
+                f"⚠️ [{trade_asset}] NO [[{request_time_output_begin} - {request_time_output_end}]]",
                 1,
             )
-            if store.target_time is not None:
+            if target_time is not None:
                 utils.print(
-                    f"ℹ️ Percent: {(round(100*((1-((request_time - store.target_time) / (current_time - store.target_time))))))}%",
+                    f"ℹ️ [{trade_asset}] Percent: {(round(100*((1-((request_time - target_time) / (current_time - target_time))))))}%",
                     1,
                 )
 
@@ -182,28 +200,46 @@ class History:
 
             request_time -= offset - overlap
 
-            # wait until last request is done
+            # wait until THIS asset's request is answered.
+            # Timeout slightly generous to survive bursts when several
+            # concurrent assets are competing for the single command channel.
+            wait_start = time.time()
+            wait_timeout_seconds = 30
             while True:
-                utils.print("ℹ️ Waiting for historical data to be loaded...", 1)
-                with open("tmp/historic_data_status.json", "r", encoding="utf-8") as f:
-                    content = f.read().strip()
-                if content and content == "done":
+                status = store.historic_data_status.get(trade_asset)
+                if status == "done":
                     break
-                if content and content == "error":
+                if status == "error":
                     is_error = True
                     break
-                await asyncio.sleep(0.25)  # small pause to breathe
+                if time.time() - wait_start > wait_timeout_seconds:
+                    utils.print(
+                        f"⚠️ [{trade_asset}] Timeout after {wait_timeout_seconds}s "
+                        f"waiting for historic data response — likely websocket "
+                        f"disconnect. Aborting remaining load, keeping what was "
+                        f"already fetched.",
+                        0,
+                    )
+                    is_error = True
+                    store.historic_data_status[trade_asset] = "error"
+                    break
+                await asyncio.sleep(0.05)
 
+        # Finalize: read this asset's accumulated raw data from the in-memory
+        # channel and persist it to the DB.
         while True:
-            with open("tmp/historic_data_status.json", "r", encoding="utf-8") as f:
-                content = f.read().strip()
-            if content and (content == "done" or content == "error"):
-                if content == "error":
-                    utils.print("⚠️ Not all historical data loaded. Saving anyway...", 0)
+            status = store.historic_data_status.get(trade_asset, "done")
+            if status in ("done", "error"):
+                if status == "error":
+                    utils.print(
+                        f"⚠️ [{trade_asset}] Not all historical data loaded. Saving anyway...",
+                        0,
+                    )
 
-                # sort and save
-                with open("tmp/historic_data_raw.json", "r", encoding="utf-8") as f:
-                    raw = json.load(f)
+                raw = store.historic_data_raw.get(trade_asset, [])
+                if not raw:
+                    # nothing new to process (e.g. all chunks were already cached)
+                    break
                 if raw:
                     df_neu = pd.DataFrame(
                         raw, columns=["Waehrung", "Zeitpunkt", "Wert"]
@@ -342,6 +378,11 @@ class History:
                                 "Wert",
                             ]
                         ]
+                        # NaN → None so mysql-connector binds them as SQL NULL
+                        # (otherwise NaN is stringified to the literal "nan",
+                        # which MySQL parses as a column name and raises
+                        # "Unknown column 'nan' in 'field list'")
+                        df_tmp = df_tmp.astype(object).where(pd.notna(df_tmp), None)
                         df_tmp = df_tmp.values.tolist()
 
                         # insert into database (async)
@@ -379,8 +420,12 @@ class History:
                             1,
                         )
 
-                    # truncate all values before target time
-                    if store.target_time is not None:
+                    # truncate all values before target time — ONLY on full
+                    # historical loads (time_back_in_months). Incremental
+                    # refreshes (time_back_in_hours) must NOT truncate because
+                    # target_time is then only a few hours ago and truncating
+                    # would delete all our training data.
+                    if store.target_time is not None and time_back_in_hours is None:
                         truncate_date = utils.correct_datetime_to_string(
                             store.target_time, "%Y-%m-%d %H:%M:%S", False
                         )
@@ -403,14 +448,15 @@ class History:
                             1,
                         )
 
-                    # reset tmp file
-                    with open(
-                        "tmp/historic_data_raw.json", "w", encoding="utf-8"
-                    ) as file:
-                        json.dump([], file)
+                    # clear this asset's accumulator so a subsequent call
+                    # doesn't reprocess already-persisted rows
+                    store.historic_data_raw[trade_asset] = []
+                    # flag this asset as 100% done for the parallel-preload
+                    # progress reporter
+                    store.historic_data_progress[trade_asset] = 100.0
 
                     break
-            await asyncio.sleep(0.25)  # small pause to breathe
+            await asyncio.sleep(0.05)
 
     def verify_data_all(self) -> None:
         with open("tmp/assets.json", "r", encoding="utf-8") as f:
@@ -447,19 +493,68 @@ class History:
                 )
                 continue
 
-    def compute_features_of_asset(self, asset: str) -> bool:
-        """Compute 8 technical indicators for a single asset and UPDATE the DB.
+    def compute_features_df(self, df: pd.DataFrame, price_col: str = "price") -> pd.DataFrame:
+        """Compute 8 technical indicators on a price DataFrame (pure function).
+
+        Takes a DataFrame with a price column and adds indicator columns in-place.
+        Does not touch the database — suitable for live prediction where we
+        want fresh indicator values computed from just-loaded data.
 
         Indicators:
           - indicator_rsi_14
           - indicator_macd / indicator_macd_signal / indicator_macd_hist (12, 26, 9)
           - indicator_bb_pos  (Bollinger Band position, -1..+1, inside 20-period BB)
-          - indicator_atr_14  (Average True Range / price, normalized)
+          - indicator_atr_14  (rolling |diff| mean / close, normalized)
           - indicator_roc_10  (Rate of Change over 10 minutes, in %)
           - indicator_vol_30  (standard deviation of last 30 1-min returns)
         """
         import pandas_ta as ta
 
+        close = pd.to_numeric(df[price_col], errors="coerce")
+
+        df["indicator_rsi_14"] = ta.rsi(close, length=14)
+
+        macd = ta.macd(close, fast=12, slow=26, signal=9)
+        if macd is not None:
+            macd_col = next((c for c in macd.columns if c.startswith("MACD_") and not c.startswith("MACDh") and not c.startswith("MACDs")), None)
+            macds_col = next((c for c in macd.columns if c.startswith("MACDs_")), None)
+            macdh_col = next((c for c in macd.columns if c.startswith("MACDh_")), None)
+            df["indicator_macd"] = macd[macd_col] if macd_col else None
+            df["indicator_macd_signal"] = macd[macds_col] if macds_col else None
+            df["indicator_macd_hist"] = macd[macdh_col] if macdh_col else None
+        else:
+            df["indicator_macd"] = None
+            df["indicator_macd_signal"] = None
+            df["indicator_macd_hist"] = None
+
+        bb = ta.bbands(close, length=20, std=2)
+        if bb is not None:
+            bbp_col = next((c for c in bb.columns if c.startswith("BBP_")), None)
+            if bbp_col:
+                df["indicator_bb_pos"] = (bb[bbp_col] * 2) - 1
+            else:
+                df["indicator_bb_pos"] = None
+        else:
+            df["indicator_bb_pos"] = None
+
+        true_range = close.diff().abs()
+        atr = true_range.rolling(window=14).mean()
+        df["indicator_atr_14"] = atr / close.replace(0, pd.NA)
+
+        df["indicator_roc_10"] = ta.roc(close, length=10)
+
+        returns = close.pct_change()
+        df["indicator_vol_30"] = returns.rolling(window=30).std()
+
+        # clean up: coerce to numeric, replace inf with NA
+        for col in store.indicator_columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+            df[col] = df[col].replace([float("inf"), float("-inf")], pd.NA)
+
+        return df
+
+    def compute_features_of_asset(self, asset: str) -> bool:
+        """Compute indicators for an asset and UPDATE the DB."""
         utils.print(f"⏳ Computing features for {asset}...", 0)
 
         data = database.select(
@@ -474,57 +569,10 @@ class History:
         df["timestamp"] = pd.to_datetime(df["timestamp"])
         df["price"] = pd.to_numeric(df["price"], errors="coerce")
 
-        close = df["price"]
+        # delegate indicator calculation to the pure helper
+        df = self.compute_features_df(df, price_col="price")
 
-        # RSI
-        df["indicator_rsi_14"] = ta.rsi(close, length=14)
-
-        # MACD (12, 26, 9)
-        macd = ta.macd(close, fast=12, slow=26, signal=9)
-        if macd is not None:
-            macd_col = next((c for c in macd.columns if c.startswith("MACD_") and not c.startswith("MACDh") and not c.startswith("MACDs")), None)
-            macds_col = next((c for c in macd.columns if c.startswith("MACDs_")), None)
-            macdh_col = next((c for c in macd.columns if c.startswith("MACDh_")), None)
-            df["indicator_macd"] = macd[macd_col] if macd_col else None
-            df["indicator_macd_signal"] = macd[macds_col] if macds_col else None
-            df["indicator_macd_hist"] = macd[macdh_col] if macdh_col else None
-        else:
-            df["indicator_macd"] = None
-            df["indicator_macd_signal"] = None
-            df["indicator_macd_hist"] = None
-
-        # Bollinger Bands position (-1 = lower band, 0 = middle, +1 = upper band)
-        # pandas-ta provides BBP as 0..1 (0 = lower band, 1 = upper band);
-        # rescale to -1..+1 for better symmetry
-        bb = ta.bbands(close, length=20, std=2)
-        if bb is not None:
-            bbp_col = next((c for c in bb.columns if c.startswith("BBP_")), None)
-            if bbp_col:
-                df["indicator_bb_pos"] = (bb[bbp_col] * 2) - 1
-            else:
-                df["indicator_bb_pos"] = None
-        else:
-            df["indicator_bb_pos"] = None
-
-        # ATR(14) — but we only have close prices, so approximate with
-        # rolling standard deviation of abs(close diff) (a close-only proxy).
-        # Normalize by close price so it's scale-free.
-        true_range = close.diff().abs()
-        atr = true_range.rolling(window=14).mean()
-        df["indicator_atr_14"] = atr / close.replace(0, pd.NA)
-
-        # Rate of Change (10 periods)
-        df["indicator_roc_10"] = ta.roc(close, length=10)
-
-        # Volatility: std of last 30 1-min pct returns
-        returns = close.pct_change()
-        df["indicator_vol_30"] = returns.rolling(window=30).std()
-
-        # Replace inf/nan with None for DB storage
         feature_cols = store.indicator_columns
-        for col in feature_cols:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-            df[col] = df[col].replace([float("inf"), float("-inf")], pd.NA)
 
         # Build rows for bulk INSERT ... ON DUPLICATE KEY UPDATE
         # (trade_asset, trade_platform, timestamp, 8 features)
@@ -558,6 +606,7 @@ class History:
                 f"VALUES {values_sql} "
                 f"ON DUPLICATE KEY UPDATE {update_clause}"
             )
+            database._ensure_connection()
             with database.db_conn.cursor() as cursor:
                 cursor.execute(sql, flat_values)
                 database.db_conn.commit()
@@ -737,6 +786,20 @@ class History:
 
             # Check for long streaks of identical values
             consecutive_threshold = 90
+            # Precompute per-day distinct price count. FX holidays (Christmas,
+            # New Year, Good Friday, ...) show very few distinct prices over a
+            # whole day because the market is effectively closed — legitimate
+            # long flat streaks live inside such days and must NOT be flagged
+            # as a broken feed. We treat a day with <200 distinct prices as
+            # "market closed" for the purpose of the streak check.
+            low_activity_threshold = 200
+            daily_distinct = (
+                df.groupby(df["Zeitpunkt"].dt.date)["Wert"]
+                .nunique(dropna=True)
+            )
+            low_activity_dates = set(
+                daily_distinct[daily_distinct < low_activity_threshold].index
+            )
             # Create a grouper for consecutive values, ignoring NaNs
             streaks = (df["Wert"].ne(df["Wert"].shift())).cumsum()
             # Count the size of each streak
@@ -744,21 +807,40 @@ class History:
             # Filter for long streaks
             long_streaks = streak_counts[streak_counts >= consecutive_threshold]
             if not long_streaks.empty:
-                # Find the start index of the first long streak for reporting
-                first_long_streak_id = long_streaks.index[0]
-                streak_indices = df.index[streaks == first_long_streak_id]
-                first_invalid_index = streak_indices[0]
-                value_of_streak = df.loc[first_invalid_index, "Wert"]
-                # Check if the streak is of NaN values, which we can ignore
-                if not pd.isna(value_of_streak):
+                for streak_id, streak_len in long_streaks.items():
+                    streak_indices = df.index[streaks == streak_id]
+                    first_invalid_index = streak_indices[0]
+                    value_of_streak = df.loc[first_invalid_index, "Wert"]
+                    # Streaks of NaN values are fine (weekends, etc.)
+                    if pd.isna(value_of_streak):
+                        continue
                     numeric_value = pd.to_numeric(value_of_streak, errors="coerce")
                     # Only report streaks for values greater than 0.0005
-                    if numeric_value is not None and numeric_value > 0.0005:
+                    if numeric_value is None or numeric_value <= 0.0005:
+                        continue
+                    # Skip streaks that touch a low-activity (holiday) day.
+                    # The PocketOption feed legitimately reports long flat
+                    # prices when the FX market is closed, and these holiday
+                    # fades often spill a few hours into the next day while
+                    # the market wakes up — so an overlap (not strict subset)
+                    # is the right criterion.
+                    streak_dates = set(
+                        df.loc[streak_indices, "Zeitpunkt"].dt.date
+                    )
+                    holiday_overlap = streak_dates & low_activity_dates
+                    if holiday_overlap:
                         utils.print(
-                            f'⛔ {asset}: Found a streak of {long_streaks.iloc[0]} identical values ("{value_of_streak}") starting at line {first_invalid_index + 1}.',
-                            0,
+                            f"ℹ️ {asset}: Skipping streak of {streak_len} identical "
+                            f"values touching low-activity day(s) "
+                            f"{sorted(holiday_overlap)} (likely FX holiday).",
+                            1,
                         )
-                        return False
+                        continue
+                    utils.print(
+                        f'⛔ {asset}: Found a streak of {streak_len} identical values ("{value_of_streak}") starting at line {first_invalid_index + 1}.',
+                        0,
+                    )
+                    return False
 
             # final time check (account for DST spring-forward gaps only if missing)
             dst_gaps_minutes = 0
@@ -789,69 +871,49 @@ class History:
 
         return True
 
-    async def data_is_already_loaded(
-        self, request_time: int, offset: int, cache: pd.DataFrame = None
+    def _build_cache_minute_set(self, trade_asset, trade_platform) -> set:
+        """Pre-compute the set of minute-ordinals already present in the DB
+        for this (asset, platform). Runs synchronously inside a thread
+        (caller uses `asyncio.to_thread`) so it doesn't block the event loop.
+        Returns an empty set if nothing is cached.
+        """
+        rows = database.select(
+            "SELECT timestamp FROM trading_data "
+            "WHERE trade_asset = %s AND trade_platform = %s",
+            (trade_asset, trade_platform),
+        )
+        if not rows:
+            return set()
+        # Each timestamp → integer minutes-since-epoch for O(1) membership
+        # test. Using pandas for vectorized conversion, then down to a
+        # native python set. Going via datetime64[m] gives minute-precision
+        # integers without worrying about pandas version quirks on
+        # DatetimeIndex.view().
+        ts = pd.to_datetime([r["timestamp"] for r in rows])
+        minutes = ts.values.astype("datetime64[m]").astype("int64").tolist()
+        return set(minutes)
+
+    def data_is_already_loaded(
+        self, request_time: int, offset: int, cache_minutes=None
     ) -> bool:
 
-        if cache is not None:
-
+        if cache_minutes is not None and cache_minutes:
             # correct request_time to local timezone
-            # utils.print(f"ℹ️ [[ {request_time} ]]", 1)
             request_time = utils.correct_timestamp(request_time)
-            # utils.print(f"ℹ️ [[ {request_time} ]]", 1)
 
-            # Check if all minute values in the current chunk already exist.
-            start_check_time = pd.to_datetime(request_time - offset, unit="s")
-            end_check_time = pd.to_datetime(request_time, unit="s")
+            # Expected chunk minute range: [request_time - offset, request_time)
+            # measured in minute-ordinals (minutes since epoch).
+            start_min = (request_time - offset) // 60
+            end_min = request_time // 60
+            if end_min <= start_min:
+                return False
 
-            expected_minutes = pd.date_range(
-                start=start_check_time,
-                end=end_check_time - pd.Timedelta(minutes=1),
-                freq="min",
-            )
-
-            if len(expected_minutes) > 0:
-                effective_start_filter = start_check_time.floor("min")
-                effective_end_filter = end_check_time.ceil("min") - pd.Timedelta(
-                    microseconds=1
-                )
-
-                mask = cache["Zeitpunkt"].between(
-                    effective_start_filter, effective_end_filter
-                )
-                existing_minutes = cache.loc[mask, "Zeitpunkt"].dt.floor("min")
-                expected_series_floored = (
-                    pd.to_datetime(pd.Series(expected_minutes))
-                    .dt.floor("min")
-                    .drop_duplicates()
-                )
-                existing_minutes_floored = existing_minutes.drop_duplicates()
-                are_present = expected_series_floored.isin(existing_minutes_floored)
-                if are_present.all():
-                    if True is False:
-                        utils.print(
-                            f"✅✅✅ Data for {store.trade_asset} in period until {utils.correct_datetime_to_string(request_time, '%d.%m.%y %H:%M:%S', False)} already complete. Skipping.",
-                            1,
-                        )
-                        utils.print(
-                            f"EXISTING: {existing_minutes_floored.to_list()}",
-                            1,
-                        )
-                        utils.print(
-                            f"EXPECTED: {expected_series_floored.to_list()}",
-                            1,
-                        )
-                        sys.exit()
-
-                    return True
-                else:
-                    if True is False:
-                        utils.print(
-                            f"ℹ️ℹ️ℹ️ Data for {store.trade_asset} in period until {utils.correct_datetime_to_string(request_time, '%d.%m.%y %H:%M:%S', False)} incomplete. Downloading.",
-                            1,
-                        )
-
+            # O(1) set lookups per minute. Chunk spans ~150 minutes, so
+            # worst case ~150 set lookups per check — sub-millisecond.
+            for m in range(start_min, end_min):
+                if m not in cache_minutes:
                     return False
+            return True
 
         return False
 

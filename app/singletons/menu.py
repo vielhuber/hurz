@@ -276,15 +276,9 @@ class Menu:
             elif answers["main_selection"] == option5 and os.path.exists(
                 store.filename_model
             ):
-                await fulltest.determine_confidence_based_on_fulltests()
-                fulltest_result = await utils.run_sync_as_async(
-                    fulltest.run_fulltest,
-                    store.trade_asset,
-                    store.trade_platform,
-                    None,
-                    None,
-                )
-                utils.print("\n" + fulltest_result["report"].to_string(), 0)
+                fulltest_result = await fulltest.determine_confidence_based_on_fulltests()
+                if isinstance(fulltest_result, dict) and "report" in fulltest_result:
+                    utils.print("\n" + fulltest_result["report"].to_string(), 0)
                 await asyncio.sleep(1)
 
             elif answers["main_selection"] == option6 and os.path.exists(

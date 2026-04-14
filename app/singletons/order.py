@@ -6,7 +6,7 @@ import pandas as pd
 import random
 from typing import Optional, Dict, Any
 
-from app.utils.singletons import fulltest, history, store, utils, database
+from app.utils.singletons import history, store, utils, database
 from app.utils.helpers import singleton
 
 
@@ -21,12 +21,12 @@ class Order:
             new_line=True,
         )
 
-        if (
-            history.verify_data_of_asset(asset=store.trade_asset, output_success=False)
-            is False
-        ):
+        is_valid = await asyncio.to_thread(
+            history.verify_data_of_asset, asset=store.trade_asset, output_success=False
+        )
+        if is_valid is False:
             utils.print(
-                f"⛔ Training aborted for {store.trade_asset} due to invalid data.", 0
+                f"⛔ Trading aborted for {store.trade_asset} due to invalid data.", 0
             )
             return False
 
@@ -39,23 +39,16 @@ class Order:
             trade_platform=store.trade_platform,
         )
 
-        # run fulltest (only for information)
-        fulltest_result = await utils.run_sync_as_async(
-            fulltest.run_fulltest, store.trade_asset, store.trade_platform, None, None
-        )
-        if fulltest_result is None:
-            utils.print("⛔ Fulltest could not be performed.", 0)
-            return False
-        utils.print("\n" + fulltest_result["report"].to_string(), 1)
-
         indicator_cols = store.indicator_columns
 
-        # load live data including indicators
-        indicator_cols_sql = ", ".join(indicator_cols)
-        df = database.select(
-            f"SELECT trade_asset, trade_platform, timestamp, price, {indicator_cols_sql} "
-            f"FROM trading_data WHERE trade_asset = %s AND trade_platform = %s "
-            f"ORDER BY timestamp",
+        # load live data (prices only — indicators are recomputed in-memory below
+        # because load_data just added fresh rows with NULL indicator columns)
+        # run in thread to keep event loop responsive for websocket ping/pong
+        df = await asyncio.to_thread(
+            database.select,
+            "SELECT trade_asset, trade_platform, timestamp, price "
+            "FROM trading_data WHERE trade_asset = %s AND trade_platform = %s "
+            "ORDER BY timestamp",
             (store.trade_asset, store.trade_platform),
         )
         df = pd.DataFrame(df)
@@ -69,77 +62,12 @@ class Order:
         )
         df.dropna(subset=["Wert"], inplace=True)
         df["Wert"] = df["Wert"].astype(float)
-        for col in indicator_cols:
-            df[col] = pd.to_numeric(df[col], errors="coerce").astype(float)
         df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
 
-        # ensure data is sorted by time
-        df.sort_values("Zeitpunkt", inplace=True)
-        df.reset_index(drop=True, inplace=True)
-
-        # prepare price window (last train_window minutes)
-        X = df["Wert"].values
-
-        desired_length = store.train_window
-        if len(X) < desired_length:
-            # if less data is available, fill with the first value at the beginning
-            X = pd.Series(X).reindex(range(desired_length), method="ffill").values
-            indicator_row_idx = len(df) - 1
-        else:
-            # take the last desired_length rows
-            X = X[-desired_length:]
-            indicator_row_idx = len(df) - 1
-
-            # ensure the last 240 minutes are contiguous (no weekend gap)
-            last_rows = df.iloc[-desired_length:]
-            minutes = (
-                pd.to_datetime(last_rows["Zeitpunkt"]).values.astype("datetime64[s]").astype("int64") // 60
-            )
-            if minutes[-1] - minutes[0] != desired_length - 1:
-                utils.print(
-                    f"⛔ Last {desired_length} minutes for {store.trade_asset} "
-                    f"are not contiguous (gap/weekend) — skipping trade.",
-                    0,
-                )
-                return False
-
-        # normalize relative to first value (must match training normalization)
-        if X[0] == 0 or not np.isfinite(X[0]):
-            utils.print(
-                f"⛔ Cannot normalize window for {store.trade_asset}: first value is {X[0]}.",
-                0,
-            )
-            return False
-        X = X / X[0] - 1
-        if not np.all(np.isfinite(X)):
-            utils.print(
-                f"⛔ Normalized window for {store.trade_asset} contains inf/nan.",
-                0,
-            )
-            return False
-
-        # indicator snapshot from the most recent row
-        indicator_snapshot = np.array(
-            [df[col].iloc[indicator_row_idx] for col in indicator_cols],
-            dtype=float,
-        )
-        if not np.all(np.isfinite(indicator_snapshot)):
-            utils.print(
-                f"⛔ Indicators for {store.trade_asset} contain inf/nan (warmup period not complete?).",
-                0,
-            )
-            return False
-
-        # combine: 240 normalized prices + 8 indicators = 248 features
-        feature_vec = np.concatenate([X, indicator_snapshot])
-
-        # important: exact structure as in training (DataFrame and not just flatten)
-        X_df = pd.DataFrame([feature_vec])  # ✅ important: correct structure (1 row, x columns)
-
-        doCall = None
-
-        doCall = store.model_classes[store.active_model].model_buy_sell_order(
-            X_df, store.filename_model, store.trade_confidence
+        # run CPU/GPU-intensive work in a thread so the event loop stays
+        # responsive for websocket ping/pong (prevents 1005 disconnects)
+        doCall = await asyncio.to_thread(
+            self._prepare_and_predict, df, indicator_cols
         )
 
         # duration matches training horizon (trade_time in seconds)
@@ -175,6 +103,69 @@ class Order:
             )
 
         return doCall
+
+    def _prepare_and_predict(self, df, indicator_cols):
+        """Synchronous CPU/GPU work, called via asyncio.to_thread()."""
+        df = history.compute_features_df(df, price_col="Wert")
+        for col in indicator_cols:
+            df[col] = pd.to_numeric(df[col], errors="coerce").astype(float)
+
+        df.sort_values("Zeitpunkt", inplace=True)
+        df.reset_index(drop=True, inplace=True)
+
+        X = df["Wert"].values
+        desired_length = store.train_window
+
+        if len(X) < desired_length:
+            X = pd.Series(X).reindex(range(desired_length), method="ffill").values
+            indicator_row_idx = len(df) - 1
+        else:
+            X = X[-desired_length:]
+            indicator_row_idx = len(df) - 1
+
+            last_rows = df.iloc[-desired_length:]
+            minutes = (
+                pd.to_datetime(last_rows["Zeitpunkt"]).values.astype("datetime64[s]").astype("int64") // 60
+            )
+            if minutes[-1] - minutes[0] != desired_length - 1:
+                utils.print(
+                    f"⛔ Last {desired_length} minutes for {store.trade_asset} "
+                    f"are not contiguous (gap/weekend) — skipping trade.",
+                    0,
+                )
+                return 0.5
+
+        if X[0] == 0 or not np.isfinite(X[0]):
+            utils.print(
+                f"⛔ Cannot normalize window for {store.trade_asset}: first value is {X[0]}.",
+                0,
+            )
+            return 0.5
+        X = X / X[0] - 1
+        if not np.all(np.isfinite(X)):
+            utils.print(
+                f"⛔ Normalized window for {store.trade_asset} contains inf/nan.",
+                0,
+            )
+            return 0.5
+
+        indicator_snapshot = np.array(
+            [df[col].iloc[indicator_row_idx] for col in indicator_cols],
+            dtype=float,
+        )
+        if not np.all(np.isfinite(indicator_snapshot)):
+            utils.print(
+                f"⛔ Indicators for {store.trade_asset} contain inf/nan (warmup period not complete?).",
+                0,
+            )
+            return 0.5
+
+        feature_vec = np.concatenate([X, indicator_snapshot])
+        X_df = pd.DataFrame([feature_vec])
+
+        return store.model_classes[store.active_model].model_buy_sell_order(
+            X_df, store.filename_model, store.trade_confidence
+        )
 
     async def send_order(
         self, asset: str, amount: float, action: str, duration: int

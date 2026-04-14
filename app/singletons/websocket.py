@@ -179,7 +179,7 @@ class WebSocket:
                 except Exception as e:
                     utils.print(f"⛔ Error sending input: {e}", 2)
 
-            await asyncio.sleep(0.25)  # breathe
+            await asyncio.sleep(0.05)  # breathe (tighter poll for parallel loads)
 
     async def ws_receive_loop(self, ws: WebSocketClientProtocol) -> None:
         try:
@@ -210,12 +210,39 @@ class WebSocket:
                     elif '"updateAssets"' in message:
                         store.binary_expected_event = "updateAssets"
                 elif isinstance(message, bytes):
-                    if (
+                    # First: try to content-sniff the payload as a
+                    # loadHistoryPeriod response regardless of the global
+                    # `binary_expected_event` state. With many parallel loads
+                    # in flight, interleaved 451-* events (e.g. updateAssets,
+                    # successupdateBalance) would otherwise clobber the state
+                    # between a loadHistoryPeriod announcement and its binary
+                    # payload → the response would be silently dropped.
+                    # A loadHistoryPeriod payload is uniquely shaped (dict
+                    # with asset/index/data, data[0] has an 'open' field),
+                    # so this sniff is safe against false positives.
+                    _sniff_ok = False
+                    _sniff_data = None
+                    try:
+                        _sniff_data = json.loads(message.decode("utf-8"))
+                        _sniff_ok = (
+                            isinstance(_sniff_data, dict)
+                            and all(k in _sniff_data for k in ("asset", "index", "data"))
+                            and isinstance(_sniff_data["data"], list)
+                            and len(_sniff_data["data"]) > 0
+                            and isinstance(_sniff_data["data"][0], dict)
+                            and "open" in _sniff_data["data"][0]
+                            and _sniff_data["data"][0]["open"] is not None
+                        )
+                    except Exception:
+                        _sniff_ok = False
+
+                    if _sniff_ok or (
                         store.binary_expected_event == "loadHistoryPeriod"
                         or store.binary_expected_event == "loadHistoryPeriodFast"
                     ):
-                        json_data = json.loads(message.decode("utf-8"))
-                        # utils.print(json_data, 2)
+                        json_data = _sniff_data if _sniff_ok else json.loads(
+                            message.decode("utf-8")
+                        )
                         if (
                             isinstance(json_data, dict)
                             and isinstance(json_data["data"], list)
@@ -255,31 +282,17 @@ class WebSocket:
                                     time_begin = utils.correct_datetime_to_string(
                                         tick["time"], "%Y-%m-%d %H:%M:%S.%f", False
                                     )
-                                    # utils.print(f"!!!{time_begin}")
-                                    # utils.print("!!!!!!!!!!!!")
-                                    # utils.print(tick)
-                                    # utils.print("!!!!!!!!!!!!")
                                     value_begin = f"{float(tick['open']):.5f}"  # explicit float and exactly 5 decimal places!
                                     daten.append([asset, time_begin, value_begin])
 
-                                with open(
-                                    "tmp/historic_data_raw.json", "r+", encoding="utf-8"
-                                ) as f:
-                                    try:
-                                        existing = json.load(f)
-                                    except json.JSONDecodeError:
-                                        existing = []
-                                    existing.extend(daten)
-                                    f.seek(0)
-                                    json.dump(existing, f, indent=2)
-                                    f.truncate()
-
-                                with open(
-                                    "tmp/historic_data_status.json",
-                                    "w",
-                                    encoding="utf-8",
-                                ) as file:
-                                    file.write("done")
+                                # Route response into the per-asset in-memory
+                                # channel so that multiple concurrent load_data
+                                # coroutines (e.g. autotrade parallel pre-load
+                                # phase) can each wait for their own asset's
+                                # data without stepping on each other.
+                                store.historic_data_raw.setdefault(asset, []).extend(daten)
+                                store.historic_data_status[asset] = "done"
+                                store.historic_data_chunk_count += 1
 
                         else:
                             utils.print("⛔ No reasonable data received!", 1)
@@ -288,12 +301,20 @@ class WebSocket:
                                 "tmp/debug_wrong_data.json", "w", encoding="utf-8"
                             ) as f:
                                 json.dump(json_data, f, indent=2)
-                            with open(
-                                "tmp/historic_data_status.json",
-                                "w",
-                                encoding="utf-8",
-                            ) as file:
-                                file.write("error")
+                            # Flag the affected asset as error so load_data
+                            # can bail out. If the payload has an asset name
+                            # (most cases), use that; otherwise flip EVERY
+                            # pending entry to error to avoid stalls.
+                            err_asset = (
+                                json_data.get("asset")
+                                if isinstance(json_data, dict) else None
+                            )
+                            if err_asset:
+                                store.historic_data_status[err_asset] = "error"
+                            else:
+                                for k in list(store.historic_data_status.keys()):
+                                    if store.historic_data_status[k] == "pending":
+                                        store.historic_data_status[k] = "error"
                             utils.print("✅ Ending requests!", 1)
 
                     elif store.binary_expected_event == "successupdateBalance":
@@ -532,41 +553,39 @@ class WebSocket:
         except websockets.ConnectionClosedOK as e:
             utils.print(f"✅ WebSocket normally closed (Code {e.code}): {e.reason}", 1)
 
-            # try to reconnect
-            await boot.shutdown()
+            # light reconnect: only rebuild the websocket, do NOT tear down
+            # the database or running tasks (that would kill long-running
+            # operations like the trade loop that are still using the DB).
+            try:
+                if store.websockets_connection is not None:
+                    try:
+                        await store.websockets_connection.close()
+                    except Exception:
+                        pass
+                    store.websockets_connection = None
+            except Exception as close_err:
+                utils.print(f"⚠️ Error closing old websocket: {close_err}", 1)
             await websocket.setup_websockets()
-
-            # await boot.shutdown()
-            # store.stop_event.set()
         except websockets.ConnectionClosedError as e:
             utils.print(f"⛔ Connection unexpectedly closed ({e.code}): {e.reason}", 1)
 
-            utils.print("⛔ _1", 2)
+            # we are in ConnectionClosedError → the socket is definitively closed,
+            # no need to probe ws.closed (the attribute was removed in
+            # websockets>=13 where ClientConnection replaced WebSocketClientProtocol)
+            utils.print("ℹ️ Reconnect started.", 2)
 
-            # reconnect (this is needed because no ping pong is sent on training etc.)
-            if ws.closed:
-                utils.print("⛔ _2", 2)
-
-                utils.print("ℹ️ Reconnect started.", 2)
-
-                # reconnect only on first try or after every 5 minutes (prevent endless reconnects)
-                if store.reconnect_last_try is None or (
-                    ((datetime.now(timezone.utc)) - store.reconnect_last_try)
-                    > timedelta(minutes=5)
-                ):
-                    store.reconnect_last_try = datetime.now(timezone.utc)
-                    await boot.shutdown()
-                    await websocket.setup_websockets()
-                else:
-                    await boot.shutdown()
-                    store.stop_event.set()
-                return
-
+            # reconnect only on first try or after every 5 minutes (prevent endless reconnects)
+            if store.reconnect_last_try is None or (
+                ((datetime.now(timezone.utc)) - store.reconnect_last_try)
+                > timedelta(minutes=5)
+            ):
+                store.reconnect_last_try = datetime.now(timezone.utc)
+                await boot.shutdown()
+                await websocket.setup_websockets()
             else:
-                utils.print("⛔ _3", 2)
-                utils.print("ℹ️ Trying shutdown.", 2)
                 await boot.shutdown()
                 store.stop_event.set()
+            return
 
         except Exception as e:
             utils.print(f"⛔ Error in websocket.ws_receive_loop: {e}", 1)
