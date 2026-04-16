@@ -6,7 +6,7 @@ import pandas as pd
 import random
 from typing import Optional, Dict, Any
 
-from app.utils.singletons import history, store, utils, database
+from app.utils.singletons import history, store, utils, database, asset
 from app.utils.helpers import singleton
 
 
@@ -30,11 +30,13 @@ class Order:
             )
             return False
 
-        # load latest amount
+        # load latest amount — must be larger than train_window plus buffer
+        # for indicator warmup (ATR_14, BB, RSI etc. need ~50 extra bars)
+        time_back_in_hours = max(6, store.train_window // 60 + 2)
         await history.load_data(
             show_overall_estimation=False,
             time_back_in_months=None,
-            time_back_in_hours=6,  # must be larger than train_window (240min=4h) plus buffer
+            time_back_in_hours=time_back_in_hours,
             trade_asset=store.trade_asset,
             trade_platform=store.trade_platform,
         )
@@ -69,6 +71,24 @@ class Order:
         doCall = await asyncio.to_thread(
             self._prepare_and_predict, df, indicator_cols
         )
+
+        # Inverted-signal handling: for assets where the fulltest found
+        # that the model's prediction is consistently WRONG (succ < 50%
+        # at every profitable conf level), the fulltest stores the
+        # inverted-EV config and sets is_inverted=True. Live, we flip
+        # the decision 1<->0 (leave 0.5 HOLD untouched).
+        asset_info = asset.get_asset_information(
+            store.trade_platform, store.active_model, store.trade_asset
+        )
+        is_inverted = bool(asset_info.get("is_inverted")) if asset_info else False
+        if is_inverted and doCall in (0, 1):
+            flipped = 1 - doCall
+            utils.print(
+                f"🔄 [{store.trade_asset}] Inverted signal: "
+                f"{'BUY→SELL' if doCall == 1 else 'SELL→BUY'}",
+                1,
+            )
+            doCall = flipped
 
         # duration matches training horizon (trade_time in seconds)
         duration = int(store.trade_time)
@@ -160,7 +180,20 @@ class Order:
             )
             return 0.5
 
-        feature_vec = np.concatenate([X, indicator_snapshot])
+        # cyclical time features at the prediction moment (must match training)
+        from datetime import datetime, timezone
+        now_utc = datetime.now(timezone.utc)
+        h = now_utc.hour + now_utc.minute / 60.0
+        d = now_utc.weekday()  # 0=Monday..4=Friday
+        TWO_PI = 2.0 * np.pi
+        time_features = np.array([
+            np.sin(TWO_PI * h / 24.0),
+            np.cos(TWO_PI * h / 24.0),
+            np.sin(TWO_PI * d / 5.0),
+            np.cos(TWO_PI * d / 5.0),
+        ], dtype=float)
+
+        feature_vec = np.concatenate([X, indicator_snapshot, time_features])
         X_df = pd.DataFrame([feature_vec])
 
         return store.model_classes[store.active_model].model_buy_sell_order(

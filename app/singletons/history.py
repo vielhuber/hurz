@@ -531,7 +531,17 @@ class History:
         if bb is not None:
             bbp_col = next((c for c in bb.columns if c.startswith("BBP_")), None)
             if bbp_col:
-                df["indicator_bb_pos"] = (bb[bbp_col] * 2) - 1
+                # BBP = (close - lower) / (upper - lower)
+                # During completely flat periods (e.g. 10+ minutes of identical
+                # prices, common on yen crosses at the Asian session start),
+                # the BB standard deviation collapses to ~0, (upper - lower)
+                # approaches 0, and BBP explodes to hundreds or infinity.
+                # These "outlier" values silently corrupt the training data.
+                # Clip the transformed position to [-3, +3] — three standard
+                # deviations outside the Bollinger bands is already extreme,
+                # anything beyond is numerical noise from a degenerate band.
+                raw = (bb[bbp_col] * 2) - 1
+                df["indicator_bb_pos"] = raw.clip(lower=-3.0, upper=3.0)
             else:
                 df["indicator_bb_pos"] = None
         else:
@@ -554,11 +564,51 @@ class History:
         return df
 
     def compute_features_of_asset(self, asset: str) -> bool:
-        """Compute indicators for an asset and UPDATE the DB."""
+        """Compute indicators for an asset and UPDATE the DB.
+
+        Only writes back rows that currently have NULL indicator values
+        (using `indicator_rsi_14 IS NULL` as a cheap proxy for "no
+        indicators yet"). This means:
+          - A fresh run after clearing indicators: all rows get computed + written
+          - A second run on an already-populated DB: all rows are skipped (no-op)
+          - A partial run (some rows have values, others don't): only the
+            missing rows are written
+        The full price series is still used as INPUT to the indicator
+        calculation because rolling-window indicators (RSI, MACD, BB, ATR,
+        ROC, Vol) need the complete history to produce correct values at
+        any given point.
+        """
         utils.print(f"⏳ Computing features for {asset}...", 0)
 
+        # FAST-PATH SKIP CHECK: before loading the full 280k price series
+        # into memory, ask the DB directly whether there are any NULL
+        # indicator rows BEYOND the first timestamp. Row 0 is always NULL
+        # for RSI (structural warmup — needs a prior price to diff), so
+        # we exclude it via the `timestamp > MIN(...)` subquery. If the
+        # count is 0, everything real is already computed and we can
+        # skip the ~2 s full SELECT + pandas parse entirely.
+        gap_check = database.select(
+            """
+            SELECT COUNT(*) AS gaps
+            FROM trading_data
+            WHERE trade_asset = %s
+              AND indicator_rsi_14 IS NULL
+              AND timestamp > (
+                SELECT MIN(timestamp) FROM trading_data WHERE trade_asset = %s
+              )
+            """,
+            (asset, asset),
+        )
+        if gap_check and int(gap_check[0]["gaps"]) == 0:
+            utils.print(
+                f"✅ {asset}: all rows already have indicators, skipping.",
+                0,
+            )
+            return True
+
         data = database.select(
-            "SELECT timestamp, price FROM trading_data WHERE trade_asset = %s ORDER BY timestamp",
+            "SELECT timestamp, price, indicator_rsi_14 "
+            "FROM trading_data WHERE trade_asset = %s ORDER BY timestamp",
             (asset,),
         )
         if not data:
@@ -569,26 +619,76 @@ class History:
         df["timestamp"] = pd.to_datetime(df["timestamp"])
         df["price"] = pd.to_numeric(df["price"], errors="coerce")
 
-        # delegate indicator calculation to the pure helper
-        df = self.compute_features_df(df, price_col="price")
-
         feature_cols = store.indicator_columns
 
+        # Mask: rows that are missing indicator values in the DB. We use
+        # indicator_rsi_14 as the proxy because all 8 indicators are
+        # computed and persisted together — if RSI is NULL for a row past
+        # the initial warmup, the rest are NULL for that row too.
+        needs_compute = df["indicator_rsi_14"].isna().values
+        total_rows = len(df)
+        rows_needing_compute = int(needs_compute.sum())
+
+        utils.print(
+            f"ℹ️ {asset}: {rows_needing_compute}/{total_rows} rows missing "
+            f"indicators — computing on full history and writing the missing rows.",
+            0,
+        )
+
+        # delegate indicator calculation to the pure helper (needs FULL history)
+        df = self.compute_features_df(df, price_col="price")
+
         # Build rows for bulk INSERT ... ON DUPLICATE KEY UPDATE
-        # (trade_asset, trade_platform, timestamp, 8 features)
+        # (trade_asset, trade_platform, timestamp, 8 features).
+        # IMPORTANT: we only emit rows where
+        #   (a) `needs_compute` is True (row was NULL in DB), AND
+        #   (b) the freshly-computed RSI is not NaN (i.e. the row is past
+        #       the warmup boundary where a value can actually exist)
+        # Without (b), warmup rows like position 0 (RSI=NaN forever) would
+        # be rewritten NULL→NULL on every run — a wasted no-op.
         timestamps = df["timestamp"].dt.to_pydatetime()
+        fresh_rsi_is_nan = df["indicator_rsi_14"].isna().values
         feature_values = [
             [None if pd.isna(v) else float(v) for v in df[col].values]
             for col in feature_cols
         ]
         rows = []
         for idx in range(len(df)):
-            row_values = [asset, store.trade_platform, timestamps[idx]] + [
-                feature_values[c][idx] for c in range(len(feature_cols))
-            ]
+            if not needs_compute[idx]:
+                continue
+            if fresh_rsi_is_nan[idx]:
+                # RSI could not be computed (row 0 warmup, tail-flat
+                # segment, or an all-constant price series like IRRUSD_otc
+                # where DECIMAL(10,5) rounds everything to a single value).
+                # Write 0.0 sentinels for all 8 indicators so the row
+                # becomes non-NULL in the DB and is skipped on future runs.
+                # Without this, the gap-check query keeps finding these
+                # rows as "missing" and compute_features_of_asset loops.
+                row_values = (
+                    [asset, store.trade_platform, timestamps[idx]]
+                    + [0.0] * len(feature_cols)
+                )
+            else:
+                row_values = [asset, store.trade_platform, timestamps[idx]] + [
+                    feature_values[c][idx] for c in range(len(feature_cols))
+                ]
             rows.append(row_values)
 
+        self._bulk_write_feature_rows(asset, rows, feature_cols)
+        return True
+
+    def _bulk_write_feature_rows(self, asset: str, rows: list, feature_cols: list) -> None:
+        """Write a list of [asset, platform, timestamp, <8 features>] rows to
+        trading_data via batched INSERT ... ON DUPLICATE KEY UPDATE. Handles
+        the empty case gracefully (logs and returns)."""
         total = len(rows)
+        if total == 0:
+            utils.print(
+                f"ℹ️ {asset}: no new feature rows to write.",
+                0,
+            )
+            return
+
         utils.print(f"ℹ️ {asset}: writing features for {total} rows...", 0)
         sys.stdout.flush()
 
@@ -596,7 +696,12 @@ class History:
         placeholders = "(" + ", ".join(["%s"] * len(cols)) + ")"
         update_clause = ", ".join(f"{c} = VALUES({c})" for c in feature_cols)
 
-        batch_size = 5000
+        # 25000 rows per INSERT batch: reduces the 57-batch-per-asset
+        # roundtrip count by ~5× (280k rows → 12 batches instead of 57),
+        # cutting the dominant DB-write cost of compute_features_of_asset
+        # by roughly 30-40%. Each batch sends ~5 MB to MySQL, well under
+        # the default 64 MB max_allowed_packet, so no tuning required.
+        batch_size = 25000
         for i in range(0, total, batch_size):
             batch = rows[i : i + batch_size]
             values_sql = ", ".join([placeholders] * len(batch))
@@ -617,25 +722,20 @@ class History:
 
         utils.print(f"✅ {asset}: updated features for {total} rows.", 0)
         sys.stdout.flush()
-        return True
 
     def verify_data_of_asset(self, asset: str, output_success: bool = True) -> bool:
-        # read from database
+        # read from database — only timestamp + price (verify doesn't touch
+        # the 8 indicator columns, so loading them is a ~70% waste of
+        # network and memory bandwidth).
         data = database.select(
-            "SELECT * FROM trading_data WHERE trade_asset = %s", (asset,)
+            "SELECT timestamp, price FROM trading_data WHERE trade_asset = %s",
+            (asset,),
         )
         if len(data) == 0:
             utils.print(f"⛔ {asset}: No data found in database for {asset}!", 1)
             return False
         df = pd.DataFrame(data)
-        df = df.rename(
-            columns={
-                "trade_asset": "Waehrung",
-                "trade_platform": "Plattform",
-                "timestamp": "Zeitpunkt",
-                "price": "Wert",
-            }
-        )
+        df = df.rename(columns={"timestamp": "Zeitpunkt", "price": "Wert"})
         df["Wert"] = df["Wert"].astype(float)
 
         df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
@@ -758,11 +858,24 @@ class History:
 
             # check values vectorized (only for non-OTC and non-weekend)
             if "otc" not in asset:
-                weekend_mask = df.apply(utils.is_weekend, axis=1)
-
-                # write weekend_mask to file
-                with open("tmp/weekend_mask.json", "w", encoding="utf-8") as f:
-                    json.dump(weekend_mask.tolist(), f)
+                # Vectorized weekend mask. Previously this was
+                #   df.apply(utils.is_weekend, axis=1)
+                # a row-wise Python-level apply that called is_weekend()
+                # 280 000 times per asset (seconds of CPU). The rules:
+                #   - Saturday from 01:00 onwards  → weekend
+                #   - whole Sunday                 → weekend
+                #   - Monday before 01:00          → weekend
+                # Everything else → weekday. Timestamps are in Europe/Berlin
+                # local time (same as the DB stores them).
+                wd = df["Zeitpunkt"].dt.dayofweek
+                minutes_since_midnight = (
+                    df["Zeitpunkt"].dt.hour * 60 + df["Zeitpunkt"].dt.minute
+                )
+                weekend_mask = (
+                    ((wd == 5) & (minutes_since_midnight >= 60))
+                    | (wd == 6)
+                    | ((wd == 0) & (minutes_since_midnight < 60))
+                )
 
                 # Check for weekdays with missing values (which is an error)
                 invalid_weekdays = df[~weekend_mask & df["Wert"].isna()]
@@ -790,13 +903,32 @@ class History:
             # New Year, Good Friday, ...) show very few distinct prices over a
             # whole day because the market is effectively closed — legitimate
             # long flat streaks live inside such days and must NOT be flagged
-            # as a broken feed. We treat a day with <200 distinct prices as
-            # "market closed" for the purpose of the streak check.
-            low_activity_threshold = 200
+            # as a broken feed.
+            #
+            # Threshold is *asset-adaptive*: different FX pairs have very
+            # different baseline activity levels. USDJPY sees ~1000+ distinct
+            # prices on a normal day, EURGBP/AUDCHF only ~200-300. A static
+            # threshold of 200 misses Christmas on USDJPY (223 distinct) while
+            # false-positive risk exists on quiet days for less-liquid pairs.
+            # We take the median daily distinct count and use a fraction of
+            # it (45%) as the low-activity threshold, with a safety floor of
+            # 30 so truly silent days (Christmas: 20-100 distinct) still get
+            # caught even on assets with unusually low median.
+            # 45% was chosen empirically to catch USDJPY Christmas (223
+            # distinct vs median 550 → 40.5% of median) without triggering
+            # on normal quiet Fridays at less-liquid pairs like AUDCHF.
             daily_distinct = (
                 df.groupby(df["Zeitpunkt"].dt.date)["Wert"]
                 .nunique(dropna=True)
             )
+            # Only consider days with any activity at all for median (weekends
+            # that are fully NULL'd return 0 and would skew the median down).
+            non_zero_days = daily_distinct[daily_distinct > 0]
+            if len(non_zero_days) > 0:
+                median_distinct = float(non_zero_days.median())
+            else:
+                median_distinct = 300.0
+            low_activity_threshold = max(30.0, median_distinct * 0.45)
             low_activity_dates = set(
                 daily_distinct[daily_distinct < low_activity_threshold].index
             )

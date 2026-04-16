@@ -120,10 +120,11 @@ class Database:
                     CREATE TABLE IF NOT EXISTS assets (
                         platform VARCHAR(50) NOT NULL,
                         model VARCHAR(50) NOT NULL,
-                        asset VARCHAR(10) NOT NULL,
+                        asset VARCHAR(50) NOT NULL,
                         last_trade_confidence SMALLINT,
                         last_fulltest_quote_trading DECIMAL(5,2),
                         last_fulltest_quote_success DECIMAL(5,2),
+                        is_inverted BOOLEAN NOT NULL DEFAULT 0,
                         updated_at DATETIME
                     );
                 """,
@@ -185,6 +186,31 @@ class Database:
 
                 except mysql.connector.Error as err:
                     utils.print(f"⛔ Database error: {err}", 0)
+
+            # schema migrations for already-existing tables
+            migrations = [
+                (
+                    "assets",
+                    "is_inverted",
+                    "ALTER TABLE assets ADD COLUMN is_inverted BOOLEAN NOT NULL DEFAULT 0",
+                ),
+            ]
+            for table_name, column_name, alter_sql in migrations:
+                cursor.execute(
+                    "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS "
+                    "WHERE TABLE_SCHEMA = DATABASE() "
+                    "AND TABLE_NAME = %s AND COLUMN_NAME = %s",
+                    (table_name, column_name),
+                )
+                if cursor.fetchone()[0] == 0:
+                    try:
+                        cursor.execute(alter_sql)
+                        self.db_conn.commit()
+                        utils.print(
+                            f"✅ Migration: added '{column_name}' to '{table_name}'.", 1
+                        )
+                    except mysql.connector.Error as err:
+                        utils.print(f"⛔ Migration error: {err}", 0)
 
     def select(self, query: str, params: Optional[Tuple] = None) -> list:
         with self._lock:

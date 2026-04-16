@@ -515,14 +515,7 @@ class WebSocket:
                                 len(data__value) > 3
                                 and data__value[3] == "currency"
                                 and data__value[14] is True
-                                # filter out assets that have no good history
-                                and data__value[1]
-                                not in [
-                                    "UAHUSD_otc",
-                                    "NGNUSD_otc",
-                                    "KESUSD_otc",
-                                    "ZARUSD_otc",
-                                ]
+                                and "_otc" not in data__value[1]
                             ):
                                 gefilterte.append(
                                     {

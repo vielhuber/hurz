@@ -18,14 +18,24 @@ class FullTest:
         startzeit: Optional[Any] = None,
         endzeit: Optional[Any] = None,
         in_sample: bool = False,
+        use_recent_days: Optional[int] = None,
     ) -> Optional[Dict[str, Any]]:
         """Run a fulltest on historic data.
 
-        By default (in_sample=False) the fulltest runs only on the SECOND HALF
-        of the data — out-of-sample with respect to training, which uses the
-        first half. This matches the training split in external/xgboost.py and
-        produces metrics that are directly comparable to live trading.
+        Range selection (first match wins):
+          1. explicit `startzeit` / `endzeit`
+          2. `use_recent_days` > 0 → last N days of the dataset
+             (falls back to `store.fulltest_recent_days` if None is passed)
+          3. `in_sample=False` → second half of the data (legacy default)
+          4. `in_sample=True`  → the entire dataset
+
+        The recent-days mode is the new default for picking the trade
+        confidence: training uses months-old data, so the last 30 days are
+        still out-of-sample but reflect the CURRENT market regime — which is
+        what live trading actually sees.
         """
+        if use_recent_days is None:
+            use_recent_days = getattr(store, "fulltest_recent_days", 0) or 0
         indicator_cols = store.indicator_columns
         indicator_cols_sql = ", ".join(indicator_cols)
         df = database.select(
@@ -46,8 +56,19 @@ class FullTest:
         if startzeit is not None:
             startzeit = pd.to_datetime(startzeit)
             start_index = df[df["Zeitpunkt"] >= startzeit].first_valid_index()
+        elif use_recent_days and use_recent_days > 0 and not in_sample:
+            # out-of-sample on the last N days — captures the current market
+            # regime instead of stale months-old data. Training uses the first
+            # half of the full dataset (months 1..3), so the last 30 days are
+            # still fully out-of-sample w.r.t. training.
+            last_ts = pd.to_datetime(df["Zeitpunkt"]).iloc[-1]
+            cutoff = last_ts - pd.Timedelta(days=use_recent_days)
+            start_index = df[pd.to_datetime(df["Zeitpunkt"]) >= cutoff].first_valid_index()
+            if start_index is None:
+                # fallback: entire dataset has fewer than N days
+                start_index = 0
         elif not in_sample:
-            # default: out-of-sample = second half only (matches training split)
+            # legacy fallback: out-of-sample = second half
             start_index = len(df) // 2
         else:
             start_index = 0
@@ -65,15 +86,30 @@ class FullTest:
         # --- fulltest ---
         utils.print("✅ Starting fulltest", 1)
         utils.print(f"ℹ️ Trade confidence: {store.trade_confidence}", 1)
+        try:
+            range_from = df.iloc[start_index]["Zeitpunkt"]
+            range_to = df.iloc[end_index]["Zeitpunkt"]
+            utils.print(
+                f"ℹ️ Fulltest range: {range_from} → {range_to} "
+                f"({end_index - start_index + 1} rows)",
+                1,
+            )
+        except Exception:
+            pass
 
         i = 0
 
         werte = df["Wert"].astype(float).values  # convert only once
         indicator_arrs = [df[col].values for col in indicator_cols]
         # minute positions for gap detection (skip weekend gaps in non-OTC data)
-        minute_arr = (
-            pd.to_datetime(df["Zeitpunkt"]).values.astype("datetime64[s]").astype("int64") // 60
+        ts_dt64 = pd.to_datetime(df["Zeitpunkt"]).values.astype("datetime64[s]")
+        minute_arr = ts_dt64.astype("int64") // 60
+        # UTC hour (float) and day-of-week for cyclical time features
+        hour_float_arr = (
+            (ts_dt64 - ts_dt64.astype("datetime64[D]")).astype("timedelta64[m]").astype(float) / 60.0
         )
+        dow_arr = (ts_dt64.astype("datetime64[D]") - np.datetime64("1970-01-05", "D")).astype(int) % 7
+        TWO_PI = 2.0 * np.pi
 
         # the individual windows
         X_test = []
@@ -114,11 +150,6 @@ class FullTest:
                 zielwert = werte[ziel]
                 letzter_wert = fenster[-1]
 
-                # normalize relative to first value (must match training normalization)
-                # NOTE: NO sideways filter here — fulltest must match live trading
-                # behavior, which feeds every window to the model regardless of
-                # how much the price actually moves. The model itself decides
-                # BUY/SELL/UNDECIDED via the confidence threshold.
                 if fenster[0] != 0 and np.isfinite(fenster[0]):
                     fenster_norm = fenster / fenster[0] - 1
                     if np.all(np.isfinite(fenster_norm)):
@@ -127,8 +158,16 @@ class FullTest:
                             [arr[last_idx] for arr in indicator_arrs], dtype=float
                         )
                         if np.all(np.isfinite(indicator_snapshot)):
+                            h = hour_float_arr[last_idx]
+                            d = dow_arr[last_idx]
+                            time_features = np.array([
+                                np.sin(TWO_PI * h / 24.0),
+                                np.cos(TWO_PI * h / 24.0),
+                                np.sin(TWO_PI * d / 5.0),
+                                np.cos(TWO_PI * d / 5.0),
+                            ], dtype=float)
                             feature_vec = np.concatenate(
-                                [fenster_norm, indicator_snapshot]
+                                [fenster_norm, indicator_snapshot, time_features]
                             )
                             X_test.append(feature_vec)
                             zielwerte.append(zielwert)
@@ -259,103 +298,20 @@ class FullTest:
             utils.print("⛔ Fulltest returned no data.", 0)
             return False
 
-        probs = fulltest_result["probs"]
-        zielwerte = fulltest_result["zielwerte"]
-        letzte = fulltest_result["letzte_werte"]
-        total_samples = len(probs)
-        actual_up = zielwerte > letzte
-        actual_down = zielwerte < letzte
-
-        utils.print(f"ℹ️ Sweeping confidence 51..99 on {total_samples} samples...", 0)
-        utils.print(
-            f"{'Conf':>5} {'Trades':>8} {'Trade%':>7} {'Succ%':>7} {'EV':>10}",
-            0,
+        # Sweep + DB write in a thread so the 49 confidence iterations +
+        # file logging + SQL UPDATE don't block the asyncio event loop for
+        # hundreds of milliseconds per asset. Previously this ran on the
+        # main loop and, combined with occasional GPU stalls, delayed
+        # websocket ping/pong enough to trigger 1005 disconnects.
+        sweep_result = await utils.run_sync_as_async(
+            self._sweep_and_persist, fulltest_result, payout
         )
-
-        # Minimum trade count to consider a confidence level.
-        # The old rule scaled with dataset size (0.5% of total), which made
-        # sense when the single-model predictions triggered tens of thousands
-        # of trades at every confidence level. With the calibrated ensemble
-        # the trade rate is < 1% for all interesting confidences (the edge
-        # lives in the top percentile), so the 0.5% rule would disqualify
-        # every positive-EV level and force the algorithm to pick an
-        # EV-negative one with more (noisier) trades. 50 is an absolute
-        # floor that still rejects cherry-picking from tiny samples.
-        min_trades_required = 50
-        best_conf = None
-        best_ev = -float("inf")
-        best_metrics = None
-
-        for conf in range(51, 100):
-            upper = conf / 100
-            lower = 1 - upper
-            buy_mask = probs > upper
-            sell_mask = probs < lower
-            n_trades = int(buy_mask.sum() + sell_mask.sum())
-
-            if n_trades == 0:
-                continue
-
-            correct = int(
-                (buy_mask & actual_up).sum() + (sell_mask & actual_down).sum()
-            )
-            success_rate = correct / n_trades
-            trade_rate = n_trades / total_samples
-            ev = n_trades * (success_rate * payout - (1 - success_rate))
-
-            utils.print(
-                f"{conf:>4}% {n_trades:>8} {trade_rate*100:>6.2f}% "
-                f"{success_rate*100:>6.2f}% {ev:>+10.2f}",
-                0,
-            )
-
-            if n_trades < min_trades_required:
-                continue
-            if ev > best_ev:
-                best_ev = ev
-                best_conf = conf
-                best_metrics = {
-                    "n_trades": n_trades,
-                    "trade_rate": trade_rate,
-                    "success_rate": success_rate,
-                    "ev": ev,
-                }
-
-        if best_conf is None:
-            utils.print(
-                f"⛔ No confidence level produced at least {min_trades_required} trades — "
-                f"model too uncertain. Falling back to 55%.",
-                0,
-            )
-            store.trade_confidence = 55
-            final_trade_rate = 0.0
-            final_success_rate = 0.0
-            final_n_trades = 0
-            final_successes = 0
-        else:
-            store.trade_confidence = best_conf
-            utils.print(
-                f"✅ Optimal confidence: {best_conf}% → "
-                f"{best_metrics['n_trades']} trades, "
-                f"success {best_metrics['success_rate']*100:.2f}%, "
-                f"EV {best_metrics['ev']:+.2f}",
-                0,
-            )
-            final_trade_rate = best_metrics["trade_rate"]
-            final_success_rate = best_metrics["success_rate"]
-            final_n_trades = best_metrics["n_trades"]
-            final_successes = int(final_success_rate * final_n_trades)
-
-        asset.set_asset_information(
-            store.trade_platform,
-            store.active_model,
-            store.trade_asset,
-            store.trade_confidence,
-            round(final_trade_rate * 100, 2),
-            round(final_success_rate * 100, 2),
-        )
-
-        settings.save_current_settings()
+        store.trade_confidence = sweep_result["trade_confidence"]
+        final_trade_rate = sweep_result["final_trade_rate"]
+        final_success_rate = sweep_result["final_success_rate"]
+        final_n_trades = sweep_result["final_n_trades"]
+        final_successes = sweep_result["final_successes"]
+        total_samples = sweep_result["total_samples"]
 
         # rebuild the report in the result dict to reflect the chosen confidence
         # so that menu option 5 can print it directly without re-running the fulltest
@@ -374,3 +330,144 @@ class FullTest:
             ]
         )
         return fulltest_result
+
+    def _sweep_and_persist(self, fulltest_result: dict, payout: float) -> dict:
+        """Sync helper: runs the 49-step confidence sweep + persists the
+        best result to the `assets` table. Extracted into its own method
+        so the caller can run it in a thread via `run_sync_as_async` —
+        this keeps the asyncio event loop responsive to websocket
+        ping/pong while the sweep (lots of numpy ops + file-I/O logging)
+        happens on a background thread.
+        """
+        probs = fulltest_result["probs"]
+        zielwerte = fulltest_result["zielwerte"]
+        letzte = fulltest_result["letzte_werte"]
+        total_samples = len(probs)
+        actual_up = zielwerte > letzte
+        actual_down = zielwerte < letzte
+
+        utils.print(
+            f"ℹ️ Sweeping confidence 51..99 on {total_samples} samples...", 0
+        )
+        utils.print(
+            f"{'Conf':>5} {'Trades':>8} {'Trade%':>7} {'Succ%':>7} {'EV':>10} {'Inv-Succ%':>10} {'Inv-EV':>10}",
+            0,
+        )
+
+        # Minimum trade count to consider a confidence level.
+        # The old rule scaled with dataset size (0.5% of total), which made
+        # sense when the single-model predictions triggered tens of thousands
+        # of trades at every confidence level. With the calibrated ensemble
+        # the trade rate is < 1% for all interesting confidences (the edge
+        # lives in the top percentile), so the 0.5% rule would disqualify
+        # every positive-EV level and force the algorithm to pick an
+        # EV-negative one with more (noisier) trades. 50 is an absolute
+        # floor that still rejects cherry-picking from tiny samples.
+        min_trades_required = 50
+        best_conf = None
+        best_ev = -float("inf")
+        best_metrics = None
+        best_is_inverted = False
+
+        for conf in range(51, 100):
+            upper = conf / 100
+            lower = 1 - upper
+            buy_mask = probs > upper
+            sell_mask = probs < lower
+            n_trades = int(buy_mask.sum() + sell_mask.sum())
+
+            if n_trades == 0:
+                continue
+
+            correct = int(
+                (buy_mask & actual_up).sum() + (sell_mask & actual_down).sum()
+            )
+            success_rate = correct / n_trades
+            trade_rate = n_trades / total_samples
+            ev = n_trades * (success_rate * payout - (1 - success_rate))
+
+            # inverted direction: flip BUY<->SELL. n_trades identical,
+            # success_rate becomes 1 - success_rate.
+            inv_success_rate = 1.0 - success_rate
+            inv_ev = n_trades * (inv_success_rate * payout - success_rate)
+
+            utils.print(
+                f"{conf:>4}% {n_trades:>8} {trade_rate*100:>6.2f}% "
+                f"{success_rate*100:>6.2f}% {ev:>+10.2f} "
+                f"{inv_success_rate*100:>9.2f}% {inv_ev:>+10.2f}",
+                0,
+            )
+
+            if n_trades < min_trades_required:
+                continue
+            # compare both directions against the current best
+            if ev > best_ev:
+                best_ev = ev
+                best_conf = conf
+                best_is_inverted = False
+                best_metrics = {
+                    "n_trades": n_trades,
+                    "trade_rate": trade_rate,
+                    "success_rate": success_rate,
+                    "ev": ev,
+                }
+            if inv_ev > best_ev:
+                best_ev = inv_ev
+                best_conf = conf
+                best_is_inverted = True
+                best_metrics = {
+                    "n_trades": n_trades,
+                    "trade_rate": trade_rate,
+                    "success_rate": inv_success_rate,
+                    "ev": inv_ev,
+                }
+
+        if best_conf is None:
+            utils.print(
+                f"⛔ No confidence level produced at least {min_trades_required} trades — "
+                f"model too uncertain. Falling back to 55%.",
+                0,
+            )
+            trade_confidence = 55
+            final_trade_rate = 0.0
+            final_success_rate = 0.0
+            final_n_trades = 0
+            final_successes = 0
+            final_is_inverted = False
+        else:
+            trade_confidence = best_conf
+            final_is_inverted = best_is_inverted
+            inversion_tag = " [INVERTED]" if best_is_inverted else ""
+            utils.print(
+                f"✅ Optimal confidence: {best_conf}%{inversion_tag} → "
+                f"{best_metrics['n_trades']} trades, "
+                f"success {best_metrics['success_rate']*100:.2f}%, "
+                f"EV {best_metrics['ev']:+.2f}",
+                0,
+            )
+            final_trade_rate = best_metrics["trade_rate"]
+            final_success_rate = best_metrics["success_rate"]
+            final_n_trades = best_metrics["n_trades"]
+            final_successes = int(final_success_rate * final_n_trades)
+
+        asset.set_asset_information(
+            store.trade_platform,
+            store.active_model,
+            store.trade_asset,
+            trade_confidence,
+            round(final_trade_rate * 100, 2),
+            round(final_success_rate * 100, 2),
+            is_inverted=final_is_inverted,
+        )
+
+        settings.save_current_settings()
+
+        return {
+            "trade_confidence": trade_confidence,
+            "final_trade_rate": final_trade_rate,
+            "final_success_rate": final_success_rate,
+            "final_n_trades": final_n_trades,
+            "final_successes": final_successes,
+            "total_samples": total_samples,
+            "is_inverted": final_is_inverted,
+        }

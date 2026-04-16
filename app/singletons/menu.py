@@ -546,7 +546,7 @@ class Menu:
                     "type": "number",
                     "message": f"Trading time in s? (currently: {store.trade_time}):",
                     "min_allowed": 0,
-                    "max_allowed": 1000,
+                    "max_allowed": 14400,
                     "validate": EmptyInputValidator(),
                     "default": store.trade_time,
                     "replace_mode": True,

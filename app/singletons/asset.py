@@ -27,6 +27,7 @@ class Asset:
             asset["last_fulltest_quote_success"] = float(
                 asset["last_fulltest_quote_success"]
             )
+            asset["is_inverted"] = bool(asset.get("is_inverted", 0))
             #  convert datetime to string
             if isinstance(asset["updated_at"], datetime):
                 asset["updated_at"] = utils.correct_datetime_to_string(
@@ -44,6 +45,7 @@ class Asset:
         last_trade_confidence: int,
         last_fulltest_quote_trading: float,
         last_fulltest_quote_success: float,
+        is_inverted: bool = False,
     ) -> None:
         assets = database.select(
             "SELECT * FROM assets WHERE platform = %s AND model = %s AND asset = %s",
@@ -63,6 +65,7 @@ class Asset:
                     last_trade_confidence = %s,
                     last_fulltest_quote_trading = %s,
                     last_fulltest_quote_success = %s,
+                    is_inverted = %s,
                     updated_at = %s
                 WHERE
                     platform = %s AND
@@ -73,6 +76,7 @@ class Asset:
                     last_trade_confidence,
                     last_fulltest_quote_trading,
                     last_fulltest_quote_success,
+                    1 if is_inverted else 0,
                     updated_at,
                     platform,
                     model,
@@ -89,8 +93,9 @@ class Asset:
                     last_trade_confidence,
                     last_fulltest_quote_trading,
                     last_fulltest_quote_success,
+                    is_inverted,
                     updated_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     platform,
@@ -99,6 +104,7 @@ class Asset:
                     last_trade_confidence,
                     last_fulltest_quote_trading,
                     last_fulltest_quote_success,
+                    1 if is_inverted else 0,
                     updated_at,
                 ),
             )

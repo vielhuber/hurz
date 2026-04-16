@@ -239,6 +239,11 @@ class AutoTrade:
                 0,
             )
 
+        # If the parallel preload phase just ran for this mode, the
+        # sequential doit() loop below should NOT re-enter load_data for
+        # each asset (wasted cache-skip pass). Flag it so doit() knows.
+        sequential_skip_load = mode in ["data", "all_no_trade", "all_trade"]
+
         if mode in ["data", "fulltest", "verify", "features", "train", "all_no_trade", "all_trade"]:
             for assets__key, assets__value in enumerate(assets):
                 active_asset = assets__value["name"]
@@ -257,6 +262,7 @@ class AutoTrade:
                     mode,
                     active_asset,
                     active_asset_information,
+                    skip_load=sequential_skip_load,
                 )
                 if not store.auto_mode_active:
                     utils.print("ℹ️ Auto mode cancelled by user.", 1)
@@ -268,37 +274,63 @@ class AutoTrade:
             used_assets = []
             store.trades_overall_cur = 0
 
-            # determine potential quote for every asset beforehand
-            for assets__value in assets:
-                asset_information = asset.get_asset_information(
-                    store.trade_platform, store.active_model, assets__value["name"]
+            def _refresh_assets_and_rank():
+                """Re-read tmp/assets.json (which the websocket handler
+                updates continuously with live return_percent values) and
+                recompute potential_quote for every asset. Returns a freshly
+                sorted assets list.
+
+                This is called at the start of every trade loop iteration
+                so that changing live payouts are actually reflected in
+                the filter — e.g. an asset whose payout climbs from 37%
+                into the profitable zone during an active session, or
+                one whose payout drops out of it.
+                """
+                try:
+                    with open("tmp/assets.json", "r", encoding="utf-8") as f:
+                        fresh = json.load(f)
+                except Exception:
+                    return []
+                # Apply the same OTC filter used at start_auto_mode entry:
+                # keep only non-OTC assets if any non-OTC is available
+                non_otc_available = any(
+                    "otc" not in a["name"] for a in fresh
                 )
-                if asset_information is not None:
-                    potential_quote = float("inf")
-                    potential_win = (
-                        asset_information["last_fulltest_quote_success"] / 100
-                    ) * (assets__value["return_percent"] / 100)
-                    potential_loss = 1 - (
-                        asset_information["last_fulltest_quote_success"] / 100
+                if non_otc_available:
+                    fresh = [a for a in fresh if "otc" not in a["name"]]
+                # Compute potential_quote per asset from current live payout
+                for a in fresh:
+                    info = asset.get_asset_information(
+                        store.trade_platform, store.active_model, a["name"]
                     )
-                    if potential_loss > 0:
-                        potential_quote = potential_win / potential_loss
-                    assets__value["potential_quote"] = potential_quote
-                else:
-                    assets__value["potential_quote"] = float("inf")
+                    if info is not None:
+                        succ = info["last_fulltest_quote_success"] / 100
+                        payout = a["return_percent"] / 100
+                        potential_loss = 1 - succ
+                        if potential_loss > 0:
+                            a["potential_quote"] = (succ * payout) / potential_loss
+                        else:
+                            a["potential_quote"] = float("inf")
+                    else:
+                        a["potential_quote"] = 0
+                # Sort descending by potential_quote (best first)
+                fresh = sorted(
+                    fresh, key=lambda x: float(x["return_percent"]), reverse=True
+                )
+                fresh = sorted(
+                    fresh, key=lambda x: float(x["potential_quote"]), reverse=True
+                )
+                return fresh
 
-            # sort assets by return percent
-            assets = sorted(
-                assets, key=lambda x: float(x["return_percent"]), reverse=True
-            )
-
-            # sort assets by potential quote
-            assets = sorted(
-                assets, key=lambda x: float(x["potential_quote"]), reverse=True
-            )
+            # initial ranking
+            assets = _refresh_assets_and_rank()
 
             # now do endlessly trades
             while store.auto_mode_active:
+                # Refresh the ranking every loop iteration so that live
+                # payout changes propagate into the filter. Cheap: just
+                # a file read + a few math ops.
+                assets = _refresh_assets_and_rank()
 
                 active_asset = None
                 active_asset_information = None
@@ -322,8 +354,7 @@ class AutoTrade:
                         store.auto_mode_active = False
                         return
 
-                    # only 10 tries_in_this_loop (disabled)
-                    if True is True and tries_in_this_loop >= 10:
+                    if tries_in_this_loop >= 10:
                         utils.print("ℹ️ Tried too many assets, resetting...", 2)
                         used_assets = []
                         tries_in_this_loop = 0
@@ -347,6 +378,16 @@ class AutoTrade:
                     # never use already used assets
                     if assets__value["name"] in used_assets:
                         utils.print("ℹ️ Already used...", 2)
+                        continue
+
+                    # cooldown: skip asset if traded less than trade_time ago
+                    cooldown_until = store.trade_cooldowns.get(assets__value["name"])
+                    if cooldown_until and datetime.now(timezone.utc) < cooldown_until:
+                        utils.print("ℹ️ Cooldown active...", 2)
+                        continue
+
+                    if asset_information is None:
+                        utils.print(f"ℹ️ No fulltest data for {assets__value['name']}, skipping.", 2)
                         continue
 
                     utils.print(f"ℹ️ Examing {assets__value['name']}...", 2)
@@ -386,14 +427,21 @@ class AutoTrade:
                         utils.print(f"ℹ️ Don't take {assets__value['name']}", 2)
 
                 if active_asset is None:
-                    utils.print("⚠️ Count not determine any provider! Take random...", 1)
-                    active_asset = random.choice(
-                        [assets__value["name"] for assets__value in assets]
-                    )
-                    asset_information = asset.get_asset_information(
+                    now_utc = datetime.now(timezone.utc)
+                    eligible = [
+                        a["name"] for a in assets
+                        if not (store.trade_cooldowns.get(a["name"])
+                                and now_utc < store.trade_cooldowns[a["name"]])
+                    ]
+                    if not eligible:
+                        utils.print("ℹ️ All assets in cooldown, waiting...", 1)
+                        await asyncio.sleep(30)
+                        continue
+                    utils.print("⚠️ Could not determine any provider! Take random...", 1)
+                    active_asset = random.choice(eligible)
+                    active_asset_information = asset.get_asset_information(
                         store.trade_platform, store.active_model, active_asset
                     )
-                    # break
 
                 # debug
                 if False is True:
@@ -415,7 +463,7 @@ class AutoTrade:
 
         store.auto_mode_active = False
 
-    async def doit(self, mode, active_asset, active_asset_information):
+    async def doit(self, mode, active_asset, active_asset_information, skip_load=False):
         # change other settings (without saving)
         store.trade_asset = active_asset
         store.sound_effects = 0
@@ -427,27 +475,39 @@ class AutoTrade:
 
         # load historic data (if too old)
         if mode in ["data", "all_no_trade", "all_trade"]:
-            utils.print("⏳ LOADING HISTORIC DATA...", 0)
-            last_timestamp_historic = asset.get_last_timestamp_historic(store.trade_asset, store.trade_platform)
-            if last_timestamp_historic is None or utils.date_is_minutes_old(last_timestamp_historic) > (
-                store.auto_trade_refresh_time
-            ):
-                await history.load_data(
-                    show_overall_estimation=False,
-                    time_back_in_months=store.historic_data_period_in_months,
-                    time_back_in_hours=None,
-                    trade_asset=store.trade_asset,
-                    trade_platform=store.trade_platform,
-                )
+            # If the caller just ran a parallel preload for this asset, skip
+            # re-entering load_data here — the data is already in the DB and
+            # a second cache-skip pass would cost ~1-2 s per asset for no
+            # benefit. If preload reported an error for this asset though,
+            # we do retry (the server may have recovered in the meantime).
+            asset_status = store.historic_data_status.get(active_asset)
+            if skip_load and asset_status != "error":
                 utils.print(
-                    f"✅ Data successfully loaded.",
+                    f"✅ Data already preloaded (parallel phase), skipping reload.",
                     0,
                 )
             else:
-                utils.print(
-                    f"✅ Data already fresh.",
-                    0,
-                )
+                utils.print("⏳ LOADING HISTORIC DATA...", 0)
+                last_timestamp_historic = asset.get_last_timestamp_historic(store.trade_asset, store.trade_platform)
+                if last_timestamp_historic is None or utils.date_is_minutes_old(last_timestamp_historic) > (
+                    store.auto_trade_refresh_time
+                ):
+                    await history.load_data(
+                        show_overall_estimation=False,
+                        time_back_in_months=store.historic_data_period_in_months,
+                        time_back_in_hours=None,
+                        trade_asset=store.trade_asset,
+                        trade_platform=store.trade_platform,
+                    )
+                    utils.print(
+                        f"✅ Data successfully loaded.",
+                        0,
+                    )
+                else:
+                    utils.print(
+                        f"✅ Data already fresh.",
+                        0,
+                    )
 
         # verify data
         if mode in ["verify", "all_no_trade", "all_trade"]:
@@ -525,6 +585,11 @@ class AutoTrade:
             doCall = await order.do_buy_sell_order()
             if doCall == 0 or doCall == 1:
                 store.trades_overall_cur += 1
+                # set cooldown for this asset
+                store.trade_cooldowns[store.trade_asset] = (
+                    datetime.now(timezone.utc)
+                    + timedelta(seconds=int(store.trade_time))
+                )
 
                 waiting_time = order.get_random_waiting_time()
                 utils.print(

@@ -31,7 +31,7 @@ class Store:
         self.main_menu_default = None
         self.reconnect_last_try = None
         self.binary_expected_event = None
-        self.train_window = 240  # input period, 240 minutes (4 hours)
+        # NOTE: train_window is now a computed property — derived from train_horizon
         # Adaptive sideways filter: instead of a fixed absolute threshold (which
         # only worked for the synthetic-volatile OTC assets and dropped 96% of
         # real-FX samples), we compute the sideways threshold per asset from
@@ -39,6 +39,12 @@ class Store:
         # drop the quietest N percent of samples as "no clear direction".
         # 0 = keep all samples, 50 = drop bottom half.
         self.train_label_sideways_percentile = 30
+        # Fulltest window (days). The optimal confidence is determined on the
+        # last N days of historic data instead of the entire "second half" of
+        # the 6-month dataset. This keeps the confidence pick aligned with the
+        # CURRENT market regime (live trading sees ~minutes-old data, not
+        # months-old data). Set to 0 to fall back to the old second-half split.
+        self.fulltest_recent_days = 30
         # NOTE: train_horizon is now a computed property — derived from trade_time
 
         # technical indicator columns (computed by history.compute_features_of_asset,
@@ -55,6 +61,7 @@ class Store:
         ]
         self.stop_event = asyncio.Event()
         self.auto_mode_active = False
+        self.trade_cooldowns: dict = {}  # asset → datetime of last trade
         self.trades_overall_cur = 0
         self.auto_trade_refresh_time = 60
         self.session_id = None
@@ -89,3 +96,12 @@ class Store:
         Price data is 1-minute bars, so horizon = trade_time // 60 (min. 1).
         """
         return max(1, int(self.trade_time) // 60)
+
+    @property
+    def train_window(self) -> int:
+        """Input window in minutes — scales with horizon.
+        Rule: 8× horizon, clamped to [240, 960].
+        - 240 floor: short horizons still need enough context for patterns
+        - 960 cap: prevents exploding feature count at very long horizons
+        """
+        return max(240, min(960, self.train_horizon * 8))
