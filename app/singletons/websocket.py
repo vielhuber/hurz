@@ -546,19 +546,25 @@ class WebSocket:
         except websockets.ConnectionClosedOK as e:
             utils.print(f"✅ WebSocket normally closed (Code {e.code}): {e.reason}", 1)
 
-            # light reconnect: only rebuild the websocket, do NOT tear down
-            # the database or running tasks (that would kill long-running
-            # operations like the trade loop that are still using the DB).
-            try:
-                if store.websockets_connection is not None:
-                    try:
-                        await store.websockets_connection.close()
-                    except Exception:
-                        pass
-                    store.websockets_connection = None
-            except Exception as close_err:
-                utils.print(f"⚠️ Error closing old websocket: {close_err}", 1)
-            await websocket.setup_websockets()
+            # Full teardown before reconnect: boot.shutdown() marks the
+            # session file as "closed", cancels the running ws tasks
+            # (ws_send_loop, ws_keepalive) and closes the dead socket.
+            # Without this, setup_websockets() would see the stale
+            # session.txt entry and early-return ("Connection already
+            # running"), leaving the old send/keepalive tasks spinning
+            # against a dead socket (endless "received 1005" errors).
+            # Throttle to 5 min to avoid reconnect storms.
+            if store.reconnect_last_try is None or (
+                ((datetime.now(timezone.utc)) - store.reconnect_last_try)
+                > timedelta(minutes=5)
+            ):
+                store.reconnect_last_try = datetime.now(timezone.utc)
+                await boot.shutdown()
+                await websocket.setup_websockets()
+            else:
+                await boot.shutdown()
+                store.stop_event.set()
+            return
         except websockets.ConnectionClosedError as e:
             utils.print(f"⛔ Connection unexpectedly closed ({e.code}): {e.reason}", 1)
 

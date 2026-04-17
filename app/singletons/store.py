@@ -104,4 +104,4 @@ class Store:
         - 240 floor: short horizons still need enough context for patterns
         - 960 cap: prevents exploding feature count at very long horizons
         """
-        return max(240, min(960, self.train_horizon * 8))
+        return max(240, min(960, self.train_horizon * 4))

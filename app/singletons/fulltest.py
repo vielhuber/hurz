@@ -369,7 +369,13 @@ class FullTest:
         best_metrics = None
         best_is_inverted = False
 
-        for conf in range(51, 100):
+        # Cap at 55 (not 60): with 1h-horizon the model's predictions cluster
+        # around 0.50, so thresholds >55 almost never trigger live. At ~78%
+        # typical payout break-even is only 54%, so conf 55 still has
+        # positive EV on any asset the model can actually call. Let the
+        # fulltest sweep find the optimum within [51, 55]; don't force it
+        # to pick a higher threshold that the live stream never reaches.
+        for conf in range(51, 56):
             upper = conf / 100
             lower = 1 - upper
             buy_mask = probs > upper

@@ -1,7 +1,6 @@
 import asyncio
 import json
 import os
-import random
 import select
 import sys
 import time
@@ -427,21 +426,20 @@ class AutoTrade:
                         utils.print(f"ℹ️ Don't take {assets__value['name']}", 2)
 
                 if active_asset is None:
-                    now_utc = datetime.now(timezone.utc)
-                    eligible = [
-                        a["name"] for a in assets
-                        if not (store.trade_cooldowns.get(a["name"])
-                                and now_utc < store.trade_cooldowns[a["name"]])
-                    ]
-                    if not eligible:
-                        utils.print("ℹ️ All assets in cooldown, waiting...", 1)
-                        await asyncio.sleep(30)
-                        continue
-                    utils.print("⚠️ Could not determine any provider! Take random...", 1)
-                    active_asset = random.choice(eligible)
-                    active_asset_information = asset.get_asset_information(
-                        store.trade_platform, store.active_model, active_asset
+                    # No asset passed the ranking filter (potential_quote > 1):
+                    # either all are in cooldown, or current live payouts push
+                    # every potential_quote below break-even. DON'T fall back to
+                    # a random pick — that turns signal trading into gambling.
+                    # Instead sleep and re-evaluate: payouts often climb through
+                    # the day (PocketOption adjusts per liquidity), and cooldowns
+                    # expire, so the next iteration likely finds a legit taker.
+                    utils.print(
+                        "ℹ️ No profitable provider (all potential_quote < 1 "
+                        "or in cooldown). Waiting 60s...",
+                        1,
                     )
+                    await asyncio.sleep(60)
+                    continue
 
                 # debug
                 if False is True:
