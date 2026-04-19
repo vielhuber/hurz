@@ -13,6 +13,7 @@ from app.utils.singletons import (
     asset,
     autotrade,
     boot,
+    cli,
     database,
     diagrams,
     fulltest,
@@ -195,7 +196,19 @@ class Menu:
                 },
             ]
 
-            answers = await prompt_async(questions=questions)
+            answers = cli.pop_triggered_answer(
+                action_to_option={
+                    "load_data": option1,
+                    "verify": option2,
+                    "compute": option3,
+                    "train": option4,
+                    "fulltest": option5,
+                    "trade": option6,
+                    "refresh": option11,
+                    "exit": option14,
+                },
+                listen_for_triggers=store.websockets_connection is not None,
+            ) or await prompt_async(questions=questions)
 
             store.main_menu_default = answers["main_selection"]
 

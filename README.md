@@ -7,6 +7,24 @@
 
 -   `python3 hurz.py`
 
+#### remote-controlling a running instance
+
+Pass a flag to trigger the matching main-menu entry on the running instance:
+
+```sh
+python3 hurz.py --load_data   # Load historical data
+python3 hurz.py --verify      # Verify
+python3 hurz.py --compute     # Compute features
+python3 hurz.py --train       # Train model
+python3 hurz.py --fulltest    # Determine confidence / run fulltest
+python3 hurz.py --trade       # Trade optimally
+python3 hurz.py --refresh     # Refresh view (re-reads data/settings.json)
+python3 hurz.py --exit        # Exit
+```
+
+To change the active asset from outside: edit `data/settings.json`, then
+`--refresh`. Exit codes: 2 = unknown/multiple flags, 3 = no running instance.
+
 ## installation
 
 #### install requirements

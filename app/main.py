@@ -1,12 +1,19 @@
 import asyncio
 import sys
 
-from app.utils.singletons import store, utils, settings, boot, websocket, menu, database
+from app.utils.singletons import cli, store, utils, settings, boot, websocket, menu, database
 
 
 async def run() -> None:
 
     try:
+        # One-shot CLI trigger mode: if a recognized --flag is passed, write
+        # it to the action file for the already-running interactive instance
+        # and exit. Runs before any heavier startup so the CLI path stays
+        # cheap.
+        cli.handle_startup_args()
+        cli.clear_stale_trigger()
+
         utils.print("ℹ️ Starting application...", 0)
         store.setup()
         utils.create_folders()

@@ -3,6 +3,7 @@ _initialized = False
 asset = None
 autotrade = None
 boot = None
+cli = None
 database = None
 diagrams = None
 fulltest = None
@@ -25,6 +26,7 @@ def bootstrap() -> None:
     global asset
     global autotrade
     global boot
+    global cli
     global database
     global diagrams
     global fulltest
@@ -41,6 +43,7 @@ def bootstrap() -> None:
     import app.singletons.asset as import_asset
     import app.singletons.autotrade as import_autotrade
     import app.singletons.boot as import_boot
+    import app.singletons.cli as import_cli
     import app.singletons.database as import_database
     import app.singletons.diagrams as import_diagrams
     import app.singletons.fulltest as import_fulltest
@@ -57,6 +60,7 @@ def bootstrap() -> None:
     from app.singletons.asset import Asset
     from app.singletons.autotrade import AutoTrade
     from app.singletons.boot import Boot
+    from app.singletons.cli import Cli
     from app.singletons.database import Database
     from app.singletons.diagrams import Diagrams
     from app.singletons.fulltest import FullTest
@@ -73,6 +77,7 @@ def bootstrap() -> None:
     asset = Asset()
     autotrade = AutoTrade()
     boot = Boot()
+    cli = Cli()
     database = Database()
     diagrams = Diagrams()
     fulltest = FullTest()
@@ -89,6 +94,7 @@ def bootstrap() -> None:
     import_asset.asset = asset
     import_asset.autotrade = autotrade
     import_asset.boot = boot
+    import_asset.cli = cli
     import_asset.database = database
     import_asset.diagrams = diagrams
     import_asset.fulltest = fulltest
@@ -105,6 +111,7 @@ def bootstrap() -> None:
     import_autotrade.asset = asset
     import_autotrade.autotrade = autotrade
     import_autotrade.boot = boot
+    import_autotrade.cli = cli
     import_autotrade.database = database
     import_autotrade.diagrams = diagrams
     import_autotrade.fulltest = fulltest
@@ -121,6 +128,7 @@ def bootstrap() -> None:
     import_boot.asset = asset
     import_boot.autotrade = autotrade
     import_boot.boot = boot
+    import_boot.cli = cli
     import_boot.database = database
     import_boot.diagrams = diagrams
     import_boot.fulltest = fulltest
@@ -134,9 +142,27 @@ def bootstrap() -> None:
     import_boot.utils = utils
     import_boot.websocket = websocket
 
+    import_cli.asset = asset
+    import_cli.autotrade = autotrade
+    import_cli.boot = boot
+    import_cli.cli = cli
+    import_cli.database = database
+    import_cli.diagrams = diagrams
+    import_cli.fulltest = fulltest
+    import_cli.history = history
+    import_cli.livestats = livestats
+    import_cli.menu = menu
+    import_cli.order = order
+    import_cli.settings = settings
+    import_cli.store = store
+    import_cli.training = training
+    import_cli.utils = utils
+    import_cli.websocket = websocket
+
     import_database.asset = asset
     import_database.autotrade = autotrade
     import_database.boot = boot
+    import_database.cli = cli
     import_database.database = database
     import_database.diagrams = diagrams
     import_database.fulltest = fulltest
@@ -153,6 +179,7 @@ def bootstrap() -> None:
     import_diagrams.asset = asset
     import_diagrams.autotrade = autotrade
     import_diagrams.boot = boot
+    import_diagrams.cli = cli
     import_diagrams.database = database
     import_diagrams.diagrams = diagrams
     import_diagrams.fulltest = fulltest
@@ -169,6 +196,7 @@ def bootstrap() -> None:
     import_fulltest.asset = asset
     import_fulltest.autotrade = autotrade
     import_fulltest.boot = boot
+    import_fulltest.cli = cli
     import_fulltest.database = database
     import_fulltest.diagrams = diagrams
     import_fulltest.fulltest = fulltest
@@ -185,6 +213,7 @@ def bootstrap() -> None:
     import_history.asset = asset
     import_history.autotrade = autotrade
     import_history.boot = boot
+    import_history.cli = cli
     import_history.database = database
     import_history.diagrams = diagrams
     import_history.fulltest = fulltest
@@ -201,6 +230,7 @@ def bootstrap() -> None:
     import_livestats.asset = asset
     import_livestats.autotrade = autotrade
     import_livestats.boot = boot
+    import_livestats.cli = cli
     import_livestats.database = database
     import_livestats.diagrams = diagrams
     import_livestats.fulltest = fulltest
@@ -217,6 +247,7 @@ def bootstrap() -> None:
     import_menu.asset = asset
     import_menu.autotrade = autotrade
     import_menu.boot = boot
+    import_menu.cli = cli
     import_menu.database = database
     import_menu.diagrams = diagrams
     import_menu.fulltest = fulltest
@@ -233,6 +264,7 @@ def bootstrap() -> None:
     import_order.asset = asset
     import_order.autotrade = autotrade
     import_order.boot = boot
+    import_order.cli = cli
     import_order.database = database
     import_order.diagrams = diagrams
     import_order.fulltest = fulltest
@@ -249,7 +281,9 @@ def bootstrap() -> None:
     import_settings.asset = asset
     import_settings.autotrade = autotrade
     import_settings.boot = boot
+    import_settings.cli = cli
     import_settings.database = database
+    import_settings.diagrams = diagrams
     import_settings.fulltest = fulltest
     import_settings.history = history
     import_settings.livestats = livestats
@@ -264,6 +298,7 @@ def bootstrap() -> None:
     import_store.asset = asset
     import_store.autotrade = autotrade
     import_store.boot = boot
+    import_store.cli = cli
     import_store.database = database
     import_store.diagrams = diagrams
     import_store.fulltest = fulltest
@@ -280,6 +315,7 @@ def bootstrap() -> None:
     import_training.asset = asset
     import_training.autotrade = autotrade
     import_training.boot = boot
+    import_training.cli = cli
     import_training.database = database
     import_training.diagrams = diagrams
     import_training.fulltest = fulltest
@@ -296,6 +332,7 @@ def bootstrap() -> None:
     import_utils.asset = asset
     import_utils.autotrade = autotrade
     import_utils.boot = boot
+    import_utils.cli = cli
     import_utils.database = database
     import_utils.diagrams = diagrams
     import_utils.fulltest = fulltest
@@ -312,6 +349,7 @@ def bootstrap() -> None:
     import_websocket.asset = asset
     import_websocket.autotrade = autotrade
     import_websocket.boot = boot
+    import_websocket.cli = cli
     import_websocket.database = database
     import_websocket.diagrams = diagrams
     import_websocket.fulltest = fulltest
