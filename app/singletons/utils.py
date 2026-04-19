@@ -19,9 +19,59 @@ class Utils:
 
     _version_cache = None
 
+    # Log-rotation knobs. `tmp/log.txt` grows ~1 KB/s during normal websocket
+    # keepalive traffic, so a 50 MB cap rolls over every ~14 hours; with five
+    # keep-files that's ~3 days of history. Adjust if the ping volume changes.
+    LOG_PATH = "tmp/log.txt"
+    LOG_ROTATE_MAX_BYTES = 50 * 1024 * 1024
+    LOG_ROTATE_KEEP = 5
+    LOG_ROTATE_CHECK_INTERVAL_SECONDS = 60
+
     def create_folders(self) -> None:
         for ordner in ["tmp", "data", "models"]:
             os.makedirs(ordner, exist_ok=True)
+
+    def rotate_log_if_too_big(self) -> None:
+        """Rename `tmp/log.txt` → `tmp/log.txt.1` (shifting existing .N up to
+        .(N+1), dropping the oldest) when the file exceeds the size cap.
+        Python's `open("a", …)` creates a fresh file on the next append, so
+        logging continues seamlessly after rotation.
+        """
+        path = self.LOG_PATH
+        try:
+            if not os.path.exists(path):
+                return
+            if os.path.getsize(path) < self.LOG_ROTATE_MAX_BYTES:
+                return
+        except OSError:
+            return
+        # Shift .N → .(N+1), starting from the oldest so we don't clobber.
+        for i in range(self.LOG_ROTATE_KEEP - 1, 0, -1):
+            src = f"{path}.{i}"
+            dst = f"{path}.{i + 1}"
+            if os.path.exists(src):
+                try:
+                    os.replace(src, dst)
+                except OSError:
+                    pass
+        try:
+            os.replace(path, f"{path}.1")
+        except OSError:
+            pass
+
+    async def rotate_log_loop(self, stop_event) -> None:
+        """Background task driven from `main.run()`. Periodically checks the
+        log size and rotates. Exits when the passed stop_event fires.
+        """
+        while not stop_event.is_set():
+            self.rotate_log_if_too_big()
+            try:
+                await asyncio.wait_for(
+                    stop_event.wait(),
+                    timeout=self.LOG_ROTATE_CHECK_INTERVAL_SECONDS,
+                )
+            except asyncio.TimeoutError:
+                continue
 
     def correct_string_to_datetime(self, string: str, format: str) -> datetime:
         return (

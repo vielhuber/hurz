@@ -5,6 +5,8 @@ import sys
 from datetime import datetime, timedelta
 from typing import Optional
 
+from InquirerPy import prompt_async
+
 from app.utils.singletons import utils
 from app.utils.helpers import singleton
 
@@ -22,15 +24,25 @@ class Cli:
 
     # Recognized CLI action flags. Extend this set (and the mapping in
     # Menu.initialize_main_menu) to expose new menu options via CLI.
+    # The `--auto-*` variants map to `Auto-Trade Mode` submodes and iterate
+    # over every asset rather than the currently selected one.
     ACTIONS = (
-        "--load_data",
+        "--load",
         "--verify",
         "--compute",
         "--train",
-        "--fulltest",
+        "--test",
         "--trade",
         "--refresh",
         "--exit",
+        "--auto-load",
+        "--auto-verify",
+        "--auto-compute",
+        "--auto-train",
+        "--auto-test",
+        "--auto-trade",
+        "--auto-all-no-trade",
+        "--auto-all-trade",
     )
 
     TRIGGER_PATH = "tmp/remote_action.json"
@@ -79,20 +91,72 @@ class Cli:
             except Exception:
                 pass
 
-    def pop_triggered_answer(
-        self, action_to_option: dict, listen_for_triggers: bool
-    ) -> Optional[dict]:
-        """If a CLI trigger file is waiting and this instance is the primary
-        (websocket-owning) one, consume it and return a menu-answers dict
-        mapped via `action_to_option`. Otherwise return None so the caller
-        falls back to `await prompt_async(...)`. Logs a warning on an
-        unmapped action instead of raising — the menu keeps running.
+    async def prompt_or_trigger(
+        self,
+        questions: list,
+        action_to_option: dict,
+        listen_for_triggers: bool,
+    ) -> dict:
+        """Show the interactive menu prompt; if a CLI trigger arrives
+        (already queued before we reached this call, or written to the
+        trigger file during the prompt), preempt and return the mapped
+        answers dict instead. A reduced-menu secondary instance
+        (`listen_for_triggers=False`) just awaits the prompt — the trigger
+        file is left untouched for the primary instance to consume.
         """
         if not listen_for_triggers:
-            return None
-        action = self._consume_trigger()
+            return await prompt_async(questions=questions)
+
+        # Trigger already queued — consume before even prompting.
+        answer = self._build_answer_from_trigger(action_to_option)
+        if answer is not None:
+            return answer
+
+        # Race the prompt against the trigger-file poll; whichever fires
+        # first wins. The losing task is cancelled cleanly.
+        prompt_task = asyncio.create_task(prompt_async(questions=questions))
+        trigger_task = asyncio.create_task(self._wait_for_trigger())
+        done, pending = await asyncio.wait(
+            [prompt_task, trigger_task], return_when=asyncio.FIRST_COMPLETED
+        )
+        for p in pending:
+            p.cancel()
+            try:
+                await p
+            except (asyncio.CancelledError, Exception):
+                pass
+
+        if trigger_task in done and not trigger_task.cancelled():
+            answer = self._build_answer_from_trigger(
+                action_to_option, action=trigger_task.result()
+            )
+            if answer is not None:
+                return answer
+            # Unknown action — re-prompt rather than return a bogus pick.
+            return await prompt_async(questions=questions)
+        return prompt_task.result()
+
+    async def _wait_for_trigger(self) -> str:
+        """Poll for the trigger file until a valid action appears, then
+        consume (delete) it and return the action name.
+        """
+        while True:
+            action = self._consume_trigger()
+            if action is not None:
+                return action
+            await asyncio.sleep(self.POLL_INTERVAL_SECONDS)
+
+    def _build_answer_from_trigger(
+        self, action_to_option: dict, action: Optional[str] = None
+    ) -> Optional[dict]:
+        """Map a trigger action to a menu-answers dict. If `action` is not
+        passed, consume any queued trigger first. Returns None if no
+        trigger is pending or the action doesn't map to a known option.
+        """
         if action is None:
-            return None
+            action = self._consume_trigger()
+            if action is None:
+                return None
         target = action_to_option.get(action)
         if target is None:
             utils.print(f"⛔ Unknown CLI trigger action: {action}", 0)

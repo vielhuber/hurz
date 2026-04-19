@@ -12,14 +12,27 @@
 Pass a flag to trigger the matching main-menu entry on the running instance:
 
 ```sh
-python3 hurz.py --load_data   # Load historical data
+python3 hurz.py --load        # Load historical data (current asset)
 python3 hurz.py --verify      # Verify
 python3 hurz.py --compute     # Compute features
 python3 hurz.py --train       # Train model
-python3 hurz.py --fulltest    # Determine confidence / run fulltest
+python3 hurz.py --test        # Determine confidence / run fulltest
 python3 hurz.py --trade       # Trade optimally
 python3 hurz.py --refresh     # Refresh view (re-reads data/settings.json)
 python3 hurz.py --exit        # Exit
+```
+
+`--auto-*` variants run the same step across **all** assets (Auto-Trade Mode):
+
+```sh
+python3 hurz.py --auto-load           # Load all historical data
+python3 hurz.py --auto-verify         # Verify all
+python3 hurz.py --auto-compute        # Compute features for all
+python3 hurz.py --auto-train          # Train all models
+python3 hurz.py --auto-test           # Fulltest all
+python3 hurz.py --auto-trade          # Trade all optimally
+python3 hurz.py --auto-all-no-trade   # Load → verify → compute → train → test (all)
+python3 hurz.py --auto-all-trade      # Same as above + trade
 ```
 
 To change the active asset from outside: edit `data/settings.json`, then

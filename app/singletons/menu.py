@@ -196,19 +196,32 @@ class Menu:
                 },
             ]
 
-            answers = cli.pop_triggered_answer(
+            answers = await cli.prompt_or_trigger(
+                questions=questions,
                 action_to_option={
-                    "load_data": option1,
+                    "load": option1,
                     "verify": option2,
                     "compute": option3,
                     "train": option4,
-                    "fulltest": option5,
+                    "test": option5,
                     "trade": option6,
                     "refresh": option11,
                     "exit": option14,
+                    # `--auto-*` triggers route into autotrade.start_auto_mode
+                    # below. They're CLI-only, never shown as menu choices;
+                    # the "auto:<mode>" sentinel is picked up by the elif
+                    # chain further down.
+                    "auto-load": "auto:data",
+                    "auto-verify": "auto:verify",
+                    "auto-compute": "auto:features",
+                    "auto-train": "auto:train",
+                    "auto-test": "auto:fulltest",
+                    "auto-trade": "auto:trade",
+                    "auto-all-no-trade": "auto:all_no_trade",
+                    "auto-all-trade": "auto:all_trade",
                 },
                 listen_for_triggers=store.websockets_connection is not None,
-            ) or await prompt_async(questions=questions)
+            )
 
             store.main_menu_default = answers["main_selection"]
 
@@ -363,6 +376,13 @@ class Menu:
 
             elif answers["main_selection"] == option12:
                 await self.selection_auto_trade_menue()
+
+            elif isinstance(answers["main_selection"], str) and answers[
+                "main_selection"
+            ].startswith("auto:"):
+                mode = answers["main_selection"].split(":", 1)[1]
+                utils.print(f"ℹ️ Starting auto mode: {mode}", 0)
+                await asyncio.create_task(autotrade.start_auto_mode(mode))
 
             elif answers["main_selection"] == option13:
                 confirm = await prompt_async(

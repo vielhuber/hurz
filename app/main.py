@@ -29,6 +29,9 @@ async def run() -> None:
 
         await websocket.setup_websockets()
 
+        # Background log-rotator: fire-and-forget, shuts down via stop_event.
+        asyncio.create_task(utils.rotate_log_loop(store.stop_event))
+
         # await menu.initialize_main_menu()
         await asyncio.wait(
             [
