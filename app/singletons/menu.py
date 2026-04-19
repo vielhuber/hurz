@@ -293,10 +293,26 @@ class Menu:
                     await asyncio.sleep(3)
                     continue
 
+                # Enable Enter-to-cancel: auto_mode_active also gates the main
+                # menu loop (re-entry is paused while True), so the waiting_for_input
+                # thread can safely read stdin without racing the InquirerPy prompt.
+                store.auto_mode_active = True
+                threading.Thread(
+                    target=autotrade.waiting_for_input, daemon=True
+                ).start()
+
                 for i in range(store.trade_repeat):
+                    if not store.auto_mode_active:
+                        utils.print("ℹ️ Order run cancelled by user.", 0)
+                        break
+
                     utils.print(f"ℹ️🚀 Order run {i+1}/{store.trade_repeat}", 0)
 
                     await order.do_buy_sell_order()
+
+                    if not store.auto_mode_active:
+                        utils.print("ℹ️ Order run cancelled by user.", 0)
+                        break
 
                     if i < store.trade_repeat - 1:
                         waiting_time = order.get_random_waiting_time()
@@ -304,7 +320,13 @@ class Menu:
                             f"ℹ️ Wait {waiting_time} seconds, before the next order happens...",
                             0,
                         )
-                        await asyncio.sleep(waiting_time)
+                        # Sleep in 1-second slices so cancellation is responsive
+                        for _ in range(waiting_time):
+                            if not store.auto_mode_active:
+                                break
+                            await asyncio.sleep(1)
+
+                store.auto_mode_active = False
 
             elif (
                 answers["main_selection"] == option7

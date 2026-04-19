@@ -509,13 +509,14 @@ class WebSocket:
                         with open("tmp/assets_raw.json", "w", encoding="utf-8") as f:
                             json.dump(data, f, indent=2)
 
+                        # Keep OTCs here; the OTC strip happens in autotrade
+                        # only if at least one non-OTC asset is available.
                         gefilterte = []
                         for data__value in data:
                             if (
                                 len(data__value) > 3
                                 and data__value[3] == "currency"
                                 and data__value[14] is True
-                                and "_otc" not in data__value[1]
                             ):
                                 gefilterte.append(
                                     {

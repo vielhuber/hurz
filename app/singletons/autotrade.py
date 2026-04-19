@@ -597,7 +597,7 @@ class AutoTrade:
                 await asyncio.sleep(waiting_time)
 
     def waiting_for_input(self):
-        utils.print("ℹ️ Press [ENTER] to cancel...", 0)
+        utils.print("ℹ️ Press [ENTER] to cancel...\n", 0)
         while store.auto_mode_active:
             # Check if there is input on stdin
             rlist, _, _ = select.select([sys.stdin], [], [], 1)

@@ -62,6 +62,16 @@ class Order:
                 "price": "Wert",
             }
         )
+        # For OTC markets (synthetic, 24/7) forward-fill NULL price gaps before
+        # dropping. NULLs in OTC historic data come from periods when the bot
+        # wasn't streaming the asset (e.g. weekends while OTCs were blocked),
+        # not from real market closures — the synthetic quote runs continuously.
+        # Non-OTC NULLs are real weekend closures and must stay NULL so the
+        # contiguity check in _prepare_and_predict correctly refuses to trade
+        # across a weekend boundary.
+        df.sort_values("Zeitpunkt", inplace=True)
+        if "_otc" in store.trade_asset:
+            df["Wert"] = df["Wert"].ffill()
         df.dropna(subset=["Wert"], inplace=True)
         df["Wert"] = df["Wert"].astype(float)
         df["Zeitpunkt"] = pd.to_datetime(df["Zeitpunkt"])
