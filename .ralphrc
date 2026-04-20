@@ -13,21 +13,21 @@ PROJECT_TYPE="unknown"
 CLAUDE_CODE_CMD="claude"
 
 # Loop settings
-MAX_CALLS_PER_HOUR=100
-CLAUDE_TIMEOUT_MINUTES=15
+MAX_CALLS_PER_HOUR=30
+CLAUDE_TIMEOUT_MINUTES=30
 CLAUDE_OUTPUT_FORMAT="json"
 # Token limit per hour (0 = disabled). One invocation can use 100k+ tokens.
-# Recommended: 500000 for light use, 2000000 for heavy use.
-#MAX_TOKENS_PER_HOUR=0
+MAX_TOKENS_PER_HOUR=2000000
 
-# Tool permissions
-# Comma-separated list of allowed tools
-# Safe git subcommands only - broad Bash(git *) allows destructive commands like git clean/git rm (Issue #149)
-ALLOWED_TOOLS="Write,Read,Edit,Bash(git add *),Bash(git commit *),Bash(git diff *),Bash(git log *),Bash(git status),Bash(git status *),Bash(git push *),Bash(git pull *),Bash(git fetch *),Bash(git checkout *),Bash(git branch *),Bash(git stash *),Bash(git merge *),Bash(git tag *),Bash(npm *),Bash(pytest)"
+# Force Opus 4.7 for every loop — deep reasoning pays off per call.
+CLAUDE_MODEL="claude-opus-4-7"
+
+# Tool permissions — full access. Operator trusts the model.
+ALLOWED_TOOLS="Write,Read,Edit,Grep,Glob,Bash"
 
 # Session management
 SESSION_CONTINUITY=true
-SESSION_EXPIRY_HOURS=24
+SESSION_EXPIRY_HOURS=4
 
 # Task sources (for ralph enable --sync)
 # Options: local, beads, github (comma-separated for multiple)
@@ -35,10 +35,10 @@ TASK_SOURCES="github,local"
 GITHUB_TASK_LABEL="ralph-task"
 BEADS_FILTER="status:open"
 
-# Circuit breaker thresholds
-CB_NO_PROGRESS_THRESHOLD=3
-CB_SAME_ERROR_THRESHOLD=5
-CB_OUTPUT_DECLINE_THRESHOLD=70
+# Circuit breaker thresholds — relaxed, Ralph is expected to poke around.
+CB_NO_PROGRESS_THRESHOLD=10
+CB_SAME_ERROR_THRESHOLD=10
+CB_OUTPUT_DECLINE_THRESHOLD=90
 
 # Auto-update Claude CLI at startup
 CLAUDE_AUTO_UPDATE=true

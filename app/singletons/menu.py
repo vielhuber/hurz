@@ -372,6 +372,14 @@ class Menu:
 
             elif answers["main_selection"] == option11:
                 utils.print("ℹ️ View is updating...", 0)
+                # Also re-scan external/ so newly-dropped model files (e.g.
+                # from Ralph) become available without a full hurz restart.
+                # Skips modules that fail to import rather than aborting the
+                # whole refresh.
+                try:
+                    settings.load_externals()
+                except Exception as e:
+                    utils.print(f"⛔ load_externals failed on refresh: {e}", 0)
                 settings.load_settings()
 
             elif answers["main_selection"] == option12:
