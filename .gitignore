@@ -8,3 +8,5 @@ __pycache__
 *.prof
 /NOTES.MD
 /hurz-models
+/.ralph
+/.ralphrc

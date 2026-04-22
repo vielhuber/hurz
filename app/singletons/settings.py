@@ -60,6 +60,15 @@ class Settings:
                     store.sound_effects = einstellungen.get(
                         "sound_effects", store.sound_effects
                     )
+                    store.paper_trade = einstellungen.get(
+                        "paper_trade", store.paper_trade
+                    )
+                    store.kelly_fraction_cap = einstellungen.get(
+                        "kelly_fraction_cap", store.kelly_fraction_cap
+                    )
+                    store.bankroll = einstellungen.get(
+                        "bankroll", store.bankroll
+                    )
 
                     self.refresh_dependent_settings()
 
@@ -97,6 +106,9 @@ class Settings:
                         "trade_distance": store.trade_distance,
                         "trade_time": store.trade_time,
                         "sound_effects": store.sound_effects,
+                        "paper_trade": store.paper_trade,
+                        "kelly_fraction_cap": store.kelly_fraction_cap,
+                        "bankroll": store.bankroll,
                     },
                     f,
                     indent=2,

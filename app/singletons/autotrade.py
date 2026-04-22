@@ -19,6 +19,7 @@ from app.utils.singletons import (
     utils,
 )
 from app.utils.helpers import singleton
+from app.utils.payout_gate import check_payout_gate
 
 
 @singleton
@@ -389,6 +390,21 @@ class AutoTrade:
                         utils.print(f"ℹ️ No fulltest data for {assets__value['name']}, skipping.", 2)
                         continue
 
+                    # Payout gate: skip assets whose live payout is below
+                    # the per-asset minimum in data/payout_gates.json.
+                    # Unlike order.py, this is a soft skip (continue, not
+                    # abort) so the loop keeps looking for a better taker.
+                    allowed, live_payout, min_payout, gate_reason = (
+                        check_payout_gate(assets__value["name"])
+                    )
+                    if not allowed:
+                        utils.print(
+                            f"ℹ️ [{assets__value['name']}] payout gate skip: "
+                            f"{gate_reason}.",
+                            2,
+                        )
+                        continue
+
                     utils.print(f"ℹ️ Examing {assets__value['name']}...", 2)
                     utils.print(
                         f"ℹ️ last_fulltest_quote_trading: {asset_information['last_fulltest_quote_trading']}",
@@ -581,7 +597,14 @@ class AutoTrade:
         if mode in ["trade"]:
             utils.print("⏳ DO LIVE TRADING...", 0)
             doCall = await order.do_buy_sell_order()
-            if doCall == 0 or doCall == 1:
+            # `isinstance(..., bool)` guard is load-bearing: in Python
+            # `False == 0` and `True == 1`, so a naive `doCall in (0, 1)`
+            # check treats every gate-refused / Kelly-zero / invalid-data
+            # refusal (which returns False) as a successful order and
+            # would arm the cooldown, freezing the rotation for a full
+            # trade_time. Mirrors the menu.py:371 fix for the --auto-trade
+            # path.
+            if not isinstance(doCall, bool) and doCall in (0, 1):
                 store.trades_overall_cur += 1
                 # set cooldown for this asset
                 store.trade_cooldowns[store.trade_asset] = (
@@ -597,6 +620,13 @@ class AutoTrade:
                 await asyncio.sleep(waiting_time)
 
     def waiting_for_input(self):
+        # In a headless run (e.g. Ralph harness or `python3 hurz.py
+        # </dev/null`), stdin is EOF-readable, so select() would return
+        # immediately and false-cancel the trade loop. Skip the watcher
+        # entirely in that case — cancellation must then come via
+        # stop_event or trade_repeat completion.
+        if not sys.stdin.isatty():
+            return
         utils.print("ℹ️ Press [ENTER] to cancel...\n", 0)
         while store.auto_mode_active:
             # Check if there is input on stdin

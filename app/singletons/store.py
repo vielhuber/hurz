@@ -19,6 +19,18 @@ class Store:
         self.trade_distance = 30
         self.trade_time = 60
         self.sound_effects = 1
+        # Paper-trade mode (WP5): when truthy, do_buy_sell_order records each
+        # decision to .ralph/logs/paper_trades.ndjson and does NOT place the
+        # order. Used to collect ≥100 live decisions and verify live succ%
+        # matches the fulltest prediction before real money goes in.
+        self.paper_trade = 0
+        # Kelly sizing (WP6): when kelly_fraction_cap > 0, the order path
+        # derives stake from (fulltest_succ, live_payout, bankroll) via the
+        # capped-Kelly formula instead of using the flat trade_amount.
+        # kelly_fraction_cap = 0 disables Kelly (the default) so existing
+        # behaviour is unchanged until the operator opts in.
+        self.kelly_fraction_cap = 0
+        self.bankroll = 0
 
         # misc
         self.model_classes = {}

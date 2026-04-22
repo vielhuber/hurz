@@ -112,6 +112,25 @@ class Cli:
         if answer is not None:
             return answer
 
+        # Headless mode (no TTY): InquirerPy's prompt_async crashes on
+        # EOFError because it can't put stdin in raw mode. Skip the
+        # prompt race entirely and wait for a trigger file indefinitely.
+        # Unknown actions loop instead of returning; a graceful shutdown
+        # still comes via store.stop_event which cancels this coroutine.
+        if not sys.stdin.isatty():
+            while True:
+                action = await self._wait_for_trigger()
+                answer = self._build_answer_from_trigger(
+                    action_to_option, action=action
+                )
+                if answer is not None:
+                    return answer
+                utils.print(
+                    f"⛔ Unknown headless trigger action: {action}; "
+                    f"waiting for next trigger.",
+                    0,
+                )
+
         # Race the prompt against the trigger-file poll; whichever fires
         # first wins. The losing task is cancelled cleanly.
         prompt_task = asyncio.create_task(prompt_async(questions=questions))

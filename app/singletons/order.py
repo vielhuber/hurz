@@ -4,10 +4,15 @@ import os
 import numpy as np
 import pandas as pd
 import random
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 
 from app.utils.singletons import history, store, utils, database, asset
 from app.utils.helpers import singleton
+from app.utils.payout_gate import check_payout_gate
+from app.utils.paper_trade import log_paper_decision
+from app.utils.kelly import kelly_stake
+from app.utils.gate_refusals import log_gate_refusal
 
 
 @singleton
@@ -20,6 +25,30 @@ class Order:
             verbosity_level=1,
             new_line=True,
         )
+
+        # Payout gate: refuse the trade when PocketOption's current
+        # live payout has fallen below the per-asset minimum. Gates are
+        # configured in data/payout_gates.json; absence of an entry means
+        # "no gate", so this short-circuit is cheap for unconfigured
+        # assets and hard-blocking for the validated ones.
+        allowed, live_payout, min_payout, gate_reason = check_payout_gate(
+            store.trade_asset
+        )
+        if not allowed:
+            utils.print(
+                f"⛔ [{store.trade_asset}] Payout gate rejected trade: "
+                f"{gate_reason}.",
+                1,
+            )
+            # Persist the refusal as NDJSON so WP15 can later
+            # correlate no-trade periods against payout regime.
+            log_gate_refusal(
+                asset=store.trade_asset,
+                reason=gate_reason or "",
+                live_payout=live_payout,
+                min_payout=min_payout,
+            )
+            return False
 
         is_valid = await asyncio.to_thread(
             history.verify_data_of_asset, asset=store.trade_asset, output_success=False
@@ -103,6 +132,88 @@ class Order:
         # duration matches training horizon (trade_time in seconds)
         duration = int(store.trade_time)
 
+        # Kelly stake sizing (WP6): when kelly_fraction_cap > 0 we
+        # override the flat trade_amount with a capped-Kelly stake
+        # derived from (fulltest_succ, live_payout, bankroll). When
+        # the cap is 0 (the default) the fallback returns base_stake
+        # unchanged, so existing behaviour is preserved until the
+        # operator opts in. A fulltest_succ below break-even yields
+        # stake 0 — the order is then skipped as "low confidence".
+        trade_amount = store.trade_amount
+        if store.kelly_fraction_cap and store.kelly_fraction_cap > 0:
+            succ_pct = (
+                float(asset_info.get("last_fulltest_quote_success", 0))
+                if asset_info else 0.0
+            )
+            trade_amount = kelly_stake(
+                succ_pct=succ_pct,
+                payout_pct=float(live_payout) if live_payout is not None else 0.0,
+                bankroll=float(store.bankroll),
+                fraction_cap=float(store.kelly_fraction_cap),
+                base_stake=float(store.trade_amount),
+                min_stake=1.0,
+            )
+            utils.print(
+                f"💰 [{store.trade_asset}] Kelly stake: "
+                f"succ={succ_pct:.2f}% payout="
+                f"{'?' if live_payout is None else f'{live_payout:.0f}%'} "
+                f"bankroll={store.bankroll} cap={store.kelly_fraction_cap} "
+                f"→ stake={trade_amount}",
+                1,
+            )
+            if trade_amount <= 0:
+                reason = (
+                    f"kelly_zero: succ={succ_pct:.2f}% payout="
+                    f"{'?' if live_payout is None else f'{live_payout:.0f}%'}"
+                )
+                utils.print(
+                    f"⛔ [{store.trade_asset}] Kelly stake is 0 (no edge at "
+                    f"current payout) — skipping order.",
+                    0,
+                )
+                # Persist alongside payout-gate refusals so WP18 regime
+                # analysis sees both the hard gate rejections AND the
+                # Kelly-EV rejections. Without this, a compressed-payout
+                # period looks like "bot idle" rather than "bot refusing
+                # correctly".
+                log_gate_refusal(
+                    asset=store.trade_asset,
+                    reason=reason,
+                    live_payout=live_payout,
+                    min_payout=min_payout,
+                )
+                return False
+
+        # Paper-trade intercept (WP5): in paper mode we log the decision
+        # and return without sending the order. This lets the operator
+        # collect ≥100 live decisions per asset and compare live succ%
+        # against the fulltest prediction before real money goes in.
+        if store.paper_trade:
+            direction = (
+                "call" if doCall == 1
+                else "put" if doCall == 0
+                else "hold"
+            )
+            log_paper_decision(
+                asset=store.trade_asset,
+                direction=direction,
+                confidence=store.trade_confidence,
+                payout=live_payout,
+                stake=trade_amount,
+                duration=duration,
+                model=store.active_model,
+                trade_platform=store.trade_platform,
+                session_id=store.session_id,
+            )
+            utils.print(
+                f"📝 [paper] {store.trade_asset} {direction.upper()} "
+                f"conf={store.trade_confidence}% payout="
+                f"{'?' if live_payout is None else f'{live_payout:.0f}%'} "
+                f"(no order sent).",
+                0,
+            )
+            return doCall
+
         # make purchase decision (example)
         if doCall == 1:
             utils.print(
@@ -111,7 +222,7 @@ class Order:
             )
             await self.send_order(
                 store.trade_asset,
-                amount=store.trade_amount,
+                amount=trade_amount,
                 action="call",
                 duration=duration,
             )
@@ -122,7 +233,7 @@ class Order:
             )
             await self.send_order(
                 store.trade_asset,
-                amount=store.trade_amount,
+                amount=trade_amount,
                 action="put",
                 duration=duration,
             )
@@ -261,6 +372,94 @@ class Order:
             return 15
         return None
 
+    @staticmethod
+    def _build_trades_row_values(
+        deal: Dict[str, Any],
+        type: str,
+        payout_percent: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        """Map one PocketOption WebSocket deal payload to the DB-ready
+        value dict used by the INSERT / UPDATE paths in ``format_deals``.
+
+        Pure function on the deal dict — no DB / singleton access — so
+        the mapping can be unit-tested without bootstrapping the whole
+        singleton graph. ``payout_percent`` is captured at INSERT time
+        from ``tmp/assets.json`` because the deal dict itself never
+        carries it; the UPDATE branch passes ``None`` and the INSERT /
+        UPDATE caller decides whether to overwrite the column.
+        """
+        asset_name = deal.get("asset") or ""
+        is_demo = 1 if deal.get("isDemo") == 1 else 0
+        open_ts_raw = deal.get("openTimestamp")
+        close_ts_raw = deal.get("closeTimestamp")
+        open_ts_db = (
+            datetime.fromtimestamp(open_ts_raw, tz=timezone.utc)
+            .strftime("%Y-%m-%d %H:%M:%S")
+            if open_ts_raw is not None
+            else "2000-01-01 00:00:00"
+        )
+        close_ts_db = (
+            datetime.fromtimestamp(close_ts_raw, tz=timezone.utc)
+            .strftime("%Y-%m-%d %H:%M:%S")
+            if close_ts_raw is not None
+            else open_ts_db
+        )
+        amount_raw = deal.get("amount")
+        amount = float(amount_raw) if amount_raw is not None else 0.0
+        profit_raw = deal.get("profit")
+        # PocketOption echoes command=0 for "call" (up) and command=1
+        # for "put" (down). Store as direction=1 (up) / direction=0
+        # (down) so the column reads naturally.
+        direction = 0 if deal.get("command") == 1 else 1
+        if type == "closed":
+            profit = float(profit_raw) if profit_raw is not None else 0.0
+            success = 1 if profit > 0 else 0
+            status = "closed"
+        else:
+            profit = None
+            success = None
+            status = "open"
+        payout_percent_db = (
+            float(payout_percent) if payout_percent is not None else None
+        )
+        return {
+            "asset_name": asset_name,
+            "is_demo": is_demo,
+            "open_timestamp": open_ts_db,
+            "close_timestamp": close_ts_db,
+            "amount": amount,
+            "payout_percent": payout_percent_db,
+            "profit": profit,
+            "direction": direction,
+            "success": success,
+            "status": status,
+        }
+
+    @staticmethod
+    def _format_close_line(asset_name: str, profit, success) -> str:
+        """Build the operator-visible one-line summary for a close event.
+
+        Pure string builder, no side effects. The shape is
+        ``✅ CHFJPY closed: +12.50$ (success=1)`` for a winner and
+        ``⛔ CHFJPY closed: -15.00$ (success=0)`` for a loser. The
+        leading glyph mirrors the INSERT-path table marker so stdout
+        and the DB stay visually aligned. ``profit`` may arrive as
+        ``None`` / ``""`` / any numeric — we coerce defensively so
+        the line never crashes the WebSocket callback.
+        """
+        try:
+            profit_f = float(profit) if profit is not None else 0.0
+        except (TypeError, ValueError):
+            profit_f = 0.0
+        glyph = "✅" if success == 1 else "⛔"
+        sign = "+" if profit_f >= 0 else "-"
+        amount_str = f"{sign}{abs(profit_f):.2f}$"
+        success_int = 1 if success == 1 else 0
+        return (
+            f"{glyph} {asset_name or '?'} closed: "
+            f"{amount_str} (success={success_int})"
+        )
+
     def format_deals(self, data: list, type: str) -> list:
         if not isinstance(data, list):
             return "⚠️ Ungültige Datenstruktur: kein Array."
@@ -286,11 +485,76 @@ class Order:
                     "trade_platform": store.trade_platform,
                     "session_id": store.session_id,
                 }
+                # Resolve the deal's real values for the trades row.
+                # See ``_build_trades_row_values`` for the mapping. The
+                # old path wrote hardcoded sentinels ("", "2000-01-01",
+                # 0 amount / 0 profit), which made the row unusable for
+                # WP16 live-vs-fulltest succ% validation.
+                # The deal payload itself never carries the live payout,
+                # so we capture it from tmp/assets.json on open-events
+                # (INSERT path). Close-events (UPDATE path) intentionally
+                # pass None and the UPDATE branch leaves the column
+                # alone.
+                payout_percent_live: Optional[float] = None
+                if type != "closed":
+                    deal_asset_raw = deal.get("asset") or ""
+                    if deal_asset_raw:
+                        payout_percent_live = asset.asset_get_return_percent(
+                            deal_asset_raw
+                        )
+                row_values = self._build_trades_row_values(
+                    deal, type, payout_percent=payout_percent_live
+                )
+                deal_asset = row_values["asset_name"]
+                deal_is_demo = row_values["is_demo"]
+                open_ts_db = row_values["open_timestamp"]
+                close_ts_db = row_values["close_timestamp"]
+                amount_db = row_values["amount"]
+                payout_percent_db = row_values["payout_percent"]
+                profit_db = row_values["profit"]
+                direction_db = row_values["direction"]
+                success_db = row_values["success"]
+                status_db = row_values["status"]
+
                 additional_information_db = database.select(
                     "SELECT * FROM trades WHERE id = %s", (deal.get("id"),)
                 )
                 if additional_information_db:
                     additional_information = additional_information_db[0]
+                    # Update path: when the WebSocket delivers the close
+                    # event for a deal we already inserted on open, roll
+                    # forward the close_timestamp, profit, success and
+                    # status. This is what WP16 queries against.
+                    if type == "closed":
+                        database.query(
+                            """
+                            UPDATE trades
+                            SET close_timestamp = %s,
+                                amount = %s,
+                                profit = %s,
+                                success = %s,
+                                status = %s
+                            WHERE id = %s
+                            """,
+                            (
+                                close_ts_db,
+                                amount_db,
+                                profit_db,
+                                success_db,
+                                status_db,
+                                additional_information["id"],
+                            ),
+                        )
+                        # Operator-visible close line — before this
+                        # patch the UPDATE fired silently, so the
+                        # 48 h accumulator had no stdout footprint
+                        # on the single most important event.
+                        utils.print(
+                            self._format_close_line(
+                                deal_asset, profit_db, success_db
+                            ),
+                            1,
+                        )
                 else:
                     # save new entry in database
                     database.query(
@@ -308,29 +572,31 @@ class Order:
                             open_timestamp,
                             close_timestamp,
                             amount,
+                            payout_percent,
                             profit,
                             direction,
                             success,
                             status
                         )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """,
                         (
                             additional_information["id"],
                             additional_information["session_id"],
-                            "",
-                            0,
+                            deal_asset,
+                            deal_is_demo,
                             additional_information["model"],
                             additional_information["trade_time"],
                             additional_information["trade_confidence"],
                             additional_information["trade_platform"],
-                            "2000-01-01 00:00:00",
-                            "2000-01-01 00:00:00",
-                            0,
-                            0,
-                            1,
-                            1,
-                            "open",
+                            open_ts_db,
+                            close_ts_db,
+                            amount_db,
+                            payout_percent_db,
+                            profit_db,
+                            direction_db,
+                            success_db,
+                            status_db,
                         ),
                     )
 

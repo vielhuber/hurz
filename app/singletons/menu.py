@@ -3,7 +3,7 @@ import json
 import os
 import threading
 from colorama import Fore, Back, Style, init
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from InquirerPy import prompt_async
 from InquirerPy.validator import EmptyInputValidator
 from InquirerPy.base.control import Choice
@@ -332,9 +332,47 @@ class Menu:
                         utils.print("ℹ️ Order run cancelled by user.", 0)
                         break
 
+                    # Per-asset cooldown: a single 3600s option must close
+                    # before we fire another one on the same signal. Without
+                    # this, the trade_distance loop (default 15s) would
+                    # open ~6 correlated stakes inside one prediction tick
+                    # and break Kelly's independence assumption. The
+                    # --auto-trade path has enforced this since day one
+                    # (autotrade.py:602); single-asset --trade did not.
+                    cooldown_until = store.trade_cooldowns.get(store.trade_asset)
+                    now = datetime.now(timezone.utc)
+                    if cooldown_until and now < cooldown_until:
+                        wait_s = int((cooldown_until - now).total_seconds()) + 1
+                        utils.print(
+                            f"ℹ️ [{store.trade_asset}] cooldown active, waiting "
+                            f"{wait_s}s until next trade window...",
+                            0,
+                        )
+                        for _ in range(wait_s):
+                            if not store.auto_mode_active:
+                                break
+                            await asyncio.sleep(1)
+                        if not store.auto_mode_active:
+                            utils.print("ℹ️ Order run cancelled by user.", 0)
+                            break
+
                     utils.print(f"ℹ️🚀 Order run {i+1}/{store.trade_repeat}", 0)
 
-                    await order.do_buy_sell_order()
+                    doCall = await order.do_buy_sell_order()
+                    # Only arm the cooldown when an order actually went
+                    # through (doCall 0 or 1). Gate-refused / Kelly-zero
+                    # / invalid-data calls return False and must NOT block
+                    # the next retry — otherwise a one-off gate refusal
+                    # freezes the loop for a full trade_time. The
+                    # `isinstance(..., bool)` guard is load-bearing: in
+                    # Python `False == 0` and `False in (0, 1)` is True,
+                    # so the naive check would treat every refusal as a
+                    # successful order.
+                    if not isinstance(doCall, bool) and doCall in (0, 1):
+                        store.trade_cooldowns[store.trade_asset] = (
+                            datetime.now(timezone.utc)
+                            + timedelta(seconds=int(store.trade_time))
+                        )
 
                     if not store.auto_mode_active:
                         utils.print("ℹ️ Order run cancelled by user.", 0)
