@@ -394,8 +394,11 @@ class AutoTrade:
                     # the per-asset minimum in data/payout_gates.json.
                     # Unlike order.py, this is a soft skip (continue, not
                     # abort) so the loop keeps looking for a better taker.
+                    # strict_mode=True refuses assets without a configured
+                    # gate — the rotation must only pick fulltest-qualified
+                    # pairs, never exotics that slip through the default-allow.
                     allowed, live_payout, min_payout, gate_reason = (
-                        check_payout_gate(assets__value["name"])
+                        check_payout_gate(assets__value["name"], strict_mode=True)
                     )
                     if not allowed:
                         utils.print(

@@ -80,6 +80,7 @@ def check_payout_gate(
     asset_name: str,
     gates_path: str = PAYOUT_GATES_PATH,
     assets_path: str = ASSETS_PATH,
+    strict_mode: bool = False,
 ) -> Tuple[bool, Optional[float], Optional[float], str]:
     """Decide whether a trade on `asset_name` may proceed.
 
@@ -88,11 +89,18 @@ def check_payout_gate(
     The gate is opt-in: if no gate is configured for the asset, or if
     the live payout cannot be read, the trade is allowed and the reason
     string explains why.
+
+    When `strict_mode=True`, assets without a configured gate are
+    refused. This closes the blindspot where the auto-rotation would
+    otherwise trade exotics / unvetted pairs that silently pass because
+    they were never fulltest-qualified.
     """
     live_payout = get_live_payout(asset_name, assets_path)
     min_payout = get_gate_for_asset(asset_name, gates_path)
 
     if min_payout is None:
+        if strict_mode:
+            return False, live_payout, None, "no gate configured (strict mode)"
         return True, live_payout, None, "no gate configured"
     if live_payout is None:
         return (

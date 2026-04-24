@@ -6,6 +6,7 @@ from typing import Optional, Dict, Any
 
 from app.utils.singletons import store, utils, asset, settings, database, history
 from app.utils.helpers import singleton
+from app.utils.gate_recompute import recompute_gates
 
 
 @singleton
@@ -467,6 +468,24 @@ class FullTest:
         )
 
         settings.save_current_settings()
+
+        # Regenerate data/payout_gates.json from the updated DB state so
+        # the trade loop always sees gates derived from the freshest
+        # fulltest. Cheap: one SELECT + one JSON write. Failure here
+        # must not abort the fulltest, since the gate file can be
+        # rebuilt later by re-running a fulltest.
+        try:
+            stats = recompute_gates(database)
+            utils.print(
+                f"✅ payout_gates.json regenerated: {stats['wrote']} gates "
+                f"(skipped low_succ={stats['skipped_low_succ']}, "
+                f"low_trd={stats['skipped_low_trd']}, "
+                f"artifact={stats['skipped_artifact']}, "
+                f"impossible={stats['skipped_impossible']}).",
+                1,
+            )
+        except (OSError, ValueError, KeyError) as err:
+            utils.print(f"⚠️ payout_gates.json regeneration failed: {err}", 0)
 
         return {
             "trade_confidence": trade_confidence,

@@ -13,6 +13,7 @@ from app.utils.payout_gate import check_payout_gate
 from app.utils.paper_trade import log_paper_decision
 from app.utils.kelly import kelly_stake
 from app.utils.gate_refusals import log_gate_refusal
+from app.utils.direction_guard import check_same_direction_guard
 
 
 @singleton
@@ -128,6 +129,25 @@ class Order:
                 1,
             )
             doCall = flipped
+
+        # Same-direction re-entry guard: after the last same-direction
+        # trade on this asset, wait 2×trade_time before re-entering.
+        # Prevents chasing a short-term regime that likely exhausted
+        # between bars (AUDJPY W-then-L at 14:17/15:18 was the
+        # motivating case). HOLD signals bypass the guard.
+        if doCall in (0, 1):
+            allowed, wait_minutes = check_same_direction_guard(
+                database, store.trade_asset, doCall, int(store.trade_time)
+            )
+            if not allowed:
+                dir_label = "CALL" if doCall == 1 else "PUT"
+                utils.print(
+                    f"🛑 [{store.trade_asset}] Same-direction guard: "
+                    f"last {dir_label} too recent — "
+                    f"waiting {wait_minutes}min.",
+                    1,
+                )
+                return False
 
         # duration matches training horizon (trade_time in seconds)
         duration = int(store.trade_time)
