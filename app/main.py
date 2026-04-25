@@ -2,11 +2,22 @@ import asyncio
 import sys
 
 from app.utils.singletons import cli, store, utils, settings, boot, websocket, menu, database
+from app.utils.trading_window import (
+    is_within_trading_window,
+    render_trading_window_banner,
+)
 
 
 async def run() -> None:
 
     try:
+        # Hard trading-window guard: refuse to run outside business hours.
+        # Runs before anything else so CLI triggers and the interactive
+        # menu are equally blocked.
+        if not is_within_trading_window():
+            render_trading_window_banner()
+            sys.exit(0)
+
         # One-shot CLI trigger mode: if a recognized --flag is passed, write
         # it to the action file for the already-running interactive instance
         # and exit. Runs before any heavier startup so the CLI path stays
