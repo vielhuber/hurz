@@ -6,11 +6,12 @@ Friday closes one hour earlier (17:00) to avoid the observed
 Friday-evening payout-collapse pattern (e.g. CHFJPY 88% → 41% within
 1.5h on a Friday afternoon).
 """
+import math
 import shutil
 import sys
 import time
-from datetime import datetime
-from typing import IO, Optional
+from datetime import datetime, timedelta
+from typing import IO, Optional, Tuple
 
 
 # Monday=0 .. Friday=4. Friday has its own end-hour.
@@ -41,21 +42,69 @@ def is_within_trading_window(now: Optional[datetime] = None) -> bool:
     return True
 
 
-# Letter-spaced title for visual weight; divider matches title width.
-_BANNER_LINES = (
-    "",
-    "T R A D I N G   C L O S E D",
-    "",
-    "───────────────────────────",
-    "",
-    "MON – THU     09:00 – 18:00",
-    "FRIDAY        09:00 – 17:00",
-    "",
-)
+def next_window_start(now: Optional[datetime] = None) -> datetime:
+    """Datetime of the next 09:00 weekday opening at or after `now`.
 
-_PLAIN_FALLBACK = (
-    "TRADING CLOSED — MON-THU 09:00-18:00 · FRIDAY 09:00-17:00"
-)
+    If `now` is already in-window the function still returns the next
+    *upcoming* start (i.e. the day's 09:00 if not yet reached, otherwise
+    the following weekday's 09:00). Callers normally only invoke this
+    when out-of-window, so the in-window edge case is academic.
+    """
+    if now is None:
+        now = datetime.now()
+    candidate = now.replace(
+        hour=ALLOWED_HOUR_START, minute=0, second=0, microsecond=0
+    )
+    today_is_weekday = now.weekday() in ALLOWED_WEEKDAYS
+    today_start_is_future = now < candidate
+    if today_is_weekday and today_start_is_future:
+        return candidate
+    candidate = candidate + timedelta(days=1)
+    while candidate.weekday() not in ALLOWED_WEEKDAYS:
+        candidate = candidate + timedelta(days=1)
+    return candidate
+
+
+def hours_until_next_window(now: Optional[datetime] = None) -> int:
+    """Whole hours (rounded up) until the next window opens."""
+    if now is None:
+        now = datetime.now()
+    if is_within_trading_window(now):
+        return 0
+    delta_seconds = (next_window_start(now) - now).total_seconds()
+    return max(1, math.ceil(delta_seconds / 3600))
+
+
+def _wait_line(now: Optional[datetime] = None) -> str:
+    # Two-digit hour and trailing ".." keep the line at 32 chars
+    # (even width) so block-centering stays symmetric on even-width
+    # terminals. Max gap is Fri 17:00 → Mon 09:00 = 64h, so the
+    # zero-padded field always fits in two digits.
+    hours = hours_until_next_window(now)
+    return f"You have to wait {hours:02d} more hours.."
+
+
+def _build_banner_lines(now: Optional[datetime] = None) -> Tuple[str, ...]:
+    """Compose the banner lines, including the dynamic wait line."""
+    return (
+        "",
+        "T R A D I N G   C L O S E D",
+        "",
+        "───────────────────────────",
+        "",
+        "MON – THU     09:00 – 18:00",
+        "FRIDAY        09:00 – 17:00",
+        "",
+        _wait_line(now),
+        "",
+    )
+
+
+def _plain_fallback(now: Optional[datetime] = None) -> str:
+    return (
+        "TRADING CLOSED — MON-THU 09:00-18:00 · FRIDAY 09:00-17:00 — "
+        + _wait_line(now)
+    )
 
 # ANSI control sequences.
 _ANSI_RESET = "\033[0m"
@@ -79,6 +128,7 @@ _FINAL_HOLD_S = 0.8
 def render_trading_window_banner(
     stream: Optional[IO[str]] = None,
     animate: Optional[bool] = None,
+    now: Optional[datetime] = None,
 ) -> None:
     """Full-screen banner shown when the bot refuses to start.
 
@@ -92,12 +142,19 @@ def render_trading_window_banner(
         animate = is_tty
 
     if not is_tty:
-        stream.write(_PLAIN_FALLBACK + "\n")
+        stream.write(_plain_fallback(now) + "\n")
         stream.flush()
         return
 
     cols, rows = shutil.get_terminal_size((80, 24))
-    top = max(0, (rows - len(_BANNER_LINES)) // 2)
+    banner_lines = _build_banner_lines(now)
+    top = max(0, (rows - len(banner_lines)) // 2)
+    # Block centering: pick the widest line, anchor the whole block once,
+    # then centre each line within that block. Otherwise every line
+    # would be independently centred against `cols`, making shorter
+    # lines drift relative to the longest one.
+    block_width = max(len(line) for line in banner_lines)
+    block_left = max(0, (cols - block_width) // 2)
 
     def _frame(bg: str, fg: str) -> None:
         stream.write(_ANSI_HIDE_CURSOR + _ANSI_CLEAR + _ANSI_HOME)
@@ -105,11 +162,12 @@ def render_trading_window_banner(
         fill = bg + " " * cols + _ANSI_RESET
         for r in range(rows):
             stream.write(f"\033[{r + 1};1H{fill}")
-        # Overlay the centred banner.
-        for i, line in enumerate(_BANNER_LINES):
-            left = max(0, (cols - len(line)) // 2)
+        # Overlay the banner: each line centred within the block.
+        for i, line in enumerate(banner_lines):
+            line_offset = (block_width - len(line)) // 2
+            col = block_left + line_offset + 1
             stream.write(
-                f"\033[{top + i + 1};{left + 1}H{bg}{fg}{line}{_ANSI_RESET}"
+                f"\033[{top + i + 1};{col}H{bg}{fg}{line}{_ANSI_RESET}"
             )
         stream.flush()
 
