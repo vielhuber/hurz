@@ -339,7 +339,15 @@ class History:
                     df.dropna(subset=["Zeitpunkt"], inplace=True)
 
                     # remove weekends (trading free times) => Set to None!
-                    if "otc" not in store.trade_asset:
+                    # Use the function's `trade_asset` parameter, NOT
+                    # `store.trade_asset`. The parallel preload runs
+                    # several load_data tasks concurrently and they all
+                    # share the same `store.trade_asset` global — using
+                    # it here means whichever asset happens to be the
+                    # current "selected" one decides the OTC branch for
+                    # ALL parallel fetches, leaving non-OTC pairs with
+                    # frozen weekend prices instead of NULL.
+                    if "otc" not in trade_asset:
                         utils.print(
                             f"ℹ️ Removing weekends.",
                             1,
@@ -786,7 +794,7 @@ class History:
             minutes = 0
             for index, row in df.iterrows():
                 # if time is weekend and it is non OTC, check if None
-                if "otc" not in store.trade_asset and not utils.is_weekend(row):
+                if "otc" not in asset and not utils.is_weekend(row):
                     if pd.isna(row["Wert"]) or row["Wert"] == "None":
                         utils.print(
                             f"⛔ {asset}: Invalid value in line {index + 1} for {asset}!",

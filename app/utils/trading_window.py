@@ -6,18 +6,19 @@ Friday closes one hour earlier (17:00) to avoid the observed
 Friday-evening payout-collapse pattern (e.g. CHFJPY 88% → 41% within
 1.5h on a Friday afternoon).
 """
+import asyncio
 import math
 import shutil
 import sys
 import time
 from datetime import datetime, timedelta
-from typing import IO, Optional, Tuple
+from typing import IO, Callable, Optional, Tuple
 
 
 # Monday=0 .. Friday=4. Friday has its own end-hour.
 WEEKDAY_FRIDAY = 4
 ALLOWED_WEEKDAYS = (0, 1, 2, 3, 4)
-ALLOWED_HOUR_START = 9            # inclusive, all weekdays
+ALLOWED_HOUR_START = 7            # inclusive, all weekdays
 ALLOWED_HOUR_END_MO_TH = 18       # exclusive, Mon-Thu
 ALLOWED_HOUR_END_FRIDAY = 17      # exclusive, Friday
 
@@ -78,7 +79,7 @@ def hours_until_next_window(now: Optional[datetime] = None) -> int:
 def _wait_line(now: Optional[datetime] = None) -> str:
     # Two-digit hour and trailing ".." keep the line at 32 chars
     # (even width) so block-centering stays symmetric on even-width
-    # terminals. Max gap is Fri 17:00 → Mon 09:00 = 64h, so the
+    # terminals. Max gap is Fri 17:00 → Mon 07:00 = 62h, so the
     # zero-padded field always fits in two digits.
     hours = hours_until_next_window(now)
     return f"You have to wait {hours:02d} more hours.."
@@ -92,8 +93,8 @@ def _build_banner_lines(now: Optional[datetime] = None) -> Tuple[str, ...]:
         "",
         "───────────────────────────",
         "",
-        "MON – THU     09:00 – 18:00",
-        "FRIDAY        09:00 – 17:00",
+        "MON – THU     07:00 – 18:00",
+        "FRIDAY        07:00 – 17:00",
         "",
         _wait_line(now),
         "",
@@ -102,7 +103,7 @@ def _build_banner_lines(now: Optional[datetime] = None) -> Tuple[str, ...]:
 
 def _plain_fallback(now: Optional[datetime] = None) -> str:
     return (
-        "TRADING CLOSED — MON-THU 09:00-18:00 · FRIDAY 09:00-17:00 — "
+        "TRADING CLOSED — MON-THU 07:00-18:00 · FRIDAY 07:00-17:00 — "
         + _wait_line(now)
     )
 
@@ -184,3 +185,41 @@ def render_trading_window_banner(
     # Park cursor below the banner and restore terminal state.
     stream.write(_ANSI_RESET + _ANSI_SHOW_CURSOR + f"\033[{rows};1H\n")
     stream.flush()
+
+
+async def trading_window_watchdog(
+    stop_event: asyncio.Event,
+    on_close: Optional[Callable[[], None]] = None,
+    check_interval_s: float = 60.0,
+) -> None:
+    """While the program runs, watch the trading window and trigger a
+    graceful shutdown the moment it closes.
+
+    Wakes every `check_interval_s` (or sooner if `stop_event` fires for
+    another reason). When `is_within_trading_window()` flips to False:
+      1. Calls `on_close()` if provided (typical use: log the event).
+      2. Renders the full-screen "TRADING CLOSED" banner.
+      3. Sets `stop_event` so the main loop's `asyncio.wait(...)` returns
+         and `boot.shutdown()` runs.
+
+    The startup-time guard in `main.py` already refuses to start outside
+    the window — this watchdog covers the long-running case where the
+    program is started inside the window and should self-terminate when
+    the window closes (e.g. user starts at 09:00, bot exits at 18:00).
+    """
+    while not stop_event.is_set():
+        try:
+            await asyncio.wait_for(stop_event.wait(), timeout=check_interval_s)
+        except asyncio.TimeoutError:
+            pass
+        if stop_event.is_set():
+            return
+        if not is_within_trading_window():
+            if on_close is not None:
+                try:
+                    on_close()
+                except Exception:
+                    pass
+            render_trading_window_banner()
+            stop_event.set()
+            return

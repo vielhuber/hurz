@@ -5,6 +5,7 @@ from app.utils.singletons import cli, store, utils, settings, boot, websocket, m
 from app.utils.trading_window import (
     is_within_trading_window,
     render_trading_window_banner,
+    trading_window_watchdog,
 )
 
 
@@ -42,6 +43,20 @@ async def run() -> None:
 
         # Background log-rotator: fire-and-forget, shuts down via stop_event.
         asyncio.create_task(utils.rotate_log_loop(store.stop_event))
+
+        # Trading-window watchdog: poll once a minute and force a graceful
+        # shutdown the moment the window closes (Mo-Th 18:00, Fr 17:00).
+        # Mirrors the startup guard so a long-running session can't bleed
+        # into thin-liquidity / collapsed-payout hours.
+        asyncio.create_task(
+            trading_window_watchdog(
+                store.stop_event,
+                on_close=lambda: utils.print(
+                    "ℹ️ Trading window closed — initiating graceful shutdown.",
+                    0,
+                ),
+            )
+        )
 
         # await menu.initialize_main_menu()
         await asyncio.wait(

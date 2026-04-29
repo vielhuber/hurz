@@ -244,7 +244,30 @@ class AutoTrade:
         # each asset (wasted cache-skip pass). Flag it so doit() knows.
         sequential_skip_load = mode in ["data", "all_no_trade", "all_trade"]
 
-        if mode in ["data", "fulltest", "verify", "features", "train", "all_no_trade", "all_trade"]:
+        # Single-step modes: run that one step for every asset.
+        # "all_no_trade" / "all_trade": iterate STEPS at the outer level
+        # ("verify → features → train → fulltest" — same order as
+        # clicking the menu items individually for every asset). The
+        # "data" step is already covered by the parallel preload above,
+        # so it is not repeated here. Previous behaviour ran the full
+        # pipeline per asset before moving on, which made it harder to
+        # follow progress and meant a mid-run abort left earlier assets
+        # in a fully-processed state while later ones had nothing at all.
+        if mode in ["all_no_trade", "all_trade"]:
+            sequential_steps = ["verify", "features", "train", "fulltest"]
+        elif mode in ["data", "fulltest", "verify", "features", "train"]:
+            sequential_steps = [mode]
+        else:
+            sequential_steps = []
+
+        for step in sequential_steps:
+            utils.print(
+                f"#####################################################", 0
+            )
+            utils.print(f"### STEP: {step.upper()}", 0)
+            utils.print(
+                f"#####################################################", 0
+            )
             for assets__key, assets__value in enumerate(assets):
                 active_asset = assets__value["name"]
                 active_asset_information = asset.get_asset_information(
@@ -253,13 +276,13 @@ class AutoTrade:
 
                 utils.print(f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0)
                 utils.print(
-                    f"{active_asset} [{str(int(assets__key / len(assets) * 100))}%]",
+                    f"{active_asset} [{step}] [{str(int(assets__key / len(assets) * 100))}%]",
                     0,
                 )
                 utils.print(f"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", 0)
 
                 await self.doit(
-                    mode,
+                    step,
                     active_asset,
                     active_asset_information,
                     skip_load=sequential_skip_load,
