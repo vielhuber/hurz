@@ -7,7 +7,7 @@ import sys
 import time
 import threading
 import warnings
-from datetime import datetime
+from datetime import datetime, timedelta
 from tabulate import tabulate
 
 from app.utils.singletons import order, store, utils, database, history
@@ -171,6 +171,19 @@ class LiveStats:
                         ).date()
                         == datetime.now().date()
                     ],
+                    "yesterday": [
+                        deal
+                        for deal in self.live_data_deals
+                        if isinstance(deal, list)
+                        and len(deal) > order.format_deals_get_column("status")
+                        and len(deal) > order.format_deals_get_column("date_from")
+                        and deal[order.format_deals_get_column("status")] == "closed"
+                        and datetime.strptime(
+                            deal[order.format_deals_get_column("date_from")],
+                            "%d.%m.%y %H:%M:%S",
+                        ).date()
+                        == (datetime.now().date() - timedelta(days=1))
+                    ],
                     "session": [
                         deal
                         for deal in self.live_data_deals
@@ -218,7 +231,7 @@ class LiveStats:
                     )
 
                 output_values = {}
-                for value in ["all", "100", "today", "session"]:
+                for value in ["all", "100", "today", "yesterday", "session"]:
                     output_values["percent_win_rate_" + value] = 0
                     if len(deals_collected[value]) > 0:
                         output_values["percent_win_rate_" + value] = (
@@ -299,6 +312,7 @@ class LiveStats:
                                 f"{output_values['percent_win_rate_all']:.1f}%",
                                 f"{output_values['percent_win_rate_100']:.1f}%",
                                 f"{output_values['percent_win_rate_today']:.1f}%",
+                                f"{output_values['percent_win_rate_yesterday']:.1f}%",
                                 f"{output_values['percent_win_rate_session']:.1f}%",
                                 f"{needed_percent_rate:.1f}%",
                             ],
@@ -307,6 +321,7 @@ class LiveStats:
                                 f"{output_values['abs_amount_rate_all']:.1f}$",
                                 f"{output_values['abs_amount_rate_100']:.1f}$",
                                 f"{output_values['abs_amount_rate_today']:.1f}$",
+                                f"{output_values['abs_amount_rate_yesterday']:.1f}$",
                                 f"{output_values['abs_amount_rate_session']:.1f}$",
                                 "---",
                             ],
@@ -315,6 +330,7 @@ class LiveStats:
                                 f"{output_values['abs_win_rate_all']:.1f}$",
                                 f"{output_values['abs_win_rate_100']:.1f}$",
                                 f"{output_values['abs_win_rate_today']:.1f}$",
+                                f"{output_values['abs_win_rate_yesterday']:.1f}$",
                                 f"{output_values['abs_win_rate_session']:.1f}$",
                                 "---",
                             ],
@@ -323,6 +339,7 @@ class LiveStats:
                                 f"{output_values['asset_spread_all']}",
                                 f"{output_values['asset_spread_100']}",
                                 f"{output_values['asset_spread_today']}",
+                                f"{output_values['asset_spread_yesterday']}",
                                 f"{output_values['asset_spread_session']}",
                                 "---",
                             ],
@@ -331,6 +348,7 @@ class LiveStats:
                                 f"{output_values['trade_count_all']}",
                                 f"{output_values['trade_count_100']}",
                                 f"{output_values['trade_count_today']}",
+                                f"{output_values['trade_count_yesterday']}",
                                 f"{output_values['trade_count_session']}",
                                 "---",
                             ],
@@ -340,6 +358,7 @@ class LiveStats:
                             "Overall",
                             "Last 100",
                             "Today",
+                            "Yesterday",
                             "Session",
                             "Needed",
                         ],

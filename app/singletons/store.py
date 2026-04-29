@@ -78,6 +78,25 @@ class Store:
         self.auto_trade_refresh_time = 60
         self.session_id = None
 
+        # Global confidence floor. Even if an asset's fulltest-stored
+        # last_trade_confidence is lower, the live order path clips up
+        # to this value. 56 = require |prediction-0.5| >= 0.06, which
+        # filtered out 3 of 4 losses in the 2026-04-29 sample where
+        # the per-asset confidence had converged at 55.
+        self.min_trade_confidence = 56
+
+        # Loss-blacklist: assets that already lost a closed trade in the
+        # current auto-trade session. Reset on each start_auto_mode.
+        # Populated in order.format_deals on every closed-loss event.
+        self.session_loss_blacklist: set = set()
+
+        # Global trade cooldown: minimum seconds between two opens
+        # (across all assets). Per-asset trade_cooldowns are bypassed
+        # when the rotation switches asset, so a 3-trades-in-10min
+        # cluster slipped through. This adds a hard floor.
+        self.last_trade_open_at = None
+        self.min_seconds_between_trades = 900  # 15 min
+
         # --- parallel historic-data loading ---
         # Per-asset in-memory channels for `loadHistoryPeriod` responses.
         # The websocket handler writes incoming chunks into

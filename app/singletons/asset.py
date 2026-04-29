@@ -137,6 +137,42 @@ class Asset:
             last_timestamp_historic = None
         return last_timestamp_historic
 
+    def has_data_gaps(self, trade_asset: str, trade_platform: str) -> bool:
+        """Detect whether trading_data has any missing minutes between
+        MIN(timestamp) and MAX(timestamp) for this (asset, platform).
+
+        load_data() already knows how to fill gaps (per-minute cache check
+        re-fetches any chunk with a missing minute), but it is only
+        triggered when the freshness gate flips an asset to "stale". The
+        freshness gate looks only at MAX(timestamp), so an asset with a
+        recent last row but a hole in the middle gets marked fresh and
+        skipped. This method gives the caller a way to force a reload in
+        that case.
+
+        Note: this is approximate. It will over-trigger by one chunk per
+        DST spring-forward hour and (for non-OTC) ignores that weekends
+        are stored as NULL-price rows (which DO count toward COUNT(*)),
+        so weekend-handling is fine. Over-triggering is cheap — load_data
+        skips already-cached chunks via the minute-set lookup. Under-
+        triggering would leave the gap, which is what we are trying to
+        avoid.
+        """
+        result = database.select(
+            """
+            SELECT
+                COUNT(*) AS cnt,
+                TIMESTAMPDIFF(MINUTE, MIN(timestamp), MAX(timestamp)) + 1 AS expected
+            FROM trading_data
+            WHERE trade_asset = %s AND trade_platform = %s
+            """,
+            (trade_asset, trade_platform),
+        )
+        if not result or not result[0]["cnt"]:
+            return False
+        cnt = int(result[0]["cnt"])
+        expected = int(result[0]["expected"] or 0)
+        return cnt < expected
+
     def get_last_timestamp_features(
         self, trade_asset: str, trade_platform: str
     ) -> Optional[float]:

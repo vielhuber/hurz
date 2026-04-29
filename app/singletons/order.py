@@ -337,8 +337,15 @@ class Order:
         feature_vec = np.concatenate([X, indicator_snapshot, time_features])
         X_df = pd.DataFrame([feature_vec])
 
+        # Apply the global confidence floor. Per-asset fulltest values may
+        # have converged to a permissive level (e.g. 55 = |Δ|>=0.05) where
+        # weak signals dominate the loss column. The floor clips up so
+        # only signals strong enough across the board pass.
+        effective_confidence = max(
+            int(store.trade_confidence), int(store.min_trade_confidence)
+        )
         return store.model_classes[store.active_model].model_buy_sell_order(
-            X_df, store.filename_model, store.trade_confidence
+            X_df, store.filename_model, effective_confidence
         )
 
     async def send_order(
@@ -575,6 +582,22 @@ class Order:
                             ),
                             1,
                         )
+                        # Per-asset loss-blacklist: if the closed trade
+                        # was a loss, mark the asset as off-limits for
+                        # the rest of the auto-trade session. The
+                        # blacklist is consulted by the rotation in
+                        # autotrade.py and cleared on session start.
+                        if (
+                            success_db == 0
+                            and deal_asset
+                            and store.auto_mode_active
+                        ):
+                            store.session_loss_blacklist.add(deal_asset)
+                            utils.print(
+                                f"🚫 [{deal_asset}] added to session "
+                                f"loss-blacklist (lost this session).",
+                                1,
+                            )
                 else:
                     # save new entry in database
                     database.query(

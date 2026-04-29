@@ -30,30 +30,6 @@ class AutoTrade:
         with open("tmp/assets.json", "r", encoding="utf-8") as f:
             assets = json.load(f)
 
-        # if mode is data, sort by progress
-        if mode == "data":
-            assets_order = await utils.run_sync_as_async(
-                database.select,
-                """
-                SELECT trade_asset
-                FROM trading_data
-                GROUP BY trade_platform, trade_asset
-                ORDER BY COUNT(*) ASC
-                """,
-            )
-            # sort assets by manual sort (assets_order)
-            assets = sorted(
-                assets,
-                key=lambda x: next(
-                    (
-                        i
-                        for i, v in enumerate(assets_order)
-                        if v["trade_asset"] == x["name"]
-                    ),
-                    float("inf"),
-                ),
-            )
-
         # sort out all otc
         if mode in ["trade", "all_trade"]:
             non_otc_available = False
@@ -69,6 +45,10 @@ class AutoTrade:
                 ]
 
         store.auto_mode_active = True
+        # Reset session-scoped state so a previous session's blacklist or
+        # cooldown timer doesn't bleed into the new run.
+        store.session_loss_blacklist = set()
+        store.last_trade_open_at = None
 
         utils.print("", 0, False)
         threading.Thread(target=self.waiting_for_input, daemon=True).start()
@@ -203,6 +183,10 @@ class AutoTrade:
                 except asyncio.CancelledError:
                     return
 
+            utils.print(
+                f"ℹ️ Checking freshness for {len(assets)} assets...", 0
+            )
+            freshness_t0 = time.time()
             preload_tasks = []
             preload_asset_names = []
             for assets__value in assets:
@@ -211,9 +195,22 @@ class AutoTrade:
                 last_ts = asset.get_last_timestamp_historic(
                     assets__value["name"], store.trade_platform
                 )
-                if last_ts is None or utils.date_is_minutes_old(last_ts) > (
+                stale = last_ts is None or utils.date_is_minutes_old(last_ts) > (
                     store.auto_trade_refresh_time
-                ):
+                )
+                # MAX(timestamp) alone misses interior gaps. Add a row-count
+                # vs minute-span check so an asset with a recent last row but
+                # a hole in the middle still gets reloaded — load_data fills
+                # missing chunks via its per-minute cache check.
+                has_gap = (not stale) and asset.has_data_gaps(
+                    assets__value["name"], store.trade_platform
+                )
+                if stale or has_gap:
+                    if has_gap and not stale:
+                        utils.print(
+                            f"⚠️ [{assets__value['name']}] interior gap detected, forcing reload.",
+                            1,
+                        )
                     preload_tasks.append(_bounded_load(assets__value["name"]))
                     preload_asset_names.append(assets__value["name"])
                 else:
@@ -221,6 +218,12 @@ class AutoTrade:
                         f"✅ [{assets__value['name']}] already fresh, skipping preload.",
                         1,
                     )
+            utils.print(
+                f"✅ Freshness check complete in {time.time() - freshness_t0:.1f}s "
+                f"({len(preload_tasks)} need refresh, "
+                f"{len(assets) - len(preload_tasks)} already fresh).",
+                1,
+            )
             if preload_tasks:
                 progress_task = asyncio.create_task(
                     _progress_reporter(len(preload_tasks), preload_asset_names)
@@ -350,6 +353,25 @@ class AutoTrade:
 
             # now do endlessly trades
             while store.auto_mode_active:
+                # Global trade cooldown: enforce a minimum gap between
+                # any two opens. Per-asset cooldowns are bypassed when
+                # the rotation switches asset, so a 12:06 → 12:13 → 12:16
+                # cluster (3 trades in 10 min, 2 of them losses) slipped
+                # through. This is the hard floor that catches it.
+                if store.last_trade_open_at is not None:
+                    elapsed = (
+                        datetime.now(timezone.utc) - store.last_trade_open_at
+                    ).total_seconds()
+                    remaining = store.min_seconds_between_trades - elapsed
+                    if remaining > 0:
+                        utils.print(
+                            f"⏸️ Global trade cooldown: {int(remaining)}s "
+                            f"remaining before next open allowed.",
+                            1,
+                        )
+                        await asyncio.sleep(min(60, remaining))
+                        continue
+
                 # Refresh the ranking every loop iteration so that live
                 # payout changes propagate into the filter. Cheap: just
                 # a file read + a few math ops.
@@ -401,6 +423,18 @@ class AutoTrade:
                     # never use already used assets
                     if assets__value["name"] in used_assets:
                         utils.print("ℹ️ Already used...", 2)
+                        continue
+
+                    # Loss-blacklist: assets that already lost a closed
+                    # trade in this session are off-limits until the next
+                    # auto-mode start. Populated by order.format_deals on
+                    # close-loss events.
+                    if assets__value["name"] in store.session_loss_blacklist:
+                        utils.print(
+                            f"🚫 [{assets__value['name']}] in session "
+                            f"loss-blacklist, skipping.",
+                            2,
+                        )
                         continue
 
                     # cooldown: skip asset if traded less than trade_time ago
@@ -632,6 +666,9 @@ class AutoTrade:
             # path.
             if not isinstance(doCall, bool) and doCall in (0, 1):
                 store.trades_overall_cur += 1
+                # Record the open timestamp for the global cross-asset
+                # cooldown gate at the top of the trade loop.
+                store.last_trade_open_at = datetime.now(timezone.utc)
                 # set cooldown for this asset
                 store.trade_cooldowns[store.trade_asset] = (
                     datetime.now(timezone.utc)
