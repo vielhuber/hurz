@@ -587,10 +587,20 @@ class Order:
                         # the rest of the auto-trade session. The
                         # blacklist is consulted by the rotation in
                         # autotrade.py and cleared on session start.
+                        # Session-id guard: the websocket replays old
+                        # closed deals on reconnect, so a yesterday's
+                        # loss would otherwise pollute today's blacklist
+                        # via this same UPDATE path. Only count losses
+                        # whose stored session_id matches the running
+                        # session.
+                        deal_session_id = additional_information.get(
+                            "session_id"
+                        )
                         if (
                             success_db == 0
                             and deal_asset
                             and store.auto_mode_active
+                            and deal_session_id == store.session_id
                         ):
                             store.session_loss_blacklist.add(deal_asset)
                             utils.print(

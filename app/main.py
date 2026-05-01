@@ -7,11 +7,24 @@ from app.utils.trading_window import (
     render_trading_window_banner,
     trading_window_watchdog,
 )
+from app.utils.holiday_window import (
+    is_bank_holiday,
+    render_holiday_banner,
+)
 
 
 async def run() -> None:
 
     try:
+        # Hard bank-holiday guard: refuse to run on bank holidays in any
+        # tracked financial center (DE, US, GB, CH-ZH). Holiday regimes
+        # systematically diverge from the model's training distribution.
+        # Runs before the trading-window check because a holiday skips the
+        # whole day, not just an hour band.
+        if is_bank_holiday():
+            render_holiday_banner()
+            sys.exit(0)
+
         # Hard trading-window guard: refuse to run outside business hours.
         # Runs before anything else so CLI triggers and the interactive
         # menu are equally blocked.
