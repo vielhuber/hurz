@@ -7,6 +7,12 @@ from typing import Optional, Dict, Any
 from app.utils.singletons import store, utils, asset, settings, database, history
 from app.utils.helpers import singleton
 from app.utils.gate_recompute import recompute_gates
+from app.utils.feature_flags import FeatureFlags
+from app.utils.calibration import get_active_calibrator
+from app.utils.calibration.factory import (
+    reset_cache as reset_calibrator_cache,
+    save_calibrator,
+)
 
 
 @singleton
@@ -441,6 +447,7 @@ class FullTest:
             final_n_trades = 0
             final_successes = 0
             final_is_inverted = False
+            final_ev_per_trade: Optional[float] = None
         else:
             trade_confidence = best_conf
             final_is_inverted = best_is_inverted
@@ -456,6 +463,11 @@ class FullTest:
             final_success_rate = best_metrics["success_rate"]
             final_n_trades = best_metrics["n_trades"]
             final_successes = int(final_success_rate * final_n_trades)
+            final_ev_per_trade = (
+                float(best_metrics["ev"]) / float(final_n_trades)
+                if final_n_trades > 0
+                else None
+            )
 
         asset.set_asset_information(
             store.trade_platform,
@@ -465,7 +477,36 @@ class FullTest:
             round(final_trade_rate * 100, 2),
             round(final_success_rate * 100, 2),
             is_inverted=final_is_inverted,
+            last_fulltest_ev=(
+                round(final_ev_per_trade, 4) if final_ev_per_trade is not None else None
+            ),
         )
+
+        # Refit the active calibrator on this fulltest's (probs, labels)
+        # pairs. The fulltest IS the calibration holdout — it's by
+        # construction out-of-sample w.r.t. training. We refit per-asset
+        # so each asset's calibrator captures its own (mis)calibration.
+        active_calib = (FeatureFlags.section("calibration").get("active") or "passthrough").lower()
+        if active_calib != "passthrough":
+            try:
+                labels = (zielwerte > letzte).astype(int)
+                reset_calibrator_cache(store.trade_asset)
+                cal = get_active_calibrator(store.trade_asset)
+                cal.fit(np.asarray(probs, dtype=float), labels)
+                state = getattr(cal, "state", lambda: {})()
+                # Persist to disk so the calibration survives bot restarts.
+                # Without this, conformal silently degrades to passthrough
+                # after every restart until the next fulltest.
+                if getattr(cal, "is_fitted", False):
+                    save_calibrator(store.trade_asset, cal)
+                utils.print(
+                    f"✅ [{store.trade_asset}] {active_calib} calibrator fitted: {state}",
+                    1,
+                )
+            except Exception as exc:
+                utils.print(
+                    f"⚠️ [{store.trade_asset}] calibrator fit failed: {exc}", 0
+                )
 
         settings.save_current_settings()
 
@@ -481,6 +522,7 @@ class FullTest:
                 f"(skipped low_succ={stats['skipped_low_succ']}, "
                 f"low_trd={stats['skipped_low_trd']}, "
                 f"artifact={stats['skipped_artifact']}, "
+                f"neg_ev={stats.get('skipped_neg_ev', 0)}, "
                 f"impossible={stats['skipped_impossible']}).",
                 1,
             )

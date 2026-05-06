@@ -14,6 +14,9 @@ from app.utils.paper_trade import log_paper_decision
 from app.utils.kelly import kelly_stake
 from app.utils.gate_refusals import log_gate_refusal
 from app.utils.direction_guard import check_same_direction_guard
+from app.utils.gates import gate_registry
+from app.utils.calibration import get_active_calibrator
+from app.utils.feature_flags import FeatureFlags
 
 
 @singleton
@@ -129,6 +132,36 @@ class Order:
                 1,
             )
             doCall = flipped
+
+        # Modular gate registry (news_blackout / vol_regime / dxy_consistency
+        # / drift_automute / hmm_regime). Each gate is opt-in via
+        # data/feature_flags.json. We call this AFTER prediction so the
+        # DXY-consistency gate has the predicted direction; HOLD signals
+        # short-circuit before this since there's nothing to gate.
+        if doCall in (0, 1):
+            predicted_dir = "CALL" if doCall == 1 else "PUT"
+            allowed_gates, gate_decision, _all = gate_registry.evaluate(
+                store.trade_asset,
+                {
+                    "live_payout": live_payout,
+                    "predicted_dir": predicted_dir,
+                    "active_model": store.active_model,
+                    # news_blackout uses trade_time so the blackout window
+                    # check covers the full hold period, not just the open.
+                    "trade_time": int(store.trade_time),
+                },
+            )
+            if not allowed_gates:
+                utils.print(
+                    f"⛔ [{store.trade_asset}] {gate_decision.reason}", 0
+                )
+                log_gate_refusal(
+                    asset=store.trade_asset,
+                    reason=gate_decision.reason,
+                    live_payout=live_payout,
+                    min_payout=min_payout,
+                )
+                return False
 
         # Same-direction re-entry guard: after the last same-direction
         # trade on this asset, wait 2×trade_time before re-entering.
@@ -344,6 +377,33 @@ class Order:
         effective_confidence = max(
             int(store.trade_confidence), int(store.min_trade_confidence)
         )
+
+        # Calibrator hook: if a non-passthrough calibrator is active, use
+        # the probability path (model.predict_probabilities → calibrator
+        # .transform → threshold) instead of the legacy direct decision.
+        # The default is "passthrough" so the existing behaviour is
+        # preserved bit-for-bit when the feature is off.
+        active_calib = (
+            FeatureFlags.section("calibration").get("active") or "passthrough"
+        ).lower()
+        if active_calib != "passthrough":
+            calibrator = get_active_calibrator(store.trade_asset)
+            probs = store.model_classes[store.active_model].model_predict_probabilities(
+                store.filename_model, [feature_vec.tolist()]
+            )
+            raw = float(np.asarray(probs).ravel()[0])
+            cal = float(calibrator.transform(np.asarray([raw], dtype=float))[0])
+            utils.print(
+                f"ℹ️ Prediction (raw {raw:.4f} → {active_calib} {cal:.4f})", 1,
+            )
+            upper = effective_confidence / 100
+            lower = 1 - upper
+            if cal > upper:
+                return 1
+            if cal < lower:
+                return 0
+            return 0.5
+
         return store.model_classes[store.active_model].model_buy_sell_order(
             X_df, store.filename_model, effective_confidence
         )

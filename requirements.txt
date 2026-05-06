@@ -17,6 +17,8 @@ frozenlist==1.7.0
 idna==3.10
 inquirer==3.4.0
 holidays==0.95
+hmmlearn==0.3.3
+mapie==0.9.2
 inquirerpy==0.3.4
 joblib==1.5.1
 keyboard==0.13.5

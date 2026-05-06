@@ -80,10 +80,13 @@ class Store:
 
         # Global confidence floor. Even if an asset's fulltest-stored
         # last_trade_confidence is lower, the live order path clips up
-        # to this value. 56 = require |prediction-0.5| >= 0.06, which
-        # filtered out 3 of 4 losses in the 2026-04-29 sample where
-        # the per-asset confidence had converged at 55.
-        self.min_trade_confidence = 56
+        # to this value. Lowered from 56 → 54 on 2026-05-06: the
+        # fulltest sweep only covers 51..55, so a floor of 56 left every
+        # asset's optimal threshold unused (most assets fulltest-optimum
+        # at 54-55). At 54 all 4 currently-active assets (EURCHF/EURCAD/
+        # CADJPY/GBPUSD) still have positive sweep EV — see fulltest
+        # tables in log 2026-05-06 12:30+.
+        self.min_trade_confidence = 54
 
         # Loss-blacklist: assets that already lost a closed trade in the
         # current auto-trade session. Reset on each start_auto_mode.

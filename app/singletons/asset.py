@@ -27,6 +27,8 @@ class Asset:
             asset["last_fulltest_quote_success"] = float(
                 asset["last_fulltest_quote_success"]
             )
+            ev_raw = asset.get("last_fulltest_ev")
+            asset["last_fulltest_ev"] = float(ev_raw) if ev_raw is not None else None
             asset["is_inverted"] = bool(asset.get("is_inverted", 0))
             #  convert datetime to string
             if isinstance(asset["updated_at"], datetime):
@@ -46,6 +48,7 @@ class Asset:
         last_fulltest_quote_trading: float,
         last_fulltest_quote_success: float,
         is_inverted: bool = False,
+        last_fulltest_ev: Optional[float] = None,
     ) -> None:
         assets = database.select(
             "SELECT * FROM assets WHERE platform = %s AND model = %s AND asset = %s",
@@ -65,6 +68,7 @@ class Asset:
                     last_trade_confidence = %s,
                     last_fulltest_quote_trading = %s,
                     last_fulltest_quote_success = %s,
+                    last_fulltest_ev = %s,
                     is_inverted = %s,
                     updated_at = %s
                 WHERE
@@ -76,6 +80,7 @@ class Asset:
                     last_trade_confidence,
                     last_fulltest_quote_trading,
                     last_fulltest_quote_success,
+                    last_fulltest_ev,
                     1 if is_inverted else 0,
                     updated_at,
                     platform,
@@ -93,9 +98,10 @@ class Asset:
                     last_trade_confidence,
                     last_fulltest_quote_trading,
                     last_fulltest_quote_success,
+                    last_fulltest_ev,
                     is_inverted,
                     updated_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     platform,
@@ -104,6 +110,7 @@ class Asset:
                     last_trade_confidence,
                     last_fulltest_quote_trading,
                     last_fulltest_quote_success,
+                    last_fulltest_ev,
                     1 if is_inverted else 0,
                     updated_at,
                 ),

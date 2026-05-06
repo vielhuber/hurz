@@ -124,6 +124,7 @@ class Database:
                         last_trade_confidence SMALLINT,
                         last_fulltest_quote_trading DECIMAL(5,2),
                         last_fulltest_quote_success DECIMAL(5,2),
+                        last_fulltest_ev DECIMAL(15,2) NULL,
                         is_inverted BOOLEAN NOT NULL DEFAULT 0,
                         updated_at DATETIME
                     );
@@ -193,6 +194,11 @@ class Database:
                     "assets",
                     "is_inverted",
                     "ALTER TABLE assets ADD COLUMN is_inverted BOOLEAN NOT NULL DEFAULT 0",
+                ),
+                (
+                    "assets",
+                    "last_fulltest_ev",
+                    "ALTER TABLE assets ADD COLUMN last_fulltest_ev DECIMAL(15,2) NULL",
                 ),
             ]
             for table_name, column_name, alter_sql in migrations:

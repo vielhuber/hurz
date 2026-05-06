@@ -153,6 +153,16 @@ class WebSocket:
             store.running_tasks.append(
                 asyncio.create_task(websocket.ws_receive_loop(ws))
             )
+            # Heartbeat: keep tmp/session.txt mtime fresh so a second
+            # instance correctly detects this primary as live. Without
+            # this, the file's mtime is the primary's startup time —
+            # after 2h the secondary-detection in setup_websockets and
+            # cli._instance_is_running falsely flags it as stale and the
+            # second instance starts in full-primary mode instead of the
+            # reduced-menu secondary mode.
+            store.running_tasks.append(
+                asyncio.create_task(websocket.session_heartbeat())
+            )
 
             await asyncio.sleep(3)
             return
@@ -610,3 +620,35 @@ class WebSocket:
                     utils.print("🔌🔌🔌🔌🔌 ⚠️ PING SCRIPT ALIVE", 1)
             else:
                 await asyncio.sleep(20)
+
+    async def session_heartbeat(self, interval_seconds: float = 60.0) -> None:
+        """Refresh tmp/session.txt mtime + content while this primary
+        instance is alive. The secondary-instance detection in
+        setup_websockets and cli._instance_is_running uses
+        `now - mtime <= 2h` as freshness check; without this heartbeat
+        the mtime is the primary's startup time and any session running
+        longer than 2h falsely looks stale to a newly-started second
+        instance.
+
+        Also rewrites the UUID if a stray secondary instance overwrote
+        the file with its own session id, so the file content stays
+        canonical to this primary."""
+        path = "tmp/session.txt"
+        while True:
+            try:
+                if store.session_id:
+                    current = ""
+                    if os.path.exists(path):
+                        try:
+                            with open(path, "r", encoding="utf-8") as f:
+                                current = f.read().strip()
+                        except OSError:
+                            current = ""
+                    if current != store.session_id:
+                        with open(path, "w", encoding="utf-8") as f:
+                            f.write(store.session_id)
+                    else:
+                        os.utime(path, None)
+            except Exception as exc:
+                utils.print(f"⚠️ session_heartbeat: {exc}", 1)
+            await asyncio.sleep(interval_seconds)

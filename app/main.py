@@ -11,6 +11,7 @@ from app.utils.holiday_window import (
     is_bank_holiday,
     render_holiday_banner,
 )
+from app.utils.schedulers import walk_forward_scheduler
 
 
 async def run() -> None:
@@ -70,6 +71,10 @@ async def run() -> None:
                 ),
             )
         )
+
+        # Walk-forward retrain scheduler: opt-in via feature_flags.json.
+        # Self-disables when "schedulers.walk_forward.enabled" is false.
+        asyncio.create_task(walk_forward_scheduler(store.stop_event))
 
         # await menu.initialize_main_menu()
         await asyncio.wait(
