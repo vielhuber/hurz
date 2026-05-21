@@ -167,6 +167,28 @@ class Database:
                         INDEX idx_trading_data_trade_platform_trade_asset_timestamp (trade_platform ASC, trade_asset ASC, timestamp ASC)
                     )
                 """,
+                "spot_trades": """
+                    CREATE TABLE IF NOT EXISTS spot_trades (
+                        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                        created_at DATETIME NOT NULL,
+                        platform VARCHAR(20) NOT NULL,
+                        pair VARCHAR(50) NOT NULL,
+                        strategy VARCHAR(40) NOT NULL,
+                        bar_time DATETIME NOT NULL,
+                        direction TINYINT NOT NULL,
+                        entry_price DECIMAL(18, 8) NOT NULL,
+                        stop_loss DECIMAL(18, 8) NOT NULL,
+                        take_profit DECIMAL(18, 8) NOT NULL,
+                        size DECIMAL(18, 8) NULL,
+                        accepted BOOLEAN NOT NULL,
+                        deal_id VARCHAR(100) NULL,
+                        fill_price DECIMAL(18, 8) NULL,
+                        error VARCHAR(500) NULL,
+                        paper_mode BOOLEAN NOT NULL,
+                        INDEX idx_spot_trades_pair_bar (pair, bar_time),
+                        INDEX idx_spot_trades_platform_strategy (platform, strategy)
+                    )
+                """,
             }
 
             for table_name, create_statement in tables.items():
@@ -199,6 +221,31 @@ class Database:
                     "assets",
                     "last_fulltest_ev",
                     "ALTER TABLE assets ADD COLUMN last_fulltest_ev DECIMAL(15,2) NULL",
+                ),
+                # Exit-tracking for spot trades. The autotrade loop diffs
+                # the open-positions list each cycle; when a deal_id
+                # disappears, it resolves the closing event and writes
+                # back here. Without these columns we journal entries
+                # only and have no idea whether they won or lost.
+                (
+                    "spot_trades",
+                    "exit_price",
+                    "ALTER TABLE spot_trades ADD COLUMN exit_price DECIMAL(18,8) NULL",
+                ),
+                (
+                    "spot_trades",
+                    "exit_time",
+                    "ALTER TABLE spot_trades ADD COLUMN exit_time DATETIME NULL",
+                ),
+                (
+                    "spot_trades",
+                    "outcome",
+                    "ALTER TABLE spot_trades ADD COLUMN outcome VARCHAR(20) NULL",
+                ),
+                (
+                    "spot_trades",
+                    "realized_pnl",
+                    "ALTER TABLE spot_trades ADD COLUMN realized_pnl DECIMAL(18,8) NULL",
                 ),
             ]
             for table_name, column_name, alter_sql in migrations:

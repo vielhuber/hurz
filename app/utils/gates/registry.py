@@ -30,16 +30,20 @@ class GateRegistry:
         # haven't initialised yet when this module is first imported.
         from app.utils.gates.news_blackout import NewsBlackoutGate
         from app.utils.gates.vol_regime import VolRegimeGate
+        from app.utils.gates.vol_floor import VolFloorGate
         from app.utils.gates.dxy_consistency import DxyConsistencyGate
         from app.utils.gates.drift_automute import DriftAutoMuteGate
         from app.utils.gates.hmm_regime import HmmRegimeGate
+        from app.utils.gates.session_window import SessionWindowGate
 
         gate_classes: Dict[str, type] = {
             "news_blackout":    NewsBlackoutGate,
             "vol_regime":       VolRegimeGate,
+            "vol_floor":        VolFloorGate,
             "dxy_consistency":  DxyConsistencyGate,
             "drift_automute":   DriftAutoMuteGate,
             "hmm_regime":       HmmRegimeGate,
+            "session_window":   SessionWindowGate,
         }
 
         cfg_root = FeatureFlags.section("gates")

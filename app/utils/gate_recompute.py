@@ -54,22 +54,54 @@ def recompute_gates(
     min_succ: float = DEFAULT_MIN_SUCC,
     max_succ_inverted: float = DEFAULT_MAX_SUCC_INVERTED,
     min_ev_per_trade: float = DEFAULT_MIN_EV_PER_TRADE,
+    active_model: Optional[str] = None,
 ) -> dict:
-    """Rewrite the gates file from DB state. Returns a stats dict."""
-    rows = database.select(
-        "SELECT asset, model, "
-        "last_fulltest_quote_success AS succ, "
-        "last_fulltest_quote_trading AS trd, "
-        "last_fulltest_ev AS ev, "
-        "is_inverted AS inv, "
-        "updated_at "
-        "FROM assets "
-        "WHERE last_fulltest_quote_success IS NOT NULL "
-        "ORDER BY last_fulltest_quote_success DESC"
-    ) or []
+    """Rewrite the gates file from DB state. Returns a stats dict.
 
-    # One entry per asset — prefer the row with the highest succ across
-    # models (so a weaker run doesn't overwrite a stronger one).
+    The query is filtered to the currently-active model (taken from
+    `store.active_model` when not explicitly passed). Without this filter,
+    the per-asset "highest succ%" winner across legacy bundles silently
+    re-uses old (model, horizon) numbers — e.g. an XGBoost@3600s entry
+    with succ 67% would beat the current StrategyEnsemble@60s entry at
+    succ 57% even though the live order path uses the Ensemble bundle.
+    """
+    if active_model is None:
+        try:
+            from app.utils.singletons import store
+            active_model = getattr(store, "active_model", None)
+        except Exception:
+            active_model = None
+
+    if active_model:
+        rows = database.select(
+            "SELECT asset, model, "
+            "last_fulltest_quote_success AS succ, "
+            "last_fulltest_quote_trading AS trd, "
+            "last_fulltest_ev AS ev, "
+            "is_inverted AS inv, "
+            "updated_at "
+            "FROM assets "
+            "WHERE last_fulltest_quote_success IS NOT NULL "
+            "AND model = %s "
+            "ORDER BY last_fulltest_quote_success DESC",
+            (active_model,),
+        ) or []
+    else:
+        rows = database.select(
+            "SELECT asset, model, "
+            "last_fulltest_quote_success AS succ, "
+            "last_fulltest_quote_trading AS trd, "
+            "last_fulltest_ev AS ev, "
+            "is_inverted AS inv, "
+            "updated_at "
+            "FROM assets "
+            "WHERE last_fulltest_quote_success IS NOT NULL "
+            "ORDER BY last_fulltest_quote_success DESC"
+        ) or []
+
+    # One entry per asset — under the model-filtered query, only one row
+    # per asset exists anyway, but keep the best-of-N reduction as a
+    # defensive safety net (e.g. a duplicate row sneaking in).
     best: dict[str, dict] = {}
     for row in rows:
         asset_name = row["asset"]

@@ -9,11 +9,12 @@ systematic losses — observed on 2026-05-01 (Maifeiertag): 0 wins,
 4 losses, all driven by an unusual CHF rally + JPY mixed-strength
 pattern that the model didn't recognise.
 """
+import asyncio
 import shutil
 import sys
 import time
 from datetime import date, datetime
-from typing import IO, Dict, List, Optional, Tuple
+from typing import IO, Callable, Dict, List, Optional, Tuple
 
 import holidays
 
@@ -158,3 +159,34 @@ def render_holiday_banner(
 
     stream.write(_ANSI_RESET + _ANSI_SHOW_CURSOR + f"\033[{rows};1H\n")
     stream.flush()
+
+
+async def holiday_watchdog(
+    stop_event: asyncio.Event,
+    on_close: Optional[Callable[[], None]] = None,
+    check_interval_s: float = 60.0,
+) -> None:
+    """While the program runs, watch for a midnight transition into a bank
+    holiday and trigger a graceful shutdown the moment it starts.
+
+    Mirror of `trading_window_watchdog` — same shutdown contract:
+      1. Calls `on_close()` if provided.
+      2. Renders the full-screen "BANK HOLIDAY" banner.
+      3. Sets `stop_event` so the main loop exits cleanly.
+    """
+    while not stop_event.is_set():
+        try:
+            await asyncio.wait_for(stop_event.wait(), timeout=check_interval_s)
+        except asyncio.TimeoutError:
+            pass
+        if stop_event.is_set():
+            return
+        if is_bank_holiday():
+            if on_close is not None:
+                try:
+                    on_close()
+                except Exception:
+                    pass
+            render_holiday_banner()
+            stop_event.set()
+            return

@@ -70,6 +70,19 @@ class Settings:
                         "bankroll", store.bankroll
                     )
 
+                    # Env-var overrides — let multiple bot instances share
+                    # one settings.json but differ on platform / strategy /
+                    # resolution. The wrapper script sets these before exec.
+                    if os.getenv("HURZ_TRADE_PLATFORM"):
+                        store.trade_platform = os.environ["HURZ_TRADE_PLATFORM"]
+                    if os.getenv("HURZ_ACTIVE_MODEL"):
+                        store.active_model = os.environ["HURZ_ACTIVE_MODEL"]
+                    if os.getenv("HURZ_TRADE_TIME"):
+                        try:
+                            store.trade_time = int(os.environ["HURZ_TRADE_TIME"])
+                        except ValueError:
+                            pass
+
                     self.refresh_dependent_settings()
 
             except Exception as e:

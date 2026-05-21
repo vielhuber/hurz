@@ -97,8 +97,11 @@ class Store:
         # (across all assets). Per-asset trade_cooldowns are bypassed
         # when the rotation switches asset, so a 3-trades-in-10min
         # cluster slipped through. This adds a hard floor.
+        # NOTE: this is read via the `min_seconds_between_trades`
+        # computed property below — backing field kept here only as a
+        # manual override (e.g. tests).
         self.last_trade_open_at = None
-        self.min_seconds_between_trades = 900  # 15 min
+        self._min_seconds_between_trades_override: int = 0
 
         # --- parallel historic-data loading ---
         # Per-asset in-memory channels for `loadHistoryPeriod` responses.
@@ -123,6 +126,23 @@ class Store:
         # Used by the autotrade parallel preload reporter to compute a
         # weighted overall percentage.
         self.historic_data_progress: dict = {}
+
+    @property
+    def min_seconds_between_trades(self) -> int:
+        """Global cooldown between any two trade opens.
+
+        Scales with trade_time so the cooldown stays meaningful at any
+        horizon: a 15-min cooldown made sense for 1h binary options
+        (caps ~4 opens/h) but suffocates 1-min trading (would still
+        cap ~4/h). The clamp keeps it reasonable in both extremes.
+
+        - trade_time=3600 (1h)  → 900s (15 min)
+        - trade_time=60   (1min)→ 120s (2 min)
+        - trade_time=300  (5min)→ 600s (10 min)
+        """
+        if self._min_seconds_between_trades_override:
+            return int(self._min_seconds_between_trades_override)
+        return max(30, min(900, int(self.trade_time) * 2))
 
     @property
     def train_horizon(self) -> int:

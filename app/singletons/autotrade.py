@@ -20,6 +20,7 @@ from app.utils.singletons import (
 )
 from app.utils.helpers import singleton
 from app.utils.payout_gate import check_payout_gate
+from app.utils.otc_filter import filter_otc
 
 
 @singleton
@@ -30,19 +31,15 @@ class AutoTrade:
         with open("tmp/assets.json", "r", encoding="utf-8") as f:
             assets = json.load(f)
 
-        # sort out all otc
-        if mode in ["trade", "all_trade"]:
-            non_otc_available = False
-            for assets__value in assets:
-                if not "otc" in assets__value["name"]:
-                    non_otc_available = True
-                    break
-            if non_otc_available:
-                assets = [
-                    assets__value
-                    for assets__value in assets
-                    if "otc" not in assets__value["name"]
-                ]
+        # Strip OTC pairs whenever a usable non-OTC variant exists in the
+        # SAME asset category (FX / crypto). Applies to EVERY mode (data /
+        # verify / features / train / fulltest / trade / all_*).
+        # See app/utils/otc_filter.py for the per-category logic — FX
+        # follows the simple "any non-OTC drops all OTC" rule, while
+        # crypto only drops OTC when the non-OTC variant has a usable
+        # payout (Bitcoin-live at 15% does NOT qualify, so the OTC
+        # crypto pairs at 79-92% stay).
+        assets = filter_otc(assets)
 
         store.auto_mode_active = True
         # Reset session-scoped state so a previous session's blacklist or
@@ -317,13 +314,9 @@ class AutoTrade:
                         fresh = json.load(f)
                 except Exception:
                     return []
-                # Apply the same OTC filter used at start_auto_mode entry:
-                # keep only non-OTC assets if any non-OTC is available
-                non_otc_available = any(
-                    "otc" not in a["name"] for a in fresh
-                )
-                if non_otc_available:
-                    fresh = [a for a in fresh if "otc" not in a["name"]]
+                # Apply the same per-category OTC filter used at
+                # start_auto_mode entry (see app/utils/otc_filter.py).
+                fresh = filter_otc(fresh)
                 # Compute potential_quote per asset from current live payout
                 for a in fresh:
                     info = asset.get_asset_information(

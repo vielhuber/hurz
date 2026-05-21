@@ -521,11 +521,19 @@ class WebSocket:
 
                         # Keep OTCs here; the OTC strip happens in autotrade
                         # only if at least one non-OTC asset is available.
+                        # Allowed asset categories: FX ("currency") and
+                        # crypto ("cryptocurrency"). Other categories from
+                        # the raw feed (stock, index, commodity) stay
+                        # filtered out — they have different microstructure
+                        # and have not been validated against this model
+                        # pipeline. Index 14 is the "is_active" flag —
+                        # only currently-quoted assets are kept.
+                        _ALLOWED_CATEGORIES = ("currency", "cryptocurrency")
                         gefilterte = []
                         for data__value in data:
                             if (
-                                len(data__value) > 3
-                                and data__value[3] == "currency"
+                                len(data__value) > 14
+                                and data__value[3] in _ALLOWED_CATEGORIES
                                 and data__value[14] is True
                             ):
                                 gefilterte.append(

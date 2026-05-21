@@ -469,28 +469,53 @@ class Menu:
         utils.clear_console()
 
         # platform
+        # kraken / capital_com are the spot platforms — picking one
+        # short-circuits the rest of this dialog (binary-options-only
+        # knobs like demo/asset-list/ML-model don't apply) and triggers
+        # a graceful shutdown so the operator restarts into the spot
+        # menu manually.
         trade_platform_frage = [
             {
                 "type": "list",
                 "name": "trade_platform",
                 "message": f"Trading platform?\n",
                 "choices": [
-                    (
-                        Choice(
-                            "pocketoption",
-                            name=(
-                                f"[x]"
-                                if store.trade_platform == "pocketoption"
-                                else "[ ]"
-                            )
-                            + " pocketoption",
-                        )
+                    Choice(
+                        "pocketoption",
+                        name=("[x]" if store.trade_platform == "pocketoption" else "[ ]")
+                             + " pocketoption",
+                    ),
+                    Choice(
+                        "kraken",
+                        name=("[x]" if store.trade_platform == "kraken" else "[ ]")
+                             + " kraken (spot)",
+                    ),
+                    Choice(
+                        "capital_com",
+                        name=("[x]" if store.trade_platform == "capital_com" else "[ ]")
+                             + " capital_com (spot)",
                     ),
                 ],
                 "default": store.trade_platform,
             }
         ]
         selection_trade_platform = await prompt_async(questions=trade_platform_frage)
+
+        if selection_trade_platform and selection_trade_platform[
+            "trade_platform"
+        ] in ("kraken", "capital_com"):
+            new_platform = selection_trade_platform["trade_platform"]
+            store.trade_platform = new_platform
+            settings.save_current_settings()
+            utils.clear_console()
+            utils.print(
+                f"✓ Switched to {new_platform}. Hurz will exit — restart "
+                f"manually to enter the spot-trading menu.",
+                0,
+            )
+            await asyncio.sleep(2)
+            store.stop_event.set()
+            return
 
         utils.clear_console()
 
@@ -524,6 +549,12 @@ class Menu:
         # assets
         with open("tmp/assets.json", "r", encoding="utf-8") as f:
             assets = json.load(f)
+        # Apply the same per-category OTC filter the autotrade pipeline
+        # uses (see app/utils/otc_filter.py): FX OTC dropped if any
+        # non-OTC FX is available; crypto OTC kept unless a usable
+        # non-OTC crypto exists.
+        from app.utils.otc_filter import filter_otc
+        assets = filter_otc(assets)
         choices = []
         for assets__value in assets:
             choices.append(

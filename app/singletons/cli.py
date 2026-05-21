@@ -45,6 +45,21 @@ class Cli:
         "--auto-all-trade",
     )
 
+    # Spot-trading actions. Unlike legacy ACTIONS these execute
+    # standalone (no running instance required) — they invoke the
+    # corresponding `scripts/spot_*.py` modules or wrap process
+    # control around `scripts/start_paper_session.sh`.
+    SPOT_ACTIONS = (
+        "--spot-backtest",
+        "--spot-pairs",
+        "--spot-trade",
+        "--spot-stop",
+        "--spot-status",
+        "--spot-audit",
+        "--spot-pnl",
+        "--spot-toggle-live",
+    )
+
     TRIGGER_PATH = "tmp/remote_action.json"
     SESSION_PATH = "tmp/session.txt"
 
@@ -56,9 +71,12 @@ class Cli:
     POLL_INTERVAL_SECONDS = 1.0
 
     def handle_startup_args(self) -> None:
-        """Parse sys.argv. If exactly one recognized --flag is present, write
-        the trigger file (requires a running instance) and exit. Otherwise
-        return so the normal interactive flow continues.
+        """Parse sys.argv. Three categories:
+          1. Spot-trading flags (--spot-*) → run standalone, no instance
+             required. Dispatched to `_handle_spot_action` and exit.
+          2. Legacy menu flags (--load, --train, ...) → write a trigger
+             file for the already-running interactive instance.
+          3. No flags → fall through to normal interactive flow.
         """
         args = [a for a in sys.argv[1:] if a]
         if not args:
@@ -67,8 +85,15 @@ class Cli:
             print(f"⛔ Only one CLI action at a time. Got: {args}")
             sys.exit(2)
         arg = args[0]
+
+        # 1. Spot-trading action — runs inline, no daemon needed.
+        if arg in self.SPOT_ACTIONS:
+            self._handle_spot_action(arg)
+            sys.exit(0)
+
+        # 2. Legacy menu trigger (PocketOption-style) — needs running instance.
         if arg not in self.ACTIONS:
-            valid = ", ".join(sorted(self.ACTIONS))
+            valid = ", ".join(sorted(self.ACTIONS + self.SPOT_ACTIONS))
             print(f"⛔ Unknown CLI action: {arg}. Valid: {valid}")
             sys.exit(2)
         if not self._instance_is_running():
@@ -80,6 +105,144 @@ class Cli:
         self._write_trigger(arg[2:])
         print(f"✅ Trigger queued: {arg}")
         sys.exit(0)
+
+    def _handle_spot_action(self, arg: str) -> None:
+        """Dispatch a --spot-* flag to the right standalone helper.
+        Runs synchronously and prints output to stdout. Exits with the
+        helper's return code on failure."""
+        import subprocess
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(
+            os.path.abspath(__file__)
+        )))
+        py = sys.executable
+        scripts = os.path.join(project_root, "scripts")
+        wrapper = os.path.join(scripts, "start_paper_session.sh")
+
+        if arg == "--spot-backtest":
+            # Run all 6 strategies × the active platform from settings.
+            from app.utils.singletons import store, settings
+            settings.load_env(); store.setup(); settings.load_settings()
+            platform = (store.trade_platform or "kraken").lower()
+            if platform not in ("kraken", "capital_com"):
+                print(f"⛔ trade_platform={platform!r} is not a spot platform.")
+                sys.exit(2)
+            strategies = ["bollinger_rev", "momentum", "rsi_mr",
+                          "multi_consensus", "stochastic_mr",
+                          "donchian_breakout"]
+            for s in strategies:
+                print(f"\n=== {s} on {platform} ===", flush=True)
+                rc = subprocess.call([
+                    py, os.path.join(scripts, "spot_backtest.py"),
+                    "--platform", platform, "--strategy", s,
+                ], cwd=project_root)
+                if rc != 0:
+                    print(f"⚠ {s} returned exit code {rc}")
+            return
+
+        if arg == "--spot-pairs":
+            rc = subprocess.call([
+                py, os.path.join(scripts, "select_pairs.py"), "--top", "8",
+            ], cwd=project_root)
+            sys.exit(rc)
+
+        if arg == "--spot-trade":
+            rc = subprocess.call(["bash", wrapper, "start"], cwd=project_root)
+            sys.exit(rc)
+
+        if arg == "--spot-stop":
+            rc = subprocess.call(["bash", wrapper, "stop"], cwd=project_root)
+            sys.exit(rc)
+
+        if arg == "--spot-status":
+            rc = subprocess.call(["bash", wrapper, "status"], cwd=project_root)
+            sys.exit(rc)
+
+        if arg == "--spot-audit":
+            rc = subprocess.call([
+                py, os.path.join(scripts, "journal_audit.py"),
+                "--since", "24h",
+            ], cwd=project_root)
+            sys.exit(rc)
+
+        if arg == "--spot-pnl":
+            rc = subprocess.call([
+                py, os.path.join(scripts, "paper_vs_backtest.py"),
+                "--since", "24h",
+            ], cwd=project_root)
+            sys.exit(rc)
+
+        if arg == "--spot-toggle-live":
+            self._toggle_paper_mode_flag()
+            return
+
+        print(f"⛔ Spot action {arg} not implemented.")
+        sys.exit(2)
+
+    def _toggle_paper_mode_flag(self) -> None:
+        """Flip PAPER_TRADE_ONLY in .env between 0 and 1, with a
+        confirmation prompt. Refuses to flip if no demo flag is set
+        on the active platform — defends against an accidental real-
+        money switch."""
+        env_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            ".env",
+        )
+        if not os.path.exists(env_path):
+            print(f"⛔ {env_path} not found.")
+            sys.exit(2)
+        with open(env_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        cur = "1"
+        for ln in lines:
+            if ln.strip().startswith("PAPER_TRADE_ONLY="):
+                cur = ln.split("=", 1)[1].strip().strip('"').strip("'")
+                break
+        new = "0" if cur in ("1", "true", "yes", "on") else "1"
+        # Look up the active platform's demo state — refuse to enable
+        # live mode if the platform is on its live endpoint.
+        if new == "0":
+            from app.utils.singletons import store, settings
+            settings.load_env(); store.setup(); settings.load_settings()
+            platform = (store.trade_platform or "").lower()
+            if platform == "capital_com":
+                demo = os.getenv("CAPITAL_COM_DEMO", "1").strip().strip('"').strip("'")
+                if demo not in ("1", "true", "yes", "on"):
+                    print(
+                        "⛔ Refusing to flip PAPER_TRADE_ONLY=0 while "
+                        "CAPITAL_COM_DEMO=0. That would route real-money "
+                        "orders to the live Capital.com account. Set "
+                        "CAPITAL_COM_DEMO=1 first if this was unintended."
+                    )
+                    sys.exit(2)
+            print(f"⚠️  About to flip PAPER_TRADE_ONLY: {cur} → {new}")
+            print(f"   Platform: {platform}")
+            print(f"   This ENABLES real order placement on the demo account.")
+            print(f"   Type 'yes' to confirm: ", end="", flush=True)
+            try:
+                response = input().strip().lower()
+            except EOFError:
+                response = ""
+            if response != "yes":
+                print("Aborted.")
+                sys.exit(1)
+        # Rewrite the file with the flipped flag.
+        out = []
+        found = False
+        for ln in lines:
+            if ln.strip().startswith("PAPER_TRADE_ONLY="):
+                out.append(f'PAPER_TRADE_ONLY="{new}"\n')
+                found = True
+            else:
+                out.append(ln)
+        if not found:
+            out.append(f'PAPER_TRADE_ONLY="{new}"\n')
+        with open(env_path, "w", encoding="utf-8") as f:
+            f.writelines(out)
+        print(f"✓ PAPER_TRADE_ONLY={new} written to .env")
+        if new == "0":
+            print("  Restart the bot to pick up the change.")
+        else:
+            print("  Paper-trade safety RE-ENGAGED.")
 
     def clear_stale_trigger(self) -> None:
         """Drop any leftover trigger file from a prior run so it doesn't

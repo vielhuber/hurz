@@ -772,12 +772,38 @@ class History:
                     last_time_unix,
                     store.historic_data_period_in_months,
                 )
-                if first_time_unix != expected_first_time_unix:
-                    utils.print(
-                        f"⛔ {asset}: First time {utils.correct_datetime_to_string(first_time_unix, '%d.%m.%y %H:%M:%S', False)} != {utils.correct_datetime_to_string(expected_first_time_unix, '%d.%m.%y %H:%M:%S', False)} for {asset}!",
-                        0,
-                    )
-                    return False
+                # Allow assets that were added to the platform recently
+                # (= less history than expected). For 1-min binary trading
+                # 14 days = ~20k bars is plenty for a stable fulltest. We
+                # only reject if the asset has too little data overall.
+                # The original "exact match" rule rejected newly-listed
+                # crypto pairs with 40 days of clean history — useful data
+                # we should not throw away.
+                MIN_HISTORY_DAYS = 14
+                data_span_days = (last_time_unix - first_time_unix) / 86400.0
+                if first_time_unix < expected_first_time_unix:
+                    # More history than asked for — unusual (loader caps
+                    # the pull), but harmless. Fall through.
+                    pass
+                elif first_time_unix > expected_first_time_unix:
+                    if data_span_days < MIN_HISTORY_DAYS:
+                        utils.print(
+                            f"⛔ {asset}: only {data_span_days:.1f} days "
+                            f"of history (need ≥{MIN_HISTORY_DAYS}). "
+                            f"First time {utils.correct_datetime_to_string(first_time_unix, '%d.%m.%y %H:%M:%S', False)} "
+                            f"vs expected {utils.correct_datetime_to_string(expected_first_time_unix, '%d.%m.%y %H:%M:%S', False)}.",
+                            0,
+                        )
+                        return False
+                    else:
+                        utils.print(
+                            f"⚠️ {asset}: shorter history than configured "
+                            f"({data_span_days:.1f} days, asked for "
+                            f"{store.historic_data_period_in_months} months) — "
+                            f"likely newly listed; accepting since it exceeds "
+                            f"the {MIN_HISTORY_DAYS}-day floor.",
+                            1,
+                        )
 
         # check if last time is older than 3 days
         if last_time.tz_localize("utc") < (
