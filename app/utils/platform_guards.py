@@ -21,6 +21,7 @@ import asyncio
 import json
 import os
 import sys
+import time
 from typing import Callable, Dict, Optional
 
 from app.utils.holiday_window import (
@@ -50,7 +51,16 @@ _SETTINGS_PATH = os.path.join("data", "settings.json")
 def _resolve_platform_from_disk() -> str:
     """Read trade_platform directly from data/settings.json without
     going through the main settings stack. Used during the early
-    startup-guard phase, before settings.load_settings() has run."""
+    startup-guard phase, before settings.load_settings() has run.
+
+    HURZ_TRADE_PLATFORM env override has precedence — parallel sessions
+    (Capital + Kraken) share settings.json but each exports its own
+    platform via env, so the guard must honour that same override or
+    one platform's policy leaks into the other (e.g. Kraken inheriting
+    Capital's bank-holiday guard)."""
+    env_override = os.environ.get("HURZ_TRADE_PLATFORM")
+    if env_override:
+        return env_override.lower()
     try:
         with open(_SETTINGS_PATH, "r", encoding="utf-8") as fh:
             data = json.load(fh)
@@ -76,7 +86,12 @@ def apply_startup_guards() -> None:
 
     if policy["holiday"] and is_bank_holiday():
         render_holiday_banner()
-        sys.exit(0)
+        # Idle until the holiday clears instead of exit(0). Exiting here
+        # made the bash watchdog restart us every 60s, looping the banner
+        # all day. Sleeping in 5-min ticks keeps a single process alive
+        # and lets SIGTERM from the watchdog still take us down cleanly.
+        while is_bank_holiday():
+            time.sleep(300)
 
     if policy["trading_window"] and not is_within_trading_window():
         render_trading_window_banner()
