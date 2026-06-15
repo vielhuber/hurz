@@ -21,6 +21,8 @@ Filters applied before ranking:
   - exclude pairs with n < min_trades (default 30)
   - exclude pairs with profit_factor < min_pf (default 1.0)
   - exclude pairs with expectancy_R < min_e (default 0.0)
+  - exclude pairs whose walk-forward stability ratio is below
+    `min_stability_ratio` (default 0.66) — see below
 
 Venue-min-stop pre-filter (capital_com only):
   - reads data/capital_min_distances.json (produced by
@@ -32,6 +34,26 @@ Venue-min-stop pre-filter (capital_com only):
   - threshold: median_stop_distance >= min_dist_price * 0.95
     (5% slack so a barely-tight combo isn't dropped on a single
     quote snapshot)
+
+Walk-forward stability filter:
+  - `scripts/spot_backtest.py` computes a per-pair
+    `segment_stability` block via
+    `app.spot_trading.walk_forward.compute_segment_stability`
+    and persists it inside each pair's stats dict.
+  - The block has shape
+        {"n_segments": int, "positive_segments": int,
+         "mean_expectancy_R": float, "ratio": float}
+  - We drop any combo whose `ratio` is below
+    `min_stability_ratio` (default 0.66 = 2/3 segments positive).
+  - When `segment_stability` is MISSING (older results files, or
+    combos whose history was too short to segment) we do NOT
+    block — the field absent means "unknown", not "failed". The
+    existing pooled-stats filters (min_trades, min_pf, min_e)
+    still apply.
+  - Rationale: pooled stats can hide regime-overfit. A strategy
+    that won big in one bull leg but loses in the surrounding
+    chop will post a fine pooled PF and a 1/3 stability ratio —
+    we filter the latter out before it ever goes live.
 """
 from __future__ import annotations
 
@@ -111,6 +133,26 @@ def _venue_min_blocks(platform: str, pair: str, stats: Dict,
     return median_stop < venue_min * 0.95
 
 
+def _stability_blocks(stats: Dict, min_stability_ratio: float) -> bool:
+    """Return True if this combo should be EXCLUDED because its
+    walk-forward `segment_stability.ratio` falls below the threshold.
+
+    Treats missing `segment_stability` as "unknown, allow through" so
+    older results files (written before the field existed) and combos
+    with too-short history don't get silently dropped.
+    """
+    block = stats.get("segment_stability")
+    if not isinstance(block, dict):
+        return False
+    ratio = block.get("ratio")
+    if ratio is None:
+        return False
+    try:
+        return float(ratio) < min_stability_ratio
+    except (TypeError, ValueError):
+        return False
+
+
 def rank_pairs(
     *,
     platform: Optional[str] = None,
@@ -119,6 +161,7 @@ def rank_pairs(
     min_trades: int = 30,
     min_pf: float = 1.0,
     min_expectancy_R: float = 0.0,
+    min_stability_ratio: float = 0.66,
     results_path: str = _RESULTS_PATH,
 ) -> List[PairScore]:
     """Read persisted backtest results and return ranked pair scores.
@@ -126,6 +169,15 @@ def rank_pairs(
     Filter knobs let the caller pin to a specific (platform, strategy,
     resolution) combination — without filters it ranks across all
     available results.
+
+    `min_stability_ratio` is the walk-forward gate: each per-pair stats
+    block may carry a `segment_stability.ratio` in [0, 1] (fraction of
+    walk-forward segments with positive expectancy). Combos with a
+    ratio below the threshold are dropped — they likely won pooled
+    stats only because one regime carried them. Default 0.66 ≈ "edge
+    must hold in at least 2 of 3 segments". Set to 0.0 to disable.
+    Combos lacking the field entirely are NOT blocked (the score is
+    "unknown", not "failed"), so legacy backtest results still rank.
     """
     if not os.path.exists(results_path):
         return []
@@ -156,6 +208,10 @@ def rank_pairs(
             if _venue_min_blocks(
                 payload["platform"], pair, stats, min_distances,
             ):
+                continue
+            # Walk-forward gate: drop combos whose edge collapses
+            # across regime segments — even if pooled stats look fine.
+            if _stability_blocks(stats, min_stability_ratio):
                 continue
             rows.append(PairScore(
                 platform=payload["platform"],

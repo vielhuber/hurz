@@ -442,6 +442,25 @@ async def main(args) -> None:
             all_outcomes.extend(outcomes)
             stats = _summarise(outcomes)
             stats["pair"] = pair
+            # Walk-forward stability: split this pair's bar history into
+            # consecutive segments and check whether the per-trade edge
+            # holds in each one. Pooled stats can paper over regime
+            # overfit (e.g. a 30-day BTC down-trend that won't repeat);
+            # the per-segment ratio surfaces it.
+            # `compute_segment_stability` returns None when history is
+            # too short — we just leave the field off in that case so
+            # the pair_selector's filter can treat it as "unknown" and
+            # fall back to the pooled metrics.
+            from app.spot_trading.walk_forward import (
+                compute_segment_stability as _wf_stability,
+            )
+            stability = _wf_stability(
+                df, strategy,
+                segments=3, rr=args.rr, stop_atr=args.stop_atr,
+                max_hold=args.max_hold,
+            )
+            if stability is not None:
+                stats["segment_stability"] = stability.as_dict()
             per_pair_summary.append(stats)
             pf_str = f"{stats['profit_factor']:.2f}" if stats['profit_factor'] != float('inf') else "∞"
             print(f"{pair:<14} {len(bars):>5} {stats['n']:>7} "

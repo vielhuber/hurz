@@ -81,6 +81,13 @@ async def _refresh_pairs(top_n: int, min_trades: int, platform: Optional[str] = 
         sys.executable, script,
         "--top", str(top_n),
         "--min-trades", str(min_trades),
+        # Stability gate relaxed to 0.5 (1 of 2 segments positive) per
+        # operator decision 2026-06-14: the default 0.66 was throwing out
+        # combos with only 3 segments where 2/3 still requires a strict
+        # streak. 0.5 keeps the regime-overfit guard active but admits
+        # combos with one weak segment — useful for active strategies
+        # like donchian_breakout that depend on a regime persisting.
+        "--min-stability", "0.5",
     ]
     if platform:
         argv += ["--platform", platform]

@@ -92,7 +92,8 @@ def list_unresolved_open(platform: Optional[str] = None) -> List[Dict[str, Any]]
             return database.select(
                 """
                 SELECT id, pair, strategy, bar_time, direction,
-                       entry_price, stop_loss, take_profit, size, deal_id
+                       entry_price, stop_loss, take_profit, size, deal_id,
+                       created_at
                 FROM spot_trades
                 WHERE accepted = 1 AND exit_time IS NULL
                   AND deal_id IS NOT NULL AND platform = %s
@@ -103,7 +104,8 @@ def list_unresolved_open(platform: Optional[str] = None) -> List[Dict[str, Any]]
         return database.select(
             """
             SELECT id, pair, strategy, bar_time, direction,
-                   entry_price, stop_loss, take_profit, size, deal_id
+                   entry_price, stop_loss, take_profit, size, deal_id,
+                   created_at
             FROM spot_trades
             WHERE accepted = 1 AND exit_time IS NULL AND deal_id IS NOT NULL
             ORDER BY id ASC

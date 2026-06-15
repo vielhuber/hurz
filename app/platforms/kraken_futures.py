@@ -341,6 +341,11 @@ class KrakenFuturesPlatform(Platform):
             )
         side = "buy" if direction == 1 else "sell"
         symbol = await self._resolve_symbol(asset)
+        # Kraken Futures rejects sizes with more decimals than the
+        # contract's `contractValueTradePrecision` (e.g. ETH=3, DOGE=0).
+        # The strategy emits floats with up to 6 decimals — round down
+        # so the request passes `invalidSize` validation.
+        size = self._round_size_to_precision(symbol, size)
         body = {
             "orderType": "mkt",
             "symbol": symbol,
@@ -491,6 +496,23 @@ class KrakenFuturesPlatform(Platform):
             except (TypeError, ValueError):
                 continue
         return out
+
+    def _round_size_to_precision(self, symbol: str, size: float) -> float:
+        """Round `size` to the contract's `contractValueTradePrecision`.
+        Falls back to the raw value if the instrument is not cached yet —
+        the first /sendorder of the session may still hit invalidSize,
+        but list_instruments() is called during connect() so the cache
+        is normally populated."""
+        for inst in (self._instruments_cache or []):
+            if inst.epic == symbol or inst.name == symbol:
+                prec = (inst.meta.get("info") or {}).get("contractValueTradePrecision")
+                if prec is None:
+                    return size
+                try:
+                    return round(float(size), int(prec))
+                except (TypeError, ValueError):
+                    return size
+        return size
 
     # ---------------- venue constraints ----------------
 

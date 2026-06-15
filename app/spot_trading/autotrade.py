@@ -202,6 +202,16 @@ def _has_open_position(positions: List[Position], pair: str) -> bool:
     return any(p.asset == pair for p in positions)
 
 
+_BAR_SECONDS = {
+    "1m": 60, "5m": 300, "15m": 900, "30m": 1800,
+    "1h": 3600, "4h": 14400, "1d": 86400,
+}
+
+
+def _bar_seconds(resolution: str) -> int:
+    return _BAR_SECONDS.get(resolution, 3600)
+
+
 async def _resolve_closed_trade(
     platform: Platform, journal_row: Dict,
 ) -> Optional[Dict]:
@@ -512,6 +522,71 @@ async def run_loop(
                             f"pnl={payload['realized_pnl']:+.4f}"
                         )
             prev_deal_ids = current_deal_ids
+
+            # Stale-position exit: mean-revert and breakout setups have a
+            # bounded expected holding period (max N×bar). When a trade
+            # exceeds it without hitting SL/TP, the original thesis is
+            # already invalidated — close at market to free the per-pair
+            # slot and stop tying up margin on dead conviction.
+            # Configurable via HURZ_MAX_HOLD_BARS (default 24 bars).
+            try:
+                max_hold_bars_env = _os.getenv("HURZ_MAX_HOLD_BARS")
+                max_hold_bars = int(max_hold_bars_env) if max_hold_bars_env else 24
+            except ValueError:
+                max_hold_bars = 24
+            if max_hold_bars > 0:
+                from app.spot_trading.journal import (
+                    list_unresolved_open as _list_unresolved_open,
+                )
+                max_hold_seconds = max_hold_bars * _bar_seconds(resolution)
+                now_utc = datetime.now(timezone.utc)
+                # Map journal's stored deal_id (= workingOrderId on Capital)
+                # to the broker-side position id required by close_position.
+                # Kraken returns p.id only — that's already the close target.
+                close_id_by_journal_id: Dict[str, str] = {}
+                for p in positions:
+                    if p.id:
+                        close_id_by_journal_id[p.id] = p.id
+                    pmeta = (p.meta or {}).get("position") or {}
+                    woi = pmeta.get("workingOrderId")
+                    if woi and p.id:
+                        close_id_by_journal_id[woi] = p.id
+                for row in _list_unresolved_open(platform=platform_name):
+                    if row.get("deal_id") not in current_deal_ids:
+                        continue
+                    created_at = row.get("created_at")
+                    if created_at is None:
+                        continue
+                    if created_at.tzinfo is None:
+                        created_at = created_at.replace(tzinfo=timezone.utc)
+                    age_seconds = (now_utc - created_at).total_seconds()
+                    if age_seconds < max_hold_seconds:
+                        continue
+                    journal_deal_id = row["deal_id"]
+                    close_target = close_id_by_journal_id.get(
+                        journal_deal_id, journal_deal_id,
+                    )
+                    pair_name = row.get("pair", "?")
+                    age_h = age_seconds / 3600
+                    try:
+                        close_res = await platform.close_position(close_target)
+                    except Exception as exc:
+                        _safe_log(
+                            f"⚠ stale-exit {pair_name} ({close_target}) "
+                            f"close failed after {age_h:.1f}h: {exc}"
+                        )
+                        continue
+                    if close_res.accepted:
+                        _safe_log(
+                            f"⏲ stale-exit {pair_name} ({close_target}) "
+                            f"closed after {age_h:.1f}h "
+                            f"(> {max_hold_bars}×{resolution})"
+                        )
+                    else:
+                        _safe_log(
+                            f"⚠ stale-exit {pair_name} ({close_target}) "
+                            f"rejected after {age_h:.1f}h: {close_res.error}"
+                        )
 
             for entry in active:
                 pair = entry.get("pair")

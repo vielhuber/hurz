@@ -35,6 +35,10 @@ def main() -> None:
     p.add_argument("--min-trades", type=int, default=30)
     p.add_argument("--min-pf", type=float, default=1.0)
     p.add_argument("--min-er", type=float, default=0.0)
+    # Walk-forward stability gate. Default 0.66 ≈ "edge must hold in
+    # at least 2 of 3 segments". Set to 0.0 to disable.
+    p.add_argument("--min-stability", type=float, default=0.66,
+                   help="min walk-forward stability ratio (default 0.66)")
     p.add_argument("--top", type=int, default=10,
                    help="how many top-ranked pairs to persist (default 10)")
     p.add_argument("--no-persist", dest="persist",
@@ -46,6 +50,7 @@ def main() -> None:
         resolution=args.resolution,
         min_trades=args.min_trades, min_pf=args.min_pf,
         min_expectancy_R=args.min_er,
+        min_stability_ratio=args.min_stability,
     )
     if not scores:
         print("No backtest results matching the filters. "

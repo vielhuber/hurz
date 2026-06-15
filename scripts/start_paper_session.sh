@@ -50,10 +50,13 @@ case "$cmd" in
     # units (1 ETH, 1 BTC, 1 USD…) — without normalization size=1 yields
     # wildly different exposures: BTCUSD ≈ $77k notional triggers a
     # `rejectReason=RISK_CHECK` on the ~$5k demo account, while GBPUSD
-    # ≈ $1.34 is meaningless. Normalize all trades to ~$1000 notional;
-    # the platform adapter clamps below-min-lot sizes upward with an
-    # adjustments entry (see capital_com.py:438).
-    export HURZ_NOTIONAL_PER_TRADE="1000"
+    # ≈ $1.34 is meaningless. Normalize all trades to ~$2500 notional
+    # — 2.5x the previously-validated $1000 baseline; higher values
+    # ($5400 tested 2026-06-09) hit the demo account's RISK_CHECK ceiling
+    # when other positions are open. The platform adapter clamps below-
+    # min-lot sizes upward with an adjustments entry
+    # (see capital_com.py:438).
+    export HURZ_NOTIONAL_PER_TRADE="2500"
     # Run under `_session_watchdog.sh` so transient crashes (WSL2
     # reboot survival, DNS hiccups, 502s, asyncio timeouts) trigger
     # an auto-restart instead of leaving the bot dead. The watchdog

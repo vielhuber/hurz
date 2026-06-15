@@ -76,7 +76,11 @@ case "$cmd" in
     # so DOGE/ADA/AVAX/LINK/LTC carry similar exposure instead of LTC
     # dominating just because its price level is higher.
     export HURZ_MAX_CONCURRENT="3"
-    export HURZ_NOTIONAL_PER_TRADE="50"
+    # Bumped from $50 → $200 on 2026-06-10: at $50 the per-contract
+    # rounding produced sizes below Kraken's invalidSize threshold on
+    # ETH/DOGE, so every signal was rejected. $200 clears min-lot/tick
+    # steps on all 8 active pairs while staying well below demo margin.
+    export HURZ_NOTIONAL_PER_TRADE="200"
     # Watchdog wraps python so transient network errors auto-recover.
     nohup bash scripts/_session_watchdog.sh >"$LOG_FILE" 2>&1 &
     echo $! > "$PID_FILE"
