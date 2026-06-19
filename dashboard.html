@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hurz Trading Dashboard</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, system-ui, sans-serif; margin: 0;
+         background: #f4f5f7; color: #1a1d24; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 24px 18px 48px; }
+  header { display: flex; align-items: baseline; justify-content: space-between;
+            flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  h1 { font-size: 20px; margin: 0; }
+  .updated { color: #6b7280; font-size: 13px; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+            margin-bottom: 20px; }
+  .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+           padding: 16px 18px; }
+  .card h2 { font-size: 14px; margin: 0 0 6px; color: #374151;
+              font-weight: 600; }
+  .big { font-size: 28px; font-weight: 700; }
+  .sub { color: #9ca3af; font-size: 12px; margin-bottom: 10px; }
+  .row { display: flex; justify-content: space-between; font-size: 13px;
+          padding: 3px 0; border-top: 1px solid #f3f4f6; }
+  .panel { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+            padding: 16px 18px; margin-bottom: 20px; }
+  .panel h3 { font-size: 14px; margin: 0 0 12px; color: #374151; }
+  .chart { width: 100%; height: auto; }
+  .grid { stroke: #eef0f2; stroke-width: 1; }
+  .zero { stroke: #9ca3af; stroke-width: 1; stroke-dasharray: 3 3; }
+  .ylab, .xlab { fill: #9ca3af; font-size: 11px; }
+  .legend { display: flex; gap: 16px; margin-top: 8px; padding-left: 56px; }
+  .lg { font-size: 12px; color: #4b5563; display: flex; align-items: center;
+         gap: 5px; }
+  .lg i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+  .nodata { color: #9ca3af; padding: 40px; text-align: center; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #f3f4f6; }
+  th { color: #6b7280; font-weight: 600; font-size: 12px; }
+  .pos { color: #16a34a; }
+  .neg { color: #dc2626; }
+  .status .statusrow { padding: 8px 0; border-top: 1px solid #f3f4f6; }
+  .status .statusrow:first-of-type { border-top: none; }
+  .stitle { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .smeta { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 4px;
+            padding-left: 18px; color: #6b7280; font-size: 12px; }
+  .dim { color: #9ca3af; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.ok { background: #16a34a; }
+  .dot.idle { background: #6b7280; }
+  .dot.warn { background: #f59e0b; }
+  .dot.down { background: #dc2626; }
+  .state { font-size: 12px; font-weight: 600; }
+  .state.ok { color: #16a34a; }
+  .state.idle { color: #6b7280; }
+  .state.warn { color: #b45309; }
+  .state.down { color: #dc2626; }
+  .muted { color: #9ca3af; text-align: center; padding: 18px; }
+  footer { color: #9ca3af; font-size: 12px; text-align: center; margin-top: 8px; }
+  @media (max-width: 640px) { .cards { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📊 Hurz Trading Dashboard</h1>
+    <span class="updated">Aktualisiert: 2026-06-19 09:52 UTC · Zeitraum: seit 2026-05-08 (41 Tage)</span>
+  </header>
+  <div class="panel status">
+    <h3>Bot-Status</h3>
+    
+        <div class="statusrow">
+          <div class="stitle"><span class="dot idle"></span>
+            <b>Capital.com</b> <span class="state idle">pausiert (Feiertag)</span></div>
+          <div class="smeta">
+            <span>Letzter Heartbeat: —</span>
+            <span>Offen: —</span>
+            <span>Notional: —</span>
+            <span>Regime-Filter: —</span>
+          </div>
+        </div>
+        <div class="statusrow">
+          <div class="stitle"><span class="dot ok"></span>
+            <b>Kraken Futures</b> <span class="state ok">läuft</span></div>
+          <div class="smeta">
+            <span>Letzter Heartbeat: 2026-06-19 09:40:59 <span class="dim">(vor 12 min)</span></span>
+            <span>Offen: 3</span>
+            <span>Notional: $200.00</span>
+            <span>Regime-Filter: on (trend>=25, range<=20)</span>
+          </div>
+        </div>
+  </div>
+  <div class="cards">
+        <div class="card">
+          <h2>Capital.com</h2>
+          <div class="big neg">−$18.04</div>
+          <div class="sub">realisiert · seit 2026-05-08 (41 Tage)</div>
+          <div class="row"><span>Trades</span><b>100</b></div>
+          <div class="row"><span>Win-Rate</span><b>43%</b></div>
+          <div class="row"><span>Offen</span><b>5</b></div>
+          <div class="row"><span>All-time</span>
+            <b class="neg">−$18.04</b></div>
+        </div>
+        <div class="card">
+          <h2>Kraken Futures</h2>
+          <div class="big neg">−$9.01</div>
+          <div class="sub">realisiert · seit 2026-05-08 (41 Tage)</div>
+          <div class="row"><span>Trades</span><b>16</b></div>
+          <div class="row"><span>Win-Rate</span><b>31%</b></div>
+          <div class="row"><span>Offen</span><b>3</b></div>
+          <div class="row"><span>All-time</span>
+            <b class="neg">−$9.01</b></div>
+        </div></div>
+  <div class="panel">
+    <h3>Kumulierter realisierter PnL (seit 2026-05-08 (41 Tage))</h3>
+    <svg viewBox="0 0 920 340" preserveAspectRatio="xMidYMid meet" class="chart"><line x1="56" y1="312.0" x2="904" y2="312.0" class="grid"/><text x="48" y="316.0" class="ylab" text-anchor="end">−$43.02</text><line x1="56" y1="241.0" x2="904" y2="241.0" class="grid"/><text x="48" y="245.0" class="ylab" text-anchor="end">+$14.06</text><line x1="56" y1="170.0" x2="904" y2="170.0" class="grid"/><text x="48" y="174.0" class="ylab" text-anchor="end">+$71.14</text><line x1="56" y1="99.0" x2="904" y2="99.0" class="grid"/><text x="48" y="103.0" class="ylab" text-anchor="end">+$128.21</text><line x1="56" y1="28.0" x2="904" y2="28.0" class="grid"/><text x="48" y="32.0" class="ylab" text-anchor="end">+$185.29</text><line x1="56" y1="258.5" x2="904" y2="258.5" class="zero"/><text x="56.0" y="332" class="xlab" text-anchor="middle">05-08</text><text x="268.0" y="332" class="xlab" text-anchor="middle">05-18</text><text x="480.0" y="332" class="xlab" text-anchor="middle">05-29</text><text x="692.0" y="332" class="xlab" text-anchor="middle">06-08</text><text x="904.0" y="332" class="xlab" text-anchor="middle">06-18</text><polyline points="56.0,258.5 56.0,258.5 56.9,258.5 57.7,258.5 59.4,258.5 60.3,258.5 79.2,258.5 79.2,258.5 91.2,259.0 98.1,259.0 132.4,213.4 157.0,243.7 159.7,198.8 198.5,200.8 303.2,172.9 319.9,163.1 322.1,169.0 325.5,159.2 325.7,165.7 339.2,155.9 347.6,163.5 347.8,170.0 348.3,160.2 358.8,166.8 358.8,156.8 363.3,147.0 363.3,153.5 391.3,160.2 391.6,166.8 395.0,157.0 402.8,157.0 422.5,147.2 426.3,153.7 426.5,160.3 427.1,150.4 429.0,157.2 441.8,147.4 446.0,137.6 453.1,144.7 453.3,153.8 457.9,143.9 457.9,150.5 458.6,157.1 468.8,147.3 487.7,138.6 488.1,151.8 488.6,132.2 491.9,145.8 539.2,126.9 543.5,110.3 547.8,123.3 548.7,136.4 551.2,149.4 566.0,163.4 570.2,143.8 576.0,157.0 583.0,171.1 599.0,151.5 599.3,131.9 625.9,146.4 636.1,116.6 637.1,118.6 637.2,142.1 668.0,122.5 680.3,135.6 714.8,86.5 738.0,121.9 771.8,120.5 771.8,123.1 771.8,121.6 771.8,78.0 796.7,65.2 817.3,97.9 823.3,48.9 823.3,81.5 824.2,114.2 824.2,65.2 835.3,98.2 835.7,47.6 837.1,80.6 837.9,113.2 839.4,146.3 841.3,142.9 843.9,142.1 843.9,138.3 864.5,134.3 865.4,136.6 868.8,130.9 874.5,150.5 877.7,170.2 879.1,168.6 879.1,188.2 883.8,188.9 883.9,208.7 887.7,219.3 888.6,204.4 888.6,227.6 901.1,251.4 901.2,271.0 904.0,280.9" fill="none" stroke="#2563eb" stroke-width="2"/><polyline points="213.1,258.8 215.4,259.7 215.4,260.0 215.4,260.0 707.4,276.5 707.4,278.7 707.4,278.8 707.4,282.1 707.4,282.1 740.9,286.9 740.9,292.4 758.1,284.7 819.0,282.8 895.3,279.3 895.3,275.1 895.3,269.7" fill="none" stroke="#f59e0b" stroke-width="2"/><polyline points="56.0,258.5 56.0,258.5 56.9,258.5 57.7,258.5 59.4,258.5 60.3,258.5 79.2,258.5 79.2,258.5 91.2,259.0 98.1,259.0 132.4,213.4 157.0,243.7 159.7,198.8 198.5,200.8 213.1,201.0 215.4,202.0 215.4,202.2 215.4,202.2 303.2,174.4 319.9,164.6 322.1,170.5 325.5,160.7 325.7,167.2 339.2,157.4 347.6,164.9 347.8,171.5 348.3,161.7 358.8,168.3 358.8,158.3 363.3,148.5 363.3,155.0 391.3,161.7 391.6,168.3 395.0,158.5 402.8,158.5 422.5,148.7 426.3,155.2 426.5,161.8 427.1,151.9 429.0,158.7 441.8,148.9 446.0,139.0 453.1,146.1 453.3,155.3 457.9,145.4 457.9,152.0 458.6,158.5 468.8,148.7 487.7,140.1 488.1,153.3 488.6,133.7 491.9,147.3 539.2,128.4 543.5,111.7 547.8,124.8 548.7,137.9 551.2,150.9 566.0,164.9 570.2,145.3 576.0,158.5 583.0,172.6 599.0,153.0 599.3,133.4 625.9,147.9 636.1,118.0 637.1,120.1 637.2,143.6 668.0,124.0 680.3,137.0 707.4,153.6 707.4,155.8 707.4,155.9 707.4,159.1 707.4,159.2 714.8,110.1 738.0,145.5 740.9,150.3 740.9,155.8 758.1,148.2 771.8,146.7 771.8,149.3 771.8,147.8 771.8,104.2 796.7,91.5 817.3,124.1 819.0,122.2 823.3,73.2 823.3,105.8 824.2,138.5 824.2,89.5 835.3,122.5 835.7,71.9 837.1,104.8 837.9,137.5 839.4,170.6 841.3,167.2 843.9,166.4 843.9,162.6 864.5,158.6 865.4,160.9 868.8,155.2 874.5,174.8 877.7,194.5 879.1,192.9 879.1,212.5 883.8,213.1 883.9,233.0 887.7,243.6 888.6,228.7 888.6,251.9 895.3,248.5 895.3,244.2 895.3,238.8 901.1,262.6 901.2,282.2 904.0,292.1" fill="none" stroke="#16a34a" stroke-width="2"/></svg><div class="legend"><span class="lg"><i style="background:#2563eb"></i>Capital.com</span><span class="lg"><i style="background:#f59e0b"></i>Kraken Futures</span><span class="lg"><i style="background:#16a34a"></i>Total</span></div>
+  </div>
+  <div class="panel">
+    <h3>Offene Positionen</h3>
+    <table>
+      <thead><tr><th>Platform</th><th>Pair</th><th>Strategie</th>
+        <th>Richtung</th><th>Alter</th></tr></thead>
+      <tbody><tr>
+          <td>Kraken Futures</td>
+          <td>DOGEUSD</td>
+          <td>stochastic_mr</td>
+          <td class="pos">Long</td>
+          <td>26.4h</td></tr><tr>
+          <td>Kraken Futures</td>
+          <td>LTCUSD</td>
+          <td>stochastic_mr</td>
+          <td class="pos">Long</td>
+          <td>26.4h</td></tr><tr>
+          <td>Kraken Futures</td>
+          <td>AVAXUSD</td>
+          <td>stochastic_mr</td>
+          <td class="pos">Long</td>
+          <td>26.4h</td></tr><tr>
+          <td>Capital.com</td>
+          <td>AUDUSD</td>
+          <td>stochastic_mr</td>
+          <td class="pos">Long</td>
+          <td>21.6h</td></tr><tr>
+          <td>Capital.com</td>
+          <td>EURUSD</td>
+          <td>stochastic_mr</td>
+          <td class="pos">Long</td>
+          <td>21.6h</td></tr><tr>
+          <td>Capital.com</td>
+          <td>ETHUSD</td>
+          <td>bollinger_rev</td>
+          <td class="pos">Long</td>
+          <td>18.3h</td></tr><tr>
+          <td>Capital.com</td>
+          <td>ETHUSD</td>
+          <td>donchian_breakout</td>
+          <td class="neg">Short</td>
+          <td>18.3h</td></tr><tr>
+          <td>Capital.com</td>
+          <td>ETHUSD</td>
+          <td>bollinger_rev</td>
+          <td class="pos">Long</td>
+          <td>17.9h</td></tr></tbody>
+    </table>
+  </div>
+  <div class="panel">
+    <h3>Letzte abgeschlossene Trades</h3>
+    <table>
+      <thead><tr><th>Zeit</th><th>Platform</th><th>Pair</th><th>Strategie</th>
+        <th>Ergebnis</th><th>PnL</th></tr></thead>
+      <tbody><tr>
+          <td>06-18 19:00</td>
+          <td>Capital.com</td>
+          <td>GBPUSD</td>
+          <td>bollinger_rev</td>
+          <td>manual</td>
+          <td class="neg">−$7.98</td>
+        </tr><tr>
+          <td>06-18 15:46</td>
+          <td>Capital.com</td>
+          <td>ETHUSD</td>
+          <td>rsi_mr</td>
+          <td>loss</td>
+          <td class="neg">−$15.78</td>
+        </tr><tr>
+          <td>06-18 15:37</td>
+          <td>Capital.com</td>
+          <td>ETHUSD</td>
+          <td>rsi_mr</td>
+          <td>loss</td>
+          <td class="neg">−$19.08</td>
+        </tr><tr>
+          <td>06-18 08:53</td>
+          <td>Kraken Futures</td>
+          <td>DOTUSD</td>
+          <td>bollinger_rev</td>
+          <td>manual</td>
+          <td class="pos">+$2.80</td>
+        </tr><tr>
+          <td>06-18 08:53</td>
+          <td>Kraken Futures</td>
+          <td>AVAXUSD</td>
+          <td>bollinger_rev</td>
+          <td>manual</td>
+          <td class="pos">+$3.38</td>
+        </tr><tr>
+          <td>06-18 08:53</td>
+          <td>Kraken Futures</td>
+          <td>LTCUSD</td>
+          <td>bollinger_rev</td>
+          <td>manual</td>
+          <td class="pos">+$4.34</td>
+        </tr><tr>
+          <td>06-18 01:00</td>
+          <td>Capital.com</td>
+          <td>ETHUSD</td>
+          <td>donchian_breakout</td>
+          <td>loss</td>
+          <td class="neg">−$18.65</td>
+        </tr><tr>
+          <td>06-18 01:00</td>
+          <td>Capital.com</td>
+          <td>EURUSD</td>
+          <td>stochastic_mr</td>
+          <td>manual</td>
+          <td class="pos">+$11.95</td>
+        </tr><tr>
+          <td>06-18 00:00</td>
+          <td>Capital.com</td>
+          <td>AUDUSD</td>
+          <td>stochastic_mr</td>
+          <td>manual</td>
+          <td class="neg">−$8.53</td>
+        </tr><tr>
+          <td>06-17 19:38</td>
+          <td>Capital.com</td>
+          <td>GBPUSD</td>
+          <td>bollinger_rev</td>
+          <td>loss</td>
+          <td class="neg">−$15.96</td>
+        </tr><tr>
+          <td>06-17 19:30</td>
+          <td>Capital.com</td>
+          <td>ETHUSD</td>
+          <td>bollinger_rev</td>
+          <td>manual</td>
+          <td class="neg">−$0.50</td>
+        </tr><tr>
+          <td>06-17 14:00</td>
+          <td>Capital.com</td>
+          <td>USDJPY</td>
+          <td>bollinger_rev</td>
+          <td>manual</td>
+          <td class="pos">+$1.25</td>
+        </tr><tr>
+          <td>06-17 14:00</td>
+          <td>Capital.com</td>
+          <td>ETHUSD</td>
+          <td>bollinger_rev</td>
+          <td>loss</td>
+          <td class="neg">−$15.75</td>
+        </tr><tr>
+          <td>06-17 12:21</td>
+          <td>Capital.com</td>
+          <td>ETHUSD</td>
+          <td>bollinger_rev</td>
+          <td>loss</td>
+          <td class="neg">−$15.80</td>
+        </tr><tr>
+          <td>06-17 08:37</td>
+          <td>Capital.com</td>
+          <td>ETHUSD</td>
+          <td>rsi_mr</td>
+          <td>loss</td>
+          <td class="neg">−$15.77</td>
+        </tr></tbody>
+    </table>
+  </div>
+  <footer>hurz · statisch generiert · stündliche Aktualisierung</footer>
+</div>
+</body>
+</html>

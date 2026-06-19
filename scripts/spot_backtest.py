@@ -37,6 +37,7 @@ settings.load_env()
 from app.platforms import get_platform, Bar
 from app.platforms.registry import clear_cache
 from app.strategies import get_strategy, available_strategies, add_indicators
+from app.spot_trading.regime import decide as _regime_decide, adx_at as _regime_adx
 
 
 _DEFAULT_KRAKEN_PAIRS = [
@@ -214,7 +215,8 @@ def _simulate_trades(asset: str, df: pd.DataFrame, signals, *,
                      rr: float, stop_atr_mult: float,
                      max_hold_bars: int,
                      fee_rate: float = 0.0,
-                     platform: str = "") -> List[TradeOutcome]:
+                     platform: str = "",
+                     strategy_name: str = "") -> List[TradeOutcome]:
     """Walk forward from each signal until SL or TP hits (or timeout).
     Conservative: when a single bar's range covers both SL and TP,
     assume SL hit first.
@@ -235,6 +237,11 @@ def _simulate_trades(asset: str, df: pd.DataFrame, signals, *,
         i = sig.index
         if i <= in_trade_until or i >= len(df):
             continue
+        # Regime filter — same policy as the live trader, so persisted
+        # edge-stats reflect what would actually be traded.
+        if strategy_name:
+            if _regime_decide(strategy_name, _regime_adx(df, i)).blocked:
+                continue
         row = df.iloc[i]
         atr = row.get("atr_14")
         if atr is None or not np.isfinite(atr) or atr <= 0:
@@ -438,6 +445,7 @@ async def main(args) -> None:
                 max_hold_bars=args.max_hold,
                 fee_rate=pair_fee,
                 platform=args.platform,
+                strategy_name=args.strategy,
             )
             all_outcomes.extend(outcomes)
             stats = _summarise(outcomes)

@@ -27,6 +27,8 @@ from __future__ import annotations
 
 import asyncio
 import os
+import subprocess
+import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
@@ -142,6 +144,15 @@ async def evaluate_pair(
     last_idx = len(df) - 1
     sig = _last_signal_for_bar(signals, last_idx)
     if sig is None:
+        return None
+    # Regime filter: block a signal whose strategy style is wrong for
+    # the current regime (mean-reversion in a trend, trend-following in
+    # a range). Same policy the backtest applies, so selection and live
+    # stay consistent. Fails open on missing ADX.
+    from app.spot_trading.regime import gate as _regime_gate
+    decision = _regime_gate(strategy_name, df, last_idx)
+    if decision.blocked:
+        _safe_log(f"⛓ regime-veto {pair} {strategy_name}: {decision.reason}")
         return None
     last_row = df.iloc[last_idx]
     atr = last_row.get("atr_14")
@@ -369,6 +380,8 @@ async def run_loop(
         _safe_log(f"  max_concurrent_positions={max_concurrent}")
     if notional_per_trade is not None:
         _safe_log(f"  notional_per_trade=${notional_per_trade:.2f}")
+    from app.spot_trading.regime import summary as _regime_summary
+    _safe_log(f"  regime_filter={_regime_summary()}")
     if stop_event is None:
         stop_event = asyncio.Event()
 
@@ -733,6 +746,22 @@ async def run_loop(
                     f"{signals_24h} signals in last 24h"
                 )
                 last_heartbeat_at = now_utc
+                # Refresh the static dashboard on each heartbeat so it
+                # stays current whenever hurz runs — fire-and-forget, and
+                # never let a dashboard hiccup disturb the trading loop.
+                try:
+                    repo_root = os.path.dirname(os.path.dirname(
+                        os.path.dirname(os.path.abspath(__file__))))
+                    subprocess.Popen(
+                        [sys.executable,
+                         os.path.join(repo_root, "scripts",
+                                      "generate_dashboard.py"), "all"],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        cwd=repo_root,
+                    )
+                except Exception:
+                    pass
 
             try:
                 await asyncio.wait_for(stop_event.wait(), timeout=poll_seconds)
