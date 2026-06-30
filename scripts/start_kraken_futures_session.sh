@@ -112,17 +112,26 @@ case "$cmd" in
     if ! kill -0 "$pid" 2>/dev/null; then
       echo "✗ process not running"; rm -f "$PID_FILE"; exit 0
     fi
-    echo "→ sending SIGINT to PID $pid (graceful shutdown)..."
-    kill -INT "$pid"
+    # Kill the whole descendant tree, not just the watchdog wrapper —
+    # otherwise the python child is orphaned (reparented to init) and
+    # keeps trading, leaving zombie sessions across restarts.
+    collect_tree() {
+      local p="$1" k
+      for k in $(pgrep -P "$p" 2>/dev/null); do collect_tree "$k"; done
+      echo "$p"
+    }
+    tree="$(collect_tree "$pid")"
+    echo "→ sending SIGINT to process tree ($(echo $tree | tr '\n' ' '))..."
+    kill -INT $tree 2>/dev/null || true
     for _ in $(seq 1 20); do
-      kill -0 "$pid" 2>/dev/null || break
+      still=""
+      for p in $tree; do kill -0 "$p" 2>/dev/null && still="x"; done
+      [[ -z "$still" ]] && break
       sleep 0.5
     done
-    if kill -0 "$pid" 2>/dev/null; then
-      echo "→ still alive, sending SIGTERM..."
-      kill -TERM "$pid"
-      sleep 2
-    fi
+    for p in $tree; do kill -0 "$p" 2>/dev/null && kill -TERM "$p" 2>/dev/null; done
+    sleep 1
+    for p in $tree; do kill -0 "$p" 2>/dev/null && kill -KILL "$p" 2>/dev/null; done
     rm -f "$PID_FILE"
     echo "✓ stopped"
     ;;

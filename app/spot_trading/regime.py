@@ -1,27 +1,31 @@
-"""Market-regime filter — keep each strategy style in the regime where
-it actually has an edge.
+"""Regime ROUTER — run each strategy style only in the regime where it
+has an edge, and stand aside in the transitional zone where neither does.
 
 WHY
 ---
-Between 2026-06-15 and 06-18 the book gave back ~$175, almost entirely
-ETHUSD: the mean-reversion strategies (bollinger_rev, rsi_mr) faded a
-directional ETH move and were stopped out over and over. Mean-reversion
-has no edge in a trending regime; trend-following has none in a flat
-range. This module classifies the current regime per pair via ADX and
-blocks a signal whose strategy style is structurally wrong for it.
+Two separate drawdowns taught us the full picture:
+  - 2026-06-15..18 (−$234 cumulative across the run): mean-reversion
+    (bollinger_rev, rsi_mr, stochastic_mr) faded directional moves and
+    was stopped out repeatedly. ADX at those entries: 36–56 (strong trend).
+  - 2026-06-26..28 (−$67): trend-following (donchian_breakout) entered
+    breakouts that immediately reversed (whipsaw). ADX at those entries:
+    ~20–28 (weak / transitional trend).
 
-DEAD-BAND
----------
-We only veto when the regime is *clearly* mismatched, to avoid
-over-filtering in transitional conditions:
+So there is a "death zone" around ADX ~20–30 where breakouts whipsaw AND
+ranges aren't clean — BOTH styles lose. The router encodes this:
 
-    ADX >= adx_trend   -> trending   (block mean-reversion)
-    ADX <= adx_range   -> ranging    (block trend-following)
-    adx_range < ADX < adx_trend -> ambiguous (allow both)
+    ADX >= adx_trend (30)  -> STRONG TREND  -> trend-following only
+    ADX <= adx_range (20)  -> RANGE         -> mean-reversion only
+    adx_range < ADX < adx_trend -> NO-TRADE ZONE -> stand aside (block all)
 
-Strategies whose style is "neutral" (e.g. multi_consensus) and any
-unknown strategy are never blocked. When ADX is unavailable (warmup,
-NaN) we fail OPEN — never block on missing data.
+This is a true router, not a soft filter: trend-following is blocked
+*below* the trend threshold (not just in clear ranges), and mean-reversion
+is blocked *above* the range threshold. The gap between the two
+thresholds is the deliberate stand-aside band.
+
+Strategies whose style is "neutral" (e.g. multi_consensus) and unknown
+strategies are never blocked. When ADX is unavailable (warmup, NaN) we
+fail OPEN — never block on missing data.
 
 CONSISTENCY
 -----------
@@ -29,12 +33,12 @@ The exact same decision is applied in two places so live trading and
 the backtest/pair-selector never diverge:
   - app/spot_trading/autotrade.py  (live: vetoes a signal pre-order)
   - scripts/spot_backtest.py        (sim: skips the signal so persisted
-                                      edge-stats reflect the filter)
+                                      edge-stats reflect the router)
 
 TOGGLE / TUNE via env (read per call; set before bot start):
     HURZ_REGIME_FILTER    = 1|0   (default 1 = on)
-    HURZ_REGIME_ADX_TREND = float (default 25)
-    HURZ_REGIME_ADX_RANGE = float (default 20)
+    HURZ_REGIME_ADX_TREND = float (default 30 — trend-following floor)
+    HURZ_REGIME_ADX_RANGE = float (default 20 — mean-reversion ceiling)
 """
 from __future__ import annotations
 
@@ -52,7 +56,7 @@ import pandas as pd
 _MEAN_REVERSION = {"bollinger_rev", "rsi_mr", "stochastic_mr"}
 _TREND = {"donchian_breakout", "momentum"}
 
-_DEFAULT_ADX_TREND = 25.0
+_DEFAULT_ADX_TREND = 30.0
 _DEFAULT_ADX_RANGE = 20.0
 
 
@@ -87,33 +91,34 @@ def _config() -> tuple:
 
 
 def decide(strategy_name: str, adx_value: Optional[float]) -> RegimeDecision:
-    """Core policy: given a strategy and the current ADX, decide whether
-    to block the signal. Fails open on missing data / disabled / neutral."""
+    """Router policy: given a strategy and the current ADX, decide whether
+    the signal may trade. Trend-following needs ADX >= adx_trend; mean-
+    reversion needs ADX <= adx_range; the gap between is a no-trade zone
+    where both styles are blocked. Fails open on missing data / disabled
+    / neutral."""
     enabled, adx_trend, adx_range = _config()
     style = style_of(strategy_name)
     if not enabled:
-        return RegimeDecision(False, "n/a", adx_value, "regime filter disabled")
+        return RegimeDecision(False, "n/a", adx_value, "regime router disabled")
     if style == "neutral":
         return RegimeDecision(False, "n/a", adx_value, "neutral strategy")
     if adx_value is None or not math.isfinite(adx_value):
         return RegimeDecision(False, "unknown", None, "ADX unavailable — allow")
-    if adx_value >= adx_trend:
-        regime = "trend"
-    elif adx_value <= adx_range:
-        regime = "range"
-    else:
-        regime = "ambiguous"
-    if style == "mean_reversion" and regime == "trend":
+    if style == "trend":
+        if adx_value >= adx_trend:
+            return RegimeDecision(False, "strong-trend", adx_value,
+                                  f"trend-following in trend (ADX={adx_value:.1f})")
         return RegimeDecision(
-            True, regime, adx_value,
-            f"mean-reversion blocked in trend (ADX={adx_value:.1f} "
-            f">= {adx_trend:.0f})")
-    if style == "trend" and regime == "range":
+            True, "no-trade-zone" if adx_value > adx_range else "range", adx_value,
+            f"trend-following needs ADX>={adx_trend:.0f}, got {adx_value:.1f}")
+    if style == "mean_reversion":
+        if adx_value <= adx_range:
+            return RegimeDecision(False, "range", adx_value,
+                                  f"mean-reversion in range (ADX={adx_value:.1f})")
         return RegimeDecision(
-            True, regime, adx_value,
-            f"trend-following blocked in range (ADX={adx_value:.1f} "
-            f"<= {adx_range:.0f})")
-    return RegimeDecision(False, regime, adx_value, "regime ok")
+            True, "no-trade-zone" if adx_value < adx_trend else "trend", adx_value,
+            f"mean-reversion needs ADX<={adx_range:.0f}, got {adx_value:.1f}")
+    return RegimeDecision(False, "n/a", adx_value, "unclassified strategy")
 
 
 def adx_at(df: pd.DataFrame, index: int) -> Optional[float]:
@@ -144,4 +149,5 @@ def summary() -> str:
     enabled, adx_trend, adx_range = _config()
     if not enabled:
         return "off"
-    return f"on (trend>={adx_trend:.0f}, range<={adx_range:.0f})"
+    return (f"router on (trend-follow ADX>={adx_trend:.0f}, "
+            f"mean-rev ADX<={adx_range:.0f}, else stand aside)")

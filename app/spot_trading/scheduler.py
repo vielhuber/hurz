@@ -25,9 +25,18 @@ from typing import List, Optional
 from app.utils.feature_flags import FeatureFlags
 
 
-# Strategies and pair baskets that get refreshed nightly. Order matters
-# only for the log output; ranking happens after all are complete.
-_NIGHTLY_STRATEGIES = ["bollinger_rev", "momentum", "rsi_mr", "multi_consensus"]
+# Strategies refreshed nightly AND eligible for live selection. Both
+# style classes are re-enabled on 2026-06-29 because the regime ROUTER
+# (app/spot_trading/regime.py) now gates each by ADX: trend-following
+# only trades ADX>=30, mean-reversion only ADX<=20, neither in the 20-30
+# whipsaw zone. This is the regime-switching meta-strategy — MR is back
+# but confined to ranges (where its losses never came from), trend-follow
+# confined to strong trends. multi_consensus stays out (ambiguous ensemble,
+# net-negative, fits neither regime bucket).
+_NIGHTLY_STRATEGIES = [
+    "donchian_breakout", "momentum",
+    "bollinger_rev", "rsi_mr", "stochastic_mr",
+]
 
 
 def _next_fire_time(hour_utc: int, minute_utc: int) -> datetime:
@@ -88,6 +97,10 @@ async def _refresh_pairs(top_n: int, min_trades: int, platform: Optional[str] = 
         # combos with one weak segment — useful for active strategies
         # like donchian_breakout that depend on a regime persisting.
         "--min-stability", "0.5",
+        # Hard allow-list: only trend-following may be selected. The
+        # selector ranks across all persisted results (incl. stale MR
+        # ones), so this is required — not just the nightly backtest list.
+        "--strategies", ",".join(_NIGHTLY_STRATEGIES),
     ]
     if platform:
         argv += ["--platform", platform]
@@ -114,14 +127,15 @@ async def nightly_spot_scheduler(
         return
     hour = int(cfg.get("retrain_hour_utc", 5))
     minute = int(cfg.get("retrain_minute_utc", 30))
-    # min_trades floor for the pair-selector. Default 15 (relaxed) —
-    # honest live-spread fees thin out the strict-30-trade-floor list
-    # to ~2 pairs which is too few for a useful watchlist. Per-platform
-    # override via `min_trades_per_platform.{platform}` — perpetuals
-    # carry funding cost and benefit from a stricter n>=30 floor, while
-    # CFD platforms with smaller pair baskets stay at 15.
+    # min_trades floor for the pair-selector. Lowered to 10 on 2026-06-29
+    # for the regime-router era: the router only counts regime-appropriate
+    # trades (trend-follow at ADX>=30, mean-rev at ADX<=20), which cuts
+    # per-combo trade counts ~60%. At the old floor of 15 the router-gated
+    # backtest yields an empty active list. 10 is the pragmatic floor —
+    # samples are smaller and noisier, accepted as the cost of regime
+    # gating. Per-platform override via `min_trades_per_platform.{platform}`.
     per_plat = cfg.get("min_trades_per_platform", {}) or {}
-    min_trades = int(per_plat.get(platform, cfg.get("min_trades", 15)))
+    min_trades = int(per_plat.get(platform, cfg.get("min_trades", 10)))
     strategies = strategies or _NIGHTLY_STRATEGIES
 
     # local-import to avoid pulling utils.print into module init.

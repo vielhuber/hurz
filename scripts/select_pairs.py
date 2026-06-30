@@ -41,9 +41,18 @@ def main() -> None:
                    help="min walk-forward stability ratio (default 0.66)")
     p.add_argument("--top", type=int, default=10,
                    help="how many top-ranked pairs to persist (default 10)")
+    # Strategy allow-list (comma-separated). Only these strategies are
+    # eligible for selection — used to keep proven-losing strategy
+    # classes (mean-reversion) out of the live basket entirely.
+    p.add_argument("--strategies", default=None,
+                   help="comma-separated allow-list of strategies")
     p.add_argument("--no-persist", dest="persist",
                    action="store_false", default=True)
     args = p.parse_args()
+
+    allowed = None
+    if args.strategies:
+        allowed = {s.strip() for s in args.strategies.split(",") if s.strip()}
 
     scores = rank_pairs(
         platform=args.platform, strategy=args.strategy,
@@ -51,6 +60,7 @@ def main() -> None:
         min_trades=args.min_trades, min_pf=args.min_pf,
         min_expectancy_R=args.min_er,
         min_stability_ratio=args.min_stability,
+        allowed_strategies=allowed,
     )
     if not scores:
         print("No backtest results matching the filters. "

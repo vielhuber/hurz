@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-# Regenerate the static dashboard once per hour in the background.
-# Mirrors the start/status/stop pattern of the session wrappers.
+# Regenerate the static dashboard on a short interval in the background,
+# so the status panel never shows stale data (decoupled from the bot's
+# hourly heartbeat). Mirrors the start/status/stop pattern of the
+# session wrappers.
 #
 # Usage:
 #   bash scripts/dashboard_loop.sh           # start
 #   bash scripts/dashboard_loop.sh status    # check
 #   bash scripts/dashboard_loop.sh stop      # stop
 #
-# Output: dashboard.html in the repo root. Window defaults to 14 days;
-# override with DASHBOARD_DAYS in the environment.
+# Output: dashboard.html in the repo root. Defaults: all-time window,
+# 300s interval; override with DASHBOARD_DAYS / DASHBOARD_INTERVAL.
 
 set -e
 cd "$(dirname "$0")/.."
@@ -16,7 +18,8 @@ mkdir -p tmp
 
 PID_FILE="tmp/dashboard_loop.pid"
 LOG_FILE="tmp/dashboard_loop.log"
-DAYS="${DASHBOARD_DAYS:-14}"
+DAYS="${DASHBOARD_DAYS:-all}"
+INTERVAL="${DASHBOARD_INTERVAL:-300}"
 
 cmd="${1:-start}"
 
@@ -29,11 +32,11 @@ case "$cmd" in
     nohup bash -c "
       while true; do
         python3 scripts/generate_dashboard.py $DAYS >>'$LOG_FILE' 2>&1
-        sleep 3600
+        sleep $INTERVAL
       done
     " >/dev/null 2>&1 &
     echo $! > "$PID_FILE"
-    echo "✓ dashboard loop started (PID $(cat "$PID_FILE"), window ${DAYS}d)"
+    echo "✓ dashboard loop started (PID $(cat "$PID_FILE"), window ${DAYS}, every ${INTERVAL}s)"
     echo "  file: dashboard.html"
     echo "  log:  $LOG_FILE"
     ;;

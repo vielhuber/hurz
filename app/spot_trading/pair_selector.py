@@ -162,6 +162,7 @@ def rank_pairs(
     min_pf: float = 1.0,
     min_expectancy_R: float = 0.0,
     min_stability_ratio: float = 0.66,
+    allowed_strategies: Optional[set] = None,
     results_path: str = _RESULTS_PATH,
 ) -> List[PairScore]:
     """Read persisted backtest results and return ranked pair scores.
@@ -190,6 +191,12 @@ def rank_pairs(
         if platform and payload.get("platform") != platform:
             continue
         if strategy and payload.get("strategy") != strategy:
+            continue
+        # Strategy allow-list: ranks across ALL persisted results, so a
+        # stale (un-refreshed) result for a disabled strategy would still
+        # be selectable — this hard-excludes anything not in the list.
+        if allowed_strategies is not None \
+                and payload.get("strategy") not in allowed_strategies:
             continue
         if resolution and payload.get("resolution") != resolution:
             continue

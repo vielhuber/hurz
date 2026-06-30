@@ -218,6 +218,9 @@ _BAR_SECONDS = {
     "1h": 3600, "4h": 14400, "1d": 86400,
 }
 
+# Min seconds between stale-exit close attempts on the same position.
+_STALE_RETRY_COOLDOWN = 1800
+
 
 def _bar_seconds(resolution: str) -> int:
     return _BAR_SECONDS.get(resolution, 3600)
@@ -401,6 +404,11 @@ async def run_loop(
     # almost certainly a bug.
     issued_log: List[datetime] = []
     daily_cap = 100
+    # Cooldown for failed stale-exit closes: a position the broker
+    # refuses to close (e.g. FX market shut on the weekend → HTTP 400)
+    # must not be retried every poll cycle. Keyed by journal deal_id →
+    # last-attempt time; retried at most once per _STALE_RETRY_COOLDOWN.
+    stale_exit_attempts: Dict[str, datetime] = {}
 
     # Heartbeat: emit a status line every `heartbeat_seconds` so the
     # log shows the loop is alive even when no signals fire. Without
@@ -576,6 +584,14 @@ async def run_loop(
                     if age_seconds < max_hold_seconds:
                         continue
                     journal_deal_id = row["deal_id"]
+                    # Back off positions the broker just refused to close
+                    # (e.g. weekend FX → HTTP 400) instead of retrying
+                    # every cycle and flooding the log.
+                    last_attempt = stale_exit_attempts.get(journal_deal_id)
+                    if last_attempt is not None and (
+                            now_utc - last_attempt
+                    ).total_seconds() < _STALE_RETRY_COOLDOWN:
+                        continue
                     close_target = close_id_by_journal_id.get(
                         journal_deal_id, journal_deal_id,
                     )
@@ -584,21 +600,25 @@ async def run_loop(
                     try:
                         close_res = await platform.close_position(close_target)
                     except Exception as exc:
+                        stale_exit_attempts[journal_deal_id] = now_utc
                         _safe_log(
                             f"⚠ stale-exit {pair_name} ({close_target}) "
                             f"close failed after {age_h:.1f}h: {exc}"
                         )
                         continue
                     if close_res.accepted:
+                        stale_exit_attempts.pop(journal_deal_id, None)
                         _safe_log(
                             f"⏲ stale-exit {pair_name} ({close_target}) "
                             f"closed after {age_h:.1f}h "
                             f"(> {max_hold_bars}×{resolution})"
                         )
                     else:
+                        stale_exit_attempts[journal_deal_id] = now_utc
                         _safe_log(
                             f"⚠ stale-exit {pair_name} ({close_target}) "
-                            f"rejected after {age_h:.1f}h: {close_res.error}"
+                            f"rejected after {age_h:.1f}h: {close_res.error} "
+                            f"— retry in {_STALE_RETRY_COOLDOWN // 60}min"
                         )
 
             for entry in active:
