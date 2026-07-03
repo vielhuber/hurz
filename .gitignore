@@ -10,3 +10,5 @@ __pycache__
 /hurz-models
 /.ralph
 /.ralphrc
+# generated static dashboard (regenerated every 30s, not source)
+dashboard.html
