@@ -47,17 +47,14 @@ case "$cmd" in
       exit 2
     fi
     # Notional cap per trade. Capital quotes CFD sizes in base-asset
-    # units (1 ETH, 1 BTC, 1 USD…) — without normalization size=1 yields
-    # wildly different exposures: BTCUSD ≈ $77k notional triggers a
-    # `rejectReason=RISK_CHECK` on the ~$5k demo account, while GBPUSD
-    # ≈ $1.34 is meaningless. Lowered $2500 → $1500 on 2026-06-16: at
-    # $2500 three concurrent positions saturated the demo account's free
-    # margin and every further signal — including the high-PF AUDUSD /
-    # ETHUSD stochastic_mr setups — was rejected with RISK_CHECK. $1500
-    # lets more positions coexist before the margin ceiling bites. The
-    # platform adapter clamps below-min-lot sizes upward with an
-    # adjustments entry (see capital_com.py:438).
-    export HURZ_NOTIONAL_PER_TRADE="1500"
+    # units (1 ETH, 1 BTC, 1 USD…) — normalization keeps exposure uniform.
+    # Lowered $1500 → $250 on 2026-07-01 for DATA-GENERATION mode: with
+    # the expanded ~55-pair universe and top_n=40, we want MANY parallel
+    # positions to generate lots of forward data. Small notional means
+    # dozens of positions coexist inside the demo margin without hitting
+    # RISK_CHECK. We track R-multiples / win-rates (size-independent), so
+    # the smaller $-size per trade doesn't reduce the statistical value.
+    export HURZ_NOTIONAL_PER_TRADE="250"
     # Run under `_session_watchdog.sh` so transient crashes (WSL2
     # reboot survival, DNS hiccups, 502s, asyncio timeouts) trigger
     # an auto-restart instead of leaving the bot dead. The watchdog

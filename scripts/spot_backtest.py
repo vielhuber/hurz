@@ -51,9 +51,28 @@ _DEFAULT_KRAKEN_FUTURES_PAIRS = [
     "XRPUSD", "LTCUSD", "LINKUSD", "DOTUSD", "AVAXUSD",
     "ATOMUSD", "MATICUSD",
 ]
+# Expanded liquid universe (2026-07-01) — data-generation mode. We cast
+# a WIDE net across ~55 liquid Capital instruments (FX majors + liquid
+# crosses, major crypto, main indices, main commodities) so the regime
+# router has many pairs to act on and we generate far more FORWARD trades
+# per day. Backtests only SEED the candidate pool — forward (live) results
+# are what actually decide the winners. Stocks (3200+ mostly illiquid) are
+# deliberately excluded. Verified against list_instruments() 2026-07-01.
 _DEFAULT_CAPITAL_PAIRS = [
-    "BTCUSD", "ETHUSD", "SOLUSD", "ADAUSD", "DOGEUSD", "XRPUSD",
-    "EURUSD", "GBPUSD", "USDJPY", "AUDUSD",
+    # FX majors + liquid crosses
+    "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "USDCHF", "NZDUSD",
+    "EURGBP", "EURJPY", "GBPJPY", "EURCHF", "AUDJPY", "CADJPY", "CHFJPY",
+    "EURAUD", "EURCAD", "GBPCHF", "GBPAUD", "GBPCAD", "AUDNZD",
+    # major crypto
+    "BTCUSD", "ETHUSD", "SOLUSD", "ADAUSD", "DOGEUSD", "XRPUSD", "LTCUSD",
+    "LINKUSD", "DOTUSD", "AVAXUSD", "BNBUSD", "ATOMUSD", "APTUSD", "ARBUSD",
+    "AAVEUSD",
+    # main indices
+    "US500", "US100", "US30", "DE40", "UK100", "EU50", "J225", "FR40",
+    "AU200", "HK50",
+    # main commodities
+    "GOLD", "SILVER", "OIL_CRUDE", "OIL_BRENT", "NATURALGAS", "COPPER",
+    "PLATINUM", "PALLADIUM", "CORN", "WHEAT",
 ]
 _DEFAULT_RESOLUTION = "1h"
 _DEFAULT_DAYS = 30

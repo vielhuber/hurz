@@ -17,10 +17,29 @@ from __future__ import annotations
 import os
 import re
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import mysql.connector
 from dotenv import load_dotenv
+
+# All timestamps in the dashboard are shown in German local time
+# (Europe/Berlin, DST-aware). DB and log timestamps are stored as UTC;
+# _berlin() converts them for display. Falls back to UTC if the tz db
+# is unavailable.
+try:
+    from zoneinfo import ZoneInfo
+    _TZ = ZoneInfo("Europe/Berlin")
+except Exception:
+    _TZ = timezone.utc
+
+
+def _berlin(dt):
+    """Convert a UTC (or naive-UTC) datetime to Berlin-local aware time."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(_TZ)
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(_ROOT, ".env"))
@@ -69,6 +88,7 @@ def _fetch(days) -> dict:
             SELECT platform, exit_time, realized_pnl
             FROM spot_trades
             WHERE accepted=1 AND realized_pnl IS NOT NULL AND exit_time IS NOT NULL
+              AND platform <> 'kraken_futures'
               {win}
             ORDER BY exit_time ASC
         """, win_params)
@@ -80,6 +100,7 @@ def _fetch(days) -> dict:
                    ROUND(SUM(realized_pnl), 2) AS pnl
             FROM spot_trades
             WHERE accepted=1 AND realized_pnl IS NOT NULL
+              AND platform <> 'kraken_futures'
               {win}
             GROUP BY platform
         """, win_params)
@@ -87,25 +108,59 @@ def _fetch(days) -> dict:
             SELECT platform, ROUND(SUM(realized_pnl), 2) AS pnl
             FROM spot_trades
             WHERE accepted=1 AND realized_pnl IS NOT NULL
+              AND platform <> 'kraken_futures'
             GROUP BY platform
         """)
         open_pos = _rows(cur, """
             SELECT platform, pair, strategy, direction, entry_price, created_at
             FROM spot_trades
             WHERE accepted=1 AND exit_time IS NULL AND deal_id IS NOT NULL
+              AND platform <> 'kraken_futures'
             ORDER BY created_at ASC
         """)
         recent = _rows(cur, """
-            SELECT platform, pair, strategy, direction,
+            SELECT id, platform, pair, strategy, direction,
                    entry_price, exit_price, outcome, realized_pnl, exit_time
             FROM spot_trades
             WHERE accepted=1 AND realized_pnl IS NOT NULL
+              AND platform <> 'kraken_futures'
             ORDER BY exit_time DESC
             LIMIT 15
+        """)
+        # Forward (realized) performance per STRATEGY — which style class
+        # actually earns live. This is the signal that counts (backtests
+        # proved non-predictive).
+        by_strategy = _rows(cur, """
+            SELECT strategy,
+                   COUNT(*) AS trades,
+                   SUM(realized_pnl > 0) AS wins,
+                   ROUND(SUM(realized_pnl), 2) AS pnl,
+                   ROUND(SUM(CASE WHEN realized_pnl > 0 THEN realized_pnl ELSE 0 END)
+                         / NULLIF(-SUM(CASE WHEN realized_pnl <= 0 THEN realized_pnl ELSE 0 END), 0), 2) AS pf
+            FROM spot_trades
+            WHERE accepted=1 AND realized_pnl IS NOT NULL
+              AND platform <> 'kraken_futures'
+            GROUP BY strategy
+            ORDER BY pnl DESC
+        """)
+        # Forward performance per (pair, strategy) COMBO — the granular
+        # view for filtering down to the profitable combos over time.
+        by_combo = _rows(cur, """
+            SELECT platform, pair, strategy,
+                   COUNT(*) AS trades,
+                   SUM(realized_pnl > 0) AS wins,
+                   ROUND(SUM(realized_pnl), 2) AS pnl
+            FROM spot_trades
+            WHERE accepted=1 AND realized_pnl IS NOT NULL
+              AND platform <> 'kraken_futures'
+            GROUP BY platform, pair, strategy
+            HAVING trades >= 2
+            ORDER BY pnl DESC
         """)
         return {
             "closed": closed, "summary": summary, "alltime": alltime,
             "open": open_pos, "recent": recent,
+            "by_strategy": by_strategy, "by_combo": by_combo,
         }
     finally:
         cur.close()
@@ -144,10 +199,10 @@ def _period_label(days, closed: list) -> str:
         return f"letzte {days} Tage"
     if not closed:
         return "gesamter Zeitraum"
-    first = closed[0]["exit_time"]
-    last = closed[-1]["exit_time"]
+    first = _berlin(closed[0]["exit_time"])
+    last = _berlin(closed[-1]["exit_time"])
     span = (last - first).days
-    return f"seit {first:%Y-%m-%d} ({span} Tage)"
+    return f"seit {first:%d.%m.%Y} ({span} Tage)"
 
 
 def _fmt_money(value) -> str:
@@ -202,7 +257,7 @@ def _render_chart(series: list, width: int = 920, height: int = 340) -> str:
     for i in range(5):
         xv = xmin + (xmax - xmin) * i / 4
         xx = px(xv)
-        label = datetime.fromtimestamp(xv, tz=timezone.utc).strftime("%m-%d")
+        label = _berlin(datetime.fromtimestamp(xv, tz=timezone.utc)).strftime("%d.%m.")
         parts.append(f'<text x="{xx:.1f}" y="{height-8}" class="xlab" '
                      f'text-anchor="middle">{label}</text>')
     # series polylines
@@ -237,7 +292,7 @@ def _render_cards(summary: list, alltime: list, open_pos: list,
     for p in open_pos:
         open_count[p["platform"]] = open_count.get(p["platform"], 0) + 1
     cards = []
-    for plat in ("capital_com", "kraken_futures"):
+    for plat in ("capital_com",):  # Kraken retired 2026-07-02
         s = by_plat.get(plat, {})
         trades = int(s.get("trades") or 0)
         wins = int(s.get("wins") or 0)
@@ -258,22 +313,59 @@ def _render_cards(summary: list, alltime: list, open_pos: list,
     return "".join(cards)
 
 
+# Max holding time before the autotrader's stale-exit force-closes a
+# position = HURZ_MAX_HOLD_BARS (24) × bar_seconds(resolution). Capital
+# runs 1h bars (→24h), Kraken futures 4h bars (→96h). This is the only
+# DETERMINISTIC "time left" — a trade may close earlier on TP/SL, but it
+# will close no later than this. Purely from created_at, no live price.
+_STALE_HOLD_HOURS = {"capital_com": 24.0, "kraken_futures": 96.0}
+
+
+def _fmt_duration(minutes: float) -> str:
+    """Human duration from minutes → 'Xd Yh Zm' (dropping zero units).
+    e.g. 193 → '3h 13m', 5760 → '4d', 45 → '45m'."""
+    m = int(round(minutes))
+    d, rem = divmod(m, 1440)
+    h, mm = divmod(rem, 60)
+    parts = []
+    if d:
+        parts.append(f"{d}d")
+    if h:
+        parts.append(f"{h}h")
+    if mm or not parts:
+        parts.append(f"{mm}m")
+    return " ".join(parts)
+
+
 def _render_open(open_pos: list) -> str:
     if not open_pos:
-        return '<tr><td colspan="5" class="muted">Keine offenen Positionen.</td></tr>'
+        return '<tr><td colspan="6" class="muted">Keine offenen Positionen.</td></tr>'
     now = datetime.now(timezone.utc)
+    # Sort so the position closest to its forced close (smallest rest) is on top.
+    def rest_min(p):
+        ct = p["created_at"]
+        ct = ct.replace(tzinfo=timezone.utc) if ct.tzinfo is None else ct
+        hold_h = _STALE_HOLD_HOURS.get(p["platform"], 24.0)
+        deadline = ct + timedelta(hours=hold_h)
+        return (deadline - now).total_seconds() / 60.0
     out = []
-    for p in open_pos:
+    for p in sorted(open_pos, key=rest_min):
         ct = p["created_at"]
         ct = ct.replace(tzinfo=timezone.utc) if ct.tzinfo is None else ct
         age_h = (now - ct).total_seconds() / 3600
-        d = "Long" if int(p["direction"]) == 1 else "Short"
+        d = "Long" if int(p["direction"]) == 1 else "Short"  # neutral colour: dir ≠ profit
+        rm = rest_min(p)
+        if rm <= 0:
+            rest_cell = '<span class="neg">überfällig</span>'
+        else:
+            rest_cell = _fmt_duration(rm)
         out.append(f"""<tr>
           <td>{_LABELS.get(p['platform'], p['platform'])}</td>
           <td>{p['pair']}</td>
           <td>{p['strategy']}</td>
-          <td class="{'pos' if d=='Long' else 'neg'}">{d}</td>
-          <td>{age_h:.1f}h</td></tr>""")
+          <td>{d}</td>
+          <td>{age_h:.1f}h</td>
+          <td><b>{rest_cell}</b></td></tr>""")
     return "".join(out)
 
 
@@ -283,7 +375,7 @@ def _render_recent(recent: list) -> str:
     out = []
     for r in recent:
         d = "Long" if int(r["direction"]) == 1 else "Short"
-        when = r["exit_time"].strftime("%m-%d %H:%M") if r["exit_time"] else "—"
+        when = _berlin(r["exit_time"]).strftime("%d.%m. %H:%M") if r["exit_time"] else "—"
         out.append(f"""<tr>
           <td>{when}</td>
           <td>{_LABELS.get(r['platform'], r['platform'])}</td>
@@ -295,11 +387,14 @@ def _render_recent(recent: list) -> str:
     return "".join(out)
 
 
-# (label, pid_file, log_file) for each bot session.
+# (label, pid_file, log_file) for each bot session shown in the status
+# panel. Kraken Futures removed 2026-07-02: its demo API was dead for ~13
+# days (503 on every endpoint, Kraken's side) and it never recovered —
+# we retired it. Capital.com is the only live platform. Historical Kraken
+# trades stay in the record; it just no longer shows as an active bot.
+# Re-add this line if Kraken's demo ever comes back.
 _BOTS = [
     ("Capital.com", "tmp/paper_session.pid", "tmp/paper_session.log"),
-    ("Kraken Futures", "tmp/kraken_futures_session.pid",
-     "tmp/kraken_futures_session.log"),
 ]
 
 _RE_HEARTBEAT = re.compile(
@@ -378,15 +473,23 @@ def _bot_status(label: str, pid_file: str, log_file: str) -> dict:
         if m:
             regime = m.group(1)
     # Only flag holiday when a marker for TODAY is present (the bot logs
-    # "BANK HOLIDAY <date>"); past holidays must not stick.
-    holiday = f"BANK HOLIDAY {today}" in "\n".join(lines)
+    # "BANK HOLIDAY <date> — <name> — trading suspended."); past holidays
+    # must not stick. Capture the holiday name for the frontend note.
+    holiday_line = next((ln for ln in reversed(lines)
+                         if f"BANK HOLIDAY {today}" in ln), None)
+    holiday = holiday_line is not None
+    holiday_name = None
+    if holiday_line is not None:
+        hm = re.search(rf"BANK HOLIDAY {re.escape(today)}\s*[—–-]+\s*(.+?)\s*[—–-]+",
+                       holiday_line)
+        holiday_name = hm.group(1).strip() if hm else None
     hb_age = ((now - last_hb_dt).total_seconds() / 60
               if last_hb_dt is not None else None)
     act_age = ((now - last_any_dt).total_seconds() / 60
                if last_any_dt is not None else None)
-    last_hb = (last_hb_dt.strftime("%Y-%m-%d %H:%M:%S")
+    last_hb = (_berlin(last_hb_dt).strftime("%d.%m.%Y %H:%M:%S")
                if last_hb_dt is not None else None)
-    last_act = (last_any_dt.strftime("%Y-%m-%d %H:%M:%S")
+    last_act = (_berlin(last_any_dt).strftime("%d.%m.%Y %H:%M:%S")
                 if last_any_dt is not None else None)
 
     # Derive a state + colour. Three honest levels:
@@ -413,11 +516,12 @@ def _bot_status(label: str, pid_file: str, log_file: str) -> dict:
         "label": label, "alive": alive, "pid": pid, "state": state,
         "tone": tone, "last_hb": last_hb, "last_act": last_act,
         "open_pos": open_pos, "notional": notional, "regime": regime,
-        "age_min": hb_age,
+        "age_min": hb_age, "holiday": holiday, "holiday_name": holiday_name,
+        "holiday_date": _berlin(now).strftime("%d.%m.%Y"),
     }
 
 
-def _render_status() -> str:
+def _render_status(stats: dict) -> str:
     rows = []
     for label, pid_file, log_file in _BOTS:
         s = _bot_status(label, pid_file, log_file)
@@ -428,6 +532,12 @@ def _render_status() -> str:
         op = "—" if s["open_pos"] is None else s["open_pos"]
         notional = f'${s["notional"]}' if s["notional"] else "—"
         regime = s["regime"] or "—"
+        hol = ""
+        if s.get("holiday"):
+            name = s.get("holiday_name") or "Feiertag"
+            hol = (f'<div class="holnote">🎌 Feiertag {s.get("holiday_date", "")} — '
+                   f'{name}: Börse geschlossen, Handel ausgesetzt · nimmt am nächsten '
+                   f'Handelstag automatisch wieder auf (offene Positionen bleiben offen).</div>')
         rows.append(f"""
         <div class="statusrow">
           <div class="stitle"><span class="dot {s['tone']}"></span>
@@ -438,20 +548,125 @@ def _render_status() -> str:
             <span>Offen: {op}</span>
             <span>Notional: {notional}</span>
             <span>Regime-Filter: {regime}</span>
-          </div>
+          </div>{hol}
+        </div>""")
+    # Compact live-activity summary — also fills the tile so it matches the
+    # height of the Capital card next to it (no big empty area).
+    t_n = stats.get("today_n", 0)
+    t_win = stats.get("today_win", 0)
+    t_wr = (t_win / t_n * 100) if t_n else 0.0
+    t_pnl = stats.get("today_pnl", 0.0)
+    at = stats.get("alltime", 0.0)
+    # 3 rows keeps the tile ≈ the height of the Capital card next to it
+    # (5 rows made it taller → empty space in the card). Win% is merged
+    # into the Trades row.
+    rows.append(f"""
+        <div class="statrows">
+          <div class="row"><span>Trades heute</span><b>{t_n} ({t_wr:.0f}% Gewinn)</b></div>
+          <div class="row"><span>PnL heute</span>
+            <b class="{_money_class(t_pnl)}">{_fmt_money(t_pnl)}</b></div>
+          <div class="row"><span>All-time</span>
+            <b class="{_money_class(at)}">{_fmt_money(at)}</b></div>
         </div>""")
     return "".join(rows)
+
+
+def _render_strategy_perf(by_strategy: list, by_combo: list) -> str:
+    """Forward-performance tables: per strategy, and top/bottom combos.
+    This is the 'filter the winners' view — driven by realized live
+    results, not backtests."""
+    def wr(row):
+        t = int(row["trades"] or 0)
+        return (int(row["wins"] or 0) / t * 100) if t else 0.0
+
+    strat_rows = []
+    if not by_strategy:
+        strat_rows.append('<tr><td colspan="5" class="muted">Noch keine realisierten Trades.</td></tr>')
+    for r in by_strategy:
+        pf = r.get("pf")
+        pf_s = "∞" if pf is None else f"{float(pf):.2f}"
+        strat_rows.append(f"""<tr>
+          <td>{r['strategy']}</td>
+          <td>{int(r['trades'] or 0)}</td>
+          <td>{wr(r):.0f}%</td>
+          <td>{pf_s}</td>
+          <td class="{_money_class(r['pnl'])}">{_fmt_money(r['pnl'])}</td></tr>""")
+
+    # Top 8 and bottom 5 combos by PnL.
+    combo_rows = []
+    if not by_combo:
+        combo_rows.append('<tr><td colspan="5" class="muted">Noch keine Combos mit ≥2 Trades.</td></tr>')
+    else:
+        shown = by_combo[:8]
+        if len(by_combo) > 12:
+            shown = by_combo[:8] + by_combo[-4:]
+        for r in shown:
+            combo_rows.append(f"""<tr>
+              <td>{_LABELS.get(r['platform'], r['platform'])}</td>
+              <td>{r['pair']}</td>
+              <td>{r['strategy']}</td>
+              <td>{int(r['trades'] or 0)} · {wr(r):.0f}%</td>
+              <td class="{_money_class(r['pnl'])}">{_fmt_money(r['pnl'])}</td></tr>""")
+
+    return f"""
+  <div class="panel">
+    <h3>Strategie-Performance (realisiert, live) — was zählt</h3>
+    <table>
+      <thead><tr><th>Strategie</th><th>Trades</th><th>Win%</th><th>PF</th><th>PnL</th></tr></thead>
+      <tbody>{''.join(strat_rows)}</tbody>
+    </table>
+  </div>
+  <div class="panel">
+    <h3>Beste / schlechteste Kombinationen (Pair × Strategie, ≥2 Trades)</h3>
+    <table>
+      <thead><tr><th>Platform</th><th>Pair</th><th>Strategie</th>
+        <th>Trades · Win%</th><th>PnL</th></tr></thead>
+      <tbody>{''.join(combo_rows)}</tbody>
+    </table>
+  </div>"""
 
 
 def _render_html(data: dict, days) -> str:
     period = _period_label(days, data["closed"])
     series = _cumulative_series(data["closed"])
     chart = _render_chart(series)
-    status = _render_status()
+    # Live-activity stats for the Bot-Status tile. "Today" is a Berlin-day
+    # filter over the closed trades (tz-correct); signals/vetos come from
+    # the Capital session log (best-effort).
+    now_b = _berlin(datetime.now(timezone.utc))
+    today_d = now_b.date()
+    tc = [c for c in data["closed"]
+          if _berlin(c["exit_time"]) and _berlin(c["exit_time"]).date() == today_d]
+    sig24 = veto24 = None
+    try:
+        with open(os.path.join(_ROOT, "tmp/paper_session.log"),
+                  encoding="utf-8", errors="replace") as f:
+            _txt = f.read().replace("\x00", "")
+        _hbs = re.findall(r"heartbeat: scanned \d+ pairs,[^,]*,\s*(\d+) signals", _txt)
+        if _hbs:
+            sig24 = int(_hbs[-1])
+        veto24 = _txt.count("regime-veto")
+    except OSError:
+        pass
+    stats = {
+        "today_n": len(tc),
+        "today_win": sum(1 for c in tc if float(c["realized_pnl"] or 0) > 0),
+        "today_pnl": sum(float(c["realized_pnl"] or 0) for c in tc),
+        "alltime": sum(float(r["pnl"] or 0) for r in data["alltime"]),
+        "signals_24h": sig24,
+        "vetoes_24h": veto24,
+    }
+    status = _render_status(stats)
     cards = _render_cards(data["summary"], data["alltime"], data["open"], period)
     open_rows = _render_open(data["open"])
     recent_rows = _render_recent(data["recent"])
-    generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    strategy_perf = _render_strategy_perf(
+        data.get("by_strategy", []), data.get("by_combo", []))
+    # Marker for the browser sound-on-close: latest closed trade's id + win.
+    _recent = data.get("recent") or []
+    latest_id = str(_recent[0]["id"]) if _recent else ""
+    latest_win = "1" if (_recent and float(_recent[0]["realized_pnl"] or 0) > 0) else "0"
+    generated = _berlin(datetime.now(timezone.utc)).strftime("%d.%m.%Y %H:%M:%S %Z")
     return f"""<!DOCTYPE html>
 <html lang="de">
 <head>
@@ -459,96 +674,215 @@ def _render_html(data: dict, days) -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hurz Trading Dashboard</title>
 <style>
-  :root {{ color-scheme: light; }}
+  :root {{ color-scheme: dark; }}
   * {{ box-sizing: border-box; }}
   body {{ font-family: -apple-system, system-ui, sans-serif; margin: 0;
-         background: #f4f5f7; color: #1a1d24; }}
-  .wrap {{ max-width: 1000px; margin: 0 auto; padding: 24px 18px 48px; }}
+         background: #0e1116; color: #e6e8eb; }}
+  .wrap {{ max-width: none; margin: 0; padding: 24px 22px 48px; }}
+  /* Main content split: left = chart + strategy panels, right = open
+     positions + recent trades (the live activity), each ~50%. */
+  .maingrid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+               align-items: start; }}
+  .col > .panel:last-child {{ margin-bottom: 0; }}
   header {{ display: flex; align-items: baseline; justify-content: space-between;
-            flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }}
-  h1 {{ font-size: 20px; margin: 0; }}
-  .updated {{ color: #6b7280; font-size: 13px; }}
-  .cards {{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
-            margin-bottom: 20px; }}
-  .card {{ background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+            flex-wrap: wrap; gap: 8px; margin-bottom: 18px;
+            padding-right: 130px; }}  /* clear the fixed sound button top-right */
+  h1 {{ font-size: 20px; margin: 0; color: #f3f4f6; }}
+  .updated {{ color: #8b91a0; font-size: 13px; }}
+  .updated b {{ color: #cfd3db; }}
+  /* Top row: Bot-Status and the Capital card side by side, 50/50 width.
+     CSS `align-items: stretch` provably did NOT equalize these two here
+     (verified with headless Chrome: it left a 20px gap and even caused a
+     feedback loop), so stretch is OFF (flex-start) and equalTop() in JS
+     pins both to the taller one's height on load / refresh / resize. */
+  .toprow {{ display: flex; gap: 14px; align-items: flex-start;
+             margin-bottom: 20px; }}
+  .toprow > * {{ flex: 1 1 0; min-width: 0; }}
+  /* Higher specificity so it beats the later `.panel {{ margin-bottom:20px }}`
+     (equal specificity → source order would otherwise win). The toprow
+     already provides the gap below the row; its children must NOT add
+     their own bottom margin — that was the extra-gap-on-the-left bug. */
+  .toprow > .panel, .toprow > .cards {{ margin-bottom: 0; }}
+  /* flex column so the card FILLS the stretched cell height (a grid cell
+     would leave the card at content-height, shorter than the status panel). */
+  .cards {{ display: flex; flex-direction: column; gap: 14px; }}
+  .cards > .card {{ flex: 1; }}
+  .card {{ background: #171a21; border: 1px solid #262b36; border-radius: 12px;
            padding: 16px 18px; }}
-  .card h2 {{ font-size: 14px; margin: 0 0 6px; color: #374151;
+  .card h2 {{ font-size: 14px; margin: 0 0 6px; color: #aab0bd;
               font-weight: 600; }}
   .big {{ font-size: 28px; font-weight: 700; }}
-  .sub {{ color: #9ca3af; font-size: 12px; margin-bottom: 10px; }}
+  .sub {{ color: #6b7280; font-size: 12px; margin-bottom: 10px; }}
   .row {{ display: flex; justify-content: space-between; font-size: 13px;
-          padding: 3px 0; border-top: 1px solid #f3f4f6; }}
-  .panel {{ background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+          padding: 3px 0; border-top: 1px solid #232833; }}
+  .panel {{ background: #171a21; border: 1px solid #262b36; border-radius: 12px;
             padding: 16px 18px; margin-bottom: 20px; }}
-  .panel h3 {{ font-size: 14px; margin: 0 0 12px; color: #374151; }}
+  .panel h3 {{ font-size: 14px; margin: 0 0 12px; color: #aab0bd; }}
   .chart {{ width: 100%; height: auto; }}
-  .grid {{ stroke: #eef0f2; stroke-width: 1; }}
-  .zero {{ stroke: #9ca3af; stroke-width: 1; stroke-dasharray: 3 3; }}
-  .ylab, .xlab {{ fill: #9ca3af; font-size: 11px; }}
+  .grid {{ stroke: #232833; stroke-width: 1; }}
+  .zero {{ stroke: #4b5563; stroke-width: 1; stroke-dasharray: 3 3; }}
+  .ylab, .xlab {{ fill: #8b91a0; font-size: 11px; }}
   .legend {{ display: flex; gap: 16px; margin-top: 8px; padding-left: 56px; }}
-  .lg {{ font-size: 12px; color: #4b5563; display: flex; align-items: center;
+  .lg {{ font-size: 12px; color: #aab0bd; display: flex; align-items: center;
          gap: 5px; }}
   .lg i {{ width: 11px; height: 11px; border-radius: 2px; display: inline-block; }}
-  .nodata {{ color: #9ca3af; padding: 40px; text-align: center; }}
+  .nodata {{ color: #8b91a0; padding: 40px; text-align: center; }}
   table {{ width: 100%; border-collapse: collapse; font-size: 13px; }}
-  th, td {{ text-align: left; padding: 7px 8px; border-bottom: 1px solid #f3f4f6; }}
-  th {{ color: #6b7280; font-weight: 600; font-size: 12px; }}
-  .pos {{ color: #16a34a; }}
-  .neg {{ color: #dc2626; }}
-  .status .statusrow {{ padding: 8px 0; border-top: 1px solid #f3f4f6; }}
+  th, td {{ text-align: left; padding: 7px 8px; border-bottom: 1px solid #232833; }}
+  th {{ color: #8b91a0; font-weight: 600; font-size: 12px; }}
+  .pos {{ color: #34d399; }}
+  .neg {{ color: #f87171; }}
+  .status .statusrow {{ padding: 8px 0; border-top: 1px solid #232833; }}
   .status .statusrow:first-of-type {{ border-top: none; }}
+  .statrows {{ margin-top: 10px; }}
+  .holnote {{ margin-top: 8px; padding: 7px 11px; border-radius: 7px;
+              background: #2a2410; border: 1px solid #6b5a12;
+              color: #fbbf24; font-size: 12.5px; line-height: 1.45; }}
   .stitle {{ display: flex; align-items: center; gap: 8px; font-size: 14px; }}
   .smeta {{ display: flex; flex-wrap: wrap; gap: 14px; margin-top: 4px;
-            padding-left: 18px; color: #6b7280; font-size: 12px; }}
-  .dim {{ color: #9ca3af; }}
+            padding-left: 18px; color: #8b91a0; font-size: 12px; }}
+  .dim {{ color: #6b7280; }}
   .dot {{ width: 10px; height: 10px; border-radius: 50%; display: inline-block; }}
-  .dot.ok {{ background: #16a34a; }}
+  .dot.ok {{ background: #34d399; }}
   .dot.idle {{ background: #6b7280; }}
-  .dot.warn {{ background: #f59e0b; }}
-  .dot.down {{ background: #dc2626; }}
+  .dot.warn {{ background: #fbbf24; }}
+  .dot.down {{ background: #f87171; }}
   .state {{ font-size: 12px; font-weight: 600; }}
-  .state.ok {{ color: #16a34a; }}
-  .state.idle {{ color: #6b7280; }}
-  .state.warn {{ color: #b45309; }}
-  .state.down {{ color: #dc2626; }}
-  .muted {{ color: #9ca3af; text-align: center; padding: 18px; }}
-  footer {{ color: #9ca3af; font-size: 12px; text-align: center; margin-top: 8px; }}
-  @media (max-width: 640px) {{ .cards {{ grid-template-columns: 1fr; }} }}
+  .state.ok {{ color: #34d399; }}
+  .state.idle {{ color: #9ca3af; }}
+  .state.warn {{ color: #fbbf24; }}
+  .state.down {{ color: #f87171; }}
+  .muted {{ color: #8b91a0; text-align: center; padding: 18px; }}
+  footer {{ color: #6b7280; font-size: 12px; text-align: center; margin-top: 8px; }}
+  #sndbtn {{ position: fixed; top: 12px; right: 12px; z-index: 50;
+             background: #171a21; color: #e6e8eb; border: 1px solid #262b36;
+             border-radius: 8px; padding: 7px 12px; font-size: 13px;
+             cursor: pointer; }}
+  #sndbtn:hover {{ border-color: #3b4252; }}
+  @media (max-width: 900px) {{
+    .toprow {{ flex-direction: column; }}
+    .maingrid {{ grid-template-columns: 1fr; }}
+  }}
 </style>
 </head>
 <body>
-<div class="wrap">
+<button id="sndbtn">🔇 Ton aus</button>
+<div class="wrap" id="wrap">
   <header>
     <h1>📊 Hurz Trading Dashboard</h1>
-    <span class="updated">Aktualisiert: {generated} · Zeitraum: {period}</span>
+    <span class="updated"><b>Stand: {generated}</b> · Zeitraum: {period} · Auto-Update 30s</span>
   </header>
-  <div class="panel status">
-    <h3>Bot-Status</h3>
-    {status}
+  <div class="toprow">
+    <div class="panel status">
+      <h3>Bot-Status</h3>
+      {status}
+    </div>
+    <div class="cards">{cards}</div>
   </div>
-  <div class="cards">{cards}</div>
-  <div class="panel">
-    <h3>Kumulierter realisierter PnL ({period})</h3>
-    {chart}
+  <span id="last-trade" data-id="{latest_id}" data-win="{latest_win}" hidden></span>
+  <div class="maingrid">
+    <div class="col">
+      <div class="panel">
+        <h3>Kumulierter realisierter PnL ({period})</h3>
+        {chart}
+      </div>
+      {strategy_perf}
+    </div>
+    <div class="col">
+      <div class="panel">
+        <h3>Offene Positionen</h3>
+        <table>
+          <thead><tr><th>Platform</th><th>Pair</th><th>Strategie</th>
+            <th>Richtung</th><th>Alter</th><th>Rest</th></tr></thead>
+          <tbody>{open_rows}</tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>Letzte abgeschlossene Trades</h3>
+        <table>
+          <thead><tr><th>Abschluss</th><th>Platform</th><th>Pair</th><th>Strategie</th>
+            <th>Ergebnis</th><th>PnL</th></tr></thead>
+          <tbody>{recent_rows}</tbody>
+        </table>
+      </div>
+    </div>
   </div>
-  <div class="panel">
-    <h3>Offene Positionen</h3>
-    <table>
-      <thead><tr><th>Platform</th><th>Pair</th><th>Strategie</th>
-        <th>Richtung</th><th>Alter</th></tr></thead>
-      <tbody>{open_rows}</tbody>
-    </table>
-  </div>
-  <div class="panel">
-    <h3>Letzte abgeschlossene Trades</h3>
-    <table>
-      <thead><tr><th>Zeit</th><th>Platform</th><th>Pair</th><th>Strategie</th>
-        <th>Ergebnis</th><th>PnL</th></tr></thead>
-      <tbody>{recent_rows}</tbody>
-    </table>
-  </div>
-  <footer>hurz · statisch generiert · stündliche Aktualisierung</footer>
+  <footer>hurz · statisch generiert · Auto-Update alle 30s · Zeiten in Berliner Zeit</footer>
 </div>
+<script>
+  // Sound on trade close: SUCCESS (win) = ascending chime, FAIL (loss) =
+  // low descending tone. Browsers block audio until a user gesture, so the
+  // 🔊 button primes it. Refresh is done via fetch+swap (not full reload)
+  // so the audio context survives — falls back to reload if fetch is
+  // blocked (e.g. file:// URLs).
+  let actx = null;
+  let soundOn = (localStorage.getItem('hurz_sound') === '1');
+  function ensureCtx() {{
+    if (!actx) {{ try {{ actx = new (window.AudioContext || window.webkitAudioContext)(); }} catch (e) {{}} }}
+    if (actx && actx.state === 'suspended') actx.resume();
+  }}
+  function beep(win) {{
+    if (!soundOn) return; ensureCtx(); if (!actx) return;
+    const t0 = actx.currentTime;
+    const seq = win ? [[660, 0.0], [880, 0.14]] : [[300, 0.0], [200, 0.16]];
+    for (const [f, dt] of seq) {{
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      o.connect(g); g.connect(actx.destination);
+      g.gain.setValueAtTime(0.0001, t0 + dt);
+      g.gain.exponentialRampToValueAtTime(0.25, t0 + dt + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dt + 0.18);
+      o.start(t0 + dt); o.stop(t0 + dt + 0.2);
+    }}
+  }}
+  const btn = document.getElementById('sndbtn');
+  function updBtn() {{ btn.textContent = soundOn ? '🔊 Ton an' : '🔇 Ton aus'; }}
+  btn.addEventListener('click', () => {{
+    soundOn = !soundOn; localStorage.setItem('hurz_sound', soundOn ? '1' : '0'); updBtn();
+    if (soundOn) {{ ensureCtx(); beep(true); }}  // gesture unlocks audio + test chime
+  }});
+  updBtn();
+  // Detect a newly-closed trade across updates via its stable id.
+  function checkTrade() {{
+    const el = document.getElementById('last-trade'); if (!el) return;
+    const id = el.dataset.id; if (!id) return;
+    const win = el.dataset.win === '1';
+    const seen = localStorage.getItem('hurz_last_trade');
+    if (seen !== null && seen !== id) beep(win);   // new close since last view
+    localStorage.setItem('hurz_last_trade', id);
+  }}
+  // Equal-height for the two top tiles: CSS stretch didn't work here, so
+  // pin both to the taller one's height (reset first to measure natural).
+  function equalTop() {{
+    const tr = document.querySelector('.toprow'); if (!tr) return;
+    const items = [...tr.children]; if (items.length < 2) return;
+    items.forEach(e => {{ e.style.height = ''; }});
+    const h = Math.max(...items.map(e => e.getBoundingClientRect().height));
+    items.forEach(e => {{ e.style.height = h + 'px'; }});
+  }}
+  checkTrade();
+  equalTop();
+  window.addEventListener('resize', equalTop);
+  // Refresh content every 30s without a full reload (keeps audio alive).
+  async function refresh() {{
+    try {{
+      const r = await fetch(window.location.pathname + '?_=' + Date.now(), {{ cache: 'no-store' }});
+      if (!r.ok) throw 0;
+      const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
+      const nw = doc.getElementById('wrap');
+      if (!nw) throw 0;
+      document.getElementById('wrap').innerHTML = nw.innerHTML;
+      // Keep styles current too, so CSS/layout changes apply without a full reload.
+      const ns = doc.querySelector('style'), os = document.querySelector('style');
+      if (ns && os && ns.textContent !== os.textContent) os.textContent = ns.textContent;
+      checkTrade();
+      equalTop();
+    }} catch (e) {{
+      location.reload();  // fetch blocked (file://) → plain reload
+    }}
+  }}
+  setInterval(refresh, 30000);
+</script>
 </body>
 </html>"""
 

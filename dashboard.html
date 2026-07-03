@@ -5,257 +5,488 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hurz Trading Dashboard</title>
 <style>
-  :root { color-scheme: light; }
+  :root { color-scheme: dark; }
   * { box-sizing: border-box; }
   body { font-family: -apple-system, system-ui, sans-serif; margin: 0;
-         background: #f4f5f7; color: #1a1d24; }
-  .wrap { max-width: 1000px; margin: 0 auto; padding: 24px 18px 48px; }
+         background: #0e1116; color: #e6e8eb; }
+  .wrap { max-width: none; margin: 0; padding: 24px 22px 48px; }
+  /* Main content split: left = chart + strategy panels, right = open
+     positions + recent trades (the live activity), each ~50%. */
+  .maingrid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+               align-items: start; }
+  .col > .panel:last-child { margin-bottom: 0; }
   header { display: flex; align-items: baseline; justify-content: space-between;
-            flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
-  h1 { font-size: 20px; margin: 0; }
-  .updated { color: #6b7280; font-size: 13px; }
-  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
-            margin-bottom: 20px; }
-  .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+            flex-wrap: wrap; gap: 8px; margin-bottom: 18px;
+            padding-right: 130px; }  /* clear the fixed sound button top-right */
+  h1 { font-size: 20px; margin: 0; color: #f3f4f6; }
+  .updated { color: #8b91a0; font-size: 13px; }
+  .updated b { color: #cfd3db; }
+  /* Top row: Bot-Status and the Capital card side by side, 50/50 width.
+     CSS `align-items: stretch` provably did NOT equalize these two here
+     (verified with headless Chrome: it left a 20px gap and even caused a
+     feedback loop), so stretch is OFF (flex-start) and equalTop() in JS
+     pins both to the taller one's height on load / refresh / resize. */
+  .toprow { display: flex; gap: 14px; align-items: flex-start;
+             margin-bottom: 20px; }
+  .toprow > * { flex: 1 1 0; min-width: 0; }
+  /* Higher specificity so it beats the later `.panel { margin-bottom:20px }`
+     (equal specificity → source order would otherwise win). The toprow
+     already provides the gap below the row; its children must NOT add
+     their own bottom margin — that was the extra-gap-on-the-left bug. */
+  .toprow > .panel, .toprow > .cards { margin-bottom: 0; }
+  /* flex column so the card FILLS the stretched cell height (a grid cell
+     would leave the card at content-height, shorter than the status panel). */
+  .cards { display: flex; flex-direction: column; gap: 14px; }
+  .cards > .card { flex: 1; }
+  .card { background: #171a21; border: 1px solid #262b36; border-radius: 12px;
            padding: 16px 18px; }
-  .card h2 { font-size: 14px; margin: 0 0 6px; color: #374151;
+  .card h2 { font-size: 14px; margin: 0 0 6px; color: #aab0bd;
               font-weight: 600; }
   .big { font-size: 28px; font-weight: 700; }
-  .sub { color: #9ca3af; font-size: 12px; margin-bottom: 10px; }
+  .sub { color: #6b7280; font-size: 12px; margin-bottom: 10px; }
   .row { display: flex; justify-content: space-between; font-size: 13px;
-          padding: 3px 0; border-top: 1px solid #f3f4f6; }
-  .panel { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+          padding: 3px 0; border-top: 1px solid #232833; }
+  .panel { background: #171a21; border: 1px solid #262b36; border-radius: 12px;
             padding: 16px 18px; margin-bottom: 20px; }
-  .panel h3 { font-size: 14px; margin: 0 0 12px; color: #374151; }
+  .panel h3 { font-size: 14px; margin: 0 0 12px; color: #aab0bd; }
   .chart { width: 100%; height: auto; }
-  .grid { stroke: #eef0f2; stroke-width: 1; }
-  .zero { stroke: #9ca3af; stroke-width: 1; stroke-dasharray: 3 3; }
-  .ylab, .xlab { fill: #9ca3af; font-size: 11px; }
+  .grid { stroke: #232833; stroke-width: 1; }
+  .zero { stroke: #4b5563; stroke-width: 1; stroke-dasharray: 3 3; }
+  .ylab, .xlab { fill: #8b91a0; font-size: 11px; }
   .legend { display: flex; gap: 16px; margin-top: 8px; padding-left: 56px; }
-  .lg { font-size: 12px; color: #4b5563; display: flex; align-items: center;
+  .lg { font-size: 12px; color: #aab0bd; display: flex; align-items: center;
          gap: 5px; }
   .lg i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
-  .nodata { color: #9ca3af; padding: 40px; text-align: center; }
+  .nodata { color: #8b91a0; padding: 40px; text-align: center; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #f3f4f6; }
-  th { color: #6b7280; font-weight: 600; font-size: 12px; }
-  .pos { color: #16a34a; }
-  .neg { color: #dc2626; }
-  .status .statusrow { padding: 8px 0; border-top: 1px solid #f3f4f6; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #232833; }
+  th { color: #8b91a0; font-weight: 600; font-size: 12px; }
+  .pos { color: #34d399; }
+  .neg { color: #f87171; }
+  .status .statusrow { padding: 8px 0; border-top: 1px solid #232833; }
   .status .statusrow:first-of-type { border-top: none; }
+  .statrows { margin-top: 10px; }
+  .holnote { margin-top: 8px; padding: 7px 11px; border-radius: 7px;
+              background: #2a2410; border: 1px solid #6b5a12;
+              color: #fbbf24; font-size: 12.5px; line-height: 1.45; }
   .stitle { display: flex; align-items: center; gap: 8px; font-size: 14px; }
   .smeta { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 4px;
-            padding-left: 18px; color: #6b7280; font-size: 12px; }
-  .dim { color: #9ca3af; }
+            padding-left: 18px; color: #8b91a0; font-size: 12px; }
+  .dim { color: #6b7280; }
   .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-  .dot.ok { background: #16a34a; }
+  .dot.ok { background: #34d399; }
   .dot.idle { background: #6b7280; }
-  .dot.warn { background: #f59e0b; }
-  .dot.down { background: #dc2626; }
+  .dot.warn { background: #fbbf24; }
+  .dot.down { background: #f87171; }
   .state { font-size: 12px; font-weight: 600; }
-  .state.ok { color: #16a34a; }
-  .state.idle { color: #6b7280; }
-  .state.warn { color: #b45309; }
-  .state.down { color: #dc2626; }
-  .muted { color: #9ca3af; text-align: center; padding: 18px; }
-  footer { color: #9ca3af; font-size: 12px; text-align: center; margin-top: 8px; }
-  @media (max-width: 640px) { .cards { grid-template-columns: 1fr; } }
+  .state.ok { color: #34d399; }
+  .state.idle { color: #9ca3af; }
+  .state.warn { color: #fbbf24; }
+  .state.down { color: #f87171; }
+  .muted { color: #8b91a0; text-align: center; padding: 18px; }
+  footer { color: #6b7280; font-size: 12px; text-align: center; margin-top: 8px; }
+  #sndbtn { position: fixed; top: 12px; right: 12px; z-index: 50;
+             background: #171a21; color: #e6e8eb; border: 1px solid #262b36;
+             border-radius: 8px; padding: 7px 12px; font-size: 13px;
+             cursor: pointer; }
+  #sndbtn:hover { border-color: #3b4252; }
+  @media (max-width: 900px) {
+    .toprow { flex-direction: column; }
+    .maingrid { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
+<button id="sndbtn">🔇 Ton aus</button>
+<div class="wrap" id="wrap">
   <header>
     <h1>📊 Hurz Trading Dashboard</h1>
-    <span class="updated">Aktualisiert: 2026-07-01 06:10 UTC · Zeitraum: seit 2026-05-08 (53 Tage)</span>
+    <span class="updated"><b>Stand: 03.07.2026 08:11:20 CEST</b> · Zeitraum: seit 08.05.2026 (55 Tage) · Auto-Update 30s</span>
   </header>
-  <div class="panel status">
-    <h3>Bot-Status</h3>
-    
+  <div class="toprow">
+    <div class="panel status">
+      <h3>Bot-Status</h3>
+      
         <div class="statusrow">
-          <div class="stitle"><span class="dot ok"></span>
-            <b>Capital.com</b> <span class="state ok">läuft</span></div>
+          <div class="stitle"><span class="dot idle"></span>
+            <b>Capital.com</b> <span class="state idle">pausiert (Feiertag)</span></div>
           <div class="smeta">
-            <span>Letzter Heartbeat: 2026-07-01 06:08:02 <span class="dim">(vor 2 min)</span></span>
-            <span>Letzte Aktivität: 2026-07-01 06:08:02</span>
-            <span>Offen: 0</span>
-            <span>Notional: $1500.00</span>
+            <span>Letzter Heartbeat: 02.07.2026 23:26:31 <span class="dim">(vor 525 min)</span></span>
+            <span>Letzte Aktivität: 03.07.2026 00:00:34</span>
+            <span>Offen: 6</span>
+            <span>Notional: $250.00</span>
             <span>Regime-Filter: router on (trend-follow ADX>=30, mean-rev ADX<=20, else stand aside)</span>
-          </div>
+          </div><div class="holnote">🎌 Feiertag 03.07.2026 — Independence Day (observed): Börse geschlossen, Handel ausgesetzt · nimmt am nächsten Handelstag automatisch wieder auf (offene Positionen bleiben offen).</div>
         </div>
-        <div class="statusrow">
-          <div class="stitle"><span class="dot warn"></span>
-            <b>Kraken Futures</b> <span class="state warn">startet…</span></div>
-          <div class="smeta">
-            <span>Letzter Heartbeat: —</span>
-            <span>Letzte Aktivität: —</span>
-            <span>Offen: —</span>
-            <span>Notional: —</span>
-            <span>Regime-Filter: —</span>
-          </div>
+        <div class="statrows">
+          <div class="row"><span>Trades heute</span><b>0 (0% Gewinn)</b></div>
+          <div class="row"><span>PnL heute</span>
+            <b class="pos">+$0.00</b></div>
+          <div class="row"><span>All-time</span>
+            <b class="neg">−$109.57</b></div>
         </div>
-  </div>
-  <div class="cards">
+    </div>
+    <div class="cards">
         <div class="card">
           <h2>Capital.com</h2>
-          <div class="big neg">−$92.40</div>
-          <div class="sub">realisiert · seit 2026-05-08 (53 Tage)</div>
-          <div class="row"><span>Trades</span><b>124</b></div>
-          <div class="row"><span>Win-Rate</span><b>42%</b></div>
-          <div class="row"><span>Offen</span><b>0</b></div>
+          <div class="big neg">−$109.57</div>
+          <div class="sub">realisiert · seit 08.05.2026 (55 Tage)</div>
+          <div class="row"><span>Trades</span><b>151</b></div>
+          <div class="row"><span>Win-Rate</span><b>40%</b></div>
+          <div class="row"><span>Offen</span><b>6</b></div>
           <div class="row"><span>All-time</span>
-            <b class="neg">−$92.40</b></div>
-        </div>
-        <div class="card">
-          <h2>Kraken Futures</h2>
-          <div class="big neg">−$9.01</div>
-          <div class="sub">realisiert · seit 2026-05-08 (53 Tage)</div>
-          <div class="row"><span>Trades</span><b>16</b></div>
-          <div class="row"><span>Win-Rate</span><b>31%</b></div>
-          <div class="row"><span>Offen</span><b>3</b></div>
-          <div class="row"><span>All-time</span>
-            <b class="neg">−$9.01</b></div>
+            <b class="neg">−$109.57</b></div>
         </div></div>
+  </div>
+  <span id="last-trade" data-id="318" data-win="0" hidden></span>
+  <div class="maingrid">
+    <div class="col">
+      <div class="panel">
+        <h3>Kumulierter realisierter PnL (seit 08.05.2026 (55 Tage))</h3>
+        <svg viewBox="0 0 920 340" preserveAspectRatio="xMidYMid meet" class="chart"><line x1="56" y1="312.0" x2="904" y2="312.0" class="grid"/><text x="48" y="316.0" class="ylab" text-anchor="end">−$138.90</text><line x1="56" y1="241.0" x2="904" y2="241.0" class="grid"/><text x="48" y="245.0" class="ylab" text-anchor="end">−$56.07</text><line x1="56" y1="170.0" x2="904" y2="170.0" class="grid"/><text x="48" y="174.0" class="ylab" text-anchor="end">+$26.75</text><line x1="56" y1="99.0" x2="904" y2="99.0" class="grid"/><text x="48" y="103.0" class="ylab" text-anchor="end">+$109.57</text><line x1="56" y1="28.0" x2="904" y2="28.0" class="grid"/><text x="48" y="32.0" class="ylab" text-anchor="end">+$192.39</text><line x1="56" y1="192.9" x2="904" y2="192.9" class="zero"/><text x="56.0" y="332" class="xlab" text-anchor="middle">08.05.</text><text x="268.0" y="332" class="xlab" text-anchor="middle">22.05.</text><text x="480.0" y="332" class="xlab" text-anchor="middle">05.06.</text><text x="692.0" y="332" class="xlab" text-anchor="middle">19.06.</text><text x="904.0" y="332" class="xlab" text-anchor="middle">02.07.</text><polyline points="56.0,192.9 56.0,192.9 56.6,192.9 57.3,192.9 58.6,192.9 59.2,192.9 73.3,192.9 73.3,192.9 82.3,193.3 87.4,193.3 113.0,161.9 131.4,182.8 133.4,151.8 162.4,153.1 240.6,134.0 253.1,127.2 254.7,131.2 257.2,124.5 257.4,129.0 267.5,122.3 273.7,127.4 273.9,131.9 274.2,125.2 282.1,129.7 282.1,122.8 285.4,116.1 285.4,120.6 306.3,125.2 306.6,129.7 309.1,123.0 314.9,123.0 329.6,116.2 332.4,120.7 332.6,125.3 333.1,118.4 334.5,123.1 344.0,116.4 347.2,109.6 352.5,114.5 352.6,120.8 356.1,114.0 356.1,118.5 356.6,123.0 364.2,116.3 378.3,110.3 378.6,119.4 379.0,105.9 381.5,115.3 416.8,102.3 420.0,90.8 423.2,99.8 423.8,108.8 425.8,117.8 436.8,127.4 439.9,113.9 444.3,123.0 449.5,132.7 461.4,119.2 461.6,105.7 481.5,115.7 489.1,95.1 489.8,96.5 489.9,112.7 512.9,99.2 522.1,108.2 547.9,74.4 565.2,98.8 590.4,97.8 590.4,99.6 590.4,98.6 590.4,68.5 609.0,59.7 624.4,82.2 628.9,48.5 628.9,71.0 629.5,93.5 629.5,59.7 637.8,82.5 638.1,47.6 639.2,70.3 639.8,92.8 640.9,115.6 642.4,113.3 644.3,112.7 644.3,110.1 659.7,107.3 660.3,108.9 662.9,105.0 667.1,118.5 669.5,132.1 670.5,131.0 670.5,144.5 674.1,144.9 674.2,158.6 677.0,165.9 677.6,155.7 677.6,171.7 687.0,188.0 687.1,201.6 687.2,215.1 687.2,194.8 689.1,201.6 689.8,181.4 717.2,195.3 732.1,186.4 736.6,186.4 736.6,187.6 736.6,201.1 739.3,180.8 745.5,194.3 748.6,174.0 751.9,170.5 753.9,173.7 757.8,187.2 758.3,200.7 759.1,214.3 759.2,194.1 764.7,207.6 776.8,221.5 802.4,245.4 813.3,264.2 845.8,278.9 854.9,292.4 879.2,272.1 888.4,268.8 890.7,283.9 890.8,286.5 891.6,288.7 891.6,285.3 891.6,281.9 891.6,284.8 892.0,287.8 892.3,284.4 893.6,281.0 893.6,276.7 894.6,279.0 896.1,275.6 899.3,277.9 899.3,278.4 900.0,280.6 900.3,282.9 900.6,269.2 900.6,271.5 901.0,273.9 901.0,276.2 901.0,278.6 901.0,280.9 901.1,283.2 901.3,285.5 901.9,284.6 904.0,286.9" fill="none" stroke="#2563eb" stroke-width="2"/></svg><div class="legend"><span class="lg"><i style="background:#2563eb"></i>Capital.com</span></div>
+      </div>
+      
   <div class="panel">
-    <h3>Kumulierter realisierter PnL (seit 2026-05-08 (53 Tage))</h3>
-    <svg viewBox="0 0 920 340" preserveAspectRatio="xMidYMid meet" class="chart"><line x1="56" y1="312.0" x2="904" y2="312.0" class="grid"/><text x="48" y="316.0" class="ylab" text-anchor="end">−$148.62</text><line x1="56" y1="241.0" x2="904" y2="241.0" class="grid"/><text x="48" y="245.0" class="ylab" text-anchor="end">−$63.19</text><line x1="56" y1="170.0" x2="904" y2="170.0" class="grid"/><text x="48" y="174.0" class="ylab" text-anchor="end">+$22.25</text><line x1="56" y1="99.0" x2="904" y2="99.0" class="grid"/><text x="48" y="103.0" class="ylab" text-anchor="end">+$107.68</text><line x1="56" y1="28.0" x2="904" y2="28.0" class="grid"/><text x="48" y="32.0" class="ylab" text-anchor="end">+$193.11</text><line x1="56" y1="188.5" x2="904" y2="188.5" class="zero"/><text x="56.0" y="332" class="xlab" text-anchor="middle">05-08</text><text x="268.0" y="332" class="xlab" text-anchor="middle">05-22</text><text x="480.0" y="332" class="xlab" text-anchor="middle">06-04</text><text x="692.0" y="332" class="xlab" text-anchor="middle">06-17</text><text x="904.0" y="332" class="xlab" text-anchor="middle">07-01</text><polyline points="56.0,188.5 56.0,188.5 56.7,188.5 57.3,188.5 58.6,188.5 59.3,188.5 73.8,188.5 73.8,188.5 83.1,188.8 88.3,188.8 114.8,158.4 133.7,178.6 135.8,148.6 165.6,149.9 246.1,131.3 259.0,124.8 260.6,128.7 263.3,122.1 263.5,126.5 273.8,120.0 280.3,125.0 280.4,129.4 280.8,122.8 288.9,127.2 288.9,120.5 292.3,114.0 292.3,118.4 313.9,122.9 314.1,127.2 316.7,120.7 322.7,120.7 337.9,114.1 340.8,118.5 340.9,122.9 341.4,116.3 342.8,120.8 352.7,114.3 356.0,107.7 361.4,112.4 361.6,118.5 365.1,111.9 365.1,116.3 365.6,120.7 373.5,114.2 388.0,108.4 388.3,117.2 388.7,104.1 391.3,113.2 427.6,100.6 430.9,89.5 434.3,98.2 434.9,106.9 436.9,115.6 448.3,125.0 451.5,111.9 455.9,120.7 461.3,130.1 473.6,117.0 473.9,103.9 494.3,113.6 502.2,93.7 502.9,95.0 503.0,110.7 526.7,97.6 536.2,106.4 562.7,73.6 580.5,97.2 606.5,96.3 606.5,98.0 606.5,97.0 606.5,67.9 625.7,59.4 641.5,81.2 646.1,48.5 646.1,70.3 646.8,92.1 646.8,59.4 655.3,81.4 655.7,47.6 656.8,69.6 657.4,91.4 658.5,113.6 660.0,111.3 662.0,110.7 662.0,108.2 677.8,105.5 678.5,107.0 681.1,103.3 685.5,116.4 688.0,129.5 689.1,128.5 689.1,141.5 692.7,142.0 692.8,155.2 695.7,162.3 696.3,152.4 696.3,167.9 706.0,183.7 706.1,196.8 706.2,209.9 706.2,190.3 708.2,196.9 708.9,177.3 737.1,190.8 752.4,182.2 757.1,182.1 757.1,183.3 757.1,196.4 759.9,176.7 766.3,189.8 769.5,170.1 772.9,166.7 774.9,169.8 778.9,182.9 779.5,196.0 780.3,209.2 780.3,189.6 786.0,202.7 798.5,216.1 824.9,239.3 836.1,257.6 869.6,271.8 879.0,284.9 904.0,265.3" fill="none" stroke="#2563eb" stroke-width="2"/><polyline points="176.8,188.7 178.6,189.3 178.6,189.5 178.6,189.5 557.0,200.5 557.0,202.0 557.0,202.1 557.0,204.2 557.0,204.3 582.8,207.5 582.8,211.2 596.0,206.0 642.8,204.7 701.5,202.4 701.5,199.6 701.5,196.0" fill="none" stroke="#f59e0b" stroke-width="2"/><polyline points="56.0,188.5 56.0,188.5 56.7,188.5 57.3,188.5 58.6,188.5 59.3,188.5 73.8,188.5 73.8,188.5 83.1,188.8 88.3,188.8 114.8,158.4 133.7,178.6 135.8,148.6 165.6,149.9 176.8,150.1 178.6,150.7 178.6,150.9 178.6,150.9 246.1,132.3 259.0,125.8 260.6,129.7 263.3,123.1 263.5,127.5 273.8,121.0 280.3,126.0 280.4,130.4 280.8,123.8 288.9,128.2 288.9,121.5 292.3,115.0 292.3,119.3 313.9,123.8 314.1,128.2 316.7,121.7 322.7,121.7 337.9,115.1 340.8,119.5 340.9,123.9 341.4,117.3 342.8,121.8 352.7,115.2 356.0,108.7 361.4,113.4 361.6,119.5 365.1,112.9 365.1,117.3 365.6,121.7 373.5,115.2 388.0,109.4 388.3,118.2 388.7,105.1 391.3,114.2 427.6,101.6 430.9,90.4 434.3,99.2 434.9,107.9 436.9,116.6 448.3,126.0 451.5,112.9 455.9,121.7 461.3,131.1 473.6,118.0 473.9,104.9 494.3,114.6 502.2,94.7 502.9,96.0 503.0,111.7 526.7,98.6 536.2,107.4 557.0,118.4 557.0,119.9 557.0,120.0 557.0,122.1 557.0,122.1 562.7,89.4 580.5,113.0 582.8,116.2 582.8,119.9 596.0,114.8 606.5,113.8 606.5,115.6 606.5,114.6 606.5,85.4 625.7,76.9 641.5,98.7 642.8,97.4 646.1,64.7 646.1,86.5 646.8,108.3 646.8,75.6 655.3,97.7 655.7,63.8 656.8,85.8 657.4,107.7 658.5,129.8 660.0,127.5 662.0,127.0 662.0,124.4 677.8,121.7 678.5,123.3 681.1,119.5 685.5,132.6 688.0,145.7 689.1,144.7 689.1,157.8 692.7,158.2 692.8,171.5 695.7,178.5 696.3,168.6 696.3,184.1 701.5,181.8 701.5,179.0 701.5,175.4 706.0,191.2 706.1,204.3 706.2,217.4 706.2,197.8 708.2,204.4 708.9,184.8 737.1,198.3 752.4,189.6 757.1,189.6 757.1,190.8 757.1,203.9 759.9,184.2 766.3,197.3 769.5,177.6 772.9,174.2 774.9,177.3 778.9,190.4 779.5,203.5 780.3,216.7 780.3,197.1 786.0,210.2 798.5,223.6 824.9,246.8 836.1,265.1 869.6,279.3 879.0,292.4 904.0,272.8" fill="none" stroke="#16a34a" stroke-width="2"/></svg><div class="legend"><span class="lg"><i style="background:#2563eb"></i>Capital.com</span><span class="lg"><i style="background:#f59e0b"></i>Kraken Futures</span><span class="lg"><i style="background:#16a34a"></i>Total</span></div>
+    <h3>Strategie-Performance (realisiert, live) — was zählt</h3>
+    <table>
+      <thead><tr><th>Strategie</th><th>Trades</th><th>Win%</th><th>PF</th><th>PnL</th></tr></thead>
+      <tbody><tr>
+          <td>donchian_breakout</td>
+          <td>38</td>
+          <td>45%</td>
+          <td>1.27</td>
+          <td class="pos">+$71.50</td></tr><tr>
+          <td>momentum</td>
+          <td>3</td>
+          <td>67%</td>
+          <td>2.99</td>
+          <td class="pos">+$48.43</td></tr><tr>
+          <td>multi_consensus</td>
+          <td>1</td>
+          <td>0%</td>
+          <td>0.00</td>
+          <td class="neg">−$15.78</td></tr><tr>
+          <td>rsi_mr</td>
+          <td>9</td>
+          <td>22%</td>
+          <td>0.02</td>
+          <td class="neg">−$54.94</td></tr><tr>
+          <td>stochastic_mr</td>
+          <td>24</td>
+          <td>33%</td>
+          <td>0.26</td>
+          <td class="neg">−$65.72</td></tr><tr>
+          <td>bollinger_rev</td>
+          <td>76</td>
+          <td>42%</td>
+          <td>0.78</td>
+          <td class="neg">−$93.05</td></tr></tbody>
+    </table>
   </div>
   <div class="panel">
-    <h3>Offene Positionen</h3>
+    <h3>Beste / schlechteste Kombinationen (Pair × Strategie, ≥2 Trades)</h3>
     <table>
       <thead><tr><th>Platform</th><th>Pair</th><th>Strategie</th>
-        <th>Richtung</th><th>Alter</th></tr></thead>
+        <th>Trades · Win%</th><th>PnL</th></tr></thead>
       <tbody><tr>
-          <td>Kraken Futures</td>
-          <td>DOGEUSD</td>
+              <td>Capital.com</td>
+              <td>BTCUSD</td>
+              <td>donchian_breakout</td>
+              <td>27 · 48%</td>
+              <td class="pos">+$61.28</td></tr><tr>
+              <td>Capital.com</td>
+              <td>ETHUSD</td>
+              <td>momentum</td>
+              <td>3 · 67%</td>
+              <td class="pos">+$48.43</td></tr><tr>
+              <td>Capital.com</td>
+              <td>EURUSD</td>
+              <td>stochastic_mr</td>
+              <td>4 · 75%</td>
+              <td class="pos">+$17.91</td></tr><tr>
+              <td>Capital.com</td>
+              <td>ETHUSD</td>
+              <td>donchian_breakout</td>
+              <td>9 · 44%</td>
+              <td class="pos">+$15.54</td></tr><tr>
+              <td>Capital.com</td>
+              <td>DOTUSD</td>
+              <td>bollinger_rev</td>
+              <td>5 · 80%</td>
+              <td class="pos">+$13.12</td></tr><tr>
+              <td>Capital.com</td>
+              <td>GBPUSD</td>
+              <td>rsi_mr</td>
+              <td>2 · 50%</td>
+              <td class="pos">+$1.16</td></tr><tr>
+              <td>Capital.com</td>
+              <td>LTCUSD</td>
+              <td>bollinger_rev</td>
+              <td>2 · 50%</td>
+              <td class="pos">+$0.98</td></tr><tr>
+              <td>Capital.com</td>
+              <td>ADAUSD</td>
+              <td>rsi_mr</td>
+              <td>2 · 50%</td>
+              <td class="pos">+$0.00</td></tr><tr>
+              <td>Capital.com</td>
+              <td>BTCUSD</td>
+              <td>bollinger_rev</td>
+              <td>5 · 20%</td>
+              <td class="neg">−$29.35</td></tr><tr>
+              <td>Capital.com</td>
+              <td>ETHUSD</td>
+              <td>stochastic_mr</td>
+              <td>2 · 0%</td>
+              <td class="neg">−$42.40</td></tr><tr>
+              <td>Capital.com</td>
+              <td>ETHUSD</td>
+              <td>rsi_mr</td>
+              <td>3 · 0%</td>
+              <td class="neg">−$50.62</td></tr><tr>
+              <td>Capital.com</td>
+              <td>ETHUSD</td>
+              <td>bollinger_rev</td>
+              <td>42 · 43%</td>
+              <td class="neg">−$52.37</td></tr></tbody>
+    </table>
+  </div>
+    </div>
+    <div class="col">
+      <div class="panel">
+        <h3>Offene Positionen</h3>
+        <table>
+          <thead><tr><th>Platform</th><th>Pair</th><th>Strategie</th>
+            <th>Richtung</th><th>Alter</th><th>Rest</th></tr></thead>
+          <tbody><tr>
+          <td>Capital.com</td>
+          <td>AUDJPY</td>
           <td>stochastic_mr</td>
-          <td class="pos">Long</td>
-          <td>310.7h</td></tr><tr>
-          <td>Kraken Futures</td>
+          <td>Long</td>
+          <td>30.6h</td>
+          <td><b><span class="neg">überfällig</span></b></td></tr><tr>
+          <td>Capital.com</td>
+          <td>CHFJPY</td>
+          <td>rsi_mr</td>
+          <td>Short</td>
+          <td>28.2h</td>
+          <td><b><span class="neg">überfällig</span></b></td></tr><tr>
+          <td>Capital.com</td>
+          <td>DOTUSD</td>
+          <td>rsi_mr</td>
+          <td>Short</td>
+          <td>16.8h</td>
+          <td><b>7h 15m</b></td></tr><tr>
+          <td>Capital.com</td>
+          <td>DE40</td>
+          <td>bollinger_rev</td>
+          <td>Short</td>
+          <td>16.6h</td>
+          <td><b>7h 25m</b></td></tr><tr>
+          <td>Capital.com</td>
           <td>LTCUSD</td>
-          <td>stochastic_mr</td>
-          <td class="pos">Long</td>
-          <td>310.7h</td></tr><tr>
-          <td>Kraken Futures</td>
-          <td>AVAXUSD</td>
-          <td>stochastic_mr</td>
-          <td class="pos">Long</td>
-          <td>310.7h</td></tr></tbody>
-    </table>
-  </div>
-  <div class="panel">
-    <h3>Letzte abgeschlossene Trades</h3>
-    <table>
-      <thead><tr><th>Zeit</th><th>Platform</th><th>Pair</th><th>Strategie</th>
-        <th>Ergebnis</th><th>PnL</th></tr></thead>
-      <tbody><tr>
-          <td>07-01 03:36</td>
-          <td>Capital.com</td>
-          <td>ETHUSD</td>
           <td>bollinger_rev</td>
-          <td>win</td>
-          <td class="pos">+$23.65</td>
-        </tr><tr>
-          <td>06-29 13:39</td>
+          <td>Short</td>
+          <td>16.6h</td>
+          <td><b>7h 26m</b></td></tr><tr>
           <td>Capital.com</td>
-          <td>BTCUSD</td>
-          <td>donchian_breakout</td>
-          <td>loss</td>
-          <td class="neg">−$15.82</td>
-        </tr><tr>
-          <td>06-28 23:29</td>
-          <td>Capital.com</td>
-          <td>ETHUSD</td>
-          <td>donchian_breakout</td>
-          <td>loss</td>
-          <td class="neg">−$17.03</td>
-        </tr><tr>
-          <td>06-26 20:45</td>
-          <td>Capital.com</td>
-          <td>ETHUSD</td>
-          <td>donchian_breakout</td>
-          <td>loss</td>
-          <td class="neg">−$22.01</td>
-        </tr><tr>
-          <td>06-26 03:47</td>
-          <td>Capital.com</td>
-          <td>ETHUSD</td>
-          <td>donchian_breakout</td>
-          <td>loss</td>
-          <td class="neg">−$27.91</td>
-        </tr><tr>
-          <td>06-24 11:49</td>
-          <td>Capital.com</td>
-          <td>ETHUSD</td>
-          <td>stochastic_mr</td>
-          <td>loss</td>
-          <td class="neg">−$16.15</td>
-        </tr><tr>
-          <td>06-23 16:51</td>
-          <td>Capital.com</td>
-          <td>AUDUSD</td>
-          <td>stochastic_mr</td>
-          <td>loss</td>
-          <td class="neg">−$15.81</td>
-        </tr><tr>
-          <td>06-23 08:17</td>
-          <td>Capital.com</td>
-          <td>ETHUSD</td>
-          <td>donchian_breakout</td>
-          <td>win</td>
-          <td class="pos">+$23.66</td>
-        </tr><tr>
-          <td>06-23 08:13</td>
-          <td>Capital.com</td>
-          <td>ETHUSD</td>
+          <td>US500</td>
           <td>bollinger_rev</td>
-          <td>loss</td>
-          <td class="neg">−$15.90</td>
-        </tr><tr>
-          <td>06-23 07:00</td>
+          <td>Long</td>
+          <td>13.8h</td>
+          <td><b>10h 14m</b></td></tr></tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <h3>Letzte abgeschlossene Trades</h3>
+        <table>
+          <thead><tr><th>Abschluss</th><th>Platform</th><th>Pair</th><th>Strategie</th>
+            <th>Ergebnis</th><th>PnL</th></tr></thead>
+          <tbody><tr>
+          <td>02.07. 20:17</td>
           <td>Capital.com</td>
-          <td>ETHUSD</td>
+          <td>OIL_BRENT</td>
+          <td>donchian_breakout</td>
+          <td>loss</td>
+          <td class="neg">−$2.66</td>
+        </tr><tr>
+          <td>02.07. 17:00</td>
+          <td>Capital.com</td>
+          <td>US500</td>
           <td>bollinger_rev</td>
-          <td>loss</td>
-          <td class="neg">−$15.75</td>
-        </tr><tr>
-          <td>06-23 06:08</td>
-          <td>Capital.com</td>
-          <td>DOGEUSD</td>
-          <td>multi_consensus</td>
-          <td>loss</td>
-          <td class="neg">−$15.78</td>
-        </tr><tr>
-          <td>06-23 00:00</td>
-          <td>Capital.com</td>
-          <td>AUDUSD</td>
-          <td>stochastic_mr</td>
           <td>manual</td>
-          <td class="neg">−$3.76</td>
+          <td class="pos">+$1.03</td>
         </tr><tr>
-          <td>06-22 21:00</td>
+          <td>02.07. 16:01</td>
           <td>Capital.com</td>
-          <td>EURUSD</td>
-          <td>stochastic_mr</td>
-          <td>manual</td>
-          <td class="pos">+$4.11</td>
-        </tr><tr>
-          <td>06-22 15:49</td>
-          <td>Capital.com</td>
-          <td>ETHUSD</td>
-          <td>bollinger_rev</td>
-          <td>win</td>
-          <td class="pos">+$23.69</td>
-        </tr><tr>
-          <td>06-22 11:00</td>
-          <td>Capital.com</td>
-          <td>ETHUSD</td>
+          <td>DOTUSD</td>
           <td>bollinger_rev</td>
           <td>loss</td>
-          <td class="neg">−$15.75</td>
+          <td class="neg">−$2.63</td>
+        </tr><tr>
+          <td>02.07. 15:43</td>
+          <td>Capital.com</td>
+          <td>FR40</td>
+          <td>bollinger_rev</td>
+          <td>loss</td>
+          <td class="neg">−$2.66</td>
+        </tr><tr>
+          <td>02.07. 15:36</td>
+          <td>Capital.com</td>
+          <td>UK100</td>
+          <td>bollinger_rev</td>
+          <td>loss</td>
+          <td class="neg">−$2.70</td>
+        </tr><tr>
+          <td>02.07. 15:36</td>
+          <td>Capital.com</td>
+          <td>SILVER</td>
+          <td>stochastic_mr</td>
+          <td>loss</td>
+          <td class="neg">−$2.77</td>
+        </tr><tr>
+          <td>02.07. 15:35</td>
+          <td>Capital.com</td>
+          <td>DE40</td>
+          <td>rsi_mr</td>
+          <td>loss</td>
+          <td class="neg">−$2.79</td>
+        </tr><tr>
+          <td>02.07. 15:35</td>
+          <td>Capital.com</td>
+          <td>DE40</td>
+          <td>bollinger_rev</td>
+          <td>loss</td>
+          <td class="neg">−$2.79</td>
+        </tr><tr>
+          <td>02.07. 15:00</td>
+          <td>Capital.com</td>
+          <td>GBPUSD</td>
+          <td>bollinger_rev</td>
+          <td>manual</td>
+          <td class="pos">+$16.00</td>
+        </tr><tr>
+          <td>02.07. 15:00</td>
+          <td>Capital.com</td>
+          <td>DOTUSD</td>
+          <td>stochastic_mr</td>
+          <td>loss</td>
+          <td class="neg">−$2.62</td>
+        </tr><tr>
+          <td>02.07. 14:30</td>
+          <td>Capital.com</td>
+          <td>US100</td>
+          <td>donchian_breakout</td>
+          <td>loss</td>
+          <td class="neg">−$2.67</td>
+        </tr><tr>
+          <td>02.07. 14:00</td>
+          <td>Capital.com</td>
+          <td>SILVER</td>
+          <td>stochastic_mr</td>
+          <td>loss</td>
+          <td class="neg">−$2.62</td>
+        </tr><tr>
+          <td>02.07. 13:00</td>
+          <td>Capital.com</td>
+          <td>USDCHF</td>
+          <td>bollinger_rev</td>
+          <td>manual</td>
+          <td class="neg">−$0.57</td>
+        </tr><tr>
+          <td>02.07. 12:58</td>
+          <td>Capital.com</td>
+          <td>DE40</td>
+          <td>stochastic_mr</td>
+          <td>loss</td>
+          <td class="neg">−$2.63</td>
+        </tr><tr>
+          <td>02.07. 08:00</td>
+          <td>Capital.com</td>
+          <td>DOTUSD</td>
+          <td>bollinger_rev</td>
+          <td>win</td>
+          <td class="pos">+$3.94</td>
         </tr></tbody>
-    </table>
+        </table>
+      </div>
+    </div>
   </div>
-  <footer>hurz · statisch generiert · stündliche Aktualisierung</footer>
+  <footer>hurz · statisch generiert · Auto-Update alle 30s · Zeiten in Berliner Zeit</footer>
 </div>
+<script>
+  // Sound on trade close: SUCCESS (win) = ascending chime, FAIL (loss) =
+  // low descending tone. Browsers block audio until a user gesture, so the
+  // 🔊 button primes it. Refresh is done via fetch+swap (not full reload)
+  // so the audio context survives — falls back to reload if fetch is
+  // blocked (e.g. file:// URLs).
+  let actx = null;
+  let soundOn = (localStorage.getItem('hurz_sound') === '1');
+  function ensureCtx() {
+    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    if (actx && actx.state === 'suspended') actx.resume();
+  }
+  function beep(win) {
+    if (!soundOn) return; ensureCtx(); if (!actx) return;
+    const t0 = actx.currentTime;
+    const seq = win ? [[660, 0.0], [880, 0.14]] : [[300, 0.0], [200, 0.16]];
+    for (const [f, dt] of seq) {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      o.connect(g); g.connect(actx.destination);
+      g.gain.setValueAtTime(0.0001, t0 + dt);
+      g.gain.exponentialRampToValueAtTime(0.25, t0 + dt + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dt + 0.18);
+      o.start(t0 + dt); o.stop(t0 + dt + 0.2);
+    }
+  }
+  const btn = document.getElementById('sndbtn');
+  function updBtn() { btn.textContent = soundOn ? '🔊 Ton an' : '🔇 Ton aus'; }
+  btn.addEventListener('click', () => {
+    soundOn = !soundOn; localStorage.setItem('hurz_sound', soundOn ? '1' : '0'); updBtn();
+    if (soundOn) { ensureCtx(); beep(true); }  // gesture unlocks audio + test chime
+  });
+  updBtn();
+  // Detect a newly-closed trade across updates via its stable id.
+  function checkTrade() {
+    const el = document.getElementById('last-trade'); if (!el) return;
+    const id = el.dataset.id; if (!id) return;
+    const win = el.dataset.win === '1';
+    const seen = localStorage.getItem('hurz_last_trade');
+    if (seen !== null && seen !== id) beep(win);   // new close since last view
+    localStorage.setItem('hurz_last_trade', id);
+  }
+  // Equal-height for the two top tiles: CSS stretch didn't work here, so
+  // pin both to the taller one's height (reset first to measure natural).
+  function equalTop() {
+    const tr = document.querySelector('.toprow'); if (!tr) return;
+    const items = [...tr.children]; if (items.length < 2) return;
+    items.forEach(e => { e.style.height = ''; });
+    const h = Math.max(...items.map(e => e.getBoundingClientRect().height));
+    items.forEach(e => { e.style.height = h + 'px'; });
+  }
+  checkTrade();
+  equalTop();
+  window.addEventListener('resize', equalTop);
+  // Refresh content every 30s without a full reload (keeps audio alive).
+  async function refresh() {
+    try {
+      const r = await fetch(window.location.pathname + '?_=' + Date.now(), { cache: 'no-store' });
+      if (!r.ok) throw 0;
+      const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
+      const nw = doc.getElementById('wrap');
+      if (!nw) throw 0;
+      document.getElementById('wrap').innerHTML = nw.innerHTML;
+      // Keep styles current too, so CSS/layout changes apply without a full reload.
+      const ns = doc.querySelector('style'), os = document.querySelector('style');
+      if (ns && os && ns.textContent !== os.textContent) os.textContent = ns.textContent;
+      checkTrade();
+      equalTop();
+    } catch (e) {
+      location.reload();  // fetch blocked (file://) → plain reload
+    }
+  }
+  setInterval(refresh, 30000);
+</script>
 </body>
 </html>

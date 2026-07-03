@@ -96,10 +96,16 @@ async def _refresh_pairs(top_n: int, min_trades: int, platform: Optional[str] = 
         # streak. 0.5 keeps the regime-overfit guard active but admits
         # combos with one weak segment — useful for active strategies
         # like donchian_breakout that depend on a regime persisting.
-        "--min-stability", "0.5",
-        # Hard allow-list: only trend-following may be selected. The
-        # selector ranks across all persisted results (incl. stale MR
-        # ones), so this is required — not just the nightly backtest list.
+        # DATA-GENERATION MODE (2026-07-01): relaxed selection filters so
+        # we cast a WIDE net and let FORWARD (live) results decide the
+        # winners — backtest stats proved non-predictive, so we no longer
+        # pre-filter hard on them. The regime router still gates every
+        # trade to its regime, so "wide" ≠ "reckless". Narrow these back
+        # down once forward data identifies the profitable combos.
+        "--min-pf", "0.8",       # was 1.0 — allow marginal backtest edge
+        "--min-er", "-0.2",      # was 0.0 — allow slightly-negative IS
+        "--min-stability", "0",  # was 0.5 — IS stability is not predictive
+        # Allow-list = both style classes; the router routes each by ADX.
         "--strategies", ",".join(_NIGHTLY_STRATEGIES),
     ]
     if platform:
@@ -118,7 +124,7 @@ async def nightly_spot_scheduler(
     stop_event: asyncio.Event, *,
     platform: str,
     strategies: Optional[List[str]] = None,
-    top_n: int = 8,
+    top_n: int = 40,
 ) -> None:
     """Long-running task. Sleeps until next 05:30 UTC, then runs the
     refresh, then sleeps another day. Cancelable via `stop_event`."""

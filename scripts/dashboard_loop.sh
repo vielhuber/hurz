@@ -19,7 +19,9 @@ mkdir -p tmp
 PID_FILE="tmp/dashboard_loop.pid"
 LOG_FILE="tmp/dashboard_loop.log"
 DAYS="${DASHBOARD_DAYS:-all}"
-INTERVAL="${DASHBOARD_INTERVAL:-300}"
+# 30s to match the page's 30s auto-reload — the DB aggregates are cheap,
+# so regenerating this often keeps the reloaded page genuinely current.
+INTERVAL="${DASHBOARD_INTERVAL:-30}"
 
 cmd="${1:-start}"
 
