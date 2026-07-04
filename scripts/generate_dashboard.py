@@ -22,6 +22,20 @@ from datetime import datetime, timedelta, timezone
 import mysql.connector
 from dotenv import load_dotenv
 
+# Same calendars as app/utils/holiday_window.py — the dashboard must agree
+# with the bot's own guard about what counts as a bank holiday.
+try:
+    import holidays as _holidays
+
+    _HOLIDAY_CALENDARS = {
+        "DE": _holidays.country_holidays("DE"),
+        "US": _holidays.country_holidays("US"),
+        "GB": _holidays.country_holidays("GB"),
+        "CH": _holidays.country_holidays("CH", subdiv="ZH"),
+    }
+except ImportError:
+    _HOLIDAY_CALENDARS = {}
+
 # All timestamps in the dashboard are shown in German local time
 # (Europe/Berlin, DST-aware). DB and log timestamps are stored as UTC;
 # _berlin() converts them for display. Falls back to UTC if the tz db
@@ -472,17 +486,24 @@ def _bot_status(label: str, pid_file: str, log_file: str) -> dict:
         m = _RE_REGIME.search(line)
         if m:
             regime = m.group(1)
-    # Only flag holiday when a marker for TODAY is present (the bot logs
-    # "BANK HOLIDAY <date> — <name> — trading suspended."); past holidays
-    # must not stick. Capture the holiday name for the frontend note.
-    holiday_line = next((ln for ln in reversed(lines)
-                         if f"BANK HOLIDAY {today}" in ln), None)
-    holiday = holiday_line is not None
-    holiday_name = None
-    if holiday_line is not None:
-        hm = re.search(rf"BANK HOLIDAY {re.escape(today)}\s*[—–-]+\s*(.+?)\s*[—–-]+",
-                       holiday_line)
-        holiday_name = hm.group(1).strip() if hm else None
+    # Ask the holiday calendars directly (same source as the bot's guard).
+    # Grepping the log for "BANK HOLIDAY <today>" misses multi-day spans:
+    # the bot prints that marker only once when entering its idle loop, so
+    # on e.g. observed Fri + actual Sat the line carries yesterday's date.
+    local_today = datetime.now().date()
+    holiday_name = next((name for cal in _HOLIDAY_CALENDARS.values()
+                         if (name := cal.get(local_today))), None)
+    holiday = holiday_name is not None
+    if not holiday:
+        # Fallback when the holidays lib is unavailable: log marker for today.
+        holiday_line = next((ln for ln in reversed(lines)
+                             if f"BANK HOLIDAY {today}" in ln), None)
+        holiday = holiday_line is not None
+        if holiday_line is not None:
+            hm = re.search(
+                rf"BANK HOLIDAY {re.escape(today)}\s*[—–-]+\s*(.+?)\s*[—–-]+",
+                holiday_line)
+            holiday_name = hm.group(1).strip() if hm else None
     hb_age = ((now - last_hb_dt).total_seconds() / 60
               if last_hb_dt is not None else None)
     act_age = ((now - last_any_dt).total_seconds() / 60
