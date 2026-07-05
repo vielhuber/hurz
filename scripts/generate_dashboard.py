@@ -559,6 +559,16 @@ def _render_status(stats: dict) -> str:
             hol = (f'<div class="holnote">🎌 Feiertag {s.get("holiday_date", "")} — '
                    f'{name}: Börse geschlossen, Handel ausgesetzt · nimmt am nächsten '
                    f'Handelstag automatisch wieder auf (offene Positionen bleiben offen).</div>')
+        if not hol:
+            # Weekend note: the bot keeps running (crypto trades 24/7), but
+            # FX/index markets are closed — pending closes queue until open.
+            now_berlin = _berlin(datetime.now(timezone.utc))
+            if (now_berlin.weekday() == 5
+                    or (now_berlin.weekday() == 6 and now_berlin.hour < 23)):
+                hol = ('<div class="holnote">🛌 Wochenende — Devisen- und Index'
+                       'märkte geschlossen, Krypto handelt weiter · fällige '
+                       'Schließungen werden nach Marktöffnung (FX So 23:00 Uhr, '
+                       'Indizes Mo früh) automatisch nachgeholt.</div>')
         rows.append(f"""
         <div class="statusrow">
           <div class="stitle"><span class="dot {s['tone']}"></span>
