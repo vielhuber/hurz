@@ -85,10 +85,13 @@ def main() -> None:
             if args.platform
             else "data/active_pairs.json"
         )
-        payload = persist_active_pairs(scores, top_n=args.top, out_path=out_path)
+        payload = persist_active_pairs(scores, top_n=args.top,
+                                       out_path=out_path,
+                                       platform=args.platform)
+        pinned_n = sum(1 for p in payload["pairs"] if p.get("pinned"))
         print()
         print(f"✓ persisted top-{args.top} to {out_path} "
-              f"({len(payload['pairs'])} pairs)")
+              f"({len(payload['pairs'])} pairs, {pinned_n} pinned)")
 
 
 if __name__ == "__main__":

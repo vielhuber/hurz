@@ -34,7 +34,7 @@ from app.utils.feature_flags import FeatureFlags
 # confined to strong trends. multi_consensus stays out (ambiguous ensemble,
 # net-negative, fits neither regime bucket).
 _NIGHTLY_STRATEGIES = [
-    "donchian_breakout", "momentum",
+    "donchian_breakout", "momentum", "turtle_breakout",
     "bollinger_rev", "rsi_mr", "stochastic_mr",
 ]
 

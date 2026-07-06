@@ -25,6 +25,7 @@ from app.strategies.rsi_mr import rsi_mr
 from app.strategies.multi_consensus import multi_consensus
 from app.strategies.stochastic_mr import stochastic_mr
 from app.strategies.donchian_breakout import donchian_breakout
+from app.strategies.turtle_breakout import turtle_breakout
 
 
 _REGISTRY = {
@@ -34,6 +35,7 @@ _REGISTRY = {
     "multi_consensus":   multi_consensus,
     "stochastic_mr":     stochastic_mr,
     "donchian_breakout": donchian_breakout,
+    "turtle_breakout":   turtle_breakout,
 }
 
 

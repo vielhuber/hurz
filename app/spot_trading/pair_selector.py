@@ -68,6 +68,7 @@ from typing import Dict, List, Optional
 _RESULTS_PATH = "data/spot_backtest_results.json"
 _ACTIVE_PAIRS_PATH = "data/active_pairs.json"
 _MIN_DIST_PATH = "data/capital_min_distances.json"
+_PINNED_PATH = "data/pinned_pairs.json"
 
 
 @dataclass
@@ -82,6 +83,7 @@ class PairScore:
     expectancy_R: float
     sharpe: float
     score: float
+    pinned: bool = False
 
 
 def _composite_score(stats: Dict) -> float:
@@ -249,13 +251,66 @@ def _platform_active_pairs_path(platform: Optional[str]) -> str:
     return _ACTIVE_PAIRS_PATH
 
 
+def _pinned_scores(
+    platform: Optional[str],
+    pinned_path: str = _PINNED_PATH,
+    results_path: str = _RESULTS_PATH,
+) -> List[PairScore]:
+    """Load operator-pinned combos and dress them as PairScore rows.
+
+    Pins bypass EVERY selection filter (min_trades, min_pf, venue-min,
+    stability) — they exist precisely for combos where live results and
+    backtest stats diverge. Stats are copied from the backtest store when
+    available so downstream display shows real numbers; combos without
+    backtest data get zeroed stats but are still included."""
+    try:
+        with open(pinned_path, "r", encoding="utf-8") as f:
+            combos = (json.load(f) or {}).get("combos") or []
+    except (OSError, json.JSONDecodeError):
+        return []
+    try:
+        with open(results_path, "r", encoding="utf-8") as f:
+            results = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        results = {}
+    rows: List[PairScore] = []
+    for combo in combos:
+        if platform and combo.get("platform") != platform:
+            continue
+        key = (f'{combo.get("platform")}::{combo.get("strategy")}'
+               f'::{combo.get("resolution")}')
+        stats = (((results.get(key) or {}).get("pairs") or {})
+                 .get(combo.get("pair")) or {})
+        rows.append(PairScore(
+            platform=combo.get("platform"),
+            strategy=combo.get("strategy"),
+            resolution=combo.get("resolution"),
+            pair=combo.get("pair"),
+            n=int(stats.get("n") or 0),
+            win_rate=float(stats.get("win_rate") or 0.0),
+            profit_factor=float(stats.get("profit_factor") or 0.0),
+            expectancy_R=float(stats.get("expectancy_R") or 0.0),
+            sharpe=float(stats.get("sharpe") or 0.0),
+            score=_composite_score(stats),
+            pinned=True,
+        ))
+    return rows
+
+
 def persist_active_pairs(
     scores: List[PairScore], top_n: int = 5,
     out_path: str = _ACTIVE_PAIRS_PATH,
+    platform: Optional[str] = None,
 ) -> dict:
     """Take the top-N scores and write them as the active list.
+    Operator-pinned combos (data/pinned_pairs.json) are always appended
+    on top of the ranked selection so a backtest-driven reselection can
+    never drop a live-proven winner.
     Returns the persisted payload (also useful for dry-run inspection)."""
-    chosen = scores[:top_n]
+    chosen = list(scores[:top_n])
+    have = {(s.platform, s.strategy, s.resolution, s.pair) for s in chosen}
+    chosen += [s for s in _pinned_scores(platform)
+               if (s.platform, s.strategy, s.resolution, s.pair) not in have]
     payload = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "top_n": top_n,
