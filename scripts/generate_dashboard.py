@@ -721,14 +721,15 @@ def _render_html(data: dict, days) -> str:
   h1 {{ font-size: 20px; margin: 0; color: #f3f4f6; }}
   .updated {{ color: #8b91a0; font-size: 13px; }}
   .updated b {{ color: #cfd3db; }}
-  /* Top row: Bot-Status and the Capital card side by side, 50/50 width.
-     CSS `align-items: stretch` provably did NOT equalize these two here
-     (verified with headless Chrome: it left a 20px gap and even caused a
-     feedback loop), so stretch is OFF (flex-start) and equalTop() in JS
-     pins both to the taller one's height on load / refresh / resize. */
-  .toprow {{ display: flex; gap: 14px; align-items: flex-start;
-             margin-bottom: 20px; }}
-  .toprow > * {{ flex: 1 1 0; min-width: 0; }}
+  /* Top row: Bot-Status and the Capital card side by side. CSS Grid with
+     two `1fr` tracks guarantees mathematically equal column widths (flex
+     `1 1 0` measurably did NOT here — Chrome gave 687 vs 649px because the
+     padding-less .cards wrapper and the padded .panel size differently),
+     and `align-items: stretch` equalizes their heights for free — so the
+     old equalTop() JS hack is gone. */
+  .toprow {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+             align-items: stretch; margin-bottom: 20px; }}
+  .toprow > * {{ min-width: 0; box-sizing: border-box; }}
   /* Higher specificity so it beats the later `.panel {{ margin-bottom:20px }}`
      (equal specificity → source order would otherwise win). The toprow
      already provides the gap below the row; its children must NOT add
@@ -736,7 +737,7 @@ def _render_html(data: dict, days) -> str:
   .toprow > .panel, .toprow > .cards {{ margin-bottom: 0; }}
   /* flex column so the card FILLS the stretched cell height (a grid cell
      would leave the card at content-height, shorter than the status panel). */
-  .cards {{ display: flex; flex-direction: column; gap: 14px; }}
+  .cards {{ display: flex; flex-direction: column; gap: 20px; }}
   .cards > .card {{ flex: 1; }}
   .card {{ background: #171a21; border: 1px solid #262b36; border-radius: 12px;
            padding: 16px 18px; }}
@@ -791,7 +792,7 @@ def _render_html(data: dict, days) -> str:
              cursor: pointer; }}
   #sndbtn:hover {{ border-color: #3b4252; }}
   @media (max-width: 900px) {{
-    .toprow {{ flex-direction: column; }}
+    .toprow {{ grid-template-columns: 1fr; }}
     .maingrid {{ grid-template-columns: 1fr; }}
   }}
 </style>
@@ -882,18 +883,7 @@ def _render_html(data: dict, days) -> str:
     if (seen !== null && seen !== id) beep(win);   // new close since last view
     localStorage.setItem('hurz_last_trade', id);
   }}
-  // Equal-height for the two top tiles: CSS stretch didn't work here, so
-  // pin both to the taller one's height (reset first to measure natural).
-  function equalTop() {{
-    const tr = document.querySelector('.toprow'); if (!tr) return;
-    const items = [...tr.children]; if (items.length < 2) return;
-    items.forEach(e => {{ e.style.height = ''; }});
-    const h = Math.max(...items.map(e => e.getBoundingClientRect().height));
-    items.forEach(e => {{ e.style.height = h + 'px'; }});
-  }}
   checkTrade();
-  equalTop();
-  window.addEventListener('resize', equalTop);
   // Refresh content every 30s without a full reload (keeps audio alive).
   async function refresh() {{
     try {{
@@ -907,7 +897,6 @@ def _render_html(data: dict, days) -> str:
       const ns = doc.querySelector('style'), os = document.querySelector('style');
       if (ns && os && ns.textContent !== os.textContent) os.textContent = ns.textContent;
       checkTrade();
-      equalTop();
     }} catch (e) {{
       location.reload();  // fetch blocked (file://) → plain reload
     }}
