@@ -16,6 +16,12 @@ from app.utils.schedulers import walk_forward_scheduler
 _SPOT_PLATFORMS = {"kraken", "kraken_futures", "capital_com"}
 
 
+# asyncio.create_task keeps only a WEAK reference via the event loop, so a
+# fire-and-forget task can be garbage-collected mid-await and vanish
+# silently. Hold a strong reference here until the task completes.
+_background_tasks: set = set()
+
+
 async def _spot_run(stop_event: asyncio.Event) -> None:
     """Spot-trading entry point — used when trade_platform points at a
     spot/CFD broker (Kraken, Capital.com). Skips the legacy PocketOption
@@ -65,10 +71,12 @@ async def _spot_run(stop_event: asyncio.Event) -> None:
         0,
     )
     # Nightly refresh runs in the background regardless of mode.
-    asyncio.create_task(nightly_spot_scheduler(
+    scheduler_task = asyncio.create_task(nightly_spot_scheduler(
         stop_event,
         platform=store.trade_platform,
     ))
+    _background_tasks.add(scheduler_task)
+    scheduler_task.add_done_callback(_background_tasks.discard)
 
     # Interactive vs headless dispatch. nohup-launched sessions have
     # no controlling TTY → fall through to the autotrader directly.
@@ -139,7 +147,10 @@ async def run() -> None:
         # on the binary-payout pipeline). The Spot autotrader handles
         # its own polling / strategy / order-placement loop.
         if (store.trade_platform or "").lower() in _SPOT_PLATFORMS:
-            asyncio.create_task(utils.rotate_log_loop(store.stop_event))
+            rotate_task = asyncio.create_task(
+                utils.rotate_log_loop(store.stop_event))
+            _background_tasks.add(rotate_task)
+            rotate_task.add_done_callback(_background_tasks.discard)
             await _spot_run(store.stop_event)
             await boot.shutdown()
             utils.print("ℹ️ Fully shut down.", 1)
