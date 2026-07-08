@@ -26,6 +26,7 @@ from app.strategies.multi_consensus import multi_consensus
 from app.strategies.stochastic_mr import stochastic_mr
 from app.strategies.donchian_breakout import donchian_breakout
 from app.strategies.turtle_breakout import turtle_breakout
+from app.strategies.donchian_atr import donchian_atr
 
 
 _REGISTRY = {
@@ -36,6 +37,12 @@ _REGISTRY = {
     "stochastic_mr":     stochastic_mr,
     "donchian_breakout": donchian_breakout,
     "turtle_breakout":   turtle_breakout,
+    "donchian_atr":      donchian_atr,
+    # Parallel forward-test clones of donchian_breakout: identical entry
+    # logic, but the live loop exits them at a wider risk:reward (see
+    # autotrade._STRATEGY_RR). donchian_breakout itself is untouched.
+    "donchian_breakout_v2": donchian_breakout,
+    "donchian_breakout_v3": donchian_breakout,
 }
 
 

@@ -33,6 +33,13 @@ from app.utils.feature_flags import FeatureFlags
 # but confined to ranges (where its losses never came from), trend-follow
 # confined to strong trends. multi_consensus stays out (ambiguous ensemble,
 # net-negative, fits neither regime bucket).
+# donchian_atr (ATR-buffer breakout variant) is deliberately NOT in the
+# live rotation: its 2026-07-08 backtest was worse than vanilla
+# donchian_breakout on exactly the pairs that carry the edge (BTCUSD PF
+# 5.2->1.9, ETHUSD 2.0->1.3) — the ATR confirmation filters out marginal
+# breakouts that turn out to be part of donchian's crypto edge. Kept
+# registered in the strategy registry so it can be re-backtested / forward
+# -tested later, but excluded here so the selector never puts it live.
 _NIGHTLY_STRATEGIES = [
     "donchian_breakout", "momentum", "turtle_breakout",
     "bollinger_rev", "rsi_mr", "stochastic_mr",

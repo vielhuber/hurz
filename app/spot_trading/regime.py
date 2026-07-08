@@ -54,7 +54,8 @@ import pandas as pd
 # range); trend-following rides breakouts (wants a trend). Everything
 # else is neutral and never filtered.
 _MEAN_REVERSION = {"bollinger_rev", "rsi_mr", "stochastic_mr"}
-_TREND = {"donchian_breakout", "momentum", "turtle_breakout"}
+_TREND = {"donchian_breakout", "momentum", "turtle_breakout", "donchian_atr",
+          "donchian_breakout_v2", "donchian_breakout_v3"}
 
 _DEFAULT_ADX_TREND = 30.0
 _DEFAULT_ADX_RANGE = 20.0

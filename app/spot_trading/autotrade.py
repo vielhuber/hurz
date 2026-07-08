@@ -221,6 +221,18 @@ _BAR_SECONDS = {
 # Min seconds between stale-exit close attempts on the same position.
 _STALE_RETRY_COOLDOWN = 1800
 
+# Per-strategy risk:reward override. A strategy not listed here uses the
+# loop's global `rr`. Used to forward-test higher-R:R trend variants in
+# parallel — donchian_breakout's fixed 1:1.5 TP measurably caps its
+# winners (backtest 2026-07-08: BTCUSD E[R] +0.33 at 1:1.5 vs +0.93 at
+# 1:3.5). donchian_breakout itself is intentionally NOT listed, so it
+# keeps the global rr and stays untouched; the _v2 / _v3 clones share its
+# entry logic but exit at a wider target.
+_STRATEGY_RR = {
+    "donchian_breakout_v2": 2.5,
+    "donchian_breakout_v3": 3.5,
+}
+
 
 def _bar_seconds(resolution: str) -> int:
     return _BAR_SECONDS.get(resolution, 3600)
@@ -698,12 +710,13 @@ async def run_loop(
                     continue
                 if _has_open_position(positions, pair):
                     continue
+                entry_rr = _STRATEGY_RR.get(entry_strategy, rr)
                 try:
                     intent = await evaluate_pair(
                         platform, pair,
                         strategy_name=entry_strategy,
                         resolution=entry_resolution,
-                        stop_atr=stop_atr, rr=rr,
+                        stop_atr=stop_atr, rr=entry_rr,
                         lookback_bars=lookback_bars,
                         apply_venue_min=True,
                     )
