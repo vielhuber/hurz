@@ -19,7 +19,7 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from app.utils.feature_flags import FeatureFlags
@@ -38,13 +38,13 @@ _NIGHTLY_STRATEGIES = [
     "bollinger_rev", "rsi_mr", "stochastic_mr",
 ]
 
-
-def _next_fire_time(hour_utc: int, minute_utc: int) -> datetime:
-    now = datetime.now(timezone.utc)
-    candidate = now.replace(hour=hour_utc, minute=minute_utc, second=0, microsecond=0)
-    if candidate <= now:
-        candidate = candidate + timedelta(days=1)
-    return candidate
+# Poll cadence for the wall-clock scheduler loop. A single multi-hour
+# asyncio.wait_for(timeout=~21h) never once fired in production (verified:
+# 0 fires across the bot's entire log history) although it fires correctly
+# in isolation with short timeouts. Waking every minute and checking the
+# wall clock is the same short-timeout pattern run_loop uses reliably in
+# the same event loop, and is immune to GC, host suspend and clock jumps.
+_POLL_SECONDS = 60
 
 
 async def _run_one_backtest(platform: str, strategy: str) -> tuple[bool, str]:
@@ -151,17 +151,28 @@ async def nightly_spot_scheduler(
         f"ℹ️ [spot_scheduler] armed for {hour:02d}:{minute:02d} UTC "
         f"(platform={platform}, strategies={strategies}, min_trades={min_trades}).", 0,
     )
+    now = datetime.now(timezone.utc)
+    # If we start already past today's target, mark today done so a restart
+    # after HH:MM doesn't fire an immediate catch-up — first fire is the next
+    # day's HH:MM (preserves the original next-fire semantics).
+    last_fired_date = now.date() if (now.hour, now.minute) >= (hour, minute) else None
     while not stop_event.is_set():
-        next_fire = _next_fire_time(hour, minute)
-        wait_s = max(1.0, (next_fire - datetime.now(timezone.utc)).total_seconds())
         try:
-            await asyncio.wait_for(stop_event.wait(), timeout=wait_s)
+            await asyncio.wait_for(stop_event.wait(), timeout=_POLL_SECONDS)
             return
         except asyncio.TimeoutError:
             pass
 
         if stop_event.is_set():
             return
+
+        now = datetime.now(timezone.utc)
+        # Fire once per UTC day, at or just after HH:MM.
+        if last_fired_date == now.date():
+            continue
+        if (now.hour, now.minute) < (hour, minute):
+            continue
+        last_fired_date = now.date()
 
         # Outer try/except so any exception bubbles into the log instead
         # of silently terminating the asyncio task (create_task without
