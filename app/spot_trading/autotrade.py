@@ -389,6 +389,11 @@ async def run_loop(
         stop_event = asyncio.Event()
 
     from app.spot_trading.pair_selector import load_active_pairs
+    from app.spot_trading import regime
+    from app.spot_trading.regime import adx_at as _regime_adx_at
+    from app.spot_trading.journal import (
+        list_unresolved_open as _list_unresolved_open,
+    )
 
     # Per-(pair, strategy, bar_time) dedup: an in-flight bar would
     # otherwise re-emit the same signal on every poll, spamming the
@@ -544,6 +549,19 @@ async def run_loop(
                         )
             prev_deal_ids = current_deal_ids
 
+            # Map journal's stored deal_id (= workingOrderId on Capital) to
+            # the broker-side position id required by close_position. Kraken
+            # returns p.id only — that's already the close target. Shared by
+            # the stale-exit and regime-flip-exit blocks below.
+            close_id_by_journal_id: Dict[str, str] = {}
+            for p in positions:
+                if p.id:
+                    close_id_by_journal_id[p.id] = p.id
+                pmeta = (p.meta or {}).get("position") or {}
+                woi = pmeta.get("workingOrderId")
+                if woi and p.id:
+                    close_id_by_journal_id[woi] = p.id
+
             # Stale-position exit: mean-revert and breakout setups have a
             # bounded expected holding period (max N×bar). When a trade
             # exceeds it without hitting SL/TP, the original thesis is
@@ -556,22 +574,8 @@ async def run_loop(
             except ValueError:
                 max_hold_bars = 24
             if max_hold_bars > 0:
-                from app.spot_trading.journal import (
-                    list_unresolved_open as _list_unresolved_open,
-                )
                 max_hold_seconds = max_hold_bars * _bar_seconds(resolution)
                 now_utc = datetime.now(timezone.utc)
-                # Map journal's stored deal_id (= workingOrderId on Capital)
-                # to the broker-side position id required by close_position.
-                # Kraken returns p.id only — that's already the close target.
-                close_id_by_journal_id: Dict[str, str] = {}
-                for p in positions:
-                    if p.id:
-                        close_id_by_journal_id[p.id] = p.id
-                    pmeta = (p.meta or {}).get("position") or {}
-                    woi = pmeta.get("workingOrderId")
-                    if woi and p.id:
-                        close_id_by_journal_id[woi] = p.id
                 for row in _list_unresolved_open(platform=platform_name):
                     if row.get("deal_id") not in current_deal_ids:
                         continue
@@ -618,6 +622,71 @@ async def run_loop(
                         _safe_log(
                             f"⚠ stale-exit {pair_name} ({close_target}) "
                             f"rejected after {age_h:.1f}h: {close_res.error} "
+                            f"— retry in {_STALE_RETRY_COOLDOWN // 60}min"
+                        )
+
+            # Regime-flip exit: the entry router blocks NEW mean-reversion
+            # signals once ADX rises into the trend zone, but positions
+            # opened while ADX was still low keep running into their stops as
+            # the trend extends (this cost ~$75 over one trend onset on
+            # 2026-07-08). Force-close open MEAN-REVERSION positions the
+            # moment ADX crosses the trend threshold. Trend-following
+            # positions (donchian_breakout, momentum, turtle_breakout) are
+            # never touched here — high ADX is exactly their edge. Shares the
+            # stale_exit_attempts cooldown so a broker that refuses the close
+            # (e.g. weekend FX) isn't retried every cycle.
+            if regime.flip_exit_enabled():
+                adx_trend = regime.trend_threshold()
+                now_utc = datetime.now(timezone.utc)
+                for row in _list_unresolved_open(platform=platform_name):
+                    if row.get("deal_id") not in current_deal_ids:
+                        continue
+                    strat = row.get("strategy") or ""
+                    if regime.style_of(strat) != "mean_reversion":
+                        continue
+                    journal_deal_id = row["deal_id"]
+                    last_attempt = stale_exit_attempts.get(journal_deal_id)
+                    if last_attempt is not None and (
+                            now_utc - last_attempt
+                    ).total_seconds() < _STALE_RETRY_COOLDOWN:
+                        continue
+                    pair_name = row.get("pair", "?")
+                    try:
+                        bars = await _fetch_recent_bars(
+                            platform, pair_name, resolution, lookback_bars,
+                        )
+                    except Exception as exc:
+                        _safe_log(f"⚠ regime-exit {pair_name}: fetch failed: {exc}")
+                        continue
+                    if len(bars) < 50:
+                        continue
+                    df_adx = add_indicators(_bars_to_df(bars))
+                    adx = _regime_adx_at(df_adx, len(df_adx) - 1)
+                    if adx is None or adx < adx_trend:
+                        continue
+                    close_target = close_id_by_journal_id.get(
+                        journal_deal_id, journal_deal_id,
+                    )
+                    try:
+                        close_res = await platform.close_position(close_target)
+                    except Exception as exc:
+                        stale_exit_attempts[journal_deal_id] = now_utc
+                        _safe_log(
+                            f"⚠ regime-exit {pair_name} ({close_target}) "
+                            f"close failed (ADX={adx:.1f}): {exc}"
+                        )
+                        continue
+                    if close_res.accepted:
+                        stale_exit_attempts.pop(journal_deal_id, None)
+                        _safe_log(
+                            f"🔀 regime-exit {pair_name} {strat} closed "
+                            f"(ADX={adx:.1f} >= {adx_trend:.0f}, trend flip)"
+                        )
+                    else:
+                        stale_exit_attempts[journal_deal_id] = now_utc
+                        _safe_log(
+                            f"⚠ regime-exit {pair_name} ({close_target}) "
+                            f"rejected (ADX={adx:.1f}): {close_res.error} "
                             f"— retry in {_STALE_RETRY_COOLDOWN // 60}min"
                         )
 

@@ -144,10 +144,26 @@ def gate(strategy_name: str, df: pd.DataFrame, index: int) -> RegimeDecision:
     return decide(strategy_name, adx_at(df, index))
 
 
+def trend_threshold() -> float:
+    """The ADX floor at/above which the market counts as a strong trend
+    (trend-following allowed, mean-reversion blocked)."""
+    return _config()[1]
+
+
+def flip_exit_enabled() -> bool:
+    """Whether open mean-reversion positions should be force-closed once
+    ADX rises into the trend regime. Independent of the entry router:
+    toggle via HURZ_REGIME_FLIP_EXIT (default on)."""
+    return os.getenv("HURZ_REGIME_FLIP_EXIT", "1").strip().lower() \
+        not in ("0", "false", "no", "off")
+
+
 def summary() -> str:
     """One-line config summary for the startup log."""
     enabled, adx_trend, adx_range = _config()
+    flip = "on" if flip_exit_enabled() else "off"
     if not enabled:
-        return "off"
+        return f"off (flip-exit {flip})"
     return (f"router on (trend-follow ADX>={adx_trend:.0f}, "
-            f"mean-rev ADX<={adx_range:.0f}, else stand aside)")
+            f"mean-rev ADX<={adx_range:.0f}, else stand aside; "
+            f"flip-exit {flip})")
