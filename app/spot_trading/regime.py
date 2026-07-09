@@ -153,10 +153,26 @@ def trend_threshold() -> float:
 
 def flip_exit_enabled() -> bool:
     """Whether open mean-reversion positions should be force-closed once
-    ADX rises into the trend regime. Independent of the entry router:
+    ADX rises out of the range regime. Independent of the entry router:
     toggle via HURZ_REGIME_FLIP_EXIT (default on)."""
     return os.getenv("HURZ_REGIME_FLIP_EXIT", "1").strip().lower() \
         not in ("0", "false", "no", "off")
+
+
+def flip_exit_threshold() -> float:
+    """ADX at/above which an open mean-reversion position is force-closed.
+    Defaults to the range ceiling (adx_range, ~20): a mean-reversion trade
+    is only valid while its pair stays in the range it bet on, so it is cut
+    the moment ADX leaves that range — NOT held until the full trend
+    (adx_trend, 30), where most of the loss has already happened. Override
+    with HURZ_REGIME_FLIP_EXIT_ADX."""
+    override = os.getenv("HURZ_REGIME_FLIP_EXIT_ADX", "").strip()
+    if override:
+        try:
+            return float(override)
+        except ValueError:
+            pass
+    return _config()[2]
 
 
 def summary() -> str:

@@ -638,17 +638,20 @@ async def run_loop(
                         )
 
             # Regime-flip exit: the entry router blocks NEW mean-reversion
-            # signals once ADX rises into the trend zone, but positions
-            # opened while ADX was still low keep running into their stops as
-            # the trend extends (this cost ~$75 over one trend onset on
-            # 2026-07-08). Force-close open MEAN-REVERSION positions the
-            # moment ADX crosses the trend threshold. Trend-following
-            # positions (donchian_breakout, momentum, turtle_breakout) are
-            # never touched here — high ADX is exactly their edge. Shares the
-            # stale_exit_attempts cooldown so a broker that refuses the close
-            # (e.g. weekend FX) isn't retried every cycle.
+            # signals once ADX leaves the range, but positions opened while
+            # ADX was still low keep running into their stops as a trend
+            # builds. Force-close open MEAN-REVERSION positions the moment
+            # ADX rises past the flip threshold (default = the range ceiling
+            # ~20, NOT the trend floor 30 — most of the damage happens in the
+            # 20-30 "no-trade zone" before a full trend, so waiting for 30
+            # missed it: 24h of bollinger_rev bled -$55 while the ADX>=30
+            # flip fired once). Trend-following positions (donchian_breakout,
+            # momentum, turtle_breakout) are never touched — high ADX is
+            # their edge. Shares the stale_exit_attempts cooldown so a broker
+            # that refuses the close (e.g. weekend FX) isn't retried every
+            # cycle.
             if regime.flip_exit_enabled():
-                adx_trend = regime.trend_threshold()
+                flip_adx = regime.flip_exit_threshold()
                 now_utc = datetime.now(timezone.utc)
                 for row in _list_unresolved_open(platform=platform_name):
                     if row.get("deal_id") not in current_deal_ids:
@@ -674,7 +677,7 @@ async def run_loop(
                         continue
                     df_adx = add_indicators(_bars_to_df(bars))
                     adx = _regime_adx_at(df_adx, len(df_adx) - 1)
-                    if adx is None or adx < adx_trend:
+                    if adx is None or adx < flip_adx:
                         continue
                     close_target = close_id_by_journal_id.get(
                         journal_deal_id, journal_deal_id,
@@ -692,7 +695,7 @@ async def run_loop(
                         stale_exit_attempts.pop(journal_deal_id, None)
                         _safe_log(
                             f"🔀 regime-exit {pair_name} {strat} closed "
-                            f"(ADX={adx:.1f} >= {adx_trend:.0f}, trend flip)"
+                            f"(ADX={adx:.1f} >= {flip_adx:.0f}, range ended)"
                         )
                     else:
                         stale_exit_attempts[journal_deal_id] = now_utc
