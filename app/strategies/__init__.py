@@ -27,6 +27,7 @@ from app.strategies.stochastic_mr import stochastic_mr
 from app.strategies.donchian_breakout import donchian_breakout
 from app.strategies.turtle_breakout import turtle_breakout
 from app.strategies.donchian_atr import donchian_atr
+from app.strategies.keltner_breakout import keltner_breakout
 
 
 _REGISTRY = {
@@ -43,6 +44,16 @@ _REGISTRY = {
     # autotrade._STRATEGY_RR). donchian_breakout itself is untouched.
     "donchian_breakout_v2": donchian_breakout,
     "donchian_breakout_v3": donchian_breakout,
+    # 4h-timeframe book: same entry logic, evaluated on 4h bars (the combo's
+    # `resolution` field drives the fetch). Distinct names keep journal
+    # stats, dedup keys and per-strategy overrides separate from the 1h book
+    # — the journal has no resolution column, so the name carries it.
+    "donchian_breakout_4h": donchian_breakout,
+    "momentum_4h":          momentum,
+    "turtle_breakout_4h":   turtle_breakout,
+    # Volatility-adaptive channel — structurally distinct from donchian's
+    # fixed price-extreme channel (see keltner_breakout.py).
+    "keltner_breakout":     keltner_breakout,
 }
 
 

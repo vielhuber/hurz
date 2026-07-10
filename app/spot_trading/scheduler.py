@@ -33,16 +33,22 @@ from app.utils.feature_flags import FeatureFlags
 # but confined to ranges (where its losses never came from), trend-follow
 # confined to strong trends. multi_consensus stays out (ambiguous ensemble,
 # net-negative, fits neither regime bucket).
-# donchian_atr (ATR-buffer breakout variant) is deliberately NOT in the
-# live rotation: its 2026-07-08 backtest was worse than vanilla
-# donchian_breakout on exactly the pairs that carry the edge (BTCUSD PF
-# 5.2->1.9, ETHUSD 2.0->1.3) — the ATR confirmation filters out marginal
-# breakouts that turn out to be part of donchian's crypto edge. Kept
-# registered in the strategy registry so it can be re-backtested / forward
-# -tested later, but excluded here so the selector never puts it live.
+# Live rotation = TREND family only. Mean-reversion (bollinger_rev, rsi_mr,
+# stochastic_mr) was retired 2026-07-10: analysis showed it loses in EVERY
+# regime, including range-only entries after the router went live (98 trades
+# post-router, −$0.66/trade, never net positive). Cutting it flips the
+# system from −$175 to +$124 all-time. Strategies stay registered + classified
+# in regime._MEAN_REVERSION (the flip-exit still winds down open MR positions),
+# just never selected for new entries. Re-add here to revive.
+# donchian_atr is also excluded (its 2026-07-08 backtest was worse than vanilla
+# donchian on the edge pairs); kept registered for later forward-testing.
+# keltner_breakout is deliberately NOT in the nightly allow-list: the
+# selector would organically place it on pairs the donchian book holds
+# (observed 2026-07-10: OIL_BRENT, LTCUSD) and the one-position-per-pair
+# guard would let it steal entries from the proven book. It runs via pins
+# on its own pairs only. Its backtest stats still refresh manually.
 _NIGHTLY_STRATEGIES = [
     "donchian_breakout", "momentum", "turtle_breakout",
-    "bollinger_rev", "rsi_mr", "stochastic_mr",
 ]
 
 # Poll cadence for the wall-clock scheduler loop. A single multi-hour

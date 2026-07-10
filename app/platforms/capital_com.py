@@ -176,37 +176,50 @@ class CapitalComPlatform(Platform):
             headers["CST"] = self._cst or ""
             headers["X-SECURITY-TOKEN"] = self._security_token or ""
             headers["X-CAP-API-KEY"] = self.credentials.get("api_key", "")
-        async with self._session.request(
-            method, url, params=params, json=body, headers=headers, timeout=15,
-        ) as resp:
-            text = await resp.text()
-            # Auto-retry once on token expiry: re-login and replay.
-            if auth and resp.status in (401, 403) and not retried:
-                try:
-                    await self._login()
-                except PlatformAuthError:
-                    raise
-                return await self._raw_request(
-                    method, path, params=params, body=body, auth=True, retried=True,
-                )
-            if resp.status >= 400:
-                if resp.status in (401, 403):
-                    raise PlatformAuthError(
-                        f"capital_com: auth rejected on {method} {path}: {text}"
+        try:
+            async with self._session.request(
+                method, url, params=params, json=body, headers=headers, timeout=15,
+            ) as resp:
+                text = await resp.text()
+                # Auto-retry once on token expiry: re-login and replay.
+                if auth and resp.status in (401, 403) and not retried:
+                    try:
+                        await self._login()
+                    except PlatformAuthError:
+                        raise
+                    return await self._raw_request(
+                        method, path, params=params, body=body, auth=True, retried=True,
                     )
-                raise PlatformAPIError(
-                    f"capital_com: {method} {path} returned {resp.status}",
-                    status=resp.status, response_text=text,
-                )
-            if not text:
-                return {}
-            try:
-                return json.loads(text)
-            except json.JSONDecodeError as exc:
-                raise PlatformAPIError(
-                    f"capital_com: malformed JSON from {path}: {exc}",
-                    response_text=text,
-                ) from exc
+                if resp.status >= 400:
+                    if resp.status in (401, 403):
+                        raise PlatformAuthError(
+                            f"capital_com: auth rejected on {method} {path}: {text}"
+                        )
+                    raise PlatformAPIError(
+                        f"capital_com: {method} {path} returned {resp.status}",
+                        status=resp.status, response_text=text,
+                    )
+                if not text:
+                    return {}
+                try:
+                    return json.loads(text)
+                except json.JSONDecodeError as exc:
+                    raise PlatformAPIError(
+                        f"capital_com: malformed JSON from {path}: {exc}",
+                        response_text=text,
+                    ) from exc
+        except (TimeoutError, aiohttp.ClientError) as exc:
+            # Transient transport failure (read/connect timeout, dropped
+            # connection). Translate to PlatformAPIError so callers' existing
+            # PlatformError handling backs off and retries — a raw TimeoutError
+            # here previously propagated up and killed the whole loop (observed
+            # 2026-07-10: a fetch_history read timeout after 35h crashed the bot,
+            # watchdog restarted it). CancelledError is intentionally NOT caught
+            # (real shutdown must still cancel cleanly).
+            raise PlatformAPIError(
+                f"capital_com: {method} {path} transport error: "
+                f"{type(exc).__name__}: {exc}"
+            ) from exc
 
     # ---------------- public data ----------------
 

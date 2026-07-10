@@ -55,7 +55,9 @@ import pandas as pd
 # else is neutral and never filtered.
 _MEAN_REVERSION = {"bollinger_rev", "rsi_mr", "stochastic_mr"}
 _TREND = {"donchian_breakout", "momentum", "turtle_breakout", "donchian_atr",
-          "donchian_breakout_v2", "donchian_breakout_v3"}
+          "donchian_breakout_v2", "donchian_breakout_v3",
+          "donchian_breakout_4h", "momentum_4h", "turtle_breakout_4h",
+          "keltner_breakout"}
 
 _DEFAULT_ADX_TREND = 30.0
 _DEFAULT_ADX_RANGE = 20.0

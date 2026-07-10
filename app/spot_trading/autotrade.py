@@ -233,6 +233,15 @@ _STRATEGY_RR = {
     "donchian_breakout_v3": 3.5,
 }
 
+# Per-strategy bar length for the stale-exit clock. The journal has no
+# resolution column, so the 4h book's strategy names carry it: a 4h position
+# must get 24×4h = 96h before the stale exit fires, not 24×(loop's 1h).
+_STRATEGY_BAR_SECONDS = {
+    "donchian_breakout_4h": 14400,
+    "momentum_4h": 14400,
+    "turtle_breakout_4h": 14400,
+}
+
 
 def _bar_seconds(resolution: str) -> int:
     return _BAR_SECONDS.get(resolution, 3600)
@@ -586,7 +595,6 @@ async def run_loop(
             except ValueError:
                 max_hold_bars = 24
             if max_hold_bars > 0:
-                max_hold_seconds = max_hold_bars * _bar_seconds(resolution)
                 now_utc = datetime.now(timezone.utc)
                 for row in _list_unresolved_open(platform=platform_name):
                     if row.get("deal_id") not in current_deal_ids:
@@ -596,6 +604,8 @@ async def run_loop(
                         continue
                     if created_at.tzinfo is None:
                         created_at = created_at.replace(tzinfo=timezone.utc)
+                    max_hold_seconds = max_hold_bars * _STRATEGY_BAR_SECONDS.get(
+                        row.get("strategy") or "", _bar_seconds(resolution))
                     age_seconds = (now_utc - created_at).total_seconds()
                     if age_seconds < max_hold_seconds:
                         continue
@@ -627,7 +637,7 @@ async def run_loop(
                         _safe_log(
                             f"⏲ stale-exit {pair_name} ({close_target}) "
                             f"closed after {age_h:.1f}h "
-                            f"(> {max_hold_bars}×{resolution})"
+                            f"(> {max_hold_seconds / 3600:.0f}h)"
                         )
                     else:
                         stale_exit_attempts[journal_deal_id] = now_utc

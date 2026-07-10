@@ -91,6 +91,16 @@ def _rows(cur, query, params=None):
     return [dict(zip(cols, r)) for r in cur.fetchall()]
 
 
+# Retired strategies (mean-reversion, removed from the live rotation
+# 2026-07-10). Excluded from the STAT views — PnL curve, per-platform
+# summary/all-time, per-strategy & per-combo performance, projection — so
+# the dashboard reflects the active (trend-only) book. The live "Offene
+# Positionen" / "Letzte abgeschlossene Trades" tables stay unfiltered so
+# the winding-down MR positions remain visible until they close.
+_MR_EXCL = ("AND strategy NOT IN "
+            "('bollinger_rev','stochastic_mr','rsi_mr')")
+
+
 def _fetch(days) -> dict:
     conn = _connect()
     cur = conn.cursor()
@@ -103,6 +113,7 @@ def _fetch(days) -> dict:
             FROM spot_trades
             WHERE accepted=1 AND realized_pnl IS NOT NULL AND exit_time IS NOT NULL
               AND platform <> 'kraken_futures'
+              {_MR_EXCL}
               {win}
             ORDER BY exit_time ASC
         """, win_params)
@@ -115,14 +126,16 @@ def _fetch(days) -> dict:
             FROM spot_trades
             WHERE accepted=1 AND realized_pnl IS NOT NULL
               AND platform <> 'kraken_futures'
+              {_MR_EXCL}
               {win}
             GROUP BY platform
         """, win_params)
-        alltime = _rows(cur, """
+        alltime = _rows(cur, f"""
             SELECT platform, ROUND(SUM(realized_pnl), 2) AS pnl
             FROM spot_trades
             WHERE accepted=1 AND realized_pnl IS NOT NULL
               AND platform <> 'kraken_futures'
+              {_MR_EXCL}
             GROUP BY platform
         """)
         open_pos = _rows(cur, """
@@ -144,22 +157,26 @@ def _fetch(days) -> dict:
         # Forward (realized) performance per STRATEGY — which style class
         # actually earns live. This is the signal that counts (backtests
         # proved non-predictive).
-        by_strategy = _rows(cur, """
+        by_strategy = _rows(cur, f"""
             SELECT strategy,
                    COUNT(*) AS trades,
                    SUM(realized_pnl > 0) AS wins,
                    ROUND(SUM(realized_pnl), 2) AS pnl,
                    ROUND(SUM(CASE WHEN realized_pnl > 0 THEN realized_pnl ELSE 0 END)
-                         / NULLIF(-SUM(CASE WHEN realized_pnl <= 0 THEN realized_pnl ELSE 0 END), 0), 2) AS pf
+                         / NULLIF(-SUM(CASE WHEN realized_pnl <= 0 THEN realized_pnl ELSE 0 END), 0), 2) AS pf,
+                   ROUND(SUM(CASE WHEN exit_time >= NOW() - INTERVAL 30 DAY THEN realized_pnl ELSE 0 END), 2) AS pnl30,
+                   ROUND(SUM(CASE WHEN exit_time >= NOW() - INTERVAL 14 DAY THEN realized_pnl ELSE 0 END), 2) AS pnl14,
+                   ROUND(SUM(CASE WHEN exit_time >= NOW() - INTERVAL 7 DAY THEN realized_pnl ELSE 0 END), 2) AS pnl7
             FROM spot_trades
             WHERE accepted=1 AND realized_pnl IS NOT NULL
               AND platform <> 'kraken_futures'
+              {_MR_EXCL}
             GROUP BY strategy
             ORDER BY pnl DESC
         """)
         # Forward performance per (pair, strategy) COMBO — the granular
         # view for filtering down to the profitable combos over time.
-        by_combo = _rows(cur, """
+        by_combo = _rows(cur, f"""
             SELECT platform, pair, strategy,
                    COUNT(*) AS trades,
                    SUM(realized_pnl > 0) AS wins,
@@ -167,14 +184,25 @@ def _fetch(days) -> dict:
             FROM spot_trades
             WHERE accepted=1 AND realized_pnl IS NOT NULL
               AND platform <> 'kraken_futures'
+              {_MR_EXCL}
             GROUP BY platform, pair, strategy
             HAVING trades >= 2
             ORDER BY pnl DESC
+        """)
+        # Full-period span for the projection tile (how many days the
+        # realized PnL was earned over — the daily-rate denominator).
+        span = _rows(cur, f"""
+            SELECT MIN(exit_time) AS mn, MAX(exit_time) AS mx, COUNT(*) AS n
+            FROM spot_trades
+            WHERE accepted=1 AND realized_pnl IS NOT NULL AND exit_time IS NOT NULL
+              AND platform <> 'kraken_futures'
+              {_MR_EXCL}
         """)
         return {
             "closed": closed, "summary": summary, "alltime": alltime,
             "open": open_pos, "recent": recent,
             "by_strategy": by_strategy, "by_combo": by_combo,
+            "span": span[0] if span else None,
         }
     finally:
         cur.close()
@@ -612,7 +640,7 @@ def _render_strategy_perf(by_strategy: list, by_combo: list) -> str:
 
     strat_rows = []
     if not by_strategy:
-        strat_rows.append('<tr><td colspan="5" class="muted">Noch keine realisierten Trades.</td></tr>')
+        strat_rows.append('<tr><td colspan="8" class="muted">Noch keine realisierten Trades.</td></tr>')
     for r in by_strategy:
         pf = r.get("pf")
         pf_s = "∞" if pf is None else f"{float(pf):.2f}"
@@ -621,7 +649,10 @@ def _render_strategy_perf(by_strategy: list, by_combo: list) -> str:
           <td>{int(r['trades'] or 0)}</td>
           <td>{wr(r):.0f}%</td>
           <td>{pf_s}</td>
-          <td class="{_money_class(r['pnl'])}">{_fmt_money(r['pnl'])}</td></tr>""")
+          <td class="{_money_class(r['pnl'])}">{_fmt_money(r['pnl'])}</td>
+          <td class="{_money_class(r.get('pnl30'))}">{_fmt_money(r.get('pnl30'))}</td>
+          <td class="{_money_class(r.get('pnl14'))}">{_fmt_money(r.get('pnl14'))}</td>
+          <td class="{_money_class(r.get('pnl7'))}">{_fmt_money(r.get('pnl7'))}</td></tr>""")
 
     # Top 8 and bottom 5 combos by PnL.
     combo_rows = []
@@ -642,10 +673,11 @@ def _render_strategy_perf(by_strategy: list, by_combo: list) -> str:
     return f"""
   <div class="panel">
     <h3>Strategie-Performance (realisiert, live) — was zählt</h3>
-    <table>
-      <thead><tr><th>Strategie</th><th>Trades</th><th>Win%</th><th>PF</th><th>PnL</th></tr></thead>
+    <div style="overflow-x:auto;"><table>
+      <thead><tr><th>Strategie</th><th>Trades</th><th>Win%</th><th>PF</th>
+        <th>PnL ges.</th><th>30 T</th><th>14 T</th><th>7 T</th></tr></thead>
       <tbody>{''.join(strat_rows)}</tbody>
-    </table>
+    </table></div>
   </div>
   <div class="panel">
     <h3>Beste / schlechteste Kombinationen (Pair × Strategie, ≥2 Trades)</h3>
@@ -654,6 +686,131 @@ def _render_strategy_perf(by_strategy: list, by_combo: list) -> str:
         <th>Trades · Win%</th><th>PnL</th></tr></thead>
       <tbody>{''.join(combo_rows)}</tbody>
     </table>
+  </div>"""
+
+
+# --- Projected-gains tile -------------------------------------------------
+# "If this were a live account, with a reasonable stake, running only the
+# top-3 performer combos — how many EUR/day net?" Computed live from the
+# realized (demo-fill) results, so it self-updates. Assumptions surfaced in
+# the tile's caption. Costs are already inside the realized fills (spread);
+# overnight CFD financing is NOT, hence the conservative haircut.
+_PROJ_STAKE_EUR = 1000      # "reasonable" stake per trade
+_PROJ_EUR_USD = 1.087       # EUR stake -> USD notional
+_PROJ_USD_EUR = 0.92        # USD PnL -> EUR
+_PROJ_BASE_NOTIONAL = 250   # current demo notional/trade (HURZ_NOTIONAL_PER_TRADE)
+_PROJ_HAIRCUT = 0.5         # conservative discount: small samples + live costs
+
+
+def _render_projection(by_combo: list, span, by_strategy: list) -> str:
+    # Only project the WINNERS: combos from strategy classes that are net
+    # positive over their whole live history. This drops lucky pairs of
+    # net-losing strategies (e.g. a single good EURUSD run inside the
+    # −$108 stochastic_mr book) — analysis 2026-07-10 showed mean-reversion
+    # loses in every regime, so it is not projectable edge.
+    winner_strats = {r["strategy"] for r in (by_strategy or [])
+                     if float(r.get("pnl") or 0) > 0}
+    top3 = [r for r in (by_combo or [])
+            if r["strategy"] in winner_strats and float(r.get("pnl") or 0) > 0][:3]
+    if not top3 or not span or not span.get("mn") or not span.get("mx"):
+        return """
+  <div class="panel proj">
+    <h3>Projected Gains</h3>
+    <div class="muted">Noch nicht genug profitable Daten für eine Projektion.</div>
+  </div>"""
+    period_days = max(1, (span["mx"] - span["mn"]).days)
+    total = sum(float(r["pnl"] or 0) for r in top3)
+    scale = (_PROJ_STAKE_EUR * _PROJ_EUR_USD / _PROJ_BASE_NOTIONAL) * _PROJ_USD_EUR
+
+    def eur_day(pnl_usd: float) -> float:
+        return (pnl_usd / period_days) * scale
+
+    opt = eur_day(total)
+    cons = opt * _PROJ_HAIRCUT
+
+    rows = []
+    for r in top3:
+        t = int(r["trades"] or 0)
+        wr = (int(r["wins"] or 0) / t * 100) if t else 0.0
+        warn = ' <span class="pwarn">⚠</span>' if t < 5 else ""
+        rows.append(f"""<tr>
+          <td>{r['strategy']} <span class="dim">{r['pair']}</span>{warn}</td>
+          <td>{t} · {wr:.0f}%</td>
+          <td class="pos">{_fmt_money(r['pnl'])}</td>
+          <td class="pos">€{eur_day(float(r['pnl'])):.2f}</td></tr>""")
+
+    # Compact band chart: net EUR/day vs stake (linear through ~origin).
+    W, H, ml, mr, mt, mb = 470, 196, 42, 12, 14, 30
+    x0, x1, yb, yt = ml, W - mr, H - mb, mt
+    smin, smax = 250, 5000
+    ymax = max(10.0, opt * (smax / _PROJ_STAKE_EUR))
+    # round ymax up to a clean step
+    step = 10 if ymax <= 50 else 20
+    ymax = (int(ymax / step) + 1) * step
+
+    def sx(s):
+        return x0 + (s - smin) / (smax - smin) * (x1 - x0)
+
+    def sy(v):
+        return yb - v / ymax * (yb - yt)
+
+    def dv(s):
+        return opt * (s / _PROJ_STAKE_EUR)
+
+    svg = [f'<svg viewBox="0 0 {W} {H}" class="pchart" role="img" '
+           f'aria-label="Projiziertes Netto pro Tag nach Einsatz">']
+    for gv in range(0, int(ymax) + 1, step):
+        svg.append(f'<line class="pgrid" x1="{x0}" y1="{sy(gv):.1f}" '
+                   f'x2="{x1}" y2="{sy(gv):.1f}"/>')
+        svg.append(f'<text class="pax" x="{x0-8}" y="{sy(gv)+3:.1f}" '
+                   f'text-anchor="end">€{gv}</text>')
+    for sv in (250, 1000, 2500, 5000):
+        lab = f"€{sv//1000}k" if sv >= 1000 else f"€{sv}"
+        svg.append(f'<text class="pax" x="{sx(sv):.1f}" y="{yb+18}" '
+                   f'text-anchor="middle">{lab}</text>')
+    # band (cons .. opt)
+    band = (f'M{sx(smin):.1f},{sy(dv(smin)):.1f} L{sx(smax):.1f},{sy(dv(smax)):.1f} '
+            f'L{sx(smax):.1f},{sy(dv(smax)*_PROJ_HAIRCUT):.1f} '
+            f'L{sx(smin):.1f},{sy(dv(smin)*_PROJ_HAIRCUT):.1f} Z')
+    svg.append(f'<path d="{band}" class="pband"/>')
+    svg.append(f'<line class="pcons" x1="{sx(smin):.1f}" y1="{sy(dv(smin)*_PROJ_HAIRCUT):.1f}" '
+               f'x2="{sx(smax):.1f}" y2="{sy(dv(smax)*_PROJ_HAIRCUT):.1f}"/>')
+    svg.append(f'<line class="popt" x1="{sx(smin):.1f}" y1="{sy(dv(smin)):.1f}" '
+               f'x2="{sx(smax):.1f}" y2="{sy(dv(smax)):.1f}"/>')
+    # highlight the reasonable stake
+    hx = sx(_PROJ_STAKE_EUR)
+    svg.append(f'<line class="phair" x1="{hx:.1f}" y1="{sy(0):.1f}" x2="{hx:.1f}" y2="{sy(opt):.1f}"/>')
+    svg.append(f'<circle cx="{hx:.1f}" cy="{sy(opt):.1f}" r="4" class="pdot-o"/>')
+    svg.append(f'<circle cx="{hx:.1f}" cy="{sy(cons):.1f}" r="4" class="pdot-c"/>')
+    svg.append('</svg>')
+    chart = "".join(svg)
+
+    return f"""
+  <div class="panel proj">
+    <h3>Projected Gains <span class="dim">— hypothetisches Live-Konto</span></h3>
+    <div class="proj-grid">
+      <div class="proj-left">
+        <div class="proj-hero">
+          <div class="proj-num">€{cons:.0f}–{opt:.0f}<span class="proj-unit">/ Tag</span></div>
+          <div class="proj-sub">netto · Top-3 Trend-Kombos · €{_PROJ_STAKE_EUR:,}/Trade ·
+            ≈ €{cons*30:.0f}–{opt*30:.0f}/Monat</div>
+        </div>
+        <div style="overflow-x:auto;"><table class="proj-table">
+          <thead><tr><th>Strategie · Pair</th><th>Trades</th>
+            <th>Netto {period_days}T</th><th>€/Tag</th></tr></thead>
+          <tbody>{''.join(rows)}</tbody>
+        </table></div>
+        <div class="proj-note">Basis: nur profitable Strategie-Klassen (Mean-Reversion
+          verliert in jedem Regime → ausgeschlossen). Kleine Stichproben (⚠),
+          Overnight-Kosten &amp; Slippage nicht enthalten, Vergangenheit ≠ Zukunft.
+          Keine Anlageberatung.</div>
+      </div>
+      <div class="proj-right">
+        <div class="proj-clabel"><span><i class="li-o"></i>optimistisch</span>
+          <span><i class="li-c"></i>konservativ</span></div>
+        {chart}
+      </div>
+    </div>
   </div>"""
 
 
@@ -693,6 +850,8 @@ def _render_html(data: dict, days) -> str:
     recent_rows = _render_recent(data["recent"])
     strategy_perf = _render_strategy_perf(
         data.get("by_strategy", []), data.get("by_combo", []))
+    projection = _render_projection(
+        data.get("by_combo", []), data.get("span"), data.get("by_strategy", []))
     # Marker for the browser sound-on-close: latest closed trade's id + win.
     _recent = data.get("recent") or []
     latest_id = str(_recent[0]["id"]) if _recent else ""
@@ -774,6 +933,35 @@ def _render_html(data: dict, days) -> str:
   .smeta {{ display: flex; flex-wrap: wrap; gap: 14px; margin-top: 4px;
             padding-left: 18px; color: #8b91a0; font-size: 12px; }}
   .dim {{ color: #6b7280; }}
+  /* Projected-gains tile */
+  .proj-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: center; }}
+  .proj-hero {{ margin-bottom: 12px; }}
+  .proj-num {{ font-size: 34px; font-weight: 700; color: #34d399; letter-spacing: -.02em;
+               font-variant-numeric: tabular-nums; line-height: 1; }}
+  .proj-num .proj-unit {{ font-size: 14px; color: #8b91a0; font-weight: 500; margin-left: 8px; }}
+  .proj-sub {{ color: #aab0bd; font-size: 12.5px; margin-top: 7px; }}
+  .proj-table {{ margin-top: 4px; }}
+  .proj-table th, .proj-table td {{ padding: 6px 8px; font-variant-numeric: tabular-nums; }}
+  .proj-table td:nth-child(n+2), .proj-table th:nth-child(n+2) {{ text-align: right; }}
+  .pwarn {{ color: #d9a441; }}
+  .proj-note {{ margin-top: 10px; color: #7e8794; font-size: 11.5px; line-height: 1.5; }}
+  .proj-right {{ min-width: 0; }}
+  .proj-clabel {{ display: flex; gap: 16px; justify-content: flex-end; font-size: 12px;
+                  color: #aab0bd; margin-bottom: 2px; }}
+  .proj-clabel span {{ display: inline-flex; align-items: center; gap: 6px; }}
+  .proj-clabel i {{ width: 12px; height: 3px; border-radius: 2px; display: inline-block; }}
+  .li-o {{ background: #34d399; }}
+  .li-c {{ background: #d9a441; }}
+  .pchart {{ width: 100%; height: auto; display: block; }}
+  .pgrid {{ stroke: #232833; stroke-width: 1; }}
+  .pax {{ fill: #8b91a0; font-size: 10px; }}
+  .pband {{ fill: rgba(52,211,153,.13); }}
+  .popt {{ stroke: #34d399; stroke-width: 2.5; }}
+  .pcons {{ stroke: #d9a441; stroke-width: 2; stroke-dasharray: 5 4; }}
+  .phair {{ stroke: #3a424e; stroke-width: 1; stroke-dasharray: 2 3; }}
+  .pdot-o {{ fill: #34d399; stroke: #171a21; stroke-width: 2; }}
+  .pdot-c {{ fill: #d9a441; stroke: #171a21; stroke-width: 2; }}
+  @media (max-width: 760px) {{ .proj-grid {{ grid-template-columns: 1fr; }} }}
   .dot {{ width: 10px; height: 10px; border-radius: 50%; display: inline-block; }}
   .dot.ok {{ background: #34d399; }}
   .dot.idle {{ background: #6b7280; }}
@@ -839,7 +1027,9 @@ def _render_html(data: dict, days) -> str:
       </div>
     </div>
   </div>
-  <footer>hurz · statisch generiert · Auto-Update alle 30s · Zeiten in Berliner Zeit</footer>
+  {projection}
+  <footer>hurz · statisch generiert · Auto-Update alle 30s · Zeiten in Berliner Zeit ·
+    Stats zeigen nur aktive Strategien (Mean-Reversion 2026-07-10 stillgelegt, läuft aus)</footer>
 </div>
 <script>
   // Sound on trade close: SUCCESS (win) = ascending chime, FAIL (loss) =
