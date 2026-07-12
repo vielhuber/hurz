@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/github/license/vielhuber/hurz)](https://github.com/vielhuber/hurz/blob/main/LICENSE.md)
 [![Last Commit](https://img.shields.io/github/last-commit/vielhuber/hurz)](https://github.com/vielhuber/hurz/commits)
 
-# 📊 hurz 📊
+# 📊 hurz! 📊
 
 hurz (= **H**urz **U**ses **R**isk **Z**ones) is a python command-line trading lab for backtesting, pair selection, paper/live spot trading on Kraken and Capital.com, and legacy binary-options experiments. it combines broker adapters, strategy signals, calibration, safety gates, journals, and operator tooling into one terminal-driven workflow.
 

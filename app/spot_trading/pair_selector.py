@@ -84,6 +84,7 @@ class PairScore:
     sharpe: float
     score: float
     pinned: bool = False
+    exclusive: bool = False
 
 
 def _composite_score(stats: Dict) -> float:
@@ -293,6 +294,7 @@ def _pinned_scores(
             sharpe=float(stats.get("sharpe") or 0.0),
             score=_composite_score(stats),
             pinned=True,
+            exclusive=bool(combo.get("exclusive")),
         ))
     return rows
 
@@ -306,10 +308,25 @@ def persist_active_pairs(
     Operator-pinned combos (data/pinned_pairs.json) are always appended
     on top of the ranked selection so a backtest-driven reselection can
     never drop a live-proven winner.
+
+    Pins marked `"exclusive": true` additionally RESERVE their pair: ranked
+    combos of other strategies are dropped from the selection when they land
+    on such a pair. Reason: the loop holds at most one position per PAIR, so
+    an organically-selected core combo on an experiment's pair would steal
+    entries and pollute the experiment's forward data (observed 2026-07-11:
+    the nightly refresh picked donchian on HK50 + SILVER where the 4h book
+    is pinned). Non-exclusive pins keep the old permissive behavior.
     Returns the persisted payload (also useful for dry-run inspection)."""
-    chosen = list(scores[:top_n])
+    pins = _pinned_scores(platform)
+    reserved: Dict[str, set] = {}
+    for s in pins:
+        if s.exclusive:
+            reserved.setdefault(s.pair, set()).add(s.strategy)
+    ranked = [s for s in scores
+              if s.pair not in reserved or s.strategy in reserved[s.pair]]
+    chosen = ranked[:top_n]
     have = {(s.platform, s.strategy, s.resolution, s.pair) for s in chosen}
-    chosen += [s for s in _pinned_scores(platform)
+    chosen += [s for s in pins
                if (s.platform, s.strategy, s.resolution, s.pair) not in have]
     payload = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),

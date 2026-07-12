@@ -11,4 +11,4 @@ __pycache__
 /.ralph
 /.ralphrc
 # generated static dashboard (regenerated every 30s, not source)
-dashboard.html
+dashboard/

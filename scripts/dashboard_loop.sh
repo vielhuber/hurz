@@ -9,7 +9,7 @@
 #   bash scripts/dashboard_loop.sh status    # check
 #   bash scripts/dashboard_loop.sh stop      # stop
 #
-# Output: dashboard.html in the repo root. Defaults: all-time window,
+# Output: dashboard/index.html in the repo root. Defaults: all-time window,
 # 300s interval; override with DASHBOARD_DAYS / DASHBOARD_INTERVAL.
 
 set -e
@@ -39,7 +39,7 @@ case "$cmd" in
     " >/dev/null 2>&1 &
     echo $! > "$PID_FILE"
     echo "✓ dashboard loop started (PID $(cat "$PID_FILE"), window ${DAYS}, every ${INTERVAL}s)"
-    echo "  file: dashboard.html"
+    echo "  file: dashboard/index.html"
     echo "  log:  $LOG_FILE"
     ;;
   status)

@@ -10,7 +10,7 @@ Automatic:  the bot's hourly heartbeat (autotrade.py) regenerates it,
 `days` defaults to "all" (the full span where data exists); pass an
 integer to restrict to a rolling N-day window.
 
-Output: dashboard.html in the repo root.
+Output: dashboard/index.html in the repo root.
 """
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ def _berlin(dt):
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(_ROOT, ".env"))
 
-_OUT_PATH = os.path.join(_ROOT, "dashboard.html")
+_OUT_PATH = os.path.join(_ROOT, "dashboard", "index.html")
 # None = all-time (full span where data exists); int = rolling N-day window.
 _DEFAULT_DAYS = None
 
@@ -862,7 +862,8 @@ def _render_html(data: dict, days) -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hurz Trading Dashboard</title>
+<title>hurz!</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
 <style>
   :root {{ color-scheme: dark; }}
   * {{ box-sizing: border-box; }}
@@ -989,7 +990,7 @@ def _render_html(data: dict, days) -> str:
 <button id="sndbtn">🔇 Ton aus</button>
 <div class="wrap" id="wrap">
   <header>
-    <h1>📊 Hurz Trading Dashboard</h1>
+    <h1>📊 hurz!</h1>
     <span class="updated"><b>Stand: {generated}</b> · Zeitraum: {period} · Auto-Update 30s</span>
   </header>
   <div class="toprow">
@@ -1114,6 +1115,7 @@ def main() -> int:
     # Atomic write: the 5-min loop and the bot's hourly heartbeat hook
     # can both regenerate concurrently — write to a temp file and rename
     # so a reader never sees a half-written page.
+    os.makedirs(os.path.dirname(_OUT_PATH), exist_ok=True)
     tmp_path = f"{_OUT_PATH}.{os.getpid()}.tmp"
     with open(tmp_path, "w", encoding="utf-8") as f:
         f.write(html)
