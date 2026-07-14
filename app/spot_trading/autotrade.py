@@ -231,7 +231,19 @@ _STALE_RETRY_COOLDOWN = 1800
 _STRATEGY_RR = {
     "donchian_breakout_v2": 2.5,
     "donchian_breakout_v3": 3.5,
+    # Far backstop only — donchian_trail's real exit is the break-even +
+    # ATR trailing stop managed in the loop (see the trailing-stop exit
+    # block in run_loop). The wide TP just caps the tail if the trail
+    # somehow never triggers.
+    "donchian_trail": 5.0,
 }
+
+# donchian_trail exit parameters. The trail arms once price has moved
+# `_TRAIL_ACTIVATION_R` × initial-risk in favor, then rides `_TRAIL_ATR_MULT`
+# × ATR behind the best excursion, never giving back below break-even.
+# Env-overridable for forward-test tuning without a code change.
+_TRAIL_ACTIVATION_R = float(os.getenv("HURZ_TRAIL_ACTIVATION_R", "1.0"))
+_TRAIL_ATR_MULT = float(os.getenv("HURZ_TRAIL_ATR_MULT", "2.0"))
 
 # Per-strategy bar length for the stale-exit clock. The journal has no
 # resolution column, so the 4h book's strategy names carry it: a 4h position
@@ -241,6 +253,32 @@ _STRATEGY_BAR_SECONDS = {
     "momentum_4h": 14400,
     "turtle_breakout_4h": 14400,
 }
+
+
+# Correlation clusters for the concurrent-position cap. Pairs inside a
+# cluster co-move (a crypto selloff, a USD rally, risk-on/off across
+# indices), so N same-direction breakouts across them are one concentrated
+# bet disguised as N independent edges. _CLUSTER_DIR_CAP limits how many
+# same-direction positions may be open per cluster (env
+# HURZ_CLUSTER_DIRECTION_CAP). Pairs not listed are uncapped — FX crosses
+# and single commodities (EURAUD, CHFJPY, COPPER, WHEAT) are idiosyncratic
+# enough to stay their own singletons; over-clustering weakly-correlated
+# pairs would falsely throttle the book.
+_CORRELATION_CLUSTERS = {
+    "BTCUSD": "crypto", "ETHUSD": "crypto", "SOLUSD": "crypto",
+    "XRPUSD": "crypto", "ADAUSD": "crypto", "DOGEUSD": "crypto",
+    "LTCUSD": "crypto", "LINKUSD": "crypto", "AVAXUSD": "crypto",
+    "DOTUSD": "crypto", "AAVEUSD": "crypto", "ATOMUSD": "crypto",
+    "ARBUSD": "crypto", "APTUSD": "crypto", "NEARUSD": "crypto",
+    "EURUSD": "usd_fx", "GBPUSD": "usd_fx", "AUDUSD": "usd_fx",
+    "NZDUSD": "usd_fx", "USDJPY": "usd_fx", "USDCAD": "usd_fx",
+    "DE40": "indices", "FR40": "indices", "UK100": "indices",
+    "US30": "indices", "US500": "indices", "US100": "indices",
+    "HK50": "indices", "J225": "indices", "AU200": "indices",
+    "GOLD": "metals", "SILVER": "metals", "PALLADIUM": "metals",
+    "OIL_BRENT": "energy", "OIL_CRUDE": "energy",
+}
+_CLUSTER_DIR_CAP = int(os.getenv("HURZ_CLUSTER_DIRECTION_CAP", "3"))
 
 
 def _bar_seconds(resolution: str) -> int:
@@ -573,7 +611,7 @@ async def run_loop(
             # Map journal's stored deal_id (= workingOrderId on Capital) to
             # the broker-side position id required by close_position. Kraken
             # returns p.id only — that's already the close target. Shared by
-            # the stale-exit and regime-flip-exit blocks below.
+            # the stale-exit, regime-flip-exit and trail-exit blocks below.
             close_id_by_journal_id: Dict[str, str] = {}
             for p in positions:
                 if p.id:
@@ -715,6 +753,102 @@ async def run_loop(
                             f"— retry in {_STALE_RETRY_COOLDOWN // 60}min"
                         )
 
+            # Trailing-stop exit for donchian_trail. This variant enters
+            # exactly like donchian_breakout but is closed here with a
+            # break-even + ATR trailing stop instead of a fixed TP — a
+            # parallel forward-test of "let winners run, protect gains" vs
+            # the fixed 1:1.5 target. Only 'donchian_trail' positions are
+            # touched; the core book is untouched. A far backstop TP
+            # (_STRATEGY_RR) caps the tail if the trail never arms. Shares
+            # the stale_exit_attempts cooldown so a refused close (weekend
+            # FX → HTTP 400) isn't retried every cycle.
+            now_utc = datetime.now(timezone.utc)
+            for row in _list_unresolved_open(platform=platform_name):
+                if row.get("strategy") != "donchian_trail":
+                    continue
+                if row.get("deal_id") not in current_deal_ids:
+                    continue
+                journal_deal_id = row["deal_id"]
+                last_attempt = stale_exit_attempts.get(journal_deal_id)
+                if last_attempt is not None and (
+                        now_utc - last_attempt
+                ).total_seconds() < _STALE_RETRY_COOLDOWN:
+                    continue
+                pair_name = row.get("pair", "?")
+                entry_px = float(row["entry_price"])
+                sl_px = float(row["stop_loss"])
+                d = int(row["direction"])
+                risk = abs(entry_px - sl_px)
+                if risk <= 0:
+                    continue
+                entry_bar_time = row.get("bar_time")
+                if entry_bar_time is not None and entry_bar_time.tzinfo is None:
+                    entry_bar_time = entry_bar_time.replace(tzinfo=timezone.utc)
+                try:
+                    bars = await _fetch_recent_bars(
+                        platform, pair_name, resolution, lookback_bars,
+                    )
+                except Exception as exc:
+                    _safe_log(f"⚠ trail-exit {pair_name}: fetch failed: {exc}")
+                    continue
+                if len(bars) < 50:
+                    continue
+                atr = add_indicators(_bars_to_df(bars)).iloc[-1].get("atr_14")
+                if atr is None or not np.isfinite(atr) or atr <= 0:
+                    continue
+                # Best favorable excursion since entry (exclude the entry bar,
+                # whose close IS the entry — its own extremes are pre-entry).
+                post = [b for b in bars
+                        if entry_bar_time is None or b.timestamp > entry_bar_time]
+                if not post:
+                    continue
+                close_px = float(post[-1].close)
+                if d == +1:
+                    peak = max(b.high for b in post)
+                    excursion = peak - entry_px
+                    trail_level = max(entry_px, peak - _TRAIL_ATR_MULT * atr)
+                    breached = close_px <= trail_level
+                else:
+                    peak = min(b.low for b in post)
+                    excursion = entry_px - peak
+                    trail_level = min(entry_px, peak + _TRAIL_ATR_MULT * atr)
+                    breached = close_px >= trail_level
+                # Not yet armed: original SL / far TP still govern.
+                if excursion < _TRAIL_ACTIVATION_R * risk:
+                    continue
+                if not breached:
+                    continue
+                close_target = close_id_by_journal_id.get(
+                    journal_deal_id, journal_deal_id,
+                )
+                try:
+                    close_res = await platform.close_position(close_target)
+                except Exception as exc:
+                    stale_exit_attempts[journal_deal_id] = now_utc
+                    _safe_log(f"⚠ trail-exit {pair_name} ({close_target}) "
+                              f"close failed: {exc}")
+                    continue
+                if close_res.accepted:
+                    stale_exit_attempts.pop(journal_deal_id, None)
+                    locked_r = (close_px - entry_px) * d / risk
+                    _safe_log(
+                        f"📉 trail-exit {pair_name} donchian_trail closed "
+                        f"@ {close_px:.5f} (locked {locked_r:+.2f}R)"
+                    )
+                else:
+                    stale_exit_attempts[journal_deal_id] = now_utc
+                    _safe_log(
+                        f"⚠ trail-exit {pair_name} ({close_target}) "
+                        f"rejected: {close_res.error} "
+                        f"— retry in {_STALE_RETRY_COOLDOWN // 60}min"
+                    )
+
+            # Positions opened during THIS cycle, as (cluster, direction)
+            # tuples — the cluster cap must see them because `positions` is
+            # a cycle-start snapshot the broker won't refresh mid-loop, and
+            # the whole point of the cap is the "everything fires at once"
+            # burst.
+            opened_this_cycle: List[tuple] = []
             for entry in active:
                 pair = entry.get("pair")
                 entry_strategy = entry.get("strategy") or strategy_name
@@ -793,6 +927,31 @@ async def run_loop(
                     # poll and avoids logging a duplicate skip.
                     issued_intents[dedup_key] = intent.bar_time
                     continue
+                # Correlation-cluster cap: limit same-direction exposure
+                # across a co-moving group (crypto, USD majors, indices).
+                # Counts both broker-open positions and ones opened earlier
+                # this cycle. Direction is only known now (post-evaluate),
+                # so the check lives here rather than at the pair-skip above.
+                cluster = _CORRELATION_CLUSTERS.get(intent.pair)
+                if cluster is not None:
+                    same_dir = sum(
+                        1 for p in positions
+                        if _CORRELATION_CLUSTERS.get(p.asset) == cluster
+                        and p.direction == intent.direction
+                    ) + sum(
+                        1 for c, dvec in opened_this_cycle
+                        if c == cluster and dvec == intent.direction
+                    )
+                    if same_dir >= _CLUSTER_DIR_CAP:
+                        _safe_log(
+                            f"⏭ {intent.pair}: cluster '{cluster}' "
+                            f"dir={intent.direction:+d} cap {_CLUSTER_DIR_CAP} "
+                            f"reached ({same_dir} open) — skipping "
+                            f"({intent.strategy})"
+                        )
+                        issued_intents[dedup_key] = intent.bar_time
+                        continue
+
                 # Concurrent-position cap. Defended against the
                 # "all 5 active pairs go long on the same 4h close"
                 # pattern observed when a mean-reverter sees a correlated
@@ -835,6 +994,8 @@ async def run_loop(
                 result = await execute_intent(platform, intent, size=trade_size)
                 if result.accepted:
                     _safe_log(f"  ✓ accepted: deal_id={result.deal_id}")
+                    if cluster is not None:
+                        opened_this_cycle.append((cluster, intent.direction))
                 else:
                     _safe_log(f"  ⛔ rejected: {result.error}")
                 # Journal — never crashes the loop on failure

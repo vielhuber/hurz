@@ -44,6 +44,12 @@ _REGISTRY = {
     # autotrade._STRATEGY_RR). donchian_breakout itself is untouched.
     "donchian_breakout_v2": donchian_breakout,
     "donchian_breakout_v3": donchian_breakout,
+    # Same entry as donchian_breakout, but the live loop manages its exit
+    # with a break-even + ATR trailing stop instead of a fixed TP (see the
+    # trailing-stop exit block in autotrade.run_loop). A far backstop TP is
+    # set at entry via _STRATEGY_RR so the trail is what actually closes it.
+    # donchian_breakout stays untouched.
+    "donchian_trail": donchian_breakout,
     # 4h-timeframe book: same entry logic, evaluated on 4h bars (the combo's
     # `resolution` field drives the fetch). Distinct names keep journal
     # stats, dedup keys and per-strategy overrides separate from the 1h book
