@@ -115,6 +115,22 @@ def list_unresolved_open(platform: Optional[str] = None) -> List[Dict[str, Any]]
         return []
 
 
+def update_deal_id(journal_id: int, deal_id: str) -> None:
+    """Replace a row's deal_id — used by the startup reconcile when a
+    journal row holds the order's dealReference (confirms poll failed
+    at entry) but a matching broker position exists under its real
+    position dealId. Adopting the real id keeps the row manageable
+    instead of phantom-closing it."""
+    try:
+        from app.utils.singletons import database
+        database.query(
+            "UPDATE spot_trades SET deal_id = %s WHERE id = %s",
+            (deal_id, int(journal_id)),
+        )
+    except Exception:
+        pass
+
+
 def record_exit(
     journal_id: int, *,
     exit_price: float, exit_time: datetime,

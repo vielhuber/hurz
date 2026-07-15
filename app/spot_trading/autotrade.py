@@ -540,11 +540,46 @@ async def run_loop(
                     current_deal_ids.add(pmeta["workingOrderId"])
             if initial_reconcile_pending:
                 from app.spot_trading.journal import (
-                    list_unresolved_open, record_exit,
+                    list_unresolved_open, record_exit, update_deal_id,
                 )
                 unresolved = list_unresolved_open(platform=platform_name)
                 stale = [r for r in unresolved
                          if r["deal_id"] not in current_deal_ids]
+                # A stale deal_id may be the order's dealReference rather
+                # than the position's dealId (place_order falls back to it
+                # when the confirms poll fails). If an unclaimed broker
+                # position for the same pair+direction exists, adopt its
+                # real dealId instead of phantom-closing a live position.
+                # "Claimed" must cover positions matched via workingOrderId
+                # too, or adoption could steal a healthy row's position.
+                unresolved_ids = {r["deal_id"] for r in unresolved}
+                claimed = set()
+                for p in positions:
+                    pmeta = (p.meta or {}).get("position") or {}
+                    if (p.id in unresolved_ids
+                            or pmeta.get("workingOrderId") in unresolved_ids):
+                        claimed.add(p.id)
+                still_stale = []
+                for row in stale:
+                    match = next(
+                        (p for p in positions
+                         if p.asset == row["pair"]
+                         and p.direction == row["direction"]
+                         and p.id and p.id not in claimed),
+                        None,
+                    )
+                    if match is None:
+                        still_stale.append(row)
+                        continue
+                    update_deal_id(row["id"], match.id)
+                    claimed.add(match.id)
+                    current_deal_ids.add(match.id)
+                    _safe_log(
+                        f"🔗 reconcile {row['pair']} {row['strategy']}: "
+                        f"adopted broker dealId {match.id} "
+                        f"(journal had {row['deal_id']})"
+                    )
+                stale = still_stale
                 if stale:
                     _safe_log(
                         f"reconcile: {len(stale)} unresolved trade(s) "
