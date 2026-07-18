@@ -254,6 +254,14 @@ _STRATEGY_BAR_SECONDS = {
     "turtle_breakout_4h": 14400,
 }
 
+# Per-strategy override for the stale-exit leash. donchian_trail's whole
+# edge is riding multi-day trends behind its ATR trail — the default
+# 24-bar hold would force-close every ride before the trail can pay
+# (its 1:5 TP is a far backstop, not the expected exit).
+_STRATEGY_MAX_HOLD_BARS = {
+    "donchian_trail": 240,
+}
+
 
 # Correlation clusters for the concurrent-position cap. Pairs inside a
 # cluster co-move (a crypto selloff, a USD rally, risk-on/off across
@@ -474,6 +482,11 @@ async def run_loop(
     # last-attempt time; retried at most once per _STALE_RETRY_COOLDOWN.
     stale_exit_attempts: Dict[str, datetime] = {}
 
+    # Pairs the broker refuses to short (rejectReason LONG_ONLY, e.g.
+    # AAVEUSD on Capital). Learned from rejections at runtime so the
+    # loop stops re-submitting doomed short orders every bar.
+    long_only_pairs: set = set()
+
     # Heartbeat: emit a status line every `heartbeat_seconds` so the
     # log shows the loop is alive even when no signals fire. Without
     # this a quiet day looks identical to a wedged process.
@@ -677,8 +690,11 @@ async def run_loop(
                         continue
                     if created_at.tzinfo is None:
                         created_at = created_at.replace(tzinfo=timezone.utc)
-                    max_hold_seconds = max_hold_bars * _STRATEGY_BAR_SECONDS.get(
-                        row.get("strategy") or "", _bar_seconds(resolution))
+                    strategy_name = row.get("strategy") or ""
+                    hold_bars = _STRATEGY_MAX_HOLD_BARS.get(
+                        strategy_name, max_hold_bars)
+                    max_hold_seconds = hold_bars * _STRATEGY_BAR_SECONDS.get(
+                        strategy_name, _bar_seconds(resolution))
                     age_seconds = (now_utc - created_at).total_seconds()
                     if age_seconds < max_hold_seconds:
                         continue
@@ -962,6 +978,13 @@ async def run_loop(
                     # poll and avoids logging a duplicate skip.
                     issued_intents[dedup_key] = intent.bar_time
                     continue
+                if intent.direction < 0 and intent.pair in long_only_pairs:
+                    _safe_log(
+                        f"⏭ {intent.pair}: broker is LONG_ONLY — "
+                        f"skipping short ({intent.strategy})"
+                    )
+                    issued_intents[dedup_key] = intent.bar_time
+                    continue
                 # Correlation-cluster cap: limit same-direction exposure
                 # across a co-moving group (crypto, USD majors, indices).
                 # Counts both broker-open positions and ones opened earlier
@@ -1033,6 +1056,8 @@ async def run_loop(
                         opened_this_cycle.append((cluster, intent.direction))
                 else:
                     _safe_log(f"  ⛔ rejected: {result.error}")
+                    if "LONG_ONLY" in (result.error or ""):
+                        long_only_pairs.add(intent.pair)
                 # Journal — never crashes the loop on failure
                 from app.spot_trading.journal import record as _journal_record
                 _journal_record(
