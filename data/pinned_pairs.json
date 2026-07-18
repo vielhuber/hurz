@@ -1,0 +1,163 @@
+{
+  "note": "Operator-pinned combos: always appended to the active list, bypassing every selection filter. Live results showed these winning while backtest stats (tiny n) kept excluding them. Added 2026-07-06.",
+  "combos": [
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "BTCUSD"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "AUDUSD"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "momentum",
+      "resolution": "1h",
+      "pair": "ETHUSD"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "momentum",
+      "resolution": "1h",
+      "pair": "SOLUSD"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "momentum",
+      "resolution": "1h",
+      "pair": "ATOMUSD"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "momentum",
+      "resolution": "1h",
+      "pair": "XRPUSD"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "GOLD"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "OIL_BRENT"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "EURAUD"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "BTCUSD"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout_v3",
+      "resolution": "1h",
+      "pair": "AAVEUSD",
+      "exclusive": true
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout_v3",
+      "resolution": "1h",
+      "pair": "DOTUSD",
+      "exclusive": true
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout_4h",
+      "resolution": "4h",
+      "pair": "SILVER",
+      "exclusive": true
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout_4h",
+      "resolution": "4h",
+      "pair": "NZDUSD",
+      "exclusive": true
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout_4h",
+      "resolution": "4h",
+      "pair": "HK50",
+      "exclusive": true
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout_4h",
+      "resolution": "4h",
+      "pair": "WHEAT",
+      "exclusive": true
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "momentum_4h",
+      "resolution": "4h",
+      "pair": "COPPER",
+      "exclusive": true
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "momentum_4h",
+      "resolution": "4h",
+      "pair": "CHFJPY",
+      "exclusive": true
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "keltner_breakout",
+      "resolution": "1h",
+      "pair": "DE40",
+      "exclusive": true
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "keltner_breakout",
+      "resolution": "1h",
+      "pair": "PALLADIUM",
+      "exclusive": true
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "keltner_breakout",
+      "resolution": "1h",
+      "pair": "ARBUSD",
+      "exclusive": true
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "keltner_breakout",
+      "resolution": "1h",
+      "pair": "US30",
+      "exclusive": true
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_trail",
+      "resolution": "1h",
+      "pair": "US500",
+      "exclusive": true
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_trail",
+      "resolution": "1h",
+      "pair": "EURUSD",
+      "exclusive": true
+    }
+  ]
+}

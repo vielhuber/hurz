@@ -1,7 +1,9 @@
 /venv
 /tmp
 /models
-/data
+/data/*
+# operator-pinned combos are config worth versioning, not runtime state
+!/data/pinned_pairs.json
 /.env
 __pycache__
 *.pyc
