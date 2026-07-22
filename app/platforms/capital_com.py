@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import math
 import time
 from datetime import datetime, timezone
 from typing import Any, AsyncIterator, Dict, List, Optional
@@ -410,6 +411,7 @@ class CapitalComPlatform(Platform):
         snap = data.get("snapshot") or {}
         out = {
             "min_size": (rules.get("minDealSize") or {}).get("value") or 0,
+            "size_increment": (rules.get("minSizeIncrement") or {}).get("value") or 0,
             "min_dist_value": (rules.get("minStopOrProfitDistance") or {}).get("value"),
             "min_dist_unit": (rules.get("minStopOrProfitDistance") or {}).get("unit"),
             "bid": snap.get("bid"),
@@ -452,6 +454,20 @@ class CapitalComPlatform(Platform):
         if min_size and float(size) < float(min_size):
             adjustments.append(f"size {size}→{min_size}")
             size = float(min_size)
+
+        # Capital silently rounds the filled size DOWN to minSizeIncrement
+        # (100 units on FX, 0.0001 on BTCUSD) — without mirroring that here
+        # the journal records a size the broker never opened (e.g. EURAUD
+        # 153.7 requested vs 100 filled), which skews every per-pair
+        # size/notional analysis.
+        increment = float(rules.get("size_increment") or 0)
+        if increment > 0:
+            stepped = round(
+                math.floor(float(size) / increment + 1e-9) * increment, 10)
+            stepped = max(stepped, float(min_size or increment))
+            if stepped != float(size):
+                adjustments.append(f"size {size}→{stepped}")
+                size = stepped
 
         bid = rules.get("bid")
         offer = rules.get("offer")

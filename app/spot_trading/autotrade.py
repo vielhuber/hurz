@@ -1060,11 +1060,14 @@ async def run_loop(
                         long_only_pairs.add(intent.pair)
                 # Journal — never crashes the loop on failure
                 from app.spot_trading.journal import record as _journal_record
+                # result.size carries the broker's clamping/increment
+                # rounding, so it is the size actually opened — journalling
+                # trade_size would record a position that never existed.
                 _journal_record(
                     intent, result,
                     platform=platform_name,
                     paper_mode=platform.paper_trade_only,
-                    size=trade_size,
+                    size=result.size if result.size else trade_size,
                 )
 
             # Heartbeat: prove the loop is alive even on quiet cycles.
