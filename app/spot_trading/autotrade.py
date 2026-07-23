@@ -498,12 +498,19 @@ async def run_loop(
     # outcome by walking the bar history and patch the spot_trades
     # journal row so analytics can finally compute realized win-rate.
     prev_deal_ids: Optional[set] = None
-    # Run a one-time reconciliation against the journal: any spot_trades
-    # row marked accepted with no exit_time, whose deal_id is not in
-    # the broker's current open list, must have been closed during a
-    # previous bot lifetime (or before exit-tracking landed). Resolve
-    # those once at startup so they don't stay open in the DB forever.
+    # Reconcile the journal against the broker: any spot_trades row
+    # marked accepted with no exit_time, whose deal_id is not in the
+    # broker's current open list, was closed during a previous bot
+    # lifetime or missed by the deal_id diff. Runs at startup AND
+    # periodically — positions opened mid-run can carry an "o_"
+    # dealReference (confirms poll didn't return the real dealId in
+    # time) which the diff can never match, so without a recurring pass
+    # their close is missed and they linger open in the DB forever.
+    # The recurring pass adopts the real dealId while the position is
+    # still live and resolves genuinely-closed rows.
     initial_reconcile_pending = True
+    last_reconcile_at: Optional[datetime] = None
+    reconcile_seconds = 300
 
     try:
         while not stop_event.is_set():
@@ -551,7 +558,13 @@ async def run_loop(
                 pmeta = (p.meta or {}).get("position") or {}
                 if pmeta.get("workingOrderId"):
                     current_deal_ids.add(pmeta["workingOrderId"])
-            if initial_reconcile_pending:
+            reconcile_now = (
+                initial_reconcile_pending
+                or last_reconcile_at is None
+                or (datetime.now(timezone.utc) - last_reconcile_at)
+                .total_seconds() >= reconcile_seconds
+            )
+            if reconcile_now:
                 from app.spot_trading.journal import (
                     list_unresolved_open, record_exit, update_deal_id,
                 )
@@ -619,6 +632,7 @@ async def run_loop(
                         f"pnl={payload['realized_pnl']:+.4f}"
                     )
                 initial_reconcile_pending = False
+                last_reconcile_at = datetime.now(timezone.utc)
             if prev_deal_ids is not None:
                 closed = prev_deal_ids - current_deal_ids
                 if closed:
