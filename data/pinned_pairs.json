@@ -135,13 +135,6 @@
       "platform": "capital_com",
       "strategy": "keltner_breakout",
       "resolution": "1h",
-      "pair": "ARBUSD",
-      "exclusive": true
-    },
-    {
-      "platform": "capital_com",
-      "strategy": "keltner_breakout",
-      "resolution": "1h",
       "pair": "US30",
       "exclusive": true
     },
