@@ -39,6 +39,8 @@ TOGGLE / TUNE via env (read per call; set before bot start):
     HURZ_REGIME_FILTER    = 1|0   (default 1 = on)
     HURZ_REGIME_ADX_TREND = float (default 30 — trend-following floor)
     HURZ_REGIME_ADX_RANGE = float (default 20 — mean-reversion ceiling)
+    HURZ_REGIME_ADX_TREND_CORE = float (default 35 — raised floor for the
+                                        1h core, see _CORE_1H)
 """
 from __future__ import annotations
 
@@ -61,6 +63,16 @@ _TREND = {"donchian_breakout", "momentum", "turtle_breakout", "donchian_atr",
 
 _DEFAULT_ADX_TREND = 30.0
 _DEFAULT_ADX_RANGE = 20.0
+
+# The 1h core runs a raised trend floor. Its entries kept clearing the
+# global ADX 30 gate on short spikes that had no follow-through: −$10.58
+# over 63 trades in the 14 days to 2026-07-27 (win rate 32–38%), while
+# the same strategies stayed net-positive all-time. Operator decision
+# 2026-07-20: test 35 for this group only — the 4h book, the R:R variants
+# and the keltner/trail forward-tests keep the global threshold so their
+# comparisons stay clean. Tune via HURZ_REGIME_ADX_TREND_CORE.
+_CORE_1H = {"donchian_breakout", "momentum", "turtle_breakout"}
+_DEFAULT_ADX_TREND_CORE = 35.0
 
 
 @dataclass(frozen=True)
@@ -93,6 +105,17 @@ def _config() -> tuple:
     return enabled, adx_trend, adx_range
 
 
+def _trend_floor(strategy_name: str, adx_trend: float) -> float:
+    """Effective trend floor for a strategy — see _CORE_1H."""
+    if strategy_name not in _CORE_1H:
+        return adx_trend
+    try:
+        return float(os.getenv("HURZ_REGIME_ADX_TREND_CORE", "")
+                     or _DEFAULT_ADX_TREND_CORE)
+    except ValueError:
+        return _DEFAULT_ADX_TREND_CORE
+
+
 def decide(strategy_name: str, adx_value: Optional[float]) -> RegimeDecision:
     """Router policy: given a strategy and the current ADX, decide whether
     the signal may trade. Trend-following needs ADX >= adx_trend; mean-
@@ -108,12 +131,13 @@ def decide(strategy_name: str, adx_value: Optional[float]) -> RegimeDecision:
     if adx_value is None or not math.isfinite(adx_value):
         return RegimeDecision(False, "unknown", None, "ADX unavailable — allow")
     if style == "trend":
-        if adx_value >= adx_trend:
+        floor = _trend_floor(strategy_name, adx_trend)
+        if adx_value >= floor:
             return RegimeDecision(False, "strong-trend", adx_value,
                                   f"trend-following in trend (ADX={adx_value:.1f})")
         return RegimeDecision(
             True, "no-trade-zone" if adx_value > adx_range else "range", adx_value,
-            f"trend-following needs ADX>={adx_trend:.0f}, got {adx_value:.1f}")
+            f"trend-following needs ADX>={floor:.0f}, got {adx_value:.1f}")
     if style == "mean_reversion":
         if adx_value <= adx_range:
             return RegimeDecision(False, "range", adx_value,
@@ -183,6 +207,8 @@ def summary() -> str:
     flip = "on" if flip_exit_enabled() else "off"
     if not enabled:
         return f"off (flip-exit {flip})"
-    return (f"router on (trend-follow ADX>={adx_trend:.0f}, "
+    core = _trend_floor("donchian_breakout", adx_trend)
+    core_note = f", 1h-core ADX>={core:.0f}" if core != adx_trend else ""
+    return (f"router on (trend-follow ADX>={adx_trend:.0f}{core_note}, "
             f"mean-rev ADX<={adx_range:.0f}, else stand aside; "
             f"flip-exit {flip})")
