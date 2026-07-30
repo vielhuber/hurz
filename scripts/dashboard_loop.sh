@@ -22,6 +22,10 @@ DAYS="${DASHBOARD_DAYS:-all}"
 # 30s to match the page's 30s auto-reload — the DB aggregates are cheap,
 # so regenerating this often keeps the reloaded page genuinely current.
 INTERVAL="${DASHBOARD_INTERVAL:-30}"
+# Bare `python3` resolves to the system interpreter, which lacks the venv
+# deps — pin the venv one so a reboot can't start the wrong python.
+PYTHON_BIN="$PWD/venv/bin/python3"
+[[ -x "$PYTHON_BIN" ]] || PYTHON_BIN="python3"
 
 cmd="${1:-start}"
 
@@ -33,7 +37,7 @@ case "$cmd" in
     fi
     nohup bash -c "
       while true; do
-        python3 scripts/generate_dashboard.py $DAYS >>'$LOG_FILE' 2>&1
+        '$PYTHON_BIN' scripts/generate_dashboard.py $DAYS >>'$LOG_FILE' 2>&1
         sleep $INTERVAL
       done
     " >/dev/null 2>&1 &

@@ -18,6 +18,13 @@
 set -o pipefail
 cd "$(dirname "$0")/.."
 
+# The bot's deps live in the venv, but a bare `python3` resolves to the
+# system interpreter and dies with ModuleNotFoundError. Pin the venv
+# interpreter so a reboot (which drops any PATH set by the caller) can
+# never silently start the wrong python.
+PYTHON_BIN="$PWD/venv/bin/python3"
+[[ -x "$PYTHON_BIN" ]] || PYTHON_BIN="python3"
+
 stopping=0
 child_pid=""
 
@@ -34,7 +41,7 @@ trap on_stop SIGINT SIGTERM
 backoff=10
 while [[ $stopping -eq 0 ]]; do
   start_epoch=$(date +%s)
-  python3 -u hurz.py &
+  "$PYTHON_BIN" -u hurz.py &
   child_pid=$!
   wait "$child_pid"
   rc=$?
