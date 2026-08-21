@@ -41,14 +41,15 @@ _REGISTRY = {
     "donchian_atr":      donchian_atr,
     # Parallel forward-test clones of donchian_breakout: identical entry
     # logic, but the live loop exits them at a wider risk:reward (see
-    # autotrade._STRATEGY_RR). donchian_breakout itself is untouched.
+    # strategy_parameters.risk_reward_for). donchian_breakout itself is
+    # untouched.
     "donchian_breakout_v2": donchian_breakout,
     "donchian_breakout_v3": donchian_breakout,
     # Same entry as donchian_breakout, but the live loop manages its exit
     # with a break-even + ATR trailing stop instead of a fixed TP (see the
     # trailing-stop exit block in autotrade.run_loop). A far backstop TP is
-    # set at entry via _STRATEGY_RR so the trail is what actually closes it.
-    # donchian_breakout stays untouched.
+    # set at entry via strategy_parameters so the trail is what actually
+    # closes it. donchian_breakout stays untouched.
     "donchian_trail": donchian_breakout,
     # 4h-timeframe book: same entry logic, evaluated on 4h bars (the combo's
     # `resolution` field drives the fetch). Distinct names keep journal

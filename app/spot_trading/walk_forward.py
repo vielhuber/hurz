@@ -47,6 +47,8 @@ from typing import Callable, Optional
 import numpy as np
 import pandas as pd
 
+from app.spot_trading.regime import adx_at, decide
+
 
 @dataclass(frozen=True)
 class StabilityResult:
@@ -90,6 +92,7 @@ class StabilityResult:
 def _simulate_segment_expectancy(
     df: pd.DataFrame, signals,
     *, rr: float, stop_atr: float, max_hold: int,
+    strategy_name: Optional[str] = None,
 ) -> Optional[float]:
     """Run the signal list against `df` and return the per-trade mean
     expectancy in R-units, or None if no trade triggered.
@@ -109,6 +112,8 @@ def _simulate_segment_expectancy(
     for sig in signals:
         i = sig.index
         if i <= in_until or i >= len(df):
+            continue
+        if strategy_name and decide(strategy_name, adx_at(df, i)).blocked:
             continue
         atr = df.iloc[i].get("atr_14")
         if atr is None or not np.isfinite(atr) or atr <= 0:
@@ -154,6 +159,7 @@ def compute_segment_stability(
     df: pd.DataFrame, strategy_fn: Callable,
     *, segments: int = 3, rr: float = 1.5, stop_atr: float = 1.0,
     max_hold: int = 24, min_segment_bars: int = 60,
+    strategy_name: Optional[str] = None,
 ) -> Optional[StabilityResult]:
     """Run `strategy_fn` independently on N consecutive slices of `df`
     and report how many produced a positive per-trade expectancy.
@@ -169,10 +175,11 @@ def compute_segment_stability(
         How many consecutive slices to cut. Default 3 — for a 30-day
         1h history that's ~10 days per segment, enough to typically
         produce 5-15 trades for a moderately active strategy.
-    rr, stop_atr, max_hold
+    rr, stop_atr, max_hold, strategy_name
         Same simulation knobs the live trader uses; pass them through
         so the stability check evaluates the EXACT rules the autotrader
-        will deploy.
+        will deploy. When strategy_name is set, its live regime gate is
+        applied to every signal.
     min_segment_bars
         Floor below which segmentation is meaningless. Returns None
         when the history is too short to satisfy
@@ -202,6 +209,7 @@ def compute_segment_stability(
         E = _simulate_segment_expectancy(
             seg_df, signals,
             rr=rr, stop_atr=stop_atr, max_hold=max_hold,
+            strategy_name=strategy_name,
         )
         if E is not None:
             seg_E.append(E)
