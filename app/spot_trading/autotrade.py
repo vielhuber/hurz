@@ -44,6 +44,10 @@ from app.spot_trading.holding_period import (
     stale_exit_after_seconds,
     stale_exits_enabled,
 )
+from app.spot_trading.strategy_parameters import (
+    DEFAULT_RISK_REWARD,
+    risk_reward_for,
+)
 from app.strategies import get_strategy, add_indicators
 
 
@@ -228,23 +232,6 @@ def _has_open_position(positions: List[Position], pair: str) -> bool:
 # Min seconds between stale-exit close attempts on the same position.
 _STALE_RETRY_COOLDOWN = 1800
 
-# Per-strategy risk:reward override. A strategy not listed here uses the
-# loop's global `rr`. Used to forward-test higher-R:R trend variants in
-# parallel — donchian_breakout's fixed 1:1.5 TP measurably caps its
-# winners (backtest 2026-07-08: BTCUSD E[R] +0.33 at 1:1.5 vs +0.93 at
-# 1:3.5). donchian_breakout itself is intentionally NOT listed, so it
-# keeps the global rr and stays untouched; the _v2 / _v3 clones share its
-# entry logic but exit at a wider target.
-_STRATEGY_RR = {
-    "donchian_breakout_v2": 2.5,
-    "donchian_breakout_v3": 3.5,
-    # Far backstop only — donchian_trail's real exit is the break-even +
-    # ATR trailing stop managed in the loop (see the trailing-stop exit
-    # block in run_loop). The wide TP just caps the tail if the trail
-    # somehow never triggers.
-    "donchian_trail": 5.0,
-}
-
 # donchian_trail exit parameters. The trail arms once price has moved
 # `_TRAIL_ACTIVATION_R` × initial-risk in favor, then rides `_TRAIL_ATR_MULT`
 # × ATR behind the best excursion, never giving back below break-even.
@@ -402,7 +389,7 @@ async def run_loop(
     strategy_name: str,
     resolution: str = "1h",
     stop_atr: float = 1.0,
-    rr: float = 1.5,
+    rr: float = DEFAULT_RISK_REWARD,
     poll_seconds: int = 60,
     size: float = 1.0,
     lookback_bars: int = 240,
@@ -816,8 +803,8 @@ async def run_loop(
             # break-even + ATR trailing stop instead of a fixed TP — a
             # parallel forward-test of "let winners run, protect gains" vs
             # the fixed 1:1.5 target. Only 'donchian_trail' positions are
-            # touched; the core book is untouched. A far backstop TP
-            # (_STRATEGY_RR) caps the tail if the trail never arms. Shares
+            # touched; the core book is untouched. A strategy-specific far
+            # backstop caps the tail if the trail never arms. Shares
             # the stale_exit_attempts cooldown so a refused close (weekend
             # FX → HTTP 400) isn't retried every cycle.
             now_utc = datetime.now(timezone.utc)
@@ -915,7 +902,7 @@ async def run_loop(
                     continue
                 if _has_open_position(positions, pair):
                     continue
-                entry_rr = _STRATEGY_RR.get(entry_strategy, rr)
+                entry_rr = risk_reward_for(entry_strategy, rr)
                 try:
                     intent = await evaluate_pair(
                         platform, pair,

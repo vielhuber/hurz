@@ -37,7 +37,16 @@ settings.load_env()
 from app.platforms import get_platform, Bar
 from app.platforms.registry import clear_cache
 from app.strategies import get_strategy, available_strategies, add_indicators
-from app.spot_trading.regime import decide as _regime_decide, adx_at as _regime_adx
+from app.spot_trading.regime import (
+    decide as _regime_decide,
+    adx_at as _regime_adx,
+    style_of as _regime_style,
+    trend_floor as _regime_trend_floor,
+)
+from app.spot_trading.strategy_parameters import (
+    DEFAULT_RISK_REWARD,
+    risk_reward_for,
+)
 
 
 _DEFAULT_KRAKEN_PAIRS = [
@@ -76,7 +85,6 @@ _DEFAULT_CAPITAL_PAIRS = [
 ]
 _DEFAULT_RESOLUTION = "1h"
 _DEFAULT_DAYS = 30
-_DEFAULT_RR = 1.5
 _DEFAULT_STOP_ATR = 1.0
 _DEFAULT_MAX_HOLD_BARS = 24
 _INTER_CALL_SLEEP_SEC = 0.6
@@ -383,7 +391,7 @@ def _load_persisted_results() -> dict:
 
 def _persist_result(platform_name: str, strategy_name: str, resolution: str,
                     days: int, rr: float, stop_atr: float, max_hold: int,
-                    fee_rate,
+                    fee_rate, regime_adx_floor: Optional[float],
                     per_pair: list, overall: dict) -> None:
     """Append/update results in data/spot_backtest_results.json. Schema:
         {
@@ -406,6 +414,7 @@ def _persist_result(platform_name: str, strategy_name: str, resolution: str,
         "params": {
             "days": days, "rr": rr, "stop_atr": stop_atr,
             "max_hold": max_hold, "fee_rate": fee_rate,
+            "regime_adx_floor": regime_adx_floor,
         },
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "overall": overall,
@@ -426,6 +435,11 @@ async def main(args) -> None:
         else _DEFAULT_CAPITAL_PAIRS
     )
     fee_override = args.fee_rate  # if set, applies uniformly to all pairs
+    regime_adx_floor = (
+        _regime_trend_floor(args.strategy)
+        if _regime_style(args.strategy) == "trend"
+        else None
+    )
 
     print(f"{platform.name} × {args.strategy} — backtest on {len(pairs)} pairs")
     if fee_override is not None:
@@ -435,6 +449,8 @@ async def main(args) -> None:
     print(f"  resolution={args.resolution}  days={args.days}  "
           f"stop={args.stop_atr}×ATR  rr=1:{args.rr}  max_hold={args.max_hold} bars  "
           f"fee={fee_label}")
+    if regime_adx_floor is not None:
+        print(f"  regime=ADX>={regime_adx_floor:g}")
     print()
     print(f"{'pair':<14} {'bars':>5} {'trades':>7} {'win%':>6} {'PF':>6} "
           f"{'E[R]':>7} {'Sharpe':>7} {'best':>7} {'worst':>7}")
@@ -486,6 +502,7 @@ async def main(args) -> None:
                 df, strategy,
                 segments=3, rr=args.rr, stop_atr=args.stop_atr,
                 max_hold=args.max_hold,
+                strategy_name=args.strategy,
             )
             if stability is not None:
                 stats["segment_stability"] = stability.as_dict()
@@ -518,7 +535,7 @@ async def main(args) -> None:
         _persist_result(
             args.platform, args.strategy, args.resolution,
             args.days, args.rr, args.stop_atr, args.max_hold,
-            fee_meta, per_pair_summary, overall,
+            fee_meta, regime_adx_floor, per_pair_summary, overall,
         )
         print(f"✓ results persisted to {_RESULTS_PATH}")
 
@@ -543,7 +560,8 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--resolution", default=_DEFAULT_RESOLUTION,
                    choices=["1m", "5m", "15m", "30m", "1h", "4h", "1d"])
     p.add_argument("--days", type=int, default=_DEFAULT_DAYS)
-    p.add_argument("--rr", type=float, default=_DEFAULT_RR)
+    p.add_argument("--rr", type=float, default=None,
+                   help="default R:R for strategies without a canonical override")
     p.add_argument("--stop-atr", dest="stop_atr", type=float,
                    default=_DEFAULT_STOP_ATR)
     p.add_argument("--max-hold", dest="max_hold", type=int,
@@ -554,7 +572,10 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--persist", action="store_true", default=True,
                    help="write results to data/spot_backtest_results.json (default on)")
     p.add_argument("--no-persist", dest="persist", action="store_false")
-    return p.parse_args()
+    args = p.parse_args()
+    default_rr = args.rr if args.rr is not None else DEFAULT_RISK_REWARD
+    args.rr = risk_reward_for(args.strategy, default_rr)
+    return args
 
 
 if __name__ == "__main__":

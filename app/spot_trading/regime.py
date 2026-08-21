@@ -116,6 +116,12 @@ def _trend_floor(strategy_name: str, adx_trend: float) -> float:
         return _DEFAULT_ADX_TREND_CORE
 
 
+def trend_floor(strategy_name: str) -> float:
+    """Expose the effective live ADX gate for reporting and backtests."""
+    _, adx_trend, _ = _config()
+    return _trend_floor(strategy_name, adx_trend)
+
+
 def decide(strategy_name: str, adx_value: Optional[float]) -> RegimeDecision:
     """Router policy: given a strategy and the current ADX, decide whether
     the signal may trade. Trend-following needs ADX >= adx_trend; mean-
