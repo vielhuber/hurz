@@ -68,7 +68,7 @@ def find_open_by_deal_id(deal_id: str) -> Optional[Dict[str, Any]]:
         rows = database.select(
             """
             SELECT id, pair, strategy, bar_time, direction,
-                   entry_price, stop_loss, take_profit, size, deal_id
+                   entry_price, fill_price, stop_loss, take_profit, size, deal_id
             FROM spot_trades
             WHERE deal_id = %s AND accepted = 1 AND exit_time IS NULL
             ORDER BY id DESC LIMIT 1
@@ -92,7 +92,7 @@ def list_unresolved_open(platform: Optional[str] = None) -> List[Dict[str, Any]]
             return database.select(
                 """
                 SELECT id, pair, strategy, bar_time, direction,
-                       entry_price, stop_loss, take_profit, size, deal_id,
+                       entry_price, fill_price, stop_loss, take_profit, size, deal_id,
                        created_at
                 FROM spot_trades
                 WHERE accepted = 1 AND exit_time IS NULL
@@ -104,7 +104,7 @@ def list_unresolved_open(platform: Optional[str] = None) -> List[Dict[str, Any]]
         return database.select(
             """
             SELECT id, pair, strategy, bar_time, direction,
-                   entry_price, stop_loss, take_profit, size, deal_id,
+                   entry_price, fill_price, stop_loss, take_profit, size, deal_id,
                    created_at
             FROM spot_trades
             WHERE accepted = 1 AND exit_time IS NULL AND deal_id IS NOT NULL
