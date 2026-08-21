@@ -40,6 +40,10 @@ from app.platforms import (
     Platform, get_platform, PlatformError, PlatformAuthError,
     PaperTradeOnlyError, OrderResult, Position, Bar,
 )
+from app.spot_trading.holding_period import (
+    stale_exit_after_seconds,
+    stale_exits_enabled,
+)
 from app.strategies import get_strategy, add_indicators
 
 
@@ -213,11 +217,6 @@ def _has_open_position(positions: List[Position], pair: str) -> bool:
     return any(p.asset == pair for p in positions)
 
 
-_BAR_SECONDS = {
-    "1m": 60, "5m": 300, "15m": 900, "30m": 1800,
-    "1h": 3600, "4h": 14400, "1d": 86400,
-}
-
 # Min seconds between stale-exit close attempts on the same position.
 _STALE_RETRY_COOLDOWN = 1800
 
@@ -245,24 +244,6 @@ _STRATEGY_RR = {
 _TRAIL_ACTIVATION_R = float(os.getenv("HURZ_TRAIL_ACTIVATION_R", "1.0"))
 _TRAIL_ATR_MULT = float(os.getenv("HURZ_TRAIL_ATR_MULT", "2.0"))
 
-# Per-strategy bar length for the stale-exit clock. The journal has no
-# resolution column, so the 4h book's strategy names carry it: a 4h position
-# must get 24×4h = 96h before the stale exit fires, not 24×(loop's 1h).
-_STRATEGY_BAR_SECONDS = {
-    "donchian_breakout_4h": 14400,
-    "momentum_4h": 14400,
-    "turtle_breakout_4h": 14400,
-}
-
-# Per-strategy override for the stale-exit leash. donchian_trail's whole
-# edge is riding multi-day trends behind its ATR trail — the default
-# 24-bar hold would force-close every ride before the trail can pay
-# (its 1:5 TP is a far backstop, not the expected exit).
-_STRATEGY_MAX_HOLD_BARS = {
-    "donchian_trail": 240,
-}
-
-
 # Correlation clusters for the concurrent-position cap. Pairs inside a
 # cluster co-move (a crypto selloff, a USD rally, risk-on/off across
 # indices), so N same-direction breakouts across them are one concentrated
@@ -287,10 +268,6 @@ _CORRELATION_CLUSTERS = {
     "OIL_BRENT": "energy", "OIL_CRUDE": "energy",
 }
 _CLUSTER_DIR_CAP = int(os.getenv("HURZ_CLUSTER_DIRECTION_CAP", "3"))
-
-
-def _bar_seconds(resolution: str) -> int:
-    return _BAR_SECONDS.get(resolution, 3600)
 
 
 async def _resolve_closed_trade(
@@ -689,12 +666,7 @@ async def run_loop(
             # already invalidated — close at market to free the per-pair
             # slot and stop tying up margin on dead conviction.
             # Configurable via HURZ_MAX_HOLD_BARS (default 24 bars).
-            try:
-                max_hold_bars_env = _os.getenv("HURZ_MAX_HOLD_BARS")
-                max_hold_bars = int(max_hold_bars_env) if max_hold_bars_env else 24
-            except ValueError:
-                max_hold_bars = 24
-            if max_hold_bars > 0:
+            if stale_exits_enabled():
                 now_utc = datetime.now(timezone.utc)
                 for row in _list_unresolved_open(platform=platform_name):
                     if row.get("deal_id") not in current_deal_ids:
@@ -705,10 +677,12 @@ async def run_loop(
                     if created_at.tzinfo is None:
                         created_at = created_at.replace(tzinfo=timezone.utc)
                     strategy_name = row.get("strategy") or ""
-                    hold_bars = _STRATEGY_MAX_HOLD_BARS.get(
-                        strategy_name, max_hold_bars)
-                    max_hold_seconds = hold_bars * _STRATEGY_BAR_SECONDS.get(
-                        strategy_name, _bar_seconds(resolution))
+                    max_hold_seconds = stale_exit_after_seconds(
+                        strategy_name,
+                        resolution,
+                    )
+                    if max_hold_seconds is None:
+                        continue
                     age_seconds = (now_utc - created_at).total_seconds()
                     if age_seconds < max_hold_seconds:
                         continue

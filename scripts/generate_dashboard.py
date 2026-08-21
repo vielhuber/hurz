@@ -17,10 +17,15 @@ from __future__ import annotations
 import os
 import re
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import mysql.connector
 from dotenv import load_dotenv
+
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _ROOT)
+
+from app.spot_trading.holding_period import stale_exit_after_seconds
 
 # Same calendars as app/utils/holiday_window.py — the dashboard must agree
 # with the bot's own guard about what counts as a bank holiday.
@@ -55,7 +60,6 @@ def _berlin(dt):
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(_TZ)
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(_ROOT, ".env"))
 
 _OUT_PATH = os.path.join(_ROOT, "dashboard", "index.html")
@@ -355,14 +359,6 @@ def _render_cards(summary: list, alltime: list, open_pos: list,
     return "".join(cards)
 
 
-# Max holding time before the autotrader's stale-exit force-closes a
-# position = HURZ_MAX_HOLD_BARS (24) × bar_seconds(resolution). Capital
-# runs 1h bars (→24h), Kraken futures 4h bars (→96h). This is the only
-# DETERMINISTIC "time left" — a trade may close earlier on TP/SL, but it
-# will close no later than this. Purely from created_at, no live price.
-_STALE_HOLD_HOURS = {"capital_com": 24.0, "kraken_futures": 96.0}
-
-
 def _fmt_duration(minutes: float) -> str:
     """Human duration from minutes → 'Xd Yh Zm' (dropping zero units).
     e.g. 193 → '3h 13m', 5760 → '4d', 45 → '45m'."""
@@ -383,21 +379,28 @@ def _render_open(open_pos: list) -> str:
     if not open_pos:
         return '<tr><td colspan="6" class="muted">Keine offenen Positionen.</td></tr>'
     now = datetime.now(timezone.utc)
-    # Sort so the position closest to its forced close (smallest rest) is on top.
+    # Sort limited positions by urgency and positions without a limit last.
     def rest_min(p):
         ct = p["created_at"]
         ct = ct.replace(tzinfo=timezone.utc) if ct.tzinfo is None else ct
-        hold_h = _STALE_HOLD_HOURS.get(p["platform"], 24.0)
-        deadline = ct + timedelta(hours=hold_h)
-        return (deadline - now).total_seconds() / 60.0
+        hold_seconds = stale_exit_after_seconds(p["strategy"])
+        if hold_seconds is None:
+            return None
+        age_seconds = (now - ct).total_seconds()
+        return (hold_seconds - age_seconds) / 60.0
     out = []
-    for p in sorted(open_pos, key=rest_min):
+    positions_by_rest = [(rest_min(position), position) for position in open_pos]
+    for rm, p in sorted(
+        positions_by_rest,
+        key=lambda item: (item[0] is None, item[0] or 0),
+    ):
         ct = p["created_at"]
         ct = ct.replace(tzinfo=timezone.utc) if ct.tzinfo is None else ct
         age_h = (now - ct).total_seconds() / 3600
         d = "Long" if int(p["direction"]) == 1 else "Short"  # neutral colour: dir ≠ profit
-        rm = rest_min(p)
-        if rm <= 0:
+        if rm is None:
+            rest_cell = '<span class="dim">kein Limit</span>'
+        elif rm <= 0:
             rest_cell = '<span class="neg">überfällig</span>'
         else:
             rest_cell = _fmt_duration(rm)
