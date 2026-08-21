@@ -98,7 +98,8 @@ _RESULTS_PATH = "data/spot_backtest_results.json"
 #                     Crypto:     0.050% (≈ wider on alts like DOGE)
 _CRYPTO_PREFIXES = {
     "BTC", "ETH", "SOL", "ADA", "DOGE", "XRP", "LTC", "MATIC", "AVAX",
-    "LINK", "DOT", "UNI", "ATOM", "BCH", "TRX", "BNB",
+    "LINK", "DOT", "UNI", "ATOM", "BCH", "TRX", "BNB", "AAVE", "APT",
+    "ARB", "NEAR",
     "XBT", "XDG",  # Kraken legacy codes (BTC, DOGE)
 }
 _FX_MAJORS = {
