@@ -316,7 +316,10 @@ async def _resolve_closed_trade(
     entry_time = journal_row["bar_time"]
     if entry_time.tzinfo is None:
         entry_time = entry_time.replace(tzinfo=timezone.utc)
-    entry_price = float(journal_row["entry_price"])
+    entry_fill_price = (
+        float(journal_row["fill_price"])
+        if journal_row.get("fill_price") is not None else None
+    )
     sl = float(journal_row["stop_loss"])
     tp = float(journal_row["take_profit"])
     size = float(journal_row["size"]) if journal_row.get("size") else 1.0
@@ -348,10 +351,10 @@ async def _resolve_closed_trade(
             hit_tp = b.low <= tp
         if hit_sl:
             return _closure_payload(b.timestamp, sl, "loss",
-                                    entry_price, sl, direction, size)
+                                    entry_fill_price, direction, size)
         if hit_tp:
             return _closure_payload(b.timestamp, tp, "win",
-                                    entry_price, tp, direction, size)
+                                    entry_fill_price, direction, size)
 
     # No SL/TP cross detected in OHLC. Two real possibilities:
     #   1. Sub-bar SL/TP touch on bid/ask that didn't print on the
@@ -380,24 +383,32 @@ async def _resolve_closed_trade(
                 outcome = "manual"
             return _closure_payload(
                 fill["close_time"], fill["close_level"], outcome,
-                entry_price, fill["close_level"], direction, size,
+                entry_fill_price, direction, size,
             )
     return _closure_payload(
         last.timestamp, last.close, "manual",
-        entry_price, last.close, direction, size,
+        entry_fill_price, direction, size,
     )
 
 
 def _closure_payload(exit_time: datetime, exit_price: float, outcome: str,
-                     entry_price: float, fill_price: float,
+                     entry_fill_price: Optional[float],
                      direction: int, size: float) -> Dict:
-    realized = (fill_price - entry_price) * direction * size
+    realized = None
+    if entry_fill_price is not None:
+        realized = (exit_price - entry_fill_price) * direction * size
     return {
         "exit_time": exit_time,
         "exit_price": exit_price,
         "outcome": outcome,
         "realized_pnl": realized,
     }
+
+
+def _format_realized_pnl(realized_pnl: Optional[float]) -> str:
+    if realized_pnl is None:
+        return "unknown"
+    return f"{realized_pnl:+.4f}"
 
 
 async def run_loop(
@@ -629,7 +640,7 @@ async def run_loop(
                         f"📕 reconcile {row['pair']} "
                         f"{row['strategy']} {payload['outcome']} "
                         f"@ {payload['exit_price']:.5f} "
-                        f"pnl={payload['realized_pnl']:+.4f}"
+                        f"pnl={_format_realized_pnl(payload['realized_pnl'])}"
                     )
                 initial_reconcile_pending = False
                 last_reconcile_at = datetime.now(timezone.utc)
@@ -666,7 +677,7 @@ async def run_loop(
                             f"📕 closed {row['pair']} "
                             f"{row['strategy']} {payload['outcome']} "
                             f"@ {payload['exit_price']:.5f} "
-                            f"pnl={payload['realized_pnl']:+.4f}"
+                            f"pnl={_format_realized_pnl(payload['realized_pnl'])}"
                         )
             prev_deal_ids = current_deal_ids
 
