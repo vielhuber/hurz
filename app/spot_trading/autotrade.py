@@ -31,7 +31,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -49,6 +49,9 @@ from app.spot_trading.strategy_parameters import (
     risk_reward_for,
 )
 from app.strategies import get_strategy, add_indicators
+
+if TYPE_CHECKING:
+    from app.spot_trading.regime import RegimeDecision
 
 
 @dataclass
@@ -81,6 +84,97 @@ def _safe_log(message: str) -> None:
     """Lightweight logger — keeps the spot-trading subsystem
     independent of the legacy `utils.print` singleton."""
     print(f"[spot] {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} {message}")
+
+
+_REGIME_VETO_ADX_LOG_DELTA = 1.0
+_REGIME_VETO_SUMMARY_SECONDS = 3600
+
+
+@dataclass
+class _RegimeVetoState:
+    reason_key: tuple
+    first_seen_at: datetime
+    last_logged_at: datetime
+    last_logged_adx: Optional[float]
+    repeat_count: int = 0
+    suppressed_repeats: int = 0
+
+
+class _RegimeVetoLogger:
+    def __init__(self, log: Callable[[str], None]) -> None:
+        self._log = log
+        self._states: Dict[tuple, _RegimeVetoState] = {}
+
+    def observe(
+        self,
+        pair: str,
+        strategy_name: str,
+        decision: "RegimeDecision",
+        *,
+        now: Optional[datetime] = None,
+    ) -> None:
+        observed_at = now or datetime.now(timezone.utc)
+        key = (pair, strategy_name)
+        state = self._states.get(key)
+        if not decision.blocked:
+            if state is None:
+                return
+            self._states.pop(key)
+            first_seen = state.first_seen_at.strftime("%Y-%m-%d %H:%M:%S UTC")
+            self._log(
+                f"⛓ regime-veto cleared {pair} {strategy_name} after "
+                f"{state.repeat_count} repeats since {first_seen}: "
+                f"{decision.reason}"
+            )
+            return
+
+        reason_key = decision.reason
+        if decision.adx is not None:
+            value_suffix = f", got {decision.adx:.1f}"
+            if reason_key.endswith(value_suffix):
+                reason_key = reason_key[:-len(value_suffix)]
+        current_reason_key = (decision.regime, reason_key)
+        if state is None:
+            self._states[key] = _RegimeVetoState(
+                reason_key=current_reason_key,
+                first_seen_at=observed_at,
+                last_logged_at=observed_at,
+                last_logged_adx=decision.adx,
+            )
+            self._log(
+                f"⛓ regime-veto {pair} {strategy_name}: {decision.reason}"
+            )
+            return
+
+        state.repeat_count += 1
+        reason_changed = current_reason_key != state.reason_key
+        value_changed = (
+            decision.adx is None
+            or state.last_logged_adx is None
+            or abs(decision.adx - state.last_logged_adx)
+            >= _REGIME_VETO_ADX_LOG_DELTA
+        ) and decision.adx != state.last_logged_adx
+        summary_due = (
+            observed_at - state.last_logged_at
+        ).total_seconds() >= _REGIME_VETO_SUMMARY_SECONDS
+        if not reason_changed and not value_changed and not summary_due:
+            state.suppressed_repeats += 1
+            return
+
+        event = "changed" if reason_changed else "update" if value_changed else "persists"
+        repeat_label = (
+            "repeat" if state.suppressed_repeats == 1 else "repeats"
+        )
+        first_seen = state.first_seen_at.strftime("%Y-%m-%d %H:%M:%S UTC")
+        self._log(
+            f"⛓ regime-veto {event} {pair} {strategy_name}: "
+            f"{decision.reason} ({state.suppressed_repeats} suppressed "
+            f"{repeat_label}; active since {first_seen})"
+        )
+        state.reason_key = current_reason_key
+        state.last_logged_at = observed_at
+        state.last_logged_adx = decision.adx
+        state.suppressed_repeats = 0
 
 
 def _bars_to_df(bars: List[Bar]) -> pd.DataFrame:
@@ -127,6 +221,7 @@ async def evaluate_pair(
     strategy_name: str, resolution: str,
     stop_atr: float, rr: float, lookback_bars: int,
     apply_venue_min: bool = False,
+    regime_veto_logger: Optional[_RegimeVetoLogger] = None,
 ) -> Optional[TradeIntent]:
     """Run a single strategy-evaluation cycle on `pair`. Returns a
     `TradeIntent` if the latest bar produced a signal, else None.
@@ -162,8 +257,11 @@ async def evaluate_pair(
     # stay consistent. Fails open on missing ADX.
     from app.spot_trading.regime import gate as _regime_gate
     decision = _regime_gate(strategy_name, df, last_idx)
-    if decision.blocked:
+    if regime_veto_logger is not None:
+        regime_veto_logger.observe(pair, strategy_name, decision)
+    if decision.blocked and regime_veto_logger is None:
         _safe_log(f"⛓ regime-veto {pair} {strategy_name}: {decision.reason}")
+    if decision.blocked:
         return None
     last_row = df.iloc[last_idx]
     atr = last_row.get("atr_14")
@@ -464,6 +562,8 @@ async def run_loop(
     # must not be retried every poll cycle. Keyed by journal deal_id →
     # last-attempt time; retried at most once per _STALE_RETRY_COOLDOWN.
     stale_exit_attempts: Dict[str, datetime] = {}
+
+    regime_veto_logger = _RegimeVetoLogger(_safe_log)
 
     # Pairs the broker refuses to short (rejectReason LONG_ONLY, e.g.
     # AAVEUSD on Capital). Learned from rejections at runtime so the
@@ -911,6 +1011,7 @@ async def run_loop(
                         stop_atr=stop_atr, rr=entry_rr,
                         lookback_bars=lookback_bars,
                         apply_venue_min=True,
+                        regime_veto_logger=regime_veto_logger,
                     )
                 except PlatformError as exc:
                     _safe_log(f"⚠ {pair}: evaluate failed: {exc}")
