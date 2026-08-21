@@ -66,6 +66,7 @@ _RES_MINUTES = {
     "1m": 1, "5m": 5, "15m": 15, "30m": 30,
     "1h": 60, "4h": 240, "1d": 1440,
 }
+_DISABLED_LIVE_STRATEGIES = {"donchian_breakout_v3"}
 
 
 def _safe_log(message: str) -> None:
@@ -128,6 +129,8 @@ async def evaluate_pair(
     same logic via spot_backtest._simulate_trades(platform=...).
     Without this, FX-1h signals on Capital are virtually unhandelable
     (ATR ~0.0007 vs 1% minimum = 0.01)."""
+    if strategy_name in _DISABLED_LIVE_STRATEGIES:
+        return None
     strategy = get_strategy(strategy_name)
     bars = await _fetch_recent_bars(platform, pair, resolution, lookback_bars)
     if len(bars) < 50:
@@ -192,6 +195,11 @@ async def execute_intent(
 ) -> OrderResult:
     """Hand the intent to the platform. Errors are returned in the
     OrderResult — the loop should not crash on a single bad order."""
+    if intent.strategy in _DISABLED_LIVE_STRATEGIES:
+        return OrderResult(
+            accepted=False, asset=intent.pair, direction=intent.direction,
+            size=size, error=f"disabled live strategy: {intent.strategy}",
+        )
     try:
         return await platform.place_order(
             asset=intent.pair, direction=intent.direction, size=size,
@@ -226,11 +234,10 @@ _STALE_RETRY_COOLDOWN = 1800
 # parallel — donchian_breakout's fixed 1:1.5 TP measurably caps its
 # winners (backtest 2026-07-08: BTCUSD E[R] +0.33 at 1:1.5 vs +0.93 at
 # 1:3.5). donchian_breakout itself is intentionally NOT listed, so it
-# keeps the global rr and stays untouched; the _v2 / _v3 clones share its
-# entry logic but exit at a wider target.
+# keeps the global rr and stays untouched; the v2 clone shares its entry
+# logic but exits at a wider target.
 _STRATEGY_RR = {
     "donchian_breakout_v2": 2.5,
-    "donchian_breakout_v3": 3.5,
     # Far backstop only — donchian_trail's real exit is the break-even +
     # ATR trailing stop managed in the loop (see the trailing-stop exit
     # block in run_loop). The wide TP just caps the tail if the trail

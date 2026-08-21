@@ -63,20 +63,6 @@
     },
     {
       "platform": "capital_com",
-      "strategy": "donchian_breakout_v3",
-      "resolution": "1h",
-      "pair": "AAVEUSD",
-      "exclusive": true
-    },
-    {
-      "platform": "capital_com",
-      "strategy": "donchian_breakout_v3",
-      "resolution": "1h",
-      "pair": "DOTUSD",
-      "exclusive": true
-    },
-    {
-      "platform": "capital_com",
       "strategy": "donchian_breakout_4h",
       "resolution": "4h",
       "pair": "SILVER",
