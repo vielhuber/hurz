@@ -70,6 +70,7 @@ _RES_MINUTES = {
     "1m": 1, "5m": 5, "15m": 15, "30m": 30,
     "1h": 60, "4h": 240, "1d": 1440,
 }
+_DISABLED_LIVE_STRATEGIES = {"donchian_breakout_v3"}
 
 
 def _safe_log(message: str) -> None:
@@ -132,6 +133,8 @@ async def evaluate_pair(
     same logic via spot_backtest._simulate_trades(platform=...).
     Without this, FX-1h signals on Capital are virtually unhandelable
     (ATR ~0.0007 vs 1% minimum = 0.01)."""
+    if strategy_name in _DISABLED_LIVE_STRATEGIES:
+        return None
     strategy = get_strategy(strategy_name)
     bars = await _fetch_recent_bars(platform, pair, resolution, lookback_bars)
     if len(bars) < 50:
@@ -196,6 +199,11 @@ async def execute_intent(
 ) -> OrderResult:
     """Hand the intent to the platform. Errors are returned in the
     OrderResult — the loop should not crash on a single bad order."""
+    if intent.strategy in _DISABLED_LIVE_STRATEGIES:
+        return OrderResult(
+            accepted=False, asset=intent.pair, direction=intent.direction,
+            size=size, error=f"disabled live strategy: {intent.strategy}",
+        )
     try:
         return await platform.place_order(
             asset=intent.pair, direction=intent.direction, size=size,
