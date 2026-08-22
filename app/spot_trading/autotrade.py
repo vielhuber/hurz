@@ -580,7 +580,9 @@ async def run_loop(
                     if match is None:
                         still_stale.append(row)
                         continue
-                    update_deal_id(row["id"], match.id)
+                    update_deal_id(
+                        row["id"], match.id, fill_price=match.entry_price,
+                    )
                     claimed.add(match.id)
                     current_deal_ids.add(match.id)
                     _safe_log(

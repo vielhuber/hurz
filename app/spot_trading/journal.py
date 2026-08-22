@@ -115,17 +115,33 @@ def list_unresolved_open(platform: Optional[str] = None) -> List[Dict[str, Any]]
         return []
 
 
-def update_deal_id(journal_id: int, deal_id: str) -> None:
+def update_deal_id(
+    journal_id: int, deal_id: str, *, fill_price: Optional[float] = None,
+) -> None:
     """Replace a row's deal_id — used by the startup reconcile when a
     journal row holds the order's dealReference (confirms poll failed
     at entry) but a matching broker position exists under its real
     position dealId. Adopting the real id keeps the row manageable
-    instead of phantom-closing it."""
+    instead of phantom-closing it.
+
+    `fill_price` backfills the adopted position's entry level: a row
+    that reached this path usually has no fill (the same failed confirms
+    poll that lost the dealId), and without it realized PnL is not
+    computable at exit. An already-recorded fill wins — it is the price
+    our own order actually got."""
     try:
         from app.utils.singletons import database
         database.query(
-            "UPDATE spot_trades SET deal_id = %s WHERE id = %s",
-            (deal_id, int(journal_id)),
+            """
+            UPDATE spot_trades
+            SET deal_id = %s, fill_price = COALESCE(fill_price, %s)
+            WHERE id = %s
+            """,
+            (
+                deal_id,
+                float(fill_price) if fill_price else None,
+                int(journal_id),
+            ),
         )
     except Exception:
         pass
