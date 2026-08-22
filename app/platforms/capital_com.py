@@ -45,6 +45,9 @@ from app.platforms.base import (
 _REST_BASE_LIVE = "https://api-capital.backend-capital.com"
 _REST_BASE_DEMO = "https://demo-api-capital.backend-capital.com"
 _WS_BASE = "wss://api-streaming-capital.backend-capital.com/connect"
+_CONFIRM_ATTEMPTS = 5
+_CONFIRM_INTERVAL_SECONDS = 1.0
+_CONFIRM_TOTAL_TIMEOUT_SECONDS = 15.0
 
 # Capital.com REST resolution codes (matches their `resolution` enum).
 _RESOLUTION_MAP = {
@@ -522,46 +525,76 @@ class CapitalComPlatform(Platform):
         deal_ref = data.get("dealReference")
         fill_price = None
         deal_id = None
+        confirmation_error = None
         if deal_ref:
             try:
-                conf = await self._raw_request(
-                    "GET", f"/api/v1/confirms/{deal_ref}", auth=True,
+                async with asyncio.timeout(_CONFIRM_TOTAL_TIMEOUT_SECONDS):
+                    for attempt in range(_CONFIRM_ATTEMPTS):
+                        try:
+                            conf = await self._raw_request(
+                                "GET", f"/api/v1/confirms/{deal_ref}",
+                                auth=True,
+                            )
+                        except PlatformAPIError as exc:
+                            confirmation_error = str(exc)
+                            if exc.response_text:
+                                confirmation_error += f" :: {exc.response_text}"
+                        else:
+                            fill_price = conf.get("level")
+                            deal_id = conf.get("dealId")
+                            # `dealStatus` should be "ACCEPTED" — surface rejections.
+                            if conf.get("dealStatus") == "REJECTED":
+                                # Capital's rejection payload contains diagnostic
+                                # fields beyond `reason` (often empty): `reasonCode`,
+                                # `status`, `affectedDeals`, `errorCode`. Stitch the
+                                # informative ones into the error string so the
+                                # journal/log shows why instead of bare "rejected".
+                                parts = []
+                                for k in ("reason", "reasonCode", "errorCode", "status"):
+                                    v = conf.get(k)
+                                    if v:
+                                        parts.append(f"{k}={v}")
+                                # When `reason` is missing the partial join can be
+                                # uselessly thin (e.g. just `status=DELETED`). Append
+                                # the full confirm payload for forensic context so
+                                # the journal/log line is still actionable.
+                                if not conf.get("reason"):
+                                    parts.append(f"raw={conf}")
+                                err = "; ".join(parts) if parts else f"rejected (no detail): {conf}"
+                                return OrderResult(
+                                    accepted=False, asset=asset,
+                                    direction=direction, size=size,
+                                    error=err, raw=conf,
+                                )
+                            if deal_id:
+                                confirmation_error = None
+                                break
+                            confirmation_error = (
+                                "confirms response had no dealId "
+                                f"(dealStatus={conf.get('dealStatus')}, "
+                                f"status={conf.get('status')}, raw={conf})"
+                            )
+                        if attempt < _CONFIRM_ATTEMPTS - 1:
+                            await asyncio.sleep(_CONFIRM_INTERVAL_SECONDS)
+            except TimeoutError:
+                previous_error = confirmation_error
+                confirmation_error = (
+                    "confirms poll exceeded "
+                    f"{_CONFIRM_TOTAL_TIMEOUT_SECONDS:.0f}s"
                 )
-                fill_price = conf.get("level")
-                deal_id = conf.get("dealId")
-                # `dealStatus` should be "ACCEPTED" — surface rejections.
-                if conf.get("dealStatus") == "REJECTED":
-                    # Capital's rejection payload contains diagnostic
-                    # fields beyond `reason` (often empty): `reasonCode`,
-                    # `status`, `affectedDeals`, `errorCode`. Stitch the
-                    # informative ones into the error string so the
-                    # journal/log shows why instead of bare "rejected".
-                    parts = []
-                    for k in ("reason", "reasonCode", "errorCode", "status"):
-                        v = conf.get(k)
-                        if v:
-                            parts.append(f"{k}={v}")
-                    # When `reason` is missing the partial join can be
-                    # uselessly thin (e.g. just `status=DELETED`). Append
-                    # the full confirm payload for forensic context so
-                    # the journal/log line is still actionable.
-                    if not conf.get("reason"):
-                        parts.append(f"raw={conf}")
-                    err = "; ".join(parts) if parts else f"rejected (no detail): {conf}"
-                    return OrderResult(
-                        accepted=False, asset=asset, direction=direction,
-                        size=size, error=err,
-                        raw=conf,
-                    )
-            except PlatformAPIError:
-                # Confirms call failed but order MAY have been accepted
-                # — caller should poll positions to verify.
-                pass
+                if previous_error:
+                    confirmation_error += f"; last_error={previous_error}"
+        else:
+            confirmation_error = (
+                "POST /api/v1/positions response had no dealReference"
+            )
         # Stash any auto-adjustments in `raw` so the journal/audit can
         # see when size/SL/TP were clamped to the broker's minimums.
         raw_with_adj = dict(data)
         if adjustments:
             raw_with_adj["_adjustments"] = adjustments
+        if confirmation_error:
+            raw_with_adj["_confirmation_error"] = confirmation_error
         return OrderResult(
             accepted=True, deal_id=deal_id or deal_ref,
             fill_price=fill_price, asset=asset,
