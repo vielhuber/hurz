@@ -1047,6 +1047,13 @@ async def run_loop(
                 result = await execute_intent(platform, intent, size=trade_size)
                 if result.accepted:
                     _safe_log(f"  ✓ accepted: deal_id={result.deal_id}")
+                    confirmation_error = result.raw.get("_confirmation_error")
+                    if confirmation_error:
+                        _safe_log(
+                            f"  ⚠ confirms unresolved for {intent.pair}; "
+                            f"using provisional deal_id={result.deal_id}: "
+                            f"{confirmation_error}"
+                        )
                     if cluster is not None:
                         opened_this_cycle.append((cluster, intent.direction))
                 else:
