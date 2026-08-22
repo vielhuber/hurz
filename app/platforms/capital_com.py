@@ -611,8 +611,8 @@ class CapitalComPlatform(Platform):
     async def fetch_close_fill(
         self, deal_id: str, since: datetime,
     ) -> Optional[Dict[str, Any]]:
-        """Look up the real close fill for a position whose opening order
-        was recorded with `deal_id` (the value returned by `place_order`).
+        """Look up the real close fill for a recorded opening-order or
+        position `deal_id`.
 
         Capital's activity log carries the true exit price and the close
         trigger (SL/TP/USER/SYSTEM), which the journal's bar-walk cannot
@@ -639,7 +639,7 @@ class CapitalComPlatform(Platform):
         # equal to the dealId we stored at order time. From that we
         # learn the position's own dealId, which both open and close
         # activities share.
-        position_deal_id = None
+        position_deal_id = deal_id
         for a in acts:
             if a.get("type") != "POSITION":
                 continue
@@ -647,8 +647,6 @@ class CapitalComPlatform(Platform):
             if details.get("workingOrderId") == deal_id:
                 position_deal_id = a.get("dealId")
                 break
-        if not position_deal_id:
-            return None
         # The close has `openPrice` set in details (it references the
         # original open's fill price). The open does not.
         for a in acts:

@@ -268,10 +268,11 @@ _CLUSTER_DIR_CAP = int(os.getenv("HURZ_CLUSTER_DIRECTION_CAP", "3"))
 async def _resolve_closed_trade(
     platform: Platform, journal_row: Dict,
 ) -> Optional[Dict]:
-    """For a position that's no longer in the broker's open list, walk
-    the bars between its entry and now to detect which of (SL, TP) was
-    crossed first. Returns dict with exit_price, exit_time, outcome,
-    realized_pnl — or None if no bars are available.
+    """For a position that's no longer in the broker's open list, consult
+    the broker's close activity and then walk bars between its entry and
+    now to detect which of (SL, TP) was crossed first. Returns dict with
+    exit_price, exit_time, outcome, realized_pnl — or None if neither
+    source is available.
 
     Outcome semantics:
       win     → take-profit hit
@@ -295,6 +296,26 @@ async def _resolve_closed_trade(
     sl = float(journal_row["stop_loss"])
     tp = float(journal_row["take_profit"])
     size = float(journal_row["size"]) if journal_row.get("size") else 1.0
+
+    deal_id = journal_row.get("deal_id")
+    fetch_close = getattr(platform, "fetch_close_fill", None)
+    if deal_id and fetch_close:
+        try:
+            fill = await fetch_close(deal_id, entry_time)
+        except Exception:
+            fill = None
+        if fill:
+            src = fill.get("source", "")
+            if src == "SL":
+                outcome = "loss"
+            elif src in ("TP", "PROFIT"):
+                outcome = "win"
+            else:
+                outcome = "manual"
+            return _closure_payload(
+                fill["close_time"], fill["close_level"], outcome,
+                entry_fill_price, direction, size,
+            )
 
     # Pull just enough bars to cover the trade window. 1h resolution
     # because that's what the autotrader runs on (other resolutions
@@ -332,31 +353,9 @@ async def _resolve_closed_trade(
     #   1. Sub-bar SL/TP touch on bid/ask that didn't print on the
     #      1h OHLC mid (typical for fast crypto/FX wicks).
     #   2. Actual external close (operator, margin, broker action).
-    # Try to recover the truth from the venue's activity log via the
-    # stored deal_id. Capital reports the real close level and the
-    # trigger source (SL/TP/USER/SYSTEM). If that lookup succeeds,
-    # promote the outcome to loss/win accordingly; otherwise keep
-    # the conservative "manual" with last-bar close as the estimate.
+    # The venue activity lookup above was unavailable, so keep the
+    # conservative "manual" with last-bar close as the estimate.
     last = bars[-1]
-    deal_id = journal_row.get("deal_id")
-    fetch_close = getattr(platform, "fetch_close_fill", None)
-    if deal_id and fetch_close:
-        try:
-            fill = await fetch_close(deal_id, entry_time)
-        except Exception:
-            fill = None
-        if fill:
-            src = fill.get("source", "")
-            if src == "SL":
-                outcome = "loss"
-            elif src in ("TP", "PROFIT"):
-                outcome = "win"
-            else:
-                outcome = "manual"
-            return _closure_payload(
-                fill["close_time"], fill["close_level"], outcome,
-                entry_fill_price, direction, size,
-            )
     return _closure_payload(
         last.timestamp, last.close, "manual",
         entry_fill_price, direction, size,
