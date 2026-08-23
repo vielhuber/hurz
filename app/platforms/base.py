@@ -29,7 +29,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
 
 class PlatformError(Exception):
@@ -120,6 +120,22 @@ class OrderResult:
     size: Optional[float] = None
     error: Optional[str] = None
     raw: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class OrderConstraints:
+    min_size: float = 0.0
+    size_increment: float = 0.0
+    max_size: Optional[float] = None
+
+
+@dataclass(frozen=True)
+class PreparedOrder:
+    reference_price: float
+    stop_loss: Optional[float]
+    take_profit: Optional[float]
+    constraints: OrderConstraints = field(default_factory=OrderConstraints)
+    adjustments: Tuple[str, ...] = ()
 
 
 class Platform(ABC):
@@ -253,3 +269,19 @@ class Platform(ABC):
         venue-side rules override this. Reads should hit the adapter's
         cache to keep the per-cycle overhead negligible."""
         return 0.0
+
+    async def order_constraints(self, asset: str) -> OrderConstraints:
+        """Return broker size limits without changing broker state."""
+        return OrderConstraints()
+
+    async def prepare_order(
+        self, *, asset: str, direction: int, reference_price: float,
+        stop_loss: Optional[float], take_profit: Optional[float],
+    ) -> PreparedOrder:
+        """Normalize order prices and expose the limits used at submission."""
+        return PreparedOrder(
+            reference_price=reference_price,
+            stop_loss=stop_loss,
+            take_profit=take_profit,
+            constraints=await self.order_constraints(asset),
+        )

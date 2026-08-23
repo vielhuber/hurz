@@ -5,7 +5,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
-from scripts.generate_dashboard import _render_open
+from scripts.generate_dashboard import _render_open, _render_projection
 
 
 class RenderOpenPositionsTest(unittest.TestCase):
@@ -37,6 +37,26 @@ class RenderOpenPositionsTest(unittest.TestCase):
             html = _render_open([self._position("donchian_breakout", 25)])
 
         self.assertIn("überfällig", html)
+
+
+class RenderProjectionTest(unittest.TestCase):
+    def test_projection_scales_actual_return_instead_of_fixed_250_notional(self) -> None:
+        start = datetime(2026, 1, 1, tzinfo=timezone.utc)
+        html = _render_projection(
+            [{
+                "strategy": "momentum",
+                "pair": "ATOMUSD",
+                "trades": 5,
+                "wins": 3,
+                "pnl": 25.0,
+                "return_sum": 0.01,
+            }],
+            {"mn": start, "mx": start + timedelta(days=10)},
+            [{"strategy": "momentum", "pnl": 25.0}],
+        )
+
+        self.assertIn("€1.00", html)
+        self.assertIn("tatsächliches Fill-Notional", html)
 
 
 if __name__ == "__main__":

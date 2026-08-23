@@ -34,7 +34,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.utils.singletons import settings
 settings.load_env()
-from app.platforms import get_platform, Bar
+from app.platforms import get_platform, Bar, OrderConstraints
 from app.platforms.registry import clear_cache
 from app.strategies import get_strategy, available_strategies, add_indicators
 from app.spot_trading.regime import (
@@ -46,6 +46,11 @@ from app.spot_trading.regime import (
 from app.spot_trading.strategy_parameters import (
     DEFAULT_RISK_REWARD,
     risk_reward_for,
+)
+from app.spot_trading.position_sizing import (
+    DEFAULT_NOTIONAL_CAP_USD,
+    DEFAULT_TARGET_RISK_USD,
+    calculate_position_size,
 )
 
 
@@ -230,6 +235,10 @@ class TradeOutcome:
     outcome: str
     bars_held: int
     r_multiple: float
+    size: float
+    planned_risk: float
+    notional: float
+    realized_pnl: float
 
 
 def _bars_to_df(bars: List[Bar]) -> pd.DataFrame:
@@ -244,7 +253,11 @@ def _simulate_trades(asset: str, df: pd.DataFrame, signals, *,
                      max_hold_bars: int,
                      fee_rate: float = 0.0,
                      platform: str = "",
-                     strategy_name: str = "") -> List[TradeOutcome]:
+                     strategy_name: str = "",
+                     target_risk: float = DEFAULT_TARGET_RISK_USD,
+                     notional_cap: float = DEFAULT_NOTIONAL_CAP_USD,
+                     constraints: Optional[OrderConstraints] = None,
+                     ) -> List[TradeOutcome]:
     """Walk forward from each signal until SL or TP hits (or timeout).
     Conservative: when a single bar's range covers both SL and TP,
     assume SL hit first.
@@ -288,6 +301,18 @@ def _simulate_trades(asset: str, df: pd.DataFrame, signals, *,
             sl = entry - stop_dist; tp = entry + target_dist
         else:
             sl = entry + stop_dist; tp = entry - target_dist
+        venue_constraints = constraints or OrderConstraints()
+        sizing = calculate_position_size(
+            entry_price=entry,
+            stop_loss=sl,
+            target_risk=target_risk,
+            notional_cap=notional_cap,
+            min_size=venue_constraints.min_size,
+            size_increment=venue_constraints.size_increment,
+            max_size=venue_constraints.max_size,
+        )
+        if sizing.skipped:
+            continue
         out_t: Optional[datetime] = None
         out_p: Optional[float] = None
         outcome_type = "open"
@@ -326,8 +351,9 @@ def _simulate_trades(asset: str, df: pd.DataFrame, signals, *,
         gross_pnl = (out_p - entry) * sig.direction
         # Round-trip fee: paid at entry on `entry` and at exit on `out_p`.
         fee_cost = fee_rate * (entry + out_p) if fee_rate > 0 else 0.0
-        net_pnl = gross_pnl - fee_cost
-        r = net_pnl / risk
+        net_pnl_per_unit = gross_pnl - fee_cost
+        net_pnl = net_pnl_per_unit * sizing.size
+        r = net_pnl / sizing.planned_risk
         outcomes.append(TradeOutcome(
             asset=asset, direction=sig.direction,
             entry_time=row["timestamp"], entry_price=entry,
@@ -335,6 +361,10 @@ def _simulate_trades(asset: str, df: pd.DataFrame, signals, *,
             exit_time=out_t, exit_price=out_p,
             outcome=outcome_type, bars_held=bars_held,
             r_multiple=float(r),
+            size=sizing.size,
+            planned_risk=sizing.planned_risk,
+            notional=sizing.notional,
+            realized_pnl=float(net_pnl),
         ))
         in_trade_until = i + bars_held
     return outcomes
@@ -347,7 +377,8 @@ def _summarise(outcomes: List[TradeOutcome]) -> dict:
                 "expectancy_R": 0.0, "sharpe": 0.0,
                 "best_R": 0.0, "worst_R": 0.0,
                 "median_stop_distance": 0.0,
-                "median_entry_price": 0.0}
+                "median_entry_price": 0.0,
+                "total_pnl_usd": 0.0}
     rs = np.array([o.r_multiple for o in outcomes], dtype=float)
     # Stop distance + entry price stats — used by the pair-selector's
     # pre-filter to drop combos whose ATR-derived stops are typically
@@ -368,6 +399,7 @@ def _summarise(outcomes: List[TradeOutcome]) -> dict:
         "best_R": float(rs.max()), "worst_R": float(rs.min()),
         "median_stop_distance": float(np.median(stop_dists)),
         "median_entry_price": float(np.median(entries)),
+        "total_pnl_usd": float(sum(outcome.realized_pnl for outcome in outcomes)),
     }
 
 
@@ -392,6 +424,7 @@ def _load_persisted_results() -> dict:
 def _persist_result(platform_name: str, strategy_name: str, resolution: str,
                     days: int, rr: float, stop_atr: float, max_hold: int,
                     fee_rate, regime_adx_floor: Optional[float],
+                    target_risk: float, notional_cap: float,
                     per_pair: list, overall: dict) -> None:
     """Append/update results in data/spot_backtest_results.json. Schema:
         {
@@ -415,6 +448,8 @@ def _persist_result(platform_name: str, strategy_name: str, resolution: str,
             "days": days, "rr": rr, "stop_atr": stop_atr,
             "max_hold": max_hold, "fee_rate": fee_rate,
             "regime_adx_floor": regime_adx_floor,
+            "target_risk": target_risk,
+            "notional_cap": notional_cap,
         },
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "overall": overall,
@@ -449,6 +484,8 @@ async def main(args) -> None:
     print(f"  resolution={args.resolution}  days={args.days}  "
           f"stop={args.stop_atr}×ATR  rr=1:{args.rr}  max_hold={args.max_hold} bars  "
           f"fee={fee_label}")
+    print(f"  target_risk=${args.risk_per_trade:.2f}  "
+          f"notional_cap=${args.notional_cap:.2f}")
     if regime_adx_floor is not None:
         print(f"  regime=ADX>={regime_adx_floor:g}")
     print()
@@ -473,6 +510,12 @@ async def main(args) -> None:
             df = _bars_to_df(bars)
             df = add_indicators(df)
             signals = strategy(df, {})
+            try:
+                constraints = await platform.order_constraints(pair)
+            except Exception as exc:
+                print(f"{pair:<14} ⛔ constraints failed: {str(exc)[:50]}")
+                await asyncio.sleep(_INTER_CALL_SLEEP_SEC)
+                continue
             pair_fee = (fee_override if fee_override is not None
                         else _fee_for(args.platform, pair))
             outcomes = _simulate_trades(
@@ -482,6 +525,9 @@ async def main(args) -> None:
                 fee_rate=pair_fee,
                 platform=args.platform,
                 strategy_name=args.strategy,
+                target_risk=args.risk_per_trade,
+                notional_cap=args.notional_cap,
+                constraints=constraints,
             )
             all_outcomes.extend(outcomes)
             stats = _summarise(outcomes)
@@ -535,7 +581,8 @@ async def main(args) -> None:
         _persist_result(
             args.platform, args.strategy, args.resolution,
             args.days, args.rr, args.stop_atr, args.max_hold,
-            fee_meta, regime_adx_floor, per_pair_summary, overall,
+            fee_meta, regime_adx_floor, args.risk_per_trade,
+            args.notional_cap, per_pair_summary, overall,
         )
         print(f"✓ results persisted to {_RESULTS_PATH}")
 
@@ -569,6 +616,20 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--fee-rate", dest="fee_rate", type=float, default=None,
                    help="per-side fee (e.g. 0.0026 for Kraken Maker). "
                         "Default: per-platform sensible value.")
+    p.add_argument(
+        "--risk-per-trade",
+        dest="risk_per_trade",
+        type=float,
+        default=float(os.getenv("HURZ_RISK_PER_TRADE", DEFAULT_TARGET_RISK_USD)),
+    )
+    p.add_argument(
+        "--notional-cap",
+        dest="notional_cap",
+        type=float,
+        default=float(os.getenv(
+            "HURZ_NOTIONAL_PER_TRADE", DEFAULT_NOTIONAL_CAP_USD,
+        )),
+    )
     p.add_argument("--persist", action="store_true", default=True,
                    help="write results to data/spot_backtest_results.json (default on)")
     p.add_argument("--no-persist", dest="persist", action="store_false")
