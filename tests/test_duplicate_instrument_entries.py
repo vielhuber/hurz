@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import patch
 
-from app.platforms import OrderResult
+from app.platforms import OrderResult, PreparedOrder
 from app.spot_trading import autotrade, journal, pair_selector
 from app.spot_trading.autotrade import TradeIntent
 
@@ -31,6 +31,11 @@ class EmptyPositionPlatform:
 
     async def min_stop_distance(self, pair, ref_price):
         return 0.0
+
+    async def prepare_order(
+        self, *, asset, direction, reference_price, stop_loss, take_profit,
+    ):
+        return PreparedOrder(reference_price, stop_loss, take_profit)
 
     async def place_order(self, **kwargs):
         self.orders.append(kwargs)

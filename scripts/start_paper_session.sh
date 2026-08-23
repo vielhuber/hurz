@@ -55,6 +55,7 @@ case "$cmd" in
     # RISK_CHECK. We track R-multiples / win-rates (size-independent), so
     # the smaller $-size per trade doesn't reduce the statistical value.
     export HURZ_NOTIONAL_PER_TRADE="250"
+    export HURZ_RISK_PER_TRADE="3.00"
     # Run under `_session_watchdog.sh` so transient crashes (WSL2
     # reboot survival, DNS hiccups, 502s, asyncio timeouts) trigger
     # an auto-restart instead of leaving the bot dead. The watchdog

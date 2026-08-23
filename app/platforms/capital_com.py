@@ -34,11 +34,13 @@ import websockets
 from app.platforms.base import (
     Bar,
     Instrument,
+    OrderConstraints,
     OrderResult,
     Platform,
     PlatformAPIError,
     PlatformAuthError,
     Position,
+    PreparedOrder,
 )
 
 
@@ -90,10 +92,12 @@ class CapitalComPlatform(Platform):
         self._instruments_cache_at: float = 0.0
         # Per-epic dealing rules cache. Capital.com enforces min size
         # and min stop/profit distance per instrument, both fetched
-        # from /markets/{epic}. Without clamping against these limits,
+        # from /markets/{epic}. Without validating against these limits,
         # every order returns HTTP 400 (error.invalid.size.minvalue or
-        # error.invalid.stoplevel.minvalue). Cached for 1h — these
-        # rules change rarely.
+        # error.invalid.stoplevel.minvalue). Cached briefly because the
+        # response also contains the live bid/offer; the dealing rules
+        # themselves change rarely. The short cache keeps order preparation
+        # aligned with submission.
         self._dealing_rules: Dict[str, Dict[str, Any]] = {}
         self._dealing_rules_at: Dict[str, float] = {}
 
@@ -397,15 +401,14 @@ class CapitalComPlatform(Platform):
         return ref_price * float(value) * 1.05
 
     async def _get_dealing_rules(self, epic: str) -> Dict[str, Any]:
-        """Cache dealingRules + bid/offer snapshot per epic (1h TTL).
+        """Cache dealingRules + bid/offer snapshot briefly per epic.
         Used by `place_order` to clamp size and SL/TP against the
         broker's per-instrument limits — sending under-spec values
         triggers HTTP 400 with errorCode error.invalid.size.minvalue
-        (or stoplevel.minvalue). Better to clamp once than to journal
-        a reject loop."""
+        (or stoplevel.minvalue). Pre-validating avoids a broker reject loop."""
         now = time.time()
         if (epic in self._dealing_rules
-                and now - self._dealing_rules_at.get(epic, 0) < 3600):
+                and now - self._dealing_rules_at.get(epic, 0) < 5):
             return self._dealing_rules[epic]
         data = await self._raw_request(
             "GET", f"/api/v1/markets/{epic}", auth=True,
@@ -414,6 +417,7 @@ class CapitalComPlatform(Platform):
         snap = data.get("snapshot") or {}
         out = {
             "min_size": (rules.get("minDealSize") or {}).get("value") or 0,
+            "max_size": (rules.get("maxDealSize") or {}).get("value") or 0,
             "size_increment": (rules.get("minSizeIncrement") or {}).get("value") or 0,
             "min_dist_value": (rules.get("minStopOrProfitDistance") or {}).get("value"),
             "min_dist_unit": (rules.get("minStopOrProfitDistance") or {}).get("unit"),
@@ -424,6 +428,63 @@ class CapitalComPlatform(Platform):
         self._dealing_rules_at[epic] = now
         return out
 
+    async def order_constraints(self, asset: str) -> OrderConstraints:
+        """Expose the Capital.com dealing limits used by the sizing layer."""
+        rules = await self._get_dealing_rules(asset)
+        max_size = float(rules.get("max_size") or 0)
+        return OrderConstraints(
+            min_size=float(rules.get("min_size") or 0),
+            size_increment=float(rules.get("size_increment") or 0),
+            max_size=max_size if max_size > 0 else None,
+        )
+
+    async def prepare_order(
+        self, *, asset: str, direction: int, reference_price: float,
+        stop_loss: Optional[float], take_profit: Optional[float],
+    ) -> PreparedOrder:
+        """Apply the same price normalization used immediately before POST."""
+        rules = await self._get_dealing_rules(asset)
+        bid = rules.get("bid")
+        offer = rules.get("offer")
+        if bid is not None and offer is not None:
+            reference_price = (float(bid) + float(offer)) / 2.0
+
+        adjustments = []
+        if (rules.get("min_dist_unit") == "PERCENTAGE"
+                and rules.get("min_dist_value") is not None):
+            min_dist = reference_price * float(rules["min_dist_value"]) * 1.05
+            if stop_loss is not None:
+                stop_distance = abs(reference_price - float(stop_loss))
+                if stop_distance < min_dist:
+                    old_stop = stop_loss
+                    stop_loss = (
+                        reference_price - min_dist
+                        if direction == 1 else reference_price + min_dist
+                    )
+                    adjustments.append(f"sl {old_stop:.6f}→{stop_loss:.6f}")
+            if take_profit is not None:
+                target_distance = abs(reference_price - float(take_profit))
+                if target_distance < min_dist:
+                    old_target = take_profit
+                    take_profit = (
+                        reference_price + min_dist
+                        if direction == 1 else reference_price - min_dist
+                    )
+                    adjustments.append(f"tp {old_target:.6f}→{take_profit:.6f}")
+
+        max_size = float(rules.get("max_size") or 0)
+        return PreparedOrder(
+            reference_price=reference_price,
+            stop_loss=stop_loss,
+            take_profit=take_profit,
+            constraints=OrderConstraints(
+                min_size=float(rules.get("min_size") or 0),
+                size_increment=float(rules.get("size_increment") or 0),
+                max_size=max_size if max_size > 0 else None,
+            ),
+            adjustments=tuple(adjustments),
+        )
+
     async def place_order(
         self, *, asset: str, direction: int, size: float,
         stop_loss: Optional[float] = None,
@@ -432,8 +493,8 @@ class CapitalComPlatform(Platform):
         """Open a market position. `direction` +1=BUY, -1=SELL.
         `size` is in the platform's contract units (Capital.com uses
         per-instrument contract size — fetched via /markets/{epic}).
-        Size and SL/TP distance are auto-clamped to the broker's
-        minimums to avoid HTTP-400 rejects on under-spec orders."""
+        Size is capped and rounded down, while SL/TP distances are
+        normalized. Under-minimum sizes are refused rather than increased."""
         self.require_auth()
         self.require_trade_enabled()
         if direction not in (-1, 1):
@@ -448,52 +509,62 @@ class CapitalComPlatform(Platform):
         # as too tight, while entry@0.7238 with SL@0.7358 (Δ=0.012, ~1.66%)
         # was accepted. So the multiplier is mid * value, not mid * value/100.
         try:
-            rules = await self._get_dealing_rules(asset)
-        except PlatformAPIError:
-            rules = {}
+            prepared = await self.prepare_order(
+                asset=asset,
+                direction=direction,
+                reference_price=0.0,
+                stop_loss=stop_loss,
+                take_profit=take_profit,
+            )
+        except PlatformAPIError as exc:
+            error = str(exc)
+            if exc.response_text:
+                error = f"{error} :: {exc.response_text}"
+            return OrderResult(
+                accepted=False,
+                asset=asset,
+                direction=direction,
+                size=float(size),
+                error=f"dealing rules unavailable: {error}",
+            )
 
-        adjustments = []
-        min_size = rules.get("min_size") or 0
-        if min_size and float(size) < float(min_size):
-            adjustments.append(f"size {size}→{min_size}")
-            size = float(min_size)
+        adjustments = list(prepared.adjustments)
+        stop_loss = prepared.stop_loss
+        take_profit = prepared.take_profit
+        constraints = prepared.constraints
+        min_size = constraints.min_size
+        max_size = constraints.max_size
+        if max_size is not None and float(size) > max_size:
+            adjustments.append(f"size {size}→{max_size}")
+            size = max_size
 
         # Capital silently rounds the filled size DOWN to minSizeIncrement
         # (100 units on FX, 0.0001 on BTCUSD) — without mirroring that here
         # the journal records a size the broker never opened (e.g. EURAUD
         # 153.7 requested vs 100 filled), which skews every per-pair
         # size/notional analysis.
-        increment = float(rules.get("size_increment") or 0)
+        increment = constraints.size_increment
         if increment > 0:
             stepped = round(
                 math.floor(float(size) / increment + 1e-9) * increment, 10)
-            stepped = max(stepped, float(min_size or increment))
             if stepped != float(size):
                 adjustments.append(f"size {size}→{stepped}")
                 size = stepped
 
-        bid = rules.get("bid")
-        offer = rules.get("offer")
-        if (bid is not None and offer is not None
-                and rules.get("min_dist_unit") == "PERCENTAGE"
-                and rules.get("min_dist_value") is not None):
-            mid = (float(bid) + float(offer)) / 2.0
-            # 5% buffer above the broker's hard minimum — small enough
-            # to keep R:R close to the strategy's target, large enough
-            # to absorb a tick of slippage between snapshot and fill.
-            min_dist = mid * float(rules["min_dist_value"]) * 1.05
-            if stop_loss is not None:
-                sl_dist = abs(mid - float(stop_loss))
-                if sl_dist < min_dist:
-                    old = stop_loss
-                    stop_loss = (mid - min_dist) if direction == 1 else (mid + min_dist)
-                    adjustments.append(f"sl {old:.6f}→{stop_loss:.6f}")
-            if take_profit is not None:
-                tp_dist = abs(mid - float(take_profit))
-                if tp_dist < min_dist:
-                    old = take_profit
-                    take_profit = (mid + min_dist) if direction == 1 else (mid - min_dist)
-                    adjustments.append(f"tp {old:.6f}→{take_profit:.6f}")
+        if float(size) <= 0 or (min_size > 0 and float(size) < min_size):
+            error = (
+                f"skipped: size {float(size):.10g} is below broker minimum "
+                f"size {min_size:.10g}; size will not be increased"
+            )
+            raw = {"_adjustments": adjustments} if adjustments else {}
+            return OrderResult(
+                accepted=False,
+                asset=asset,
+                direction=direction,
+                size=float(size),
+                error=error,
+                raw=raw,
+            )
 
         body: Dict[str, Any] = {
             "epic": asset,

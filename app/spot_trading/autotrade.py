@@ -29,7 +29,7 @@ import asyncio
 import os
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from typing import Callable, Dict, List, Optional, TYPE_CHECKING
 
@@ -47,6 +47,11 @@ from app.spot_trading.holding_period import (
 from app.spot_trading.strategy_parameters import (
     DEFAULT_RISK_REWARD,
     risk_reward_for,
+)
+from app.spot_trading.position_sizing import (
+    DEFAULT_NOTIONAL_CAP_USD,
+    DEFAULT_TARGET_RISK_USD,
+    calculate_position_size,
 )
 from app.strategies import get_strategy, add_indicators
 
@@ -494,6 +499,7 @@ async def run_loop(
     stop_event: Optional[asyncio.Event] = None,
     max_concurrent: Optional[int] = None,
     notional_per_trade: Optional[float] = None,
+    risk_per_trade: Optional[float] = None,
 ) -> None:
     """Long-running coroutine. Polls active pairs, fires signals,
     places orders. Exit cleanly on `stop_event.set()`.
@@ -504,13 +510,9 @@ async def run_loop(
     strategies fire identical-direction signals across pairs and would
     otherwise produce a single concentrated bet disguised as N trades.
 
-    `notional_per_trade`: when set, the platform-level order size is
-    recomputed per-pair as `notional_per_trade / entry_price` so each
-    trade carries roughly the same USD exposure regardless of the
-    pair's price level. None = use the static `size` argument (legacy
-    behavior — fine for venues where 1 lot has a venue-defined notional,
-    breaks for Kraken Futures perpetuals where size=1 contract on BTC
-    is $80k while size=1 on DOGE is $0.11)."""
+    `risk_per_trade` targets a fixed dollar loss at the normalized stop.
+    `notional_per_trade` remains a hard exposure cap. Broker minimum,
+    maximum and increment constraints are applied without increasing size."""
     import os as _os
     if max_concurrent is None and _os.getenv("HURZ_MAX_CONCURRENT"):
         try:
@@ -522,14 +524,23 @@ async def run_loop(
             notional_per_trade = float(_os.environ["HURZ_NOTIONAL_PER_TRADE"])
         except ValueError:
             pass
+    if risk_per_trade is None and _os.getenv("HURZ_RISK_PER_TRADE"):
+        try:
+            risk_per_trade = float(_os.environ["HURZ_RISK_PER_TRADE"])
+        except ValueError:
+            pass
+    if notional_per_trade is None:
+        notional_per_trade = DEFAULT_NOTIONAL_CAP_USD
+    if risk_per_trade is None:
+        risk_per_trade = DEFAULT_TARGET_RISK_USD
     platform = get_platform(platform_name)
     await platform.connect()
     _safe_log(f"connected to {platform.name} (demo={platform.demo}, "
               f"paper_trade_only={platform.paper_trade_only})")
     if max_concurrent is not None:
         _safe_log(f"  max_concurrent_positions={max_concurrent}")
-    if notional_per_trade is not None:
-        _safe_log(f"  notional_per_trade=${notional_per_trade:.2f}")
+    _safe_log(f"  risk_per_trade=${risk_per_trade:.2f}")
+    _safe_log(f"  notional_cap=${notional_per_trade:.2f}")
     from app.spot_trading.regime import summary as _regime_summary
     _safe_log(f"  regime_filter={_regime_summary()}")
     if stop_event is None:
@@ -1136,6 +1147,71 @@ async def run_loop(
                     )
                     issued_intents[dedup_key] = intent.bar_time
                     continue
+                try:
+                    prepared = await platform.prepare_order(
+                        asset=intent.pair,
+                        direction=intent.direction,
+                        reference_price=intent.entry_price,
+                        stop_loss=intent.stop_loss,
+                        take_profit=intent.take_profit,
+                    )
+                except PlatformError as exc:
+                    error = f"skipped: order constraints unavailable: {exc}"
+                    _safe_log(f"⏭ {intent.pair}: {error}")
+                    skip_result = OrderResult(
+                        accepted=False,
+                        asset=intent.pair,
+                        direction=intent.direction,
+                        error=error,
+                    )
+                    from app.spot_trading.journal import record as _journal_record
+                    _journal_record(
+                        intent,
+                        skip_result,
+                        platform=platform_name,
+                        paper_mode=platform.paper_trade_only,
+                    )
+                    issued_intents[dedup_key] = intent.bar_time
+                    continue
+                intent = replace(
+                    intent,
+                    stop_loss=(
+                        prepared.stop_loss
+                        if prepared.stop_loss is not None else intent.stop_loss
+                    ),
+                    take_profit=(
+                        prepared.take_profit
+                        if prepared.take_profit is not None else intent.take_profit
+                    ),
+                )
+                constraints = prepared.constraints
+                sizing = calculate_position_size(
+                    entry_price=prepared.reference_price,
+                    stop_loss=intent.stop_loss,
+                    target_risk=risk_per_trade,
+                    notional_cap=notional_per_trade,
+                    min_size=constraints.min_size,
+                    size_increment=constraints.size_increment,
+                    max_size=constraints.max_size,
+                )
+                if sizing.skipped:
+                    error = f"skipped: {sizing.reason}"
+                    _safe_log(f"⏭ {intent.pair}: {error} ({intent.strategy})")
+                    skip_result = OrderResult(
+                        accepted=False,
+                        asset=intent.pair,
+                        direction=intent.direction,
+                        error=error,
+                    )
+                    from app.spot_trading.journal import record as _journal_record
+                    _journal_record(
+                        intent,
+                        skip_result,
+                        platform=platform_name,
+                        paper_mode=platform.paper_trade_only,
+                    )
+                    issued_intents[dedup_key] = intent.bar_time
+                    continue
                 # Circuit breaker: prune log to the rolling 24h window
                 # and bail if we'd exceed the daily cap.
                 now_utc = datetime.now(timezone.utc)
@@ -1151,21 +1227,29 @@ async def run_loop(
                     continue
                 issued_intents[dedup_key] = intent.bar_time
                 issued_log.append(now_utc)
-                # Notional-normalized sizing — keeps USD exposure roughly
-                # constant across pairs with very different price levels.
-                # Falls back to the static `size` arg when not configured.
-                trade_size = size
-                if notional_per_trade is not None and intent.entry_price > 0:
-                    trade_size = notional_per_trade / intent.entry_price
+                trade_size = sizing.size
                 _safe_log(
                     f"signal {pair} dir={intent.direction:+d} "
                     f"entry={intent.entry_price:.5f} "
+                    f"sizing_entry={prepared.reference_price:.5f} "
                     f"sl={intent.stop_loss:.5f} tp={intent.take_profit:.5f} "
-                    f"strat={intent.strategy} size={trade_size:.6f}"
+                    f"strat={intent.strategy} size={trade_size:.6f} "
+                    f"planned_risk=${sizing.planned_risk:.4f} "
+                    f"notional=${sizing.notional:.2f}"
                 )
                 result = await execute_intent(platform, intent, size=trade_size)
                 if result.accepted:
                     _safe_log(f"  ✓ accepted: deal_id={result.deal_id}")
+                    if result.fill_price is not None:
+                        actual_size = result.size if result.size else trade_size
+                        fill_risk = (
+                            abs(float(result.fill_price) - intent.stop_loss)
+                            * actual_size
+                        )
+                        _safe_log(
+                            f"  risk: planned=${sizing.planned_risk:.4f} "
+                            f"fill=${fill_risk:.4f}"
+                        )
                     confirmation_error = result.raw.get("_confirmation_error")
                     if confirmation_error:
                         _safe_log(

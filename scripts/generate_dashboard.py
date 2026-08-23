@@ -184,7 +184,12 @@ def _fetch(days) -> dict:
             SELECT platform, pair, strategy,
                    COUNT(*) AS trades,
                    SUM(realized_pnl > 0) AS wins,
-                   ROUND(SUM(realized_pnl), 2) AS pnl
+                   ROUND(SUM(realized_pnl), 2) AS pnl,
+                   SUM(
+                       realized_pnl / NULLIF(
+                           ABS(COALESCE(fill_price, entry_price) * size), 0
+                       )
+                   ) AS return_sum
             FROM spot_trades
             WHERE accepted=1 AND realized_pnl IS NOT NULL
               AND platform <> 'kraken_futures'
@@ -445,7 +450,8 @@ _BOTS = [
 _RE_HEARTBEAT = re.compile(
     r"\[spot\]\s+(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)\s+heartbeat:.*?(\d+)\s+open")
 _RE_TS = re.compile(r"\[spot\]\s+(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)")
-_RE_NOTIONAL = re.compile(r"notional_per_trade=\$?([\d.]+)")
+_RE_NOTIONAL = re.compile(r"(?:notional_per_trade|notional_cap)=\$?([\d.]+)")
+_RE_RISK = re.compile(r"risk_per_trade=\$?([\d.]+)")
 
 # A bot may keep logging (e.g. Kraken's 503 retries) without heartbeating.
 # If the latest log activity is within this window the process is alive
@@ -475,7 +481,7 @@ def _bot_status(label: str, pid_file: str, log_file: str) -> dict:
     last heartbeat, open positions, notional, regime-filter state and a
     bank-holiday marker. Pure filesystem/process — no DB."""
     alive, pid = _pid_alive(pid_file)
-    open_pos = notional = regime = None
+    open_pos = notional = risk = regime = None
     last_hb_dt = None
     try:
         with open(os.path.join(_ROOT, log_file), encoding="utf-8",
@@ -514,6 +520,9 @@ def _bot_status(label: str, pid_file: str, log_file: str) -> dict:
         m = _RE_NOTIONAL.search(line)
         if m:
             notional = m.group(1)
+        m = _RE_RISK.search(line)
+        if m:
+            risk = m.group(1)
         m = _RE_REGIME.search(line)
         if m:
             regime = m.group(1)
@@ -567,7 +576,8 @@ def _bot_status(label: str, pid_file: str, log_file: str) -> dict:
     return {
         "label": label, "alive": alive, "pid": pid, "state": state,
         "tone": tone, "last_hb": last_hb, "last_act": last_act,
-        "open_pos": open_pos, "notional": notional, "regime": regime,
+        "open_pos": open_pos, "notional": notional, "risk": risk,
+        "regime": regime,
         "age_min": hb_age, "holiday": holiday, "holiday_name": holiday_name,
         "holiday_date": _berlin(now).strftime("%d.%m.%Y"),
     }
@@ -583,6 +593,7 @@ def _render_status(stats: dict) -> str:
         act = s.get("last_act") or "—"
         op = "—" if s["open_pos"] is None else s["open_pos"]
         notional = f'${s["notional"]}' if s["notional"] else "—"
+        risk = f'${s["risk"]}' if s["risk"] else "—"
         regime = s["regime"] or "—"
         hol = ""
         if s.get("holiday"):
@@ -608,7 +619,8 @@ def _render_status(stats: dict) -> str:
             <span>Letzter Heartbeat: {hb}</span>
             <span>Letzte Aktivität: {act}</span>
             <span>Offen: {op}</span>
-            <span>Notional: {notional}</span>
+            <span>Zielrisiko: {risk}</span>
+            <span>Notional-Cap: {notional}</span>
             <span>Regime-Filter: {regime}</span>
           </div>{hol}
         </div>""")
@@ -699,9 +711,6 @@ def _render_strategy_perf(by_strategy: list, by_combo: list) -> str:
 # the tile's caption. Costs are already inside the realized fills (spread);
 # overnight CFD financing is NOT, hence the conservative haircut.
 _PROJ_STAKE_EUR = 1000      # "reasonable" stake per trade
-_PROJ_EUR_USD = 1.087       # EUR stake -> USD notional
-_PROJ_USD_EUR = 0.92        # USD PnL -> EUR
-_PROJ_BASE_NOTIONAL = 250   # current demo notional/trade (HURZ_NOTIONAL_PER_TRADE)
 _PROJ_HAIRCUT = 0.5         # conservative discount: small samples + live costs
 
 
@@ -722,13 +731,12 @@ def _render_projection(by_combo: list, span, by_strategy: list) -> str:
     <div class="muted">Noch nicht genug profitable Daten für eine Projektion.</div>
   </div>"""
     period_days = max(1, (span["mx"] - span["mn"]).days)
-    total = sum(float(r["pnl"] or 0) for r in top3)
-    scale = (_PROJ_STAKE_EUR * _PROJ_EUR_USD / _PROJ_BASE_NOTIONAL) * _PROJ_USD_EUR
+    total_return = sum(float(r.get("return_sum") or 0) for r in top3)
 
-    def eur_day(pnl_usd: float) -> float:
-        return (pnl_usd / period_days) * scale
+    def eur_day(return_sum: float) -> float:
+        return (return_sum / period_days) * _PROJ_STAKE_EUR
 
-    opt = eur_day(total)
+    opt = eur_day(total_return)
     cons = opt * _PROJ_HAIRCUT
 
     rows = []
@@ -740,7 +748,7 @@ def _render_projection(by_combo: list, span, by_strategy: list) -> str:
           <td>{r['strategy']} <span class="dim">{r['pair']}</span>{warn}</td>
           <td>{t} · {wr:.0f}%</td>
           <td class="pos">{_fmt_money(r['pnl'])}</td>
-          <td class="pos">€{eur_day(float(r['pnl'])):.2f}</td></tr>""")
+          <td class="pos">€{eur_day(float(r.get('return_sum') or 0)):.2f}</td></tr>""")
 
     # Compact band chart: net EUR/day vs stake (linear through ~origin).
     W, H, ml, mr, mt, mb = 470, 196, 42, 12, 14, 30
@@ -805,6 +813,7 @@ def _render_projection(by_combo: list, span, by_strategy: list) -> str:
         </table></div>
         <div class="proj-note">Basis: nur profitable Strategie-Klassen (Mean-Reversion
           verliert in jedem Regime → ausgeschlossen). Kleine Stichproben (⚠),
+          Hochrechnung über realisierte Rendite auf tatsächliches Fill-Notional;
           Overnight-Kosten &amp; Slippage nicht enthalten, Vergangenheit ≠ Zukunft.
           Keine Anlageberatung.</div>
       </div>

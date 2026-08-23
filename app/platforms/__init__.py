@@ -26,6 +26,8 @@ from app.platforms.base import (
     Instrument,
     Position,
     OrderResult,
+    OrderConstraints,
+    PreparedOrder,
 )
 from app.platforms.registry import get_platform, available_platforms
 
@@ -39,6 +41,8 @@ __all__ = [
     "Instrument",
     "Position",
     "OrderResult",
+    "OrderConstraints",
+    "PreparedOrder",
     "get_platform",
     "available_platforms",
 ]
