@@ -1238,6 +1238,7 @@ async def run_loop(
                     f"notional=${sizing.notional:.2f}"
                 )
                 result = await execute_intent(platform, intent, size=trade_size)
+                fill_risk = None
                 if result.accepted:
                     _safe_log(f"  ✓ accepted: deal_id={result.deal_id}")
                     if result.fill_price is not None:
@@ -1273,6 +1274,9 @@ async def run_loop(
                     platform=platform_name,
                     paper_mode=platform.paper_trade_only,
                     size=result.size if result.size else trade_size,
+                    sizing_reference_price=prepared.reference_price,
+                    planned_risk=sizing.planned_risk,
+                    fill_risk=fill_risk,
                 )
 
             # Heartbeat: prove the loop is alive even on quiet cycles.

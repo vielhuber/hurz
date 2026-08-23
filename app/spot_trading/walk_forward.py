@@ -31,6 +31,11 @@ DESIGN NOTES
 - No fee/spread modelling. The stability check answers a binary
   question ("does the edge generalise?"); fee precision is the job
   of `_simulate_trades` in spot_backtest.py.
+- Position sizing IS modelled, via the same
+  `app.spot_trading.position_sizing.calculate_position_size` the live
+  trader and the backtest use. A segment that only looks stable
+  because it counts trades the broker's minimum size would have
+  rejected is not stable — those trades never happen live.
 - The R-unit accounting (rr on win, -1 on loss, partial on max-hold
   fall-through) mirrors `scripts/walk_forward.py._simulate` so the
   numbers in `data/spot_backtest_results.json` and CLI output match.
@@ -42,11 +47,17 @@ DESIGN NOTES
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Optional
+from typing import Callable, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 
+from app.platforms import OrderConstraints
+from app.spot_trading.position_sizing import (
+    DEFAULT_NOTIONAL_CAP_USD,
+    DEFAULT_TARGET_RISK_USD,
+    calculate_position_size,
+)
 from app.spot_trading.regime import adx_at, decide
 
 
@@ -66,10 +77,19 @@ class StabilityResult:
         Average of per-segment mean E[R] values. Useful as a
         diagnostic — large mean_expectancy_R combined with a low
         stability_ratio means one segment dominated.
+    skipped_trades
+        Signals that sizing rejected across all segments — broker
+        minimum size, one-step rounding, or a hard cap. Reported so a
+        thin stability sample is not mistaken for a quiet strategy.
+    total_pnl_usd
+        Summed dollar result across all segments, sized exactly as the
+        live trader would. None when no segment produced a trade.
     """
     n_segments: int
     positive_segments: int
     mean_expectancy_R: float
+    skipped_trades: int = 0
+    total_pnl_usd: Optional[float] = None
 
     @property
     def stability_ratio(self) -> float:
@@ -86,6 +106,8 @@ class StabilityResult:
             "positive_segments": self.positive_segments,
             "mean_expectancy_R": self.mean_expectancy_R,
             "ratio": self.stability_ratio,
+            "skipped_trades": self.skipped_trades,
+            "total_pnl_usd": self.total_pnl_usd,
         }
 
 
@@ -93,9 +115,13 @@ def _simulate_segment_expectancy(
     df: pd.DataFrame, signals,
     *, rr: float, stop_atr: float, max_hold: int,
     strategy_name: Optional[str] = None,
-) -> Optional[float]:
+    target_risk: float = DEFAULT_TARGET_RISK_USD,
+    notional_cap: float = DEFAULT_NOTIONAL_CAP_USD,
+    constraints: Optional[OrderConstraints] = None,
+) -> Tuple[Optional[float], int, float]:
     """Run the signal list against `df` and return the per-trade mean
-    expectancy in R-units, or None if no trade triggered.
+    expectancy in R-units, the number of size-rejected signals and the
+    segment's dollar result. Expectancy is None if no trade triggered.
 
     Trade accounting (R-units):
       - SL hit first  → -1.0
@@ -103,11 +129,19 @@ def _simulate_segment_expectancy(
       - neither hit within max_hold bars → close at the max_hold bar
         and book (close - entry) * direction / |entry - sl|
 
+    Sizing runs through the shared live/backtest function, so a signal
+    the broker's minimum size would reject never enters the sample. It
+    also does not block the bar range — an untradeable signal leaves
+    the strategy free to act on the next one.
+
     Mirrors `scripts/walk_forward.py._simulate`; intentionally
     leaves fees out because this function asks "is the rules edge
     regime-stable?", not "what's the net P&L?".
     """
-    rs = []
+    rs: List[float] = []
+    skipped = 0
+    pnl_usd = 0.0
+    venue_constraints = constraints or OrderConstraints()
     in_until = -1
     for sig in signals:
         i = sig.index
@@ -123,6 +157,18 @@ def _simulate_segment_expectancy(
         tp_d = rr * stop_d
         sl = entry - stop_d if sig.direction == 1 else entry + stop_d
         tp = entry + tp_d if sig.direction == 1 else entry - tp_d
+        sizing = calculate_position_size(
+            entry_price=entry,
+            stop_loss=sl,
+            target_risk=target_risk,
+            notional_cap=notional_cap,
+            min_size=venue_constraints.min_size,
+            size_increment=venue_constraints.size_increment,
+            max_size=venue_constraints.max_size,
+        )
+        if sizing.skipped:
+            skipped += 1
+            continue
         outcome = None
         for j in range(1, max_hold + 1):
             if i + j >= len(df):
@@ -141,18 +187,21 @@ def _simulate_segment_expectancy(
                     outcome = "win"; in_until = i + j; break
         if outcome == "win":
             rs.append(rr)
+            pnl_usd += tp_d * sizing.size
         elif outcome == "loss":
             rs.append(-1.0)
+            pnl_usd -= stop_d * sizing.size
         elif i + max_hold < len(df):
             cl = float(df.iloc[i + max_hold]["close"])
             pnl = (cl - entry) * sig.direction
             risk = abs(entry - sl)
             if risk > 0:
                 rs.append(pnl / risk)
+                pnl_usd += pnl * sizing.size
                 in_until = i + max_hold
     if not rs:
-        return None
-    return float(np.mean(rs))
+        return None, skipped, pnl_usd
+    return float(np.mean(rs)), skipped, pnl_usd
 
 
 def compute_segment_stability(
@@ -160,6 +209,9 @@ def compute_segment_stability(
     *, segments: int = 3, rr: float = 1.5, stop_atr: float = 1.0,
     max_hold: int = 24, min_segment_bars: int = 60,
     strategy_name: Optional[str] = None,
+    target_risk: float = DEFAULT_TARGET_RISK_USD,
+    notional_cap: float = DEFAULT_NOTIONAL_CAP_USD,
+    constraints: Optional[OrderConstraints] = None,
 ) -> Optional[StabilityResult]:
     """Run `strategy_fn` independently on N consecutive slices of `df`
     and report how many produced a positive per-trade expectancy.
@@ -201,16 +253,23 @@ def compute_segment_stability(
     if seg_size < min_segment_bars:
         return None
     seg_E = []
+    skipped_total = 0
+    pnl_total = 0.0
     for s in range(segments):
         lo = s * seg_size
         hi = (s + 1) * seg_size if s < segments - 1 else n
         seg_df = df.iloc[lo:hi].reset_index(drop=True)
         signals = strategy_fn(seg_df, {})
-        E = _simulate_segment_expectancy(
+        E, skipped, pnl_usd = _simulate_segment_expectancy(
             seg_df, signals,
             rr=rr, stop_atr=stop_atr, max_hold=max_hold,
             strategy_name=strategy_name,
+            target_risk=target_risk,
+            notional_cap=notional_cap,
+            constraints=constraints,
         )
+        skipped_total += skipped
+        pnl_total += pnl_usd
         if E is not None:
             seg_E.append(E)
     if not seg_E:
@@ -220,4 +279,6 @@ def compute_segment_stability(
         n_segments=len(seg_E),
         positive_segments=positive,
         mean_expectancy_R=float(np.mean(seg_E)),
+        skipped_trades=skipped_total,
+        total_pnl_usd=pnl_total,
     )

@@ -18,6 +18,9 @@ from app.spot_trading.autotrade import TradeIntent
 def record(
     intent: TradeIntent, result: OrderResult, *,
     platform: str, paper_mode: bool, size: Optional[float] = None,
+    sizing_reference_price: Optional[float] = None,
+    planned_risk: Optional[float] = None,
+    fill_risk: Optional[float] = None,
 ) -> None:
     """Persist a single (intent, result) pair to the journal.
 
@@ -37,11 +40,13 @@ def record(
             INSERT INTO spot_trades (
                 created_at, platform, pair, strategy, bar_time,
                 direction, entry_price, stop_loss, take_profit, size,
-                accepted, deal_id, fill_price, error, paper_mode
+                accepted, deal_id, fill_price, error, paper_mode,
+                sizing_reference_price, planned_risk_usd, fill_risk_usd
             ) VALUES (
                 %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s,
+                %s, %s, %s
             )
             """,
             (
@@ -52,6 +57,10 @@ def record(
                 bool(result.accepted), result.deal_id,
                 float(result.fill_price) if result.fill_price is not None else None,
                 err, bool(paper_mode),
+                float(sizing_reference_price)
+                if sizing_reference_price is not None else None,
+                float(planned_risk) if planned_risk is not None else None,
+                float(fill_risk) if fill_risk is not None else None,
             ),
         )
     except Exception:
@@ -128,16 +137,26 @@ def update_deal_id(
     that reached this path usually has no fill (the same failed confirms
     poll that lost the dealId), and without it realized PnL is not
     computable at exit. An already-recorded fill wins — it is the price
-    our own order actually got."""
+    our own order actually got.
+
+    `fill_risk_usd` is assigned before `fill_price` on purpose: MySQL
+    applies SET clauses left to right, so the risk still reads the
+    pre-update fill and an already-journalled fill keeps its own risk."""
     try:
         from app.utils.singletons import database
         database.query(
             """
             UPDATE spot_trades
-            SET deal_id = %s, fill_price = COALESCE(fill_price, %s)
+            SET fill_risk_usd = COALESCE(
+                    fill_risk_usd,
+                    ABS(COALESCE(fill_price, %s) - stop_loss) * size
+                ),
+                deal_id = %s,
+                fill_price = COALESCE(fill_price, %s)
             WHERE id = %s
             """,
             (
+                float(fill_price) if fill_price else None,
                 deal_id,
                 float(fill_price) if fill_price else None,
                 int(journal_id),

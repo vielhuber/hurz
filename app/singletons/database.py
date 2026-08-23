@@ -185,6 +185,9 @@ class Database:
                         fill_price DECIMAL(18, 8) NULL,
                         error VARCHAR(500) NULL,
                         paper_mode BOOLEAN NOT NULL,
+                        sizing_reference_price DECIMAL(18, 8) NULL,
+                        planned_risk_usd DECIMAL(18, 8) NULL,
+                        fill_risk_usd DECIMAL(18, 8) NULL,
                         INDEX idx_spot_trades_pair_bar (pair, bar_time),
                         INDEX idx_spot_trades_platform_strategy (platform, strategy)
                     )
@@ -246,6 +249,28 @@ class Database:
                     "spot_trades",
                     "realized_pnl",
                     "ALTER TABLE spot_trades ADD COLUMN realized_pnl DECIMAL(18,8) NULL",
+                ),
+                # Risk-sizing audit trail. The reference price the size
+                # was derived from is not the fill, and the fill risk is
+                # not the planned risk — keeping all three apart is what
+                # makes slippage measurable after the fact.
+                (
+                    "spot_trades",
+                    "sizing_reference_price",
+                    "ALTER TABLE spot_trades ADD COLUMN sizing_reference_price "
+                    "DECIMAL(18,8) NULL",
+                ),
+                (
+                    "spot_trades",
+                    "planned_risk_usd",
+                    "ALTER TABLE spot_trades ADD COLUMN planned_risk_usd "
+                    "DECIMAL(18,8) NULL",
+                ),
+                (
+                    "spot_trades",
+                    "fill_risk_usd",
+                    "ALTER TABLE spot_trades ADD COLUMN fill_risk_usd "
+                    "DECIMAL(18,8) NULL",
                 ),
             ]
             for table_name, column_name, alter_sql in migrations:
