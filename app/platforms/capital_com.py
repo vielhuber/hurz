@@ -638,7 +638,10 @@ class CapitalComPlatform(Platform):
                 "DELETE", f"/api/v1/positions/{deal_id}", auth=True,
             )
         except PlatformAPIError as exc:
-            return OrderResult(accepted=False, deal_id=deal_id, error=str(exc))
+            error = str(exc)
+            if exc.response_text:
+                error = f"{error} :: {exc.response_text}"
+            return OrderResult(accepted=False, deal_id=deal_id, error=error)
         return OrderResult(accepted=True, deal_id=deal_id, raw=data)
 
     async def fetch_close_fill(

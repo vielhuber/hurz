@@ -458,11 +458,11 @@ async def run_loop(
     # almost certainly a bug.
     issued_log: List[datetime] = []
     daily_cap = 100
-    # Cooldown for failed stale-exit closes: a position the broker
-    # refuses to close (e.g. FX market shut on the weekend → HTTP 400)
+    # Cooldown for failed exit closes: a position the broker refuses
     # must not be retried every poll cycle. Keyed by journal deal_id →
     # last-attempt time; retried at most once per _STALE_RETRY_COOLDOWN.
     stale_exit_attempts: Dict[str, datetime] = {}
+    stale_exit_closed_markets: set = set()
 
     # Pairs the broker refuses to short (rejectReason LONG_ONLY, e.g.
     # AAVEUSD on Capital). Learned from rejections at runtime so the
@@ -659,13 +659,20 @@ async def run_loop(
             # returns p.id only — that's already the close target. Shared by
             # the stale-exit, regime-flip-exit and trail-exit blocks below.
             close_id_by_journal_id: Dict[str, str] = {}
+            market_status_by_journal_id: Dict[str, str] = {}
             for p in positions:
+                market = (p.meta or {}).get("market") or {}
+                market_status = market.get("marketStatus")
                 if p.id:
                     close_id_by_journal_id[p.id] = p.id
+                    if market_status:
+                        market_status_by_journal_id[p.id] = market_status
                 pmeta = (p.meta or {}).get("position") or {}
                 woi = pmeta.get("workingOrderId")
                 if woi and p.id:
                     close_id_by_journal_id[woi] = p.id
+                    if market_status:
+                        market_status_by_journal_id[woi] = market_status
 
             # Stale-position exit: mean-revert and breakout setups have a
             # bounded expected holding period (max N×bar). When a trade
@@ -694,9 +701,22 @@ async def run_loop(
                     if age_seconds < max_hold_seconds:
                         continue
                     journal_deal_id = row["deal_id"]
+                    market_status = market_status_by_journal_id.get(
+                        journal_deal_id,
+                    )
+                    if market_status == "CLOSED":
+                        stale_exit_attempts.pop(journal_deal_id, None)
+                        if journal_deal_id not in stale_exit_closed_markets:
+                            _safe_log(
+                                f"⏸ stale-exit {row.get('pair', '?')} "
+                                f"suspended after {age_seconds / 3600:.1f}h: "
+                                "marketStatus=CLOSED — waiting for reopening"
+                            )
+                            stale_exit_closed_markets.add(journal_deal_id)
+                        continue
+                    stale_exit_closed_markets.discard(journal_deal_id)
                     # Back off positions the broker just refused to close
-                    # (e.g. weekend FX → HTTP 400) instead of retrying
-                    # every cycle and flooding the log.
+                    # instead of retrying every cycle and flooding the log.
                     last_attempt = stale_exit_attempts.get(journal_deal_id)
                     if last_attempt is not None and (
                             now_utc - last_attempt
