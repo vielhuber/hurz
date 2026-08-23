@@ -97,7 +97,7 @@ class UpdateDealIdTest(unittest.TestCase):
 
         query, params = database.queries[0]
         self.assertIn("fill_price", query)
-        self.assertEqual(("pos-real", 0.65432, 776), params)
+        self.assertEqual((0.65432, "pos-real", 0.65432, 776), params)
 
     def test_recorded_fill_price_is_not_overwritten(self):
         database = RecordingDatabase()
