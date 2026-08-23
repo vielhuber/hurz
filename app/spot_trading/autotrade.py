@@ -444,12 +444,11 @@ async def run_loop(
         list_unresolved_open as _list_unresolved_open,
     )
 
-    # Per-(pair, strategy, bar_time) dedup: an in-flight bar would
-    # otherwise re-emit the same signal on every poll, spamming the
-    # broker. Keyed on (pair, strategy) so two different strategies
-    # tracking the same pair can each contribute (e.g. rsi_mr AND
-    # bollinger_rev both watching EURUSD count as independent voters).
-    issued_intents: Dict[tuple, datetime] = {}
+    # Per-(pair, bar_time) dedup: an in-flight bar would otherwise re-emit
+    # the same signal on every poll. The broker position list is a cycle-start
+    # snapshot, so strategy-specific keys can open the same pair twice before
+    # the newly accepted position becomes visible.
+    issued_intents: Dict[str, datetime] = {}
     # Circuit breaker: hard daily cap on signals issued by this loop.
     # Defends against a runaway scenario where a strategy bug or
     # corrupted active_pairs.json fires hundreds of intents in a day.
@@ -919,13 +918,12 @@ async def run_loop(
                 if intent is None:
                     continue
                 # Dedup: skip if we've already issued an intent for this
-                # (pair, strategy, bar_time). Resets when the bar closes
-                # — the new bar gets a fresh chance from each strategy.
+                # (pair, bar_time). Resets when the bar closes.
                 # MUST run before the venue-min-stop guard, otherwise a
                 # rejected signal re-evaluates and re-journals every
                 # 60-second poll until the bar closes (observed: 67
                 # journal-spam entries in 3h on BTCUSD + ETHUSD).
-                dedup_key = (pair, intent.strategy)
+                dedup_key = pair
                 last_seen = issued_intents.get(dedup_key)
                 if last_seen is not None and last_seen >= intent.bar_time:
                     continue
