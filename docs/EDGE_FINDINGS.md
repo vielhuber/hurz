@@ -1655,3 +1655,41 @@ This closes the investigation honestly. The signals carry no directional
 information (30, 32); the target needs an edge, five times the capital
 and a relaxed risk rule simultaneously (37); and even a genuine edge of
 the size measured could not be established here before it decayed.
+
+## 41. Volume was never available to any strategy
+
+`app/strategies/base.py` documents the frame handed to a strategy as
+carrying *open, high, low, close, volume*. Both converters —
+`spot_backtest._bars_to_df` and `autotrade._bars_to_df` — built the frame
+without the volume column. Any strategy relying on the documented
+contract would have raised `KeyError`, so none was ever written, and the
+one price-independent data source Capital.com provides went unused for
+the project's lifetime.
+
+Capital.com populates it on every bar: 100 % non-null across US500, GOLD,
+EURUSD and BTCUSD, with plausible distributions (US500 median 2,209,
+GOLD median 16,933). Both converters now keep it, and a test asserts they
+agree on columns.
+
+With that fixed, the standard hypothesis was preregistered and tested:
+**breakouts on above-median volume hold; those on below-median volume are
+false breaks.** Filter is the signal bar's volume against the median of
+the preceding 100 bars. One specification, acceptance at t > 2.0 for the
+filtered set over the unfiltered one.
+
+| group | n | E[R] |
+|---|---:|---:|
+| high volume | 717 | **-0.0609** |
+| low volume | 382 | -0.0386 |
+| all signals | 870 | -0.0483 |
+| random control | 4,384 | -0.0250 |
+
+**Not accepted.** High-volume breakouts perform *worse* than low-volume
+ones (-0.0224 R, t = -0.51), the opposite of the hypothesis and not
+significant in either direction. Every signal group sits below the random
+control.
+
+The fix outlasts the hypothesis: volume is now available to any future
+strategy, and the contract in `base.py` is no longer a false promise. The
+particular rule tested is dead, which is what a preregistered test is
+for.
