@@ -811,5 +811,13 @@ class CapitalComPlatform(Platform):
         for acct in data.get("accounts") or []:
             ccy = acct.get("currency", "USD")
             balance = acct.get("balance") or {}
-            out[ccy] = float(balance.get("available", balance.get("balance", 0)) or 0)
+            # `balance` is the account size; `available` is what is left
+            # after margin on open positions. The only consumer is the
+            # risk-scaling equity ceiling, which must not shrink as
+            # positions are opened — that would tie the risk budget to
+            # book utilisation, which nothing intends. Fall back to
+            # `available` only when the broker omits `balance`.
+            out[ccy] = float(
+                balance.get("balance", balance.get("available", 0)) or 0
+            )
         return out
