@@ -641,6 +641,9 @@ async def run_loop(
     # expectation of ~10-15 signals/day; anything above 100 is
     # almost certainly a bug.
     issued_log: List[datetime] = []
+    # Log the daily-loss halt once per day, not once per blocked signal.
+    daily_loss_logged = False
+    daily_loss_day: Optional[str] = None
     daily_cap = 100
     # Cooldown for failed exit closes: a position the broker refuses
     # must not be retried every poll cycle. Keyed by journal deal_id →
@@ -1366,6 +1369,26 @@ async def run_loop(
                         f"This is a safety circuit breaker; investigate "
                         f"if this fires before live mode is enabled."
                     )
+                    continue
+                # The count above is not a risk limit — a hundred small
+                # trades and a hundred stop-outs look the same to it.
+                # This one is measured in R, so it holds regardless of
+                # what the risk budget has scaled itself to.
+                from app.spot_trading.risk_guard import daily_loss
+                today = now_utc.strftime("%Y-%m-%d")
+                if today != daily_loss_day:
+                    daily_loss_day = today
+                    daily_loss_logged = False
+                loss = daily_loss(now_utc)
+                if loss.blocked:
+                    if not daily_loss_logged:
+                        _safe_log(
+                            f"⛔ daily loss {loss.realised_r:+.2f}R reached "
+                            f"the {loss.limit_r:.1f}R limit over "
+                            f"{loss.trades} closes — no new entries today. "
+                            f"Open positions keep their stops."
+                        )
+                        daily_loss_logged = True
                     continue
                 issued_intents[dedup_key] = intent.bar_time
                 issued_log.append(now_utc)
