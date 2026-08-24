@@ -69,6 +69,7 @@ _RESULTS_PATH = "data/spot_backtest_results.json"
 _ACTIVE_PAIRS_PATH = "data/active_pairs.json"
 _MIN_DIST_PATH = "data/capital_min_distances.json"
 _PINNED_PATH = "data/pinned_pairs.json"
+_SPREAD_PCT_PATH = "data/capital_spread_percent.json"
 
 # Live-expectancy veto. Deliberately asymmetric: realized results are
 # never used to PROMOTE a combo — with 3-20 trades per combo the top of
@@ -84,6 +85,14 @@ _VETO_MAX_EXPECTANCY_R = -0.15
 # the higher trade floor and the milder R threshold.
 _STRATEGY_VETO_MIN_TRADES = 25
 _STRATEGY_VETO_MAX_EXPECTANCY_R = -0.10
+
+# Mirrors the entry path: the same cost ceiling, and the same cap on how
+# far a stop may be widened to reach it. Kept here as plain numbers
+# rather than imported, because importing autotrade from the selector
+# would close an import cycle.
+_MAX_COST_FRACTION = 0.10
+_ENTRY_STOP_WIDENING_CAP = 2.0
+_DEFAULT_VENUE_MIN_PERCENT = 1.05
 
 
 @dataclass
@@ -124,6 +133,39 @@ def _load_min_distances() -> Dict[str, Dict]:
             return (json.load(f) or {}).get("pairs") or {}
     except (OSError, json.JSONDecodeError):
         return {}
+
+
+def _load_spread_percent() -> Dict[str, float]:
+    """Broker bid-ask spread per instrument, in percent of mid."""
+    if not os.path.exists(_SPREAD_PCT_PATH):
+        return {}
+    try:
+        with open(_SPREAD_PCT_PATH, "r", encoding="utf-8") as f:
+            return (json.load(f) or {}).get("spread_percent") or {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _cost_blocks(platform: str, pair: str, min_distances: Dict[str, Dict],
+                 spread_percent: Dict[str, float]) -> bool:
+    """True when the spread cannot clear the cost ceiling even at the
+    widest stop the entry path will build.
+
+    Such a combo is skipped at order time anyway; leaving it in the
+    active list only costs a slot that a tradeable instrument could
+    use. Missing data never blocks — the runtime filter still guards
+    every individual signal."""
+    if platform != "capital_com":
+        return False
+    spread_pct = float(spread_percent.get(pair) or 0.0)
+    if spread_pct <= 0:
+        return False
+    entry = min_distances.get(pair) or {}
+    venue_min_pct = float(entry.get("min_dist_percent") or 0.0)
+    if venue_min_pct <= 0:
+        venue_min_pct = _DEFAULT_VENUE_MIN_PERCENT
+    widest_stop_pct = venue_min_pct * _ENTRY_STOP_WIDENING_CAP
+    return spread_pct / widest_stop_pct > _MAX_COST_FRACTION
 
 
 def _venue_min_blocks(platform: str, pair: str, stats: Dict,
@@ -205,6 +247,7 @@ def rank_pairs(
 
     rows: List[PairScore] = []
     min_distances = _load_min_distances()
+    spread_percent = _load_spread_percent()
     for key, payload in data.items():
         if platform and payload.get("platform") != platform:
             continue
@@ -232,6 +275,13 @@ def rank_pairs(
             # autotrader's venue-min-stop guard on nearly every signal.
             if _venue_min_blocks(
                 payload["platform"], pair, stats, min_distances,
+            ):
+                continue
+            # Same pre-filter for the cost ceiling: an instrument whose
+            # spread the entry path can never bring under the limit is
+            # only occupying a slot.
+            if _cost_blocks(
+                payload["platform"], pair, min_distances, spread_percent,
             ):
                 continue
             # Walk-forward gate: drop combos whose edge collapses
