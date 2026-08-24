@@ -641,8 +641,26 @@ def _render_status(stats: dict) -> str:
             <b class="{_money_class(t_pnl)}">{_fmt_money(t_pnl)}</b></div>
           <div class="row"><span>All-time</span>
             <b class="{_money_class(at)}">{_fmt_money(at)}</b></div>
+          <div class="row"><span>Ziel {_TARGET_EUR_PER_DAY:.0f} EUR/Tag</span>
+            <b class="{_money_class(t_pnl)}">{_target_share(t_pnl)}</b></div>
         </div>""")
     return "".join(rows)
+
+
+# Daily-return target the operator set. Shown next to today's PnL so the
+# gap is visible at a glance rather than buried in a report: the measured
+# ceiling of this account is well under 10 EUR/day, so the share is
+# expected to stay small — that is the point of displaying it.
+_TARGET_EUR_PER_DAY = 50.0
+_EUR_USD = 1.1699
+
+
+def _target_share(pnl_usd: float) -> str:
+    """Today's result as a share of the daily target."""
+    target_usd = _TARGET_EUR_PER_DAY * _EUR_USD
+    if target_usd <= 0:
+        return "n/a"
+    return f"{pnl_usd / target_usd * 100:.0f}%"
 
 
 def _render_strategy_perf(by_strategy: list, by_combo: list) -> str:
