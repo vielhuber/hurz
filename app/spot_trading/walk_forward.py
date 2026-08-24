@@ -28,9 +28,16 @@ code doesn't bleed into the importable path.
 
 DESIGN NOTES
 ------------
-- No fee/spread modelling. The stability check answers a binary
-  question ("does the edge generalise?"); fee precision is the job
-  of `_simulate_trades` in spot_backtest.py.
+- Execution cost IS modelled, as a round-trip charge per trade. It was
+  left out originally on the grounds that stability is a binary question
+  about the rules, not a P&L question. That reasoning does not hold: a
+  cost of 40% of the risk (an ordinary crypto alt at the venue minimum
+  stop) turns a genuinely positive edge negative, so a cost-blind
+  stability check certifies exactly the combos that cannot be traded.
+  Callers that pass no cost keep the previous, cost-free behaviour.
+- The venue minimum stop distance is applied for the same reason: the
+  live path widens a too-tight stop, which changes both the R-unit
+  accounting and the cost share.
 - Position sizing IS modelled, via the same
   `app.spot_trading.position_sizing.calculate_position_size` the live
   trader and the backtest use. A segment that only looks stable
@@ -118,6 +125,8 @@ def _simulate_segment_expectancy(
     target_risk: float = DEFAULT_TARGET_RISK_USD,
     notional_cap: float = DEFAULT_NOTIONAL_CAP_USD,
     constraints: Optional[OrderConstraints] = None,
+    cost_fraction: float = 0.0,
+    venue_min_fraction: float = 0.0,
 ) -> Tuple[Optional[float], int, float]:
     """Run the signal list against `df` and return the per-trade mean
     expectancy in R-units, the number of size-rejected signals and the
@@ -134,9 +143,10 @@ def _simulate_segment_expectancy(
     also does not block the bar range — an untradeable signal leaves
     the strategy free to act on the next one.
 
-    Mirrors `scripts/walk_forward.py._simulate`; intentionally
-    leaves fees out because this function asks "is the rules edge
-    regime-stable?", not "what's the net P&L?".
+    `cost_fraction` is the round-trip execution cost as a fraction of
+    entry price. It is converted to R against the (possibly widened)
+    stop and charged to every outcome, so a combo whose spread eats its
+    edge cannot pass the stability bar.
     """
     rs: List[float] = []
     skipped = 0
@@ -154,7 +164,15 @@ def _simulate_segment_expectancy(
             continue
         entry = float(df.iloc[i]["close"])
         stop_d = stop_atr * atr
+        # Mirror the live path: a stop tighter than the venue minimum is
+        # widened there, and R is measured against the widened distance.
+        venue_min = venue_min_fraction * entry
+        if venue_min > 0 and stop_d < venue_min:
+            stop_d = venue_min
         tp_d = rr * stop_d
+        # Round-trip execution cost, expressed in R so it can be booked
+        # against every outcome the same way.
+        cost_r = (cost_fraction * entry / stop_d) if stop_d > 0 else 0.0
         sl = entry - stop_d if sig.direction == 1 else entry + stop_d
         tp = entry + tp_d if sig.direction == 1 else entry - tp_d
         sizing = calculate_position_size(
@@ -185,19 +203,20 @@ def _simulate_segment_expectancy(
                     outcome = "loss"; in_until = i + j; break
                 if l <= tp:
                     outcome = "win"; in_until = i + j; break
+        cost_usd = cost_fraction * entry * sizing.size
         if outcome == "win":
-            rs.append(rr)
-            pnl_usd += tp_d * sizing.size
+            rs.append(rr - cost_r)
+            pnl_usd += tp_d * sizing.size - cost_usd
         elif outcome == "loss":
-            rs.append(-1.0)
-            pnl_usd -= stop_d * sizing.size
+            rs.append(-1.0 - cost_r)
+            pnl_usd -= stop_d * sizing.size + cost_usd
         elif i + max_hold < len(df):
             cl = float(df.iloc[i + max_hold]["close"])
             pnl = (cl - entry) * sig.direction
             risk = abs(entry - sl)
             if risk > 0:
-                rs.append(pnl / risk)
-                pnl_usd += pnl * sizing.size
+                rs.append(pnl / risk - cost_r)
+                pnl_usd += pnl * sizing.size - cost_usd
                 in_until = i + max_hold
     if not rs:
         return None, skipped, pnl_usd
@@ -212,6 +231,8 @@ def compute_segment_stability(
     target_risk: float = DEFAULT_TARGET_RISK_USD,
     notional_cap: float = DEFAULT_NOTIONAL_CAP_USD,
     constraints: Optional[OrderConstraints] = None,
+    cost_fraction: float = 0.0,
+    venue_min_fraction: float = 0.0,
 ) -> Optional[StabilityResult]:
     """Run `strategy_fn` independently on N consecutive slices of `df`
     and report how many produced a positive per-trade expectancy.
@@ -267,6 +288,8 @@ def compute_segment_stability(
             target_risk=target_risk,
             notional_cap=notional_cap,
             constraints=constraints,
+            cost_fraction=cost_fraction,
+            venue_min_fraction=venue_min_fraction,
         )
         skipped_total += skipped
         pnl_total += pnl_usd
