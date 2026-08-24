@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 from types import SimpleNamespace
 
 import pandas as pd
@@ -129,3 +130,43 @@ class WalkForwardCostTest(unittest.TestCase):
 
         self.assertEqual(1, result.positive_segments)
         self.assertAlmostEqual(1.1, result.mean_expectancy_R, places=6)
+
+
+class BacktestWiringTest(unittest.TestCase):
+    """The stability check gained cost handling but nothing passed it in,
+    so the gate stayed cost-blind — which is how expensive instruments
+    were certified in the first place. This pins the wiring."""
+
+    def test_backtest_passes_cost_and_venue_minimum(self):
+        import inspect
+        from scripts import spot_backtest
+
+        source = inspect.getsource(spot_backtest.main)
+        call = source[source.index("_wf_stability("):]
+        call = call[:call.index(")\n")]
+
+        self.assertIn("cost_fraction=", call)
+        self.assertIn("venue_min_fraction=", call)
+
+    def test_venue_minimum_fraction_reads_the_audit_rule(self):
+        from scripts import spot_backtest
+
+        with patch.object(spot_backtest, "_load_min_dist_cache",
+                          return_value={"GOLD": {
+                              "min_dist_unit": "PERCENTAGE",
+                              "min_dist_value": 0.001,
+                          }}):
+            # 0.1% rule plus the 5% buffer the live path applies.
+            self.assertAlmostEqual(
+                0.00105,
+                spot_backtest._venue_min_fraction("capital_com", "GOLD"),
+            )
+
+    def test_unknown_pair_yields_no_minimum(self):
+        from scripts import spot_backtest
+
+        with patch.object(spot_backtest, "_load_min_dist_cache",
+                          return_value={}):
+            self.assertEqual(
+                0.0, spot_backtest._venue_min_fraction("capital_com", "X"),
+            )
