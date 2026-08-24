@@ -849,3 +849,43 @@ The dynamic filter remains primary; the list is the fail-closed backstop.
 
 Current active list contains none of these eleven instruments, so this
 changes nothing today. It closes the path by which they returned.
+
+## 25. Three quarters of the active list never fires
+
+Of the 55 combinations in the active list, **41 (75 %) produced no
+signal at all in 30 days**. The dead ones are precisely the cheap
+indices and FX pairs on `donchian_breakout` — DE40, EURUSD, GBPUSD,
+US100, FR40, J225, AU200, CHFJPY, NZDUSD, COPPER, SILVER, HK50,
+NATURALGAS — exactly the set section 23 predicts, because their ATR
+stops sit under the venue minimum.
+
+The 14 that do fire cluster on instruments whose volatility clears
+1.05 % naturally: BTCUSD (8), OIL_BRENT (7), SILVER 4h (7), EURAUD (6),
+US500 on `donchian_trail` (6), AUDUSD (4).
+
+The obvious remedy is a wider ATR multiple, since `stop_atr` is 1.0 for
+every strategy and a wider stop costs nothing on an instrument quoting
+0.008 %. Swept on seven cheap instruments:
+
+| stop_atr | 1h / 30d trades | E[R] | 4h / 120d trades | E[R] |
+|---:|---:|---:|---:|---:|
+| 1.0 | 0 | — | 4 | -1.005 |
+| 1.5 | 0 | — | — | — |
+| 2.0 | 3 | -1.005 | 13 | -0.288 |
+| 2.5 | 4 | -0.614 | — | — |
+| 3.0 | 6 | +0.284 | 22 | -0.352 |
+
+It does not work. At 1h even a tripled stop yields six trades in thirty
+days, because an ATR of 0.3 % still leaves 3x under the 1 % floor. At 4h
+the count rises to 22 over 120 days — 0.18 trades/day — but expectancy
+stays negative and the **hit rate collapses from 23.1 % to 9.1 %**:
+widening the stop moves the RR 1.5 target proportionally further away,
+so it is reached far less often. The one positive cell (+0.284 at 1h,
+stop_atr 3.0) rests on six trades and is noise.
+
+**`stop_atr` was left at 1.0.** This was the last mechanism that could
+have widened the tradeable set from inside the strategy configuration.
+
+The dead combinations are left in place: they consume scan time but no
+slots, and removing them would only hide the finding that the venue rule,
+not the selection, is what silences them.
