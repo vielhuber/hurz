@@ -89,22 +89,10 @@ _RES_MINUTES = {
     "1m": 1, "5m": 5, "15m": 15, "30m": 30,
     "1h": 60, "4h": 240, "1d": 1440,
 }
-# donchian_trail joins v3 on 2026-08-24. Its trailing exit was never
-# modelled in backtests, which scored it on an RR 5.0 backstop it almost
-# never reaches. Simulated with its real live parameters (arm at 1.0R,
-# ride 2.0xATR) it returns -0.648R over 62 trades at a profit factor of
-# 0.19, t ~ -5.7, and the live journal agrees in sign (-0.136R, n=10).
-# The trail arms at +1R and sits 2xATR back, so on a 1xATR stop it closes
-# at roughly break-even on any ordinary pullback — it caps winners
-# instead of letting them run, which is the one thing a trend follower
-# must not do. Widening it to 4xATR does produce +4.97R winners, but the
-# hit rate needed at that payoff is 18% against the 8.8% achieved.
-#
-# Entries only. Open positions keep their exit path, including the trail.
-_DISABLED_LIVE_STRATEGIES = {"donchian_breakout_v3", "donchian_trail"}
 
-from app.spot_trading.instrument_blocks import (
+from app.spot_trading.trading_blocks import (
     COST_BLOCKED_PAIRS as _COST_BLOCKED_PAIRS,
+    DISABLED_LIVE_STRATEGIES as _DISABLED_LIVE_STRATEGIES,
 )
 
 

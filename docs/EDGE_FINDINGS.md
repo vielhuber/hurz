@@ -1832,3 +1832,26 @@ capital-weighted correction (20) moved its live figure from -0.271 R to
 -0.129 R, above the -0.15 veto threshold. That is the selection working
 as designed on corrected data, not a decision of mine — and section 36
 still applies to what it is worth.
+
+### 44b. The same loophole applied to blocked strategies
+
+`donchian_trail` was retired for entries in section 27, yet two pinned
+combos — US500 and EURUSD — remained in the active list. Identical cause
+to CORN: a pin bypasses the selector's filters, and the strategy block
+lived in the trader where the selector could not consult it.
+
+Both blocks now sit in `app/spot_trading/trading_blocks.py`, which the
+selector and the trader read independently. Regenerating the list drops
+it from 60 combinations to **56, with nothing blocked remaining**.
+
+Removing them from the list does not strand the two open positions.
+Positions to manage come from `platform.list_positions()` — the broker —
+not from the active list, and the strategy guards sit only in
+`evaluate_pair` and `execute_intent`. Both keep their exit path, trailing
+stop included. A test asserts that sourcing, so a future refactor cannot
+quietly couple exits to the active list.
+
+Neither the instrument nor the strategy loophole ever permitted a trade;
+both entry guards held throughout. What they corrupted was the file that
+describes what the system trades — which is the artefact every later
+analysis reads.
