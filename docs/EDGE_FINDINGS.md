@@ -1334,3 +1334,50 @@ that had to be retracted — is a coin flip dressed as evidence.
 
 On the best sample available: 2.07 trades/day at +0.018 R and 3 USD risk
 is **0.11 USD/day**, short of the 50 EUR target by a factor of **523**.
+
+## 35. The selector finally has real samples — and still nothing significant
+
+With the 180-day window the persisted results were regenerated. Sample
+sizes are no longer decorative:
+
+| strategy | n | win% | PF | E[R] |
+|---|---:|---:|---:|---:|
+| donchian_breakout | 1,054 | 17.9 | 0.96 | -0.013 |
+| turtle_breakout | 827 | 17.3 | 0.95 | -0.017 |
+| momentum | 134 | 23.1 | 1.03 | +0.015 |
+
+All three are zero within noise across the full instrument list. The
+earlier +0.018 for donchian on eight cheap instruments versus -0.013
+here is the cost effect of section 24 reappearing: the wider list
+includes instruments where the cost share bites.
+
+Ranking now produces a real table. It also demonstrates the trap in one
+line: **top of the list is `momentum/ETHUSD`, n = 11, E[R] +0.702** —
+while momentum overall sits at +0.015 across 134 trades. That single
+cell is the luckiest of ~50 combinations, nothing more.
+
+Turning on the stability gate (min-pf 1.0, min-er 0.0, min-stability
+0.66) leaves four:
+
+| combination | n | PF | E[R] | t |
+|---|---:|---:|---:|---:|
+| turtle_breakout / GOLD | 30 | 1.89 | +0.332 | ~1.44 |
+| donchian_breakout / GOLD | 39 | 1.49 | +0.210 | ~1.0 |
+| donchian_breakout / OIL_BRENT | 46 | 1.31 | +0.154 | ~0.8 |
+| donchian_breakout / DE40 | 37 | 1.37 | +0.141 | ~0.7 |
+
+GOLD surviving under two independent strategies is the most interesting
+pattern here, and it still is not evidence: GOLD quotes a 0.006 % spread,
+so its trades sit closest to the zero that section 30 shows random entry
+produces on cheap instruments. Instrument economics, not signal quality.
+
+The best candidate reaches **t ~ 1.44**, selected from roughly fifty
+combinations, where Bonferroni would demand t > 3. **The active list was
+not changed.** Section 34 is exactly about why: a 30-trade cell moving
+0.3 R is what noise looks like at this sample size, and this project has
+already retracted several such findings.
+
+What did improve is the basis for future decisions. `min_trades = 10`
+now selects on genuine samples rather than on tens of trades, and the
+stability gate has enough history to mean something. Neither creates an
+edge; both make the absence of one harder to mistake for a finding.
