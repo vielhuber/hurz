@@ -600,3 +600,51 @@ from any setting that can be turned up.
 The backtest now applies the floor before widening and prints per-pair
 how many signals it removed, so the drop can never again read as "this
 pair produced few signals".
+
+## 19. The stop floor removes the better half, not the worse one
+
+Section 18 makes the 1 % stop floor the binding constraint on trade
+frequency — it removes about fifteen signals in sixteen. Its
+justification, recorded in `autotrade.py`, was that narrow stops lose
+more because spread consumes a larger share of a small risk budget:
+"-0.31R under 1 %, -0.09R at or above".
+
+Rebooked against actual fills, that reverses:
+
+| stop distance | n | E[R] booked | **E[R] against fill** | t |
+|---|---:|---:|---:|---:|
+| < 1 % (rejected) | 56 | -0.208 | **-0.058** | -0.33 |
+| ≥ 1 % (traded) | 379 | -0.322 | **-0.432** | -3.85 |
+
+Difference, narrow minus wide: **+0.374 R** (SE 0.210, t 1.78).
+
+The original finding was an artefact of the same signal-price booking
+that distorted everything else — and it is self-reinforcing in the worst
+way, because slippage is a *larger* share of a small R, so the very
+column that hides slippage makes narrow stops look worst exactly where
+they are hurt most by the error.
+
+By band, against fills:
+
+| band | n | E[R] | t | USD |
+|---|---:|---:|---:|---:|
+| 0.00–0.50 % | 10 | -0.143 | -0.38 | -0.86 |
+| 0.50–0.75 % | 13 | -0.308 | -0.72 | -34.86 |
+| 0.75–1.00 % | 33 | +0.066 | 0.29 | +74.89 |
+| **1.00–1.50 %** | **324** | **-0.313** | **-3.41** | **-394.73** |
+| 1.50–2.50 % | 44 | -1.262 | -1.85 | +48.25 |
+| > 2.50 % | 11 | -0.611 | -2.91 | -113.34 |
+
+The one positive band carries t = 0.29 across 33 trades, so it is not an
+edge — but the band the floor steers everything into, holding 324 of 435
+trades, loses at t = -3.41.
+
+**The floor stays on.** Not for its original reason, which is wrong, but
+because expectancy is negative on both sides. Removing it improves
+blended expectancy from -0.432 to -0.384 while multiplying volume about
+fifteenfold, which increases the dollar loss. Trading more of a negative
+edge loses faster, however the edge is sliced.
+
+It should be revisited the moment expectancy turns positive, because at
+that point it becomes the single largest constraint on frequency — and
+section 18 shows frequency is 60x short of the target.
