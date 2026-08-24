@@ -9,6 +9,7 @@ from typing import Optional
 
 DEFAULT_TARGET_RISK_USD = 3.0
 DEFAULT_NOTIONAL_CAP_USD = 250.0
+MAX_ROUND_TRIP_COST_RISK_FRACTION = 0.20
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,15 @@ class PositionSizeResult:
     @property
     def skipped(self) -> bool:
         return self.size is None
+
+
+def calculate_round_trip_cost_fraction(
+    *, round_trip_cost: float, stop_distance: float,
+) -> float:
+    """Express execution cost in units of the planned price risk."""
+    if stop_distance <= 0:
+        return math.inf
+    return max(round_trip_cost, 0.0) / stop_distance
 
 
 def calculate_position_size(
