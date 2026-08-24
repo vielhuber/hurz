@@ -1168,3 +1168,45 @@ select entries that are statistically indistinguishable from picking a
 bar at random and flipping a coin — and on the cheap instruments, that
 coin flip is break-even after costs. There is no edge to size up, filter,
 re-time, re-venue or re-exit.
+
+## 31. Cross-sectional relative strength: tested, not supported, underpowered
+
+The preregistration excluded time-of-day rules for having too many
+arbitrary boundaries, and its cross-asset work tested **lead-lag** ("does
+A predict B"). Cross-sectional relative strength — rank the universe,
+buy the strongest, sell the weakest — is a structurally different
+anomaly and was never tried.
+
+Specified before running, single specification, no sweep:
+
+- universe: the 14 cheap instruments
+- ranking: trailing 252-hour return (conventional intermediate horizon)
+- rebalance: every 120 hours; long top 3, short bottom 3
+- execution: unchanged — venue-minimum stop, RR 1.5, 24-bar leash, real
+  spreads
+- decision rule: accept only at t > 2.0 against the section 30 random
+  baseline
+
+Result: **n = 15, E[R] +0.0609, difference against random +0.0603 R at
+t = +0.30. Not accepted.**
+
+**The honest caveat is the sample, not the sign.** Fifteen trades cannot
+distinguish a real effect from nothing, and this is a limit of the data
+rather than of the design. Capital.com serves roughly 1,000 hourly bars:
+
+| window | lookback | rebalance | rebalance points | signals |
+|---:|---:|---:|---:|---:|
+| 40 days | 252 h | 120 h | 5 | 30 |
+| 40 days | 252 h | 24 h | 28 | 168 |
+| 40 days | 120 h | 24 h | 33 | 198 |
+
+A 252-hour lookback consumes a quarter of the available history before
+the first ranking exists. Shortening the lookback or rebalancing daily
+would raise the count, but choosing those numbers *after* seeing this
+result is exactly the search that sections 15, 19 and 22 had to retract.
+
+So this is recorded as **untested in any conclusive sense**, not as
+refuted. Testing it properly needs a longer history than this venue
+exposes — the same constraint that limits every other analysis here.
+It does not change the standing of section 30: whatever ranking might
+add, the entry signals currently in use carry no directional information.
