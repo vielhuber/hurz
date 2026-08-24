@@ -618,6 +618,32 @@ def _format_realized_pnl(realized_pnl: Optional[float]) -> str:
     return f"{realized_pnl:+.4f}"
 
 
+def _drop_retired(active: List[Dict], platform_name: str) -> tuple:
+    """Remove combos the live veto has retired from the active list.
+
+    Returns `(kept, retired)`. A veto that cannot read its data leaves
+    the list untouched: refusing to trade at all on a database hiccup is
+    worse than trading the list as written, and the selector already
+    fails closed when it writes."""
+    try:
+        from app.spot_trading.pair_selector import (
+            VetoDataUnavailable, live_expectancy_veto,
+            strategy_expectancy_veto,
+        )
+        vetoed = live_expectancy_veto(platform_name)
+        vetoed_strategies = strategy_expectancy_veto(platform_name)
+    except Exception:
+        return active, []
+    kept, retired = [], []
+    for entry in active:
+        combo = (entry.get("strategy"), entry.get("pair"))
+        if combo in vetoed or combo[0] in vetoed_strategies:
+            retired.append(combo)
+        else:
+            kept.append(entry)
+    return kept, retired
+
+
 async def run_loop(
     *,
     platform_name: str,
@@ -761,6 +787,9 @@ async def run_loop(
         _safe_log(
             "⛔ daily-cap history unavailable — new entries remain blocked"
         )
+    # Combos already reported as retired-but-listed, so the warning
+    # appears once rather than every cycle.
+    retired_logged: set = set()
     # Log the daily-loss halt once per day, not once per blocked signal.
     daily_loss_logged = False
     daily_loss_day: Optional[str] = None
@@ -809,6 +838,19 @@ async def run_loop(
             # Filter to entries that match this loop's platform;
             # otherwise we'd try to fetch a Capital.com epic on Kraken.
             active = [p for p in active if p.get("platform") == platform_name]
+            # Second line of defence. The active list is a file, and a
+            # file can be stale, hand-edited, or written by a selector
+            # run whose journal was unreachable — in which case it holds
+            # every combo the vetoes had retired. Re-checking here costs
+            # one query per cycle and keeps a bad file from trading.
+            active, retired = _drop_retired(active, platform_name)
+            for combo in retired:
+                if combo not in retired_logged:
+                    retired_logged.add(combo)
+                    _safe_log(
+                        f"⛔ {combo[1]} {combo[0]}: retired by the live "
+                        f"veto but present in the active list — skipping"
+                    )
             if not active:
                 _safe_log(
                     f"no active pairs for {platform_name} in "
