@@ -1293,3 +1293,44 @@ This closes the last open signal class. Time-series breakouts (30, 32),
 mean reversion (retired by veto), lead-lag (preregistration), and now
 cross-sectional ranking have all been measured against a random control
 on a year of data. None beats it.
+
+## 34. The default backtest window was a workaround for the paging bug
+
+`_DEFAULT_DAYS = 30` was never a considered choice: the adapter failed
+with HTTP 400 on any range wider than ~40 days (32), so 30 was simply
+what worked. It is now **180**, giving ~3,000 hourly bars per instrument
+against ~660. Not 365, to keep the nightly run's request count sane.
+
+`_fetch` now retries transient transport failures. A year for fourteen
+instruments issues ~126 chunked requests and several reliably die; the
+caller previously proceeded with whichever instruments survived, which
+is precisely how section 33's cross-sectional test silently became a
+6-instrument test and reported a different number.
+
+Measured on the longer window, eight tradeable instruments, 1h:
+
+| strategy | n | win% | PF | E[R] |
+|---|---:|---:|---:|---:|
+| donchian_breakout | 373 | 29.5 | 1.04 | **+0.018** |
+| turtle_breakout | 286 | 28.7 | 1.01 | **+0.003** |
+
+Both are zero to within noise (t ~ 0.29 for the first). Consistent with
+the random benchmark: profit factors of 1.04 and 1.01 are what a coin
+flip produces when costs are small.
+
+The same strategy across this project's measurements:
+
+| window | instruments | n | E[R] |
+|---|---:|---:|---:|
+| 30 days | 6 | 17 | -0.112 |
+| 30 days | 7 | 40 | -0.028 |
+| **180 days** | **8** | **373** | **+0.018** |
+
+**The spread between these readings exceeds any of them.** That is the
+methodological finding of this whole exercise: on samples of tens of
+trades, the measurement noise dominates the quantity being measured, and
+every conclusion drawn from such a sample — including several of mine
+that had to be retracted — is a coin flip dressed as evidence.
+
+On the best sample available: 2.07 trades/day at +0.018 R and 3 USD risk
+is **0.11 USD/day**, short of the 50 EUR target by a factor of **523**.
