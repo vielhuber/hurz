@@ -25,7 +25,7 @@ import asyncio
 import json
 import math
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, AsyncIterator, Dict, List, Optional
 
 import aiohttp
@@ -52,6 +52,11 @@ _CONFIRM_INTERVAL_SECONDS = 1.0
 _CONFIRM_TOTAL_TIMEOUT_SECONDS = 15.0
 
 # Capital.com REST resolution codes (matches their `resolution` enum).
+_RESOLUTION_SECONDS = {
+    "1m": 60, "5m": 300, "15m": 900, "30m": 1800,
+    "1h": 3600, "4h": 14400, "1d": 86400, "1w": 604800,
+}
+
 _RESOLUTION_MAP = {
     "1m": "MINUTE",
     "5m": "MINUTE_5",
@@ -284,14 +289,28 @@ class CapitalComPlatform(Platform):
             "to": to_ts.strftime("%Y-%m-%dT%H:%M:%S"),
             "max": 1000,  # Capital.com's max per call
         }
-        # /prices is paginated by `from`/`to` — we iterate in chunks
-        # until we cover the full range. Each call returns at most
-        # `max` bars; we step the window forward by the latest snapshot.
+        # /prices is paginated by `from`/`to`. The window must move as a
+        # whole: Capital.com rejects a request whose from/to span exceeds
+        # what `max` bars can cover, with a bare HTTP 400. Holding `to`
+        # fixed at the requested end therefore failed for any range wider
+        # than about a thousand bars — 90 days of hourly data returned
+        # nothing at all rather than paging through.
+        # The span limit is counted in calendar time, not in returned
+        # bars: a request covering exactly max x bar-duration (41.7 days
+        # at 1h) is refused, while 40 days succeeds and yields ~665 bars
+        # because markets are closed for part of it. Ask for 90% of the
+        # nominal span so the ceiling is never touched.
+        window = timedelta(
+            seconds=int(_RESOLUTION_SECONDS[resolution]
+                        * int(params["max"]) * 0.9)
+        )
         all_bars: List[Bar] = []
         cursor = from_ts
         # Hard guard against infinite loop on adversarial responses.
         for _ in range(200):
+            chunk_end = min(cursor + window, to_ts)
             params["from"] = cursor.strftime("%Y-%m-%dT%H:%M:%S")
+            params["to"] = chunk_end.strftime("%Y-%m-%dT%H:%M:%S")
             data = await self._raw_request(
                 "GET", f"/api/v1/prices/{asset}", params=params, auth=True,
             )
@@ -327,10 +346,11 @@ class CapitalComPlatform(Platform):
             last_ts = all_bars[-1].timestamp
             if last_ts >= to_ts:
                 break
-            # Capital.com's max=1000 → ~16h at 1-min. Step in big jumps.
-            cursor = last_ts
-            if len(prices) < params["max"]:
-                # Server returned fewer than max → no more data.
+            # Advance past the chunk we just consumed. Using the window
+            # rather than the last bar keeps progress even when a chunk
+            # falls entirely inside a market closure and comes back short.
+            cursor = max(last_ts, chunk_end)
+            if chunk_end >= to_ts:
                 break
         # Trim to requested window.
         return [b for b in all_bars if from_ts <= b.timestamp <= to_ts]
