@@ -58,6 +58,9 @@ _NIGHTLY_STRATEGIES = [
 # wall clock is the same short-timeout pattern run_loop uses reliably in
 # the same event loop, and is immune to GC, host suspend and clock jumps.
 _POLL_SECONDS = 60
+# Generous against the ~5 min a single strategy needs over the full
+# instrument list at the 180-day backtest window.
+_BACKTEST_TIMEOUT_SECONDS = 1800
 
 
 async def _run_one_backtest(platform: str, strategy: str) -> tuple[bool, str]:
@@ -76,7 +79,20 @@ async def _run_one_backtest(platform: str, strategy: str) -> tuple[bool, str]:
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-    out, err = await proc.communicate()
+    try:
+        out, err = await asyncio.wait_for(
+            proc.communicate(), timeout=_BACKTEST_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError:
+        # A hung fetch would otherwise stall the nightly refresh until the
+        # process is restarted, leaving the active list frozen with no
+        # visible symptom. One strategy over the full instrument list takes
+        # about five minutes at the 180-day window, so this is generous.
+        proc.kill()
+        await proc.wait()
+        return False, (
+            f"timed out after {_BACKTEST_TIMEOUT_SECONDS}s"
+        )
     ok = proc.returncode == 0
     if ok:
         return True, ""
