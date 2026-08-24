@@ -1480,3 +1480,47 @@ Seven positions open. The bot is running on the Capital demo account
 with the corrected risk controls, the cost blocklist, `donchian_trail`
 and `donchian_breakout_v3` blocked for entries, and backtests now
 measuring 180 days instead of 30.
+
+## 38. Reconciliation is clean; the equity basis was not
+
+A full broker-versus-journal reconciliation, never run end-to-end in this
+session:
+
+| | |
+|---|---|
+| broker open positions | 7 — UK100, US500, GBPCAD, NZDUSD, US30, SILVER, EURUSD |
+| journal open positions | 7 — identical set |
+| only at broker / only in journal | none |
+| count mismatches | none |
+
+The accounting corrections of sections 7–13 and 20–21 hold up: the two
+sides agree exactly.
+
+The balance read did surface one defect. `account_balance()` returned
+**485.96 EUR** where the account's actual balance is **559.77 EUR** —
+it prefers `available`, which is what remains after margin on open
+positions:
+
+| field | value |
+|---|---:|
+| balance | 559.77 |
+| deposit | 558.81 |
+| profitLoss (open) | +0.96 |
+| available | 485.96 |
+
+Its only live consumer is the risk-scaling equity ceiling, which caps
+risk at a fraction of account equity. Reading `available` tied that
+ceiling to book utilisation: seven open positions shrank the perceived
+account by 13 %, and an empty book would have inflated it again. Nothing
+in the design intends that. It now reads `balance`, falling back to
+`available` only when the broker omits it.
+
+Practically this changes nothing today — risk sits at base because only
+3 of the 40 required out-of-sample trades exist — but it is the kind of
+coupling that misbehaves precisely when the book is fullest.
+
+Worth recording separately: the account balance is **559.77 EUR against
+558.81 EUR deposited**, while the journal records -450.84 USD of
+realised losses across 495 trades. The demo account has evidently been
+topped up during its history, so its balance is not a running P&L and
+must not be read as one.
