@@ -145,23 +145,23 @@ class LiveTradeCostFilterTest(IsolatedAsyncioTestCase):
 
     async def test_moderate_cost_widens_the_stop_instead_of_skipping(self) -> None:
         stop_event = asyncio.Event()
-        # 0.25 cost on a 1.0 stop is 25% — over the limit, but a stop of
-        # 1.25 brings it to exactly 20%, well inside the 2x widening cap.
-        platform = HighSpreadPlatform(stop_event, round_trip_cost=0.25)
+        # 0.15 cost on a 1.0 stop is 15% — over the limit, but a stop of
+        # 1.5 brings it to exactly 10%, inside the 2x widening cap.
+        platform = HighSpreadPlatform(stop_event, round_trip_cost=0.15)
 
         await self._run(platform, stop_event)
 
         self.assertEqual(1, len(platform.orders))
         order = platform.orders[0]
-        self.assertAlmostEqual(98.75, order["stop_loss"])
+        self.assertAlmostEqual(98.5, order["stop_loss"])
         # R:R of 1.5 survives the widening.
-        self.assertAlmostEqual(101.875, order["take_profit"])
+        self.assertAlmostEqual(102.25, order["take_profit"])
 
     async def test_unreachable_cost_still_skips(self) -> None:
         stop_event = asyncio.Event()
-        # 0.5 cost would need a stop of 2.5 — beyond the 2x cap, so the
+        # 0.25 cost would need a stop of 2.5 — beyond the 2x cap, so the
         # trade is dropped rather than handed a stop it never asked for.
-        platform = HighSpreadPlatform(stop_event, round_trip_cost=0.5)
+        platform = HighSpreadPlatform(stop_event, round_trip_cost=0.25)
 
         record = await self._run(platform, stop_event)
 
