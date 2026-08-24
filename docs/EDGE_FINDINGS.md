@@ -274,3 +274,29 @@ The 360 rows were left untouched: correcting them means a mass update
 of production data on a derived column, which is an owner decision, and
 the forward window that decides anything from here on is already
 booking against the fill.
+
+## 10. Corrected expectancy: the filters do not reach break-even
+
+Recomputing every close against its actual fill (section 9) changes the
+headline numbers this document reported earlier. The corrected column is
+the one to use.
+
+| configuration | trades | as booked | corrected |
+|---|---:|---:|---:|
+| all trades | 495 | -234.57 (-0.1158 R) | **-450.84 (-0.1817 R)** |
+| minus retired strategies | 220 | +63.59 (-0.0549 R) | **-26.61 (-0.1036 R)** |
+| minus cost-blocked pairs too | 191 | +101.77 (-0.0054 R) | **+28.02 (-0.0378 R)** |
+
+The filters are worth **0.144 R per trade** — a real improvement, and
+the largest single effect measured in this project. They do not reach
+break-even: the best configuration still expects **-0.0378 R**.
+
+The dollar column turning positive at +28.02 while expectancy stays
+negative is a size artefact, not an edge: a handful of large winners
+outweigh many small losers. Under the risk-based sizing now in force
+every trade carries the same risk, so the R figure is the one that will
+govern from here.
+
+Earlier revisions of this document, and several progress reports, cited
+**+0.0134 R** for the filtered configuration. That number came from
+signal-priced rows and was too optimistic by roughly 0.05 R.
