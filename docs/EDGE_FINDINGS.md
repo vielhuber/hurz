@@ -726,3 +726,38 @@ cut either direction. Current state is unchanged in practice — 1 of the
 Neither fix changes the verdict on profitability. They matter because
 they are the two places where a wrong number does damage rather than
 merely misinform.
+
+## 22. Tightening the selection filters is not supported either
+
+The nightly scheduler has run in a deliberately relaxed configuration
+since 2026-07-01: `--min-pf 0.8`, `--min-er -0.2`, stability gate off,
+`min_trades 10`. The recorded reasoning was that backtest statistics
+proved non-predictive, so the system should cast a wide net and let live
+results decide. That admits combinations with negative in-sample
+expectancy by design, which sits oddly against a profitability goal —
+so it is worth asking whether the relaxation cost anything.
+
+Splitting live results by whether a combination would also have passed
+the strict filters (`pf >= 1.0`, `E[R] >= 0`):
+
+| weighting | passed strict | admitted only by relaxation | implies |
+|---|---:|---:|---|
+| capital-weighted | -0.364 R | -0.047 R | relaxation better |
+| unweighted mean | -0.294 R | -0.385 R | strict better |
+
+**The two weightings disagree on the sign**, and the unweighted
+difference is +0.091 R at t = 0.49. A real effect does not flip
+direction with the choice of weighting; this one is noise in both
+readings.
+
+So there is no evidence that tightening the filters would improve
+results, and none that the relaxation harmed them. **The configuration
+was left alone.** Changing it would be a coin-flip dressed as a
+decision, and the coin has already been flipped twice with opposite
+outcomes.
+
+This closes the last operational knob that looked like it might matter.
+Every remaining lever — venue (section 14), risk-reward (15), holding
+leash (17), stop floor (19), selection filters (22) — has now been
+measured and none moves the result. What is missing is upstream of all
+of them.
