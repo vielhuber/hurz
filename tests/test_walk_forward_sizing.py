@@ -87,3 +87,45 @@ class WalkForwardSizingTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WalkForwardCostTest(unittest.TestCase):
+    """Cost must be able to flip a nominally winning segment negative —
+    that is the whole point of charging it here."""
+
+    def test_costless_segment_is_positive(self):
+        result = compute_segment_stability(
+            _winning_frame(), _strategy,
+            segments=1, rr=1.5, stop_atr=1.0, min_segment_bars=2,
+            target_risk=3.0, notional_cap=250.0,
+        )
+
+        self.assertEqual(1, result.positive_segments)
+        self.assertAlmostEqual(1.5, result.mean_expectancy_R, places=6)
+
+    def test_heavy_cost_turns_the_same_segment_negative(self):
+        # Entry 100 with a 1.0 stop: a 2% round-trip cost is 2R, which
+        # swamps the 1.5R win.
+        result = compute_segment_stability(
+            _winning_frame(), _strategy,
+            segments=1, rr=1.5, stop_atr=1.0, min_segment_bars=2,
+            target_risk=3.0, notional_cap=250.0,
+            cost_fraction=0.02,
+        )
+
+        self.assertEqual(0, result.positive_segments)
+        self.assertAlmostEqual(-0.5, result.mean_expectancy_R, places=6)
+
+    def test_venue_minimum_widens_a_tighter_stop(self):
+        # A 5% venue minimum on a price of 100 forces a stop of 5.0
+        # instead of the ATR-derived 1.0, so the same 2% cost is only
+        # 0.4R and the win survives.
+        result = compute_segment_stability(
+            _winning_frame(), _strategy,
+            segments=1, rr=1.5, stop_atr=1.0, min_segment_bars=2,
+            target_risk=3.0, notional_cap=250.0,
+            cost_fraction=0.02, venue_min_fraction=0.05,
+        )
+
+        self.assertEqual(1, result.positive_segments)
+        self.assertAlmostEqual(1.1, result.mean_expectancy_R, places=6)
