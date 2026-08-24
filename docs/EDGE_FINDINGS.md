@@ -548,3 +548,55 @@ instead of redeclaring it, reads `max_hold_bars_for()` for the live
 value, and refuses to persist a run at an off-live leash. A test asserts
 that `max_hold_bars_for()` and `stale_exit_after_seconds()` agree, so the
 two paths cannot drift apart again.
+
+## 18. Nine in ten backtest trades are signals live never opens
+
+The live loop drops a signal outright when its stop sits inside the 1 %
+floor (`evaluate_pair` returns None). The backtest had no such step: it
+went straight to widening the stop to the venue minimum and traded the
+signal. So the two paths did not disagree on a parameter — they
+disagreed on *whether the trade happens at all*.
+
+Measured on donchian_breakout across seven instruments, capital_com 1h,
+30 days:
+
+| | trades |
+|---|---:|
+| backtest without the floor | 93 |
+| **surviving the floor, i.e. live-tradeable** | **6** |
+
+**87 of 93 signals — 93 % — never open live.** Expectancy barely moves
+(+0.197 → +0.194), so this is not a quality filter in disguise; it is a
+volume finding. Every backtest in this project measured roughly fifteen
+times more trades than the configuration can actually take.
+
+That resolves several loose ends at once:
+
+- The `min_trades = 30` selection floor was being cleared by samples
+  made up almost entirely of trades that cannot occur. A combination
+  "proven" on 40 backtest trades rests on about three real ones.
+- The ranking going empty after the fee fix was not a bug. It is what
+  an honest sample size looks like.
+- The frequency gap is far wider than section 11 estimated.
+
+Rescaling the target arithmetic on live-tradeable volume:
+
+| | |
+|---|---:|
+| live-tradeable trades | 0.20/day on 7 instruments |
+| scaled to the 59 traded instruments | **1.69/day** |
+| at E[R] +0.194 and 3 USD risk | 0.58 USD/trade |
+| **achievable** | **0.98 USD/day** |
+| target (50 EUR) | 58.49 USD/day |
+| **gap** | **60x** |
+
+Reaching 50 EUR/day would need **101 trades/day** against the ~1.7 the
+strategies actually generate — and that calculation still grants a
+positive expectancy that sections 5 and 14 show does not survive
+correction. The frequency ceiling is structural: it comes from how often
+these signal rules fire with a stop wide enough to be worth trading, not
+from any setting that can be turned up.
+
+The backtest now applies the floor before widening and prints per-pair
+how many signals it removed, so the drop can never again read as "this
+pair produced few signals".

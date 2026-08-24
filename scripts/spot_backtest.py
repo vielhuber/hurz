@@ -37,6 +37,7 @@ settings.load_env()
 from app.platforms import get_platform, Bar, OrderConstraints
 from app.platforms.registry import clear_cache
 from app.strategies import get_strategy, available_strategies, add_indicators
+from app.spot_trading.autotrade import _min_stop_fraction
 from app.spot_trading.regime import (
     decide as _regime_decide,
     adx_at as _regime_adx,
@@ -318,6 +319,8 @@ def _simulate_trades(asset: str, df: pd.DataFrame, signals, *,
     does live, so backtest stays an honest model of fills."""
     outcomes: List[TradeOutcome] = []
     in_trade_until = -1
+    min_stop_fraction = _min_stop_fraction()
+    skipped_below_stop_floor = 0
     for sig in signals:
         i = sig.index
         if i <= in_trade_until or i >= len(df):
@@ -333,6 +336,14 @@ def _simulate_trades(asset: str, df: pd.DataFrame, signals, *,
             continue
         entry = float(row["close"])
         stop_dist = stop_atr_mult * atr
+        # The live loop drops a signal outright when its stop sits inside
+        # the floor, and only widens afterwards. Widening here without
+        # that check traded a whole class of signals live never opens.
+        if (min_stop_fraction > 0 and entry > 0
+                and stop_dist / entry < min_stop_fraction):
+            skipped_below_stop_floor += 1
+            continue
+
         # Adaptive stop expansion. The venue may refuse SL/TP closer
         # than X% — in that case the autotrader expands stop_dist to
         # the venue minimum; the backtest must mirror that to remain
@@ -419,6 +430,11 @@ def _simulate_trades(asset: str, df: pd.DataFrame, signals, *,
             realized_pnl=float(net_pnl),
         ))
         in_trade_until = i + bars_held
+    if skipped_below_stop_floor:
+        # Silent truncation would read as "this pair produced few signals"
+        # rather than "the floor removed most of them".
+        print(f"    {asset}: {skipped_below_stop_floor} signal(s) below the "
+              f"{min_stop_fraction:.2%} stop floor — skipped as live would")
     return outcomes
 
 
