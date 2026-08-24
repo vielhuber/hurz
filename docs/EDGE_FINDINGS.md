@@ -1210,3 +1210,49 @@ refuted. Testing it properly needs a longer history than this venue
 exposes — the same constraint that limits every other analysis here.
 It does not change the standing of section 30: whatever ranking might
 add, the entry signals currently in use carry no directional information.
+
+## 32. History paging was broken — and the year-long benchmark confirms section 30
+
+Section 31 recorded the ~1000-bar ceiling as a limit of the venue. It was
+a defect in our own adapter.
+
+`fetch_history` paginates by advancing `from` while leaving `to` pinned
+at the requested end. Capital.com counts the from/to span in **calendar
+time**, not in bars returned, and refuses a request whose span exceeds
+what `max` bars nominally cover — with a bare HTTP 400. So any range
+wider than about forty days returned nothing at all, and every backtest
+in this project silently ran on ~660 bars.
+
+The window now moves as a whole, at 90 % of the nominal span (a request
+covering exactly 1000 x 1h = 41.7 days is refused; 40 days succeeds and
+yields ~665 bars, because markets are shut for part of it).
+
+| requested | before | after |
+|---|---:|---:|
+| 90 days | HTTP 400 | 1,521 bars |
+| 180 days | HTTP 400 | 3,036 bars |
+| 365 days | HTTP 400 | **6,140 bars** |
+
+**Nine times the data.** Section 30's benchmark was rerun on a full year,
+16 instruments:
+
+| strategy | signal n | difference vs random | t | same test at 30 days |
+|---|---:|---:|---:|---:|
+| donchian_breakout | 1,131 | -0.0220 | -0.83 | -0.0206 |
+| turtle_breakout | 924 | **-0.0441** | -1.44 | **+0.0812** |
+| keltner_breakout | 1,023 | -0.0100 | -0.34 | -0.0112 |
+
+All three sit below random entry and none is significant. Section 30's
+conclusion holds on roughly a thousand trades per strategy instead of
+seventy-five.
+
+**`turtle_breakout` is the lesson.** At 30 days it measured +0.0812 R
+above random, the single most encouraging number this project produced.
+On a full year it is **-0.0441 R** — the sign reversed. It was noise, as
+section 30b already flagged it might be, and the small sample is exactly
+why. Every positive figure in this document that rests on tens of trades
+deserves the same suspicion.
+
+The benchmark now resolves differences from about **0.06 R** upward,
+against 0.156 R before. The target needs +4.68 R per trade — seventy-eight
+times that threshold.
