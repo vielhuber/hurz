@@ -697,3 +697,32 @@ weighted, so it was being retired over an artefact.
 
 Current vetoes on the corrected basis: seven combinations and five
 strategies retired.
+
+## 21. The two risk controls read the distorted figure too
+
+Section 20 fixed the retirement vetoes. The same two faults — booking
+against `realized_pnl`, and dividing by the risk each trade happened to
+take — were also present in both controls that decide how much risk the
+system runs.
+
+**Daily loss guard.** It summed per-trade R against taken risk, so an
+oversized position reported roughly -1R however much it cost. A trade
+risking 39 USD against the 3 USD budget consumed thirteen budget units
+and read as one; conversely a micro position losing two cents read as
+-20R and could block a day's entries by itself. Both failure directions
+defeat the control. It now sums the fill-based PnL and divides by the
+budgeted risk, so "6R" means six budget units — what the limit was
+always meant to express. Across the journal the booked column understated
+the total by 36 % (-57.3R against -89.9R).
+
+**Edge scaling.** This one decides whether to *increase* risk, so a
+distorted input is worst here. It now books against fills and ignores
+positions sized below 10 % of the budget: their near-zero denominator
+both shifts the mean and inflates the variance the confidence bound is
+built from, and an inflated variance widens the bound in a way that can
+cut either direction. Current state is unchanged in practice — 1 of the
+40 required out-of-sample trades, so risk stays at base regardless.
+
+Neither fix changes the verdict on profitability. They matter because
+they are the two places where a wrong number does damage rather than
+merely misinform.

@@ -14,6 +14,8 @@ would realise the very losses the limit exists to bound.
 from __future__ import annotations
 
 import os
+
+from app.spot_trading.position_sizing import DEFAULT_TARGET_RISK_USD
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
@@ -46,6 +48,19 @@ def _limit() -> float:
     return value if value > 0 else float("inf")
 
 
+def _target_risk() -> float:
+    """The per-trade risk budget the daily limit is denominated in."""
+    raw = os.getenv("HURZ_RISK_PER_TRADE")
+    if raw:
+        try:
+            configured = float(raw)
+            if configured > 0:
+                return configured
+        except ValueError:
+            pass
+    return DEFAULT_TARGET_RISK_USD
+
+
 def daily_loss(now: Optional[datetime] = None) -> DailyLoss:
     """Realised result so far today, in R, and whether it bars entries.
 
@@ -57,23 +72,37 @@ def daily_loss(now: Optional[datetime] = None) -> DailyLoss:
         from app.utils.singletons import database
         rows = database.select(
             """
-            SELECT realized_pnl, size,
-                   COALESCE(fill_price, entry_price) AS px, stop_loss
+            SELECT realized_pnl,
+                   CASE WHEN exit_price IS NOT NULL AND fill_price IS NOT NULL
+                        THEN (exit_price - fill_price) * direction * size
+                        ELSE realized_pnl END AS pnl_fill
             FROM spot_trades
             WHERE accepted = 1 AND paper_mode = 0 AND platform = 'capital_com'
               AND exit_time >= %s AND realized_pnl IS NOT NULL
               AND size > 0
-              AND ABS(COALESCE(fill_price, entry_price) - stop_loss) > 0
+              AND COALESCE(outcome, '') <> 'abandoned'
             """,
             (now.strftime("%Y-%m-%d 00:00:00"),),
         )
     except Exception as exc:
         return DailyLoss(0.0, limit, True, 0, str(exc))
-    total = 0.0
+    # Measured in units of the *budgeted* risk, not the risk each trade
+    # happened to take. Dividing by the taken risk makes an oversized
+    # position report -1R however much it actually cost: a trade risking
+    # 39 USD against the 3 USD budget consumed thirteen units but read as
+    # one. Booking against the fill matters for the same reason as
+    # everywhere else — realized_pnl hides entry slippage, and understated
+    # the day's loss by 36 % across the journal.
+    total_pnl = 0.0
     count = 0
     for row in rows or []:
-        risk = abs(float(row["px"]) - float(row["stop_loss"])) * float(row["size"])
-        if risk > 0:
-            total += float(row["realized_pnl"]) / risk
-            count += 1
+        pnl = row.get("pnl_fill")
+        if pnl is None:
+            pnl = row.get("realized_pnl")
+        if pnl is None:
+            continue
+        total_pnl += float(pnl)
+        count += 1
+    budget = _target_risk()
+    total = total_pnl / budget if budget > 0 else 0.0
     return DailyLoss(total, limit, total <= -limit, count)
