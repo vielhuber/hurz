@@ -72,6 +72,11 @@ class TradeIntent:
     strategy: str
     confidence: float
     bar_time: datetime
+    # ADX the regime gate saw when it let this signal through. Journalled
+    # so the gate's thresholds can be evaluated against realized results
+    # later — without it there is no way to tell a filter that separates
+    # winners from one that only reduces the trade count.
+    entry_adx: Optional[float] = None
 
 
 # ---------------- bar resolution mapping ----------------
@@ -297,7 +302,7 @@ async def evaluate_pair(
         pair=pair, direction=sig.direction,
         entry_price=entry_price, stop_loss=sl, take_profit=tp,
         strategy=strategy_name, confidence=sig.confidence,
-        bar_time=last_row["timestamp"],
+        bar_time=last_row["timestamp"], entry_adx=decision.adx,
     )
 
 

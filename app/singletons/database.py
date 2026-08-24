@@ -188,6 +188,8 @@ class Database:
                         sizing_reference_price DECIMAL(18, 8) NULL,
                         planned_risk_usd DECIMAL(18, 8) NULL,
                         fill_risk_usd DECIMAL(18, 8) NULL,
+                        entry_adx DECIMAL(10, 4) NULL,
+                        signal_confidence DECIMAL(10, 4) NULL,
                         INDEX idx_spot_trades_pair_bar (pair, bar_time),
                         INDEX idx_spot_trades_platform_strategy (platform, strategy)
                     )
@@ -271,6 +273,22 @@ class Database:
                     "fill_risk_usd",
                     "ALTER TABLE spot_trades ADD COLUMN fill_risk_usd "
                     "DECIMAL(18,8) NULL",
+                ),
+                # Regime state at entry. The gate blocks signals by ADX,
+                # but without recording what it saw there is no way to
+                # tell whether its thresholds separate winners or merely
+                # cut the trade count.
+                (
+                    "spot_trades",
+                    "entry_adx",
+                    "ALTER TABLE spot_trades ADD COLUMN entry_adx "
+                    "DECIMAL(10,4) NULL",
+                ),
+                (
+                    "spot_trades",
+                    "signal_confidence",
+                    "ALTER TABLE spot_trades ADD COLUMN signal_confidence "
+                    "DECIMAL(10,4) NULL",
                 ),
             ]
             for table_name, column_name, alter_sql in migrations:
