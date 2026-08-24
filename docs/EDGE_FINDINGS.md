@@ -194,3 +194,48 @@ Time/session/weekday variants were intentionally not opened: their arbitrary
 boundaries add an especially overfit-prone search after both the 154,560-rule
 indicator search and this structural test failed. No new live strategy is
 justified, and `donchian_breakout_v3` remains disabled.
+
+## 7. The account is the binding constraint
+
+Measured 24 Aug 2026: the Capital.com demo account holds **474.43 EUR**
+(~555 USD) of available funds.
+
+Section 6 puts the requirement for 50 EUR/day at roughly 4,325 USD of
+risk capital and 3,514 USD of notional per position — at seven
+concurrent positions, about 28,000 USD gross notional. The account
+covers **under an eighth** of the risk capital alone.
+
+What this balance actually supports, at an aggressive 1 % risk per
+trade (4.74 EUR ≈ 5.5 USD) and the observed 6.76 trades per day:
+
+| expectancy | per day |
+|---:|---:|
+| 0.05 R | 1.86 USD / 1.59 EUR |
+| 0.10 R | 3.72 USD / 3.18 EUR |
+| 0.20 R | 7.44 USD / 6.36 EUR |
+| 0.30 R | 11.15 USD / 9.53 EUR |
+
+So even with an exceptional edge and 1 % risk per trade — which on this
+balance means a 195 USD drawdown wipes out a third of the account — the
+ceiling is under 10 EUR/day. The 50 EUR target needs a proven edge
+**and** roughly eight times this capital. Neither is a software
+question.
+
+## 8. A trap for anyone running the analysis scripts
+
+`scripts/spot_backtest.py` and any ad-hoc analysis fail with
+`401 error.invalid.details` when the environment is loaded from the
+shell (`set -a; . ./.env`). The cause is not a session limit or bad
+credentials: bash expands `$` and other metacharacters inside the
+quoted secret, so a password containing them arrives corrupted.
+
+Load the environment the way the bot does instead:
+
+```python
+from app.utils.singletons import settings
+settings.load_env()
+```
+
+This cost one aborted backtest run and one misdiagnosis — the failure
+was first attributed to the running bot holding the only allowed broker
+session, which was wrong.
