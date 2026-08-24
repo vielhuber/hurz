@@ -86,9 +86,6 @@ class WalkForwardSizingTest(unittest.TestCase):
         self.assertIn("total_pnl_usd", result.as_dict())
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class WalkForwardCostTest(unittest.TestCase):
     """Cost must be able to flip a nominally winning segment negative —
@@ -170,3 +167,7 @@ class BacktestWiringTest(unittest.TestCase):
             self.assertEqual(
                 0.0, spot_backtest._venue_min_fraction("capital_com", "X"),
             )
+
+
+if __name__ == "__main__":
+    unittest.main()
