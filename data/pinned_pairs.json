@@ -1,5 +1,5 @@
 {
-  "note": "Operator-pinned combos: always appended to the active list, bypassing every selection filter. Live results showed these winning while backtest stats (tiny n) kept excluding them. Added 2026-07-06. Pruned 2026-08-24: combos on instruments whose spread cannot clear the cost ceiling were removed \u2014 the entry path skips them anyway, so they only occupied slots.",
+  "note": "Universe of trend-following combos on instruments whose broker spread clears the cost ceiling. Chosen on a STRUCTURAL criterion \u2014 cost per unit of risk \u2014 not on past winners: selecting pins by realized profit is what previously filled this list with losers (live results at 3-20 trades per combo are noise). Backtest stats are not predictive either; bollinger_rev shows the best backtest expectancy and the worst live result. So the list explores broadly where costs allow, and the live-expectancy veto in pair_selector retires whatever proves negative over >=8 trades. Expanded 2026-08-24: trend-following on cheap instruments returned +0.016R over 190 live trades (+117.56 USD) versus -0.296R on expensive ones; BTCUSD alone +0.209R over 52.",
   "combos": [
     {
       "platform": "capital_com",
@@ -112,6 +112,258 @@
       "resolution": "1h",
       "pair": "EURUSD",
       "exclusive": true
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "AU200"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "AU200"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "AUDJPY"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "AUDJPY"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "AUDUSD"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "CHFJPY"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "CHFJPY"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "COPPER"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "COPPER"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "CORN"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "CORN"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "DE40"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "DE40"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "ETHUSD"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "ETHUSD"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "EURUSD"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "EURUSD"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "FR40"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "FR40"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "GBPCAD"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "GBPCAD"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "GBPUSD"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "GBPUSD"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "HK50"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "HK50"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "J225"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "J225"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "NZDUSD"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "NZDUSD"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "OIL_BRENT"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "SILVER"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "SILVER"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "UK100"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "UK100"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "US100"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "US100"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "US30"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "US30"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "US500"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "US500"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "donchian_breakout",
+      "resolution": "1h",
+      "pair": "USDCHF"
+    },
+    {
+      "platform": "capital_com",
+      "strategy": "turtle_breakout",
+      "resolution": "1h",
+      "pair": "USDCHF"
     }
   ]
 }
