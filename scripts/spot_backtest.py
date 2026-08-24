@@ -93,7 +93,9 @@ _DEFAULT_CAPITAL_PAIRS = [
 _DEFAULT_RESOLUTION = "1h"
 _DEFAULT_DAYS = 30
 _DEFAULT_STOP_ATR = 1.0
-_DEFAULT_MAX_HOLD_BARS = 24
+from app.spot_trading.holding_period import (
+    _DEFAULT_MAX_HOLD_BARS, max_hold_bars_for,
+)
 _INTER_CALL_SLEEP_SEC = 0.6
 _RESULTS_PATH = "data/spot_backtest_results.json"
 
@@ -669,8 +671,9 @@ def _parse_args() -> argparse.Namespace:
                    help="default R:R for strategies without a canonical override")
     p.add_argument("--stop-atr", dest="stop_atr", type=float,
                    default=_DEFAULT_STOP_ATR)
-    p.add_argument("--max-hold", dest="max_hold", type=int,
-                   default=_DEFAULT_MAX_HOLD_BARS)
+    p.add_argument("--max-hold", dest="max_hold", type=int, default=None,
+                   help="holding leash in bars; defaults to the live value "
+                        "for the strategy")
     p.add_argument("--fee-rate", dest="fee_rate", type=float, default=None,
                    help="per-side fee (e.g. 0.0026 for Kraken Maker). "
                         "Default: per-platform sensible value.")
@@ -696,6 +699,19 @@ def _parse_args() -> argparse.Namespace:
     # actually vary it. But the results file feeds the pair selector, so a
     # run at an RR the live loop will never trade must not be written into
     # it — that would rank pairs on an exit target nothing uses.
+    # Same parity concern as --rr: donchian_trail holds 240 bars live
+    # against the 24-bar default, so a backtest ignoring the table measured
+    # a strategy that is not the one being traded.
+    live_hold = max_hold_bars_for(args.strategy, _DEFAULT_MAX_HOLD_BARS)
+    if args.max_hold is None:
+        args.max_hold = live_hold
+    elif args.max_hold != live_hold and args.persist:
+        raise SystemExit(
+            f"--max-hold {args.max_hold} differs from the live value "
+            f"{live_hold} for {args.strategy}; rerun with --no-persist to "
+            f"sweep, or drop --max-hold to measure what is actually traded."
+        )
+
     live_rr = risk_reward_for(args.strategy, DEFAULT_RISK_REWARD)
     if args.rr is None:
         args.rr = live_rr

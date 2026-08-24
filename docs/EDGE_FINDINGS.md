@@ -517,3 +517,34 @@ combination against a `min_trades` floor of 30, and the live basket runs
 off pins rather than the ranking. It matters the moment those filters are
 loosened, which is precisely when a three-month-old block priced on the
 wrong fees would otherwise come back to the top.
+
+## 17. The backtest measured a different holding leash than the one traded
+
+`donchian_trail` runs a **240-bar** leash live — a deliberate multi-day
+allowance so the ATR trail can develop. The backtest carried its own
+copy of the 24-bar default and never consulted the strategy table, so
+every result for that strategy described a leash ten times shorter than
+the one actually being traded. Two of the eight open positions
+(EURUSD, US500) run this strategy, so it is not a dormant path.
+
+This is the same class of defect as the `--rr` override in section 15
+and the fee tables in section 9: live and backtest silently disagreeing,
+with the backtest reading the friendlier of the two.
+
+Measured at both leashes (capital_com, 1h, 30 days, five instruments):
+
+| leash | n | win% | E[R] | SE | t | p |
+|---|---:|---:|---:|---:|---:|---:|
+| 24 bars (what was measured) | 36 | 16.7 | +0.227 | 0.376 | 0.60 | 0.273 |
+| **240 bars (what is traded)** | 31 | 19.4 | **+0.175** | 0.431 | 0.41 | 0.342 |
+
+The traded configuration is the **weaker** of the two, so the persisted
+number for this strategy was optimistic — the direction this project
+keeps finding. Both are far below significance (t of 0.41 against the
+2.0 a single test would need), so nothing here is an edge either way.
+
+The backtest now imports `_DEFAULT_MAX_HOLD_BARS` from the shared module
+instead of redeclaring it, reads `max_hold_bars_for()` for the live
+value, and refuses to persist a run at an off-live leash. A test asserts
+that `max_hold_bars_for()` and `stale_exit_after_seconds()` agree, so the
+two paths cannot drift apart again.
