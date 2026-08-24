@@ -47,3 +47,33 @@ class CostBlockedPairsTest(IsolatedAsyncioTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SelectorHonoursBlocklistTest(unittest.TestCase):
+    """A pin bypasses the ranking's cost filter, so blocked instruments
+    kept reappearing in the active file — CORN returned under two
+    strategies on the first refresh after it was blocked."""
+
+    def test_a_blocked_pair_is_dropped_even_when_pinned(self):
+        from unittest.mock import patch
+        from app.spot_trading import pair_selector
+
+        pinned = [pair_selector.PairScore(
+            platform="capital_com", strategy="donchian_breakout",
+            resolution="1h", pair="CORN", n=50, win_rate=0.5,
+            profit_factor=1.2, expectancy_R=0.1, sharpe=0.5, score=1.0,
+            pinned=True,
+        )]
+        with patch.object(pair_selector, "_pinned_scores", return_value=pinned), \
+                patch.object(pair_selector, "live_expectancy_veto", return_value={}), \
+                patch.object(pair_selector, "strategy_expectancy_veto", return_value={}):
+            import tempfile, os
+            fd, path = tempfile.mkstemp(suffix=".json")
+            os.close(fd)
+            try:
+                payload = pair_selector.persist_active_pairs(
+                    [], top_n=5, out_path=path, platform="capital_com",
+                )
+            finally:
+                os.unlink(path)
+        self.assertEqual([], [p for p in payload["pairs"] if p["pair"] == "CORN"])
