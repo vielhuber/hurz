@@ -32,6 +32,12 @@ DEFAULT_EDGE_CUTOFF = "2026-08-24"
 MIN_SAMPLE = 40
 # How far the budget may run ahead of the base risk.
 MAX_RISK_MULTIPLE = 10.0
+# Hard ceiling as a share of account equity, applied on top of the
+# multiple. Without it the 10x cap is meaningless on a small account:
+# 30 USD per trade against the 474 EUR balance measured on 2026-08-24
+# would put roughly 43% of the account at risk across eight concurrent
+# positions. Scaling has to answer to the balance, not just to the edge.
+MAX_RISK_ACCOUNT_FRACTION = 0.01
 # Confidence for the lower bound on expectancy, in standard errors.
 CONFIDENCE_SIGMAS = 2.0
 
@@ -49,12 +55,20 @@ def _cutoff() -> str:
     return os.environ.get("HURZ_EDGE_CUTOFF") or DEFAULT_EDGE_CUTOFF
 
 
-def assess_edge(base_risk: float = DEFAULT_TARGET_RISK_USD) -> EdgeAssessment:
+def assess_edge(
+    base_risk: float = DEFAULT_TARGET_RISK_USD,
+    account_equity: Optional[float] = None,
+) -> EdgeAssessment:
     """Risk budget justified by out-of-sample results so far.
 
     Returns `base_risk` unchanged whenever the evidence does not carry a
     larger size — too few trades, an unreadable journal, or a lower
-    confidence bound at or below zero."""
+    confidence bound at or below zero.
+
+    `account_equity`, when known, caps the result at
+    `MAX_RISK_ACCOUNT_FRACTION` of the balance. A proven edge justifies a
+    bigger bet only up to what the account can absorb; it never justifies
+    betting the account."""
     try:
         from app.utils.singletons import database
         rows = database.select(
@@ -91,5 +105,15 @@ def assess_edge(base_risk: float = DEFAULT_TARGET_RISK_USD) -> EdgeAssessment:
     # Scale with the proven lower bound, not the point estimate: the
     # size is only as trustworthy as the weakest defensible edge.
     multiple = min(1.0 + lower / 0.10, MAX_RISK_MULTIPLE)
-    return EdgeAssessment(len(values), mean_r, lower, base_risk * multiple,
-                          f"edge proven, scaling {multiple:.2f}x")
+    risk = base_risk * multiple
+    reason = f"edge proven, scaling {multiple:.2f}x"
+    if account_equity and account_equity > 0:
+        ceiling = account_equity * MAX_RISK_ACCOUNT_FRACTION
+        if ceiling < risk:
+            # Never scale below the base risk on account grounds alone —
+            # that is a separate decision from "is there an edge".
+            risk = max(base_risk, ceiling)
+            reason = (f"edge proven, capped at "
+                      f"{MAX_RISK_ACCOUNT_FRACTION:.0%} of "
+                      f"{account_equity:.2f} equity")
+    return EdgeAssessment(len(values), mean_r, lower, risk, reason)
