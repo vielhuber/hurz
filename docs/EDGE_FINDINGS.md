@@ -300,3 +300,38 @@ govern from here.
 Earlier revisions of this document, and several progress reports, cited
 **+0.0134 R** for the filtered configuration. That number came from
 signal-priced rows and was too optimistic by roughly 0.05 R.
+
+## 11. The cost-threshold monotonicity was an artefact
+
+Section 3 justified the 10 % cost ceiling with a strictly monotonic
+relationship between cost share and expectancy across nine thresholds —
+"a mechanism, not a fitted cut". Recomputed against actual fills, that
+monotonicity disappears.
+
+Trend-following trades with audited spreads, retired strategies already
+excluded, PnL booked against the fill:
+
+| cost ceiling | trades | share | mean R | PnL |
+|---|---:|---:|---:|---:|
+| <= 2 % | 51 | 23.3 % | -0.0558 | +1.81 |
+| <= 3 % | 70 | 32.0 % | **-0.1744** | -53.83 |
+| <= 5 % | 126 | 57.5 % | -0.0530 | +5.31 |
+| <= 8 % | 175 | 79.9 % | -0.0502 | +45.80 |
+| <= 10 % | 187 | 85.4 % | -0.0375 | +45.39 |
+| <= 15 % | 190 | 86.8 % | **-0.0328** | +47.39 |
+| unfiltered | 219 | 100 % | -0.0995 | -7.24 |
+
+The <=3 % band sitting well below both its neighbours is the tell: a
+real cost mechanism cannot make a trade worse by being cheaper. That
+band is noise, and so was the clean ordering it used to sit in.
+
+What survives is the coarse effect, and it is substantial: filtering at
+all lifts expectancy from **-0.0995 R to about -0.033 R**, worth roughly
+0.067 R per trade. What does not survive is the precision — anywhere
+between 8 % and 15 % performs within 0.02 R, which is inside the noise
+of a 190-trade sample.
+
+The ceiling stays at 10 %. It sits near the flat optimum, it is the more
+conservative end of the plateau, and moving it to 15 % to capture three
+more trades and 0.005 R would be exactly the kind of fitting this
+document keeps warning about.
