@@ -43,6 +43,15 @@ _DEFAULT_PAIRS = [
 ]
 
 
+def _existing_pairs() -> dict:
+    """Spreads already on file, so a partial run does not lose them."""
+    try:
+        with open(_OUTPUT_PATH, "r", encoding="utf-8") as handle:
+            return (json.load(handle) or {}).get("pairs") or {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
 async def audit(pairs: List[str]) -> dict:
     clear_cache()
     p = get_platform("capital_com")
@@ -51,7 +60,12 @@ async def audit(pairs: List[str]) -> dict:
     out: dict = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "source": "GET /api/v1/markets/{epic} bid+offer",
-        "pairs": {},
+        # Seeded from the existing file so a run with --pairs extends
+        # the audit instead of replacing it. Auditing ten instruments
+        # used to silently drop every other pair's spread, and the only
+        # symptom was the backtest quietly falling back to its flat
+        # default for them.
+        "pairs": _existing_pairs(),
     }
 
     print(f"{'pair':<10} {'bid':>14} {'offer':>14} {'spread':>10} {'%/side':>10}")
