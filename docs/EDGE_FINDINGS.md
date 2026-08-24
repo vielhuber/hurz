@@ -1381,3 +1381,47 @@ What did improve is the basis for future decisions. `min_trades = 10`
 now selects on genuine samples rather than on tens of trades, and the
 stability gate has enough history to mean something. Neither creates an
 edge; both make the absence of one harder to mistake for a finding.
+
+## 36. The one candidate above threshold — and why it changes nothing
+
+Section 35 flagged GOLD surviving under two strategies and dismissed it
+as instrument economics without testing it. Tested directly against a
+random control on GOLD alone, 365 days:
+
+| strategy | signal n | signal E[R] | random E[R] | difference | t |
+|---|---:|---:|---:|---:|---:|
+| **turtle_breakout** | 68 | +0.266 | -0.032 | **+0.298** | **+2.16** |
+| donchian_breakout | 80 | +0.135 | -0.005 | +0.141 | +1.09 |
+
+**t = 2.16 is the first value this project has produced above the
+single-test threshold.** It deserves a careful reading, not a
+celebration.
+
+Split in half by time, each against its own random control:
+
+| half | n | difference | t |
+|---|---:|---:|---:|
+| first | 36 | +0.199 | +1.11 |
+| second | 32 | +0.287 | +1.39 |
+
+Both halves are positive and of similar size, so it is not one regime
+carrying the whole. But neither half is significant on its own, and
+three problems remain:
+
+1. **It was selected post hoc.** GOLD was tested *because* it stood out
+   in the ranking of ~50 combinations. Corrected for that search,
+   t = 2.16 falls well short of the ~3 required.
+2. **Live disagrees.** `turtle_breakout/GOLD` sits on the retirement
+   veto: 13 closed trades at **-0.129 R**. That sample is far too small
+   to refute the backtest, but it is not support either.
+3. **The size is irrelevant to the goal.** 68 trades in 365 days is
+   0.19 per day. At +0.266 R and 3 USD risk that is **0.15 USD/day** —
+   the target is 393 times larger. Reaching 50 EUR/day from this
+   combination alone would need **1,180 USD of risk per trade** on a
+   559 EUR account.
+
+**The veto stays in place and the active list is unchanged.** Point 3 is
+why this is not a close call: even granting the finding entirely, at
+face value, with no correction for selection, it moves the daily result
+from roughly zero to roughly zero. It is recorded as a preregistered
+forward-test candidate, nothing more.
