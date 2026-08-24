@@ -63,8 +63,14 @@ def main() -> None:
         allowed_strategies=allowed,
     )
     if not scores:
-        print("No backtest results matching the filters. "
-              "Run scripts/spot_backtest.py first.")
+        # An empty ranking is not an empty active list: pinned combos
+        # bypass ranking by design, and the cost pre-filter can legitimately
+        # clear the whole ranking while leaving pins that are perfectly
+        # tradeable. Returning here would freeze the previous list forever.
+        print("No backtest results matching the filters — "
+              "persisting pinned combos only.")
+        if args.persist:
+            _persist(args, scores)
         return
     print(f"{'rank':<5} {'platform':<11} {'strategy':<16} {'res':<5} "
           f"{'pair':<14} {'n':>4} {'win%':>6} {'PF':>6} "
@@ -77,21 +83,27 @@ def main() -> None:
               f"{s.expectancy_R:>+7.3f} {s.score:>+7.3f}")
 
     if args.persist:
-        # Per-platform file when --platform is set, so concurrent bots
-        # don't overwrite each other. Single-platform setups (no filter)
-        # keep writing the legacy default path.
-        out_path = (
-            f"data/active_pairs.{args.platform}.json"
-            if args.platform
-            else "data/active_pairs.json"
-        )
-        payload = persist_active_pairs(scores, top_n=args.top,
-                                       out_path=out_path,
-                                       platform=args.platform)
-        pinned_n = sum(1 for p in payload["pairs"] if p.get("pinned"))
-        print()
-        print(f"✓ persisted top-{args.top} to {out_path} "
-              f"({len(payload['pairs'])} pairs, {pinned_n} pinned)")
+        _persist(args, scores)
+
+
+def _persist(args, scores) -> None:
+    """Write the active-pairs file for this run.
+
+    Per-platform file when --platform is set, so concurrent bots don't
+    overwrite each other. Single-platform setups (no filter) keep writing
+    the legacy default path."""
+    out_path = (
+        f"data/active_pairs.{args.platform}.json"
+        if args.platform
+        else "data/active_pairs.json"
+    )
+    payload = persist_active_pairs(scores, top_n=args.top,
+                                   out_path=out_path,
+                                   platform=args.platform)
+    pinned_n = sum(1 for p in payload["pairs"] if p.get("pinned"))
+    print()
+    print(f"✓ persisted top-{args.top} to {out_path} "
+          f"({len(payload['pairs'])} pairs, {pinned_n} pinned)")
 
 
 if __name__ == "__main__":
