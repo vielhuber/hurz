@@ -938,3 +938,54 @@ filters (22), ATR multiple (25).
 
 What is missing is predictive value in the signals. No configuration
 change can supply it.
+
+## 27. The backtest never modelled the trailing exit — and the strategy is a loser
+
+`donchian_trail` carries a fixed RR of 5.0 as a "far backstop", because
+live it exits on a trailing stop. The backtest had **no trailing logic at
+all**: it walked bars checking SL and TP only. So every result for this
+strategy described something that targets +5R and stops at -1R, which is
+not the exit it runs. This is the third live/backtest divergence found
+after `--rr` (15) and the holding leash (17), and the largest.
+
+The trail is now modelled in `_simulate_trades`, reading the same
+`trail_config_for()` the live parameters come from, including the
+never-give-back-below-break-even rule.
+
+Measured with its real parameters (arm at 1.0R, ride 2.0xATR), 4h,
+150 days, 14 tradeable instruments:
+
+| activation | ATR multiple | n | E[R] | capital-weighted | best trade |
+|---:|---:|---:|---:|---:|---:|
+| **1.0 R** | **2.0 (live)** | 62 | **-0.648** | -0.862 | +1.64 |
+| 2.0 R | 3.0 | 59 | -0.591 | -0.482 | +4.97 |
+| 2.0 R | 4.0 | 57 | -0.453 | -0.266 | +4.97 |
+| 2.0 R | 6.0 | 57 | -0.828 | -0.751 | +4.96 |
+
+The live configuration returns **-0.648R at a profit factor of 0.19**,
+t ~ -5.7. The live journal agrees in sign: -0.136R capital-weighted over
+10 closed trades.
+
+The mechanism is visible in the "best trade" column. At 2xATR the trail
+arms at +1R and sits two ATR back, so on a 1xATR stop it closes at
+roughly break-even on any ordinary pullback — it **caps winners**, the
+one thing a trend follower must not do. The best trade it ever produced
+is +1.64R, below what the fixed-target strategies reach (+2.06R).
+
+Widening to 4xATR does what theory says: winners of **+4.97R** appear,
+the first genuine right tail in this project. It still loses, because
+the hit rate needed at that payoff is 18 % against the 8.8 % achieved:
+
+| winner size | break-even hit rate |
+|---:|---:|
+| +1.64 R | 39.9 % |
+| +4.97 R | 18.0 % |
+| +10.00 R | 9.8 % |
+
+**`donchian_trail` is now blocked for entries**, alongside v3. Open
+positions keep their exit path, trail included — the block applies at
+`evaluate_pair` and `execute_intent` only. Two positions (US500, EURUSD)
+were open at the time and will close on their own logic.
+
+This is a real reduction in expected loss, not an edge. It removes a
+strategy that measurably loses; it does not make the remainder win.
