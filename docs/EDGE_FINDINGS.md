@@ -1693,3 +1693,32 @@ The fix outlasts the hypothesis: volume is now available to any future
 strategy, and the contract in `base.py` is no longer a false promise. The
 particular rule tested is dead, which is what a preregistered test is
 for.
+
+### 41b. Volume as a signal, not as a filter
+
+Section 41 tested volume as a *filter* on price breakouts. That test was
+weaker than it looked: sections 30 and 32 show the underlying signal
+carries no information, and no subset of a zero-information signal can
+carry any either. A filter can only concentrate an edge that exists.
+
+Volume as the **primary trigger** is a different hypothesis, and it only
+became testable once the frame carried the column. Preregistered, single
+specification: a bar whose volume exceeds **3x** the median of the
+preceding 100 bars, direction taken from that bar's own close-minus-open,
+regime filter off. No variants — 3x fails means the hypothesis fails,
+not that 2x gets tried next.
+
+| | n | E[R] |
+|---|---:|---:|
+| volume climax | 1,058 | +0.0011 |
+| random control | 14,038 | -0.0058 |
+| difference | | +0.0069 R, t = +0.32 |
+
+**Not accepted**, on a sample large enough to matter: with SE 0.0216 the
+test resolves differences from about 0.043 R, and the climax entry
+returns **+0.0011 R** — zero to three decimal places.
+
+Volume is now available for future work and two of its standard uses are
+recorded as measured and dead. That is the useful state: the column
+exists, the obvious hypotheses are closed, and nobody has to re-derive
+them.
