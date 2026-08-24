@@ -52,6 +52,24 @@ def _rows(cutoff: str) -> list:
     )
 
 
+def _retired_combos() -> set:
+    """Combos the live veto has retired, as `(strategy, pair)` pairs."""
+    try:
+        from app.spot_trading.pair_selector import (
+            live_expectancy_veto, strategy_expectancy_veto,
+        )
+        combos = set(live_expectancy_veto("capital_com"))
+        for strategy in strategy_expectancy_veto("capital_com"):
+            combos.add(strategy)
+        return combos
+    except Exception:
+        return set()
+
+
+def _is_retired(strategy: str, pair: str, retired: set) -> bool:
+    return (strategy, pair) in retired or strategy in retired
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawTextHelpFormatter)
@@ -62,6 +80,13 @@ def main() -> None:
     args = p.parse_args()
 
     rows = _rows(args.since)
+    # Trades from combos that have since been retired measure something
+    # the bot no longer does. The first forward trade was exactly that:
+    # a turtle_breakout/GOLD loss from a combo the veto retired hours
+    # later. Both figures are reported so neither reading is hidden.
+    retired = _retired_combos()
+    live_rows = [r for r in rows
+                 if not _is_retired(r["strategy"], r["pair"], retired)]
     target_usd = args.target_eur * EUR_USD
     print(f"Forward window: trades opened on/after {args.since}")
     print(f"Target: {args.target_eur:.2f} EUR/day = {target_usd:.2f} USD/day\n")
@@ -87,6 +112,21 @@ def main() -> None:
     print(f"{'expectancy':<24}{mean_r:+.4f} R")
     print(f"{'realised':<24}{pnl:+.2f} USD "
           f"({pnl / EUR_USD:+.2f} EUR)")
+    if len(live_rows) != len(rows):
+        dropped = len(rows) - len(live_rows)
+        print(f"\n{'of which retired':<24}{dropped} "
+              f"(combo since retired by the live veto)")
+        if live_rows:
+            live_r = [
+                float(r["realized_pnl"])
+                / (abs(float(r["px"]) - float(r["stop_loss"])) * float(r["size"]))
+                for r in live_rows
+            ]
+            print(f"{'still-live expectancy':<24}"
+                  f"{sum(live_r) / len(live_r):+.4f} R over {len(live_r)}")
+        else:
+            print(f"{'still-live expectancy':<24}no trades from live combos yet")
+
     if days:
         per_day = pnl / days
         print(f"{'per day':<24}{per_day:+.2f} USD "
