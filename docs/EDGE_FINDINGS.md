@@ -120,3 +120,77 @@ position and >= 4,325 USD of risk capital at 1 % per trade.
 only once >= 40 out-of-sample trades show a lower confidence bound above
 zero. `app/spot_trading/risk_guard.py` stops new entries after 6 R of
 daily loss, which matters most precisely when that scaling has kicked in.
+
+## 7. Structurally different signal sources also failed
+
+A preregistered experiment then tested signal structure rather than tuning
+the existing indicators again. Capital.com one-hour mid-price history from
+30 Nov 2023 through 23 Aug 2026 was split before evaluation:
+
+- development: 30 Nov 2023 – 31 Jan 2026
+- untouched holdout: 1 Feb – 23 Aug 2026
+- 14 audited instruments (six FX majors and eight crypto instruments)
+- one fixed execution profile: 1 ATR stop widened to the venue's buffered
+  1.05% minimum, 1.5 R target, 24 bars maximum hold, shared 3 USD / 250 USD
+  sizing and actual broker quantity constraints
+- full audited spread charged; signals above the live 10% cost/risk ceiling
+  counted as cost-skipped rather than trades
+
+There were **18 distinct rule variants** and **22 phase evaluations**: all 18
+on development, followed by exactly one frozen champion from each of four
+families on the holdout. Development confidence bounds divide the one-sided
+5% alpha by 18; holdout bounds divide it by four. Bonferroni was chosen over
+Benjamini-Hochberg because selecting any apparent winner can allocate
+capital, so family-wise error is the relevant risk. Standard errors are
+clustered by ISO week to avoid treating simultaneous instruments as
+independent observations.
+
+Development results (LCB is the Bonferroni-corrected one-sided lower
+confidence bound):
+
+| variant | trades | E[R] | PnL USD | positive segments | LCB | cost-skipped |
+|---|---:|---:|---:|---:|---:|---:|
+| mtf_break20_4h_ema20 | 2,968 | -0.019 | -140.34 | 1/5 | -0.070 | 8,354 |
+| mtf_break55_4h_ema20 | 2,245 | -0.016 | -87.10 | 0/5 | -0.075 | 5,796 |
+| mtf_break20_1d_ema20 | 2,220 | -0.012 | -60.86 | 3/5 | -0.070 | 5,808 |
+| mtf_break55_1d_ema20 | 1,545 | -0.003 | -12.33 | 2/5 | -0.072 | 3,713 |
+| vol_atr_q25_break20 | 1,119 | -0.023 | -69.75 | 1/5 | -0.095 | 3,180 |
+| vol_atr_q25_break55 | 559 | -0.056 | -87.51 | 1/5 | -0.159 | 1,278 |
+| vol_atr_q75_break20 | 1,613 | -0.022 | -88.70 | 2/5 | -0.103 | 3,412 |
+| vol_atr_q75_break55 | 1,118 | +0.001 | +7.19 | 3/5 | -0.090 | 2,332 |
+| vol_squeeze_q10_break20 | 1,433 | -0.002 | -2.68 | 2/5 | -0.067 | 3,851 |
+| vol_squeeze_q20_break20 | 2,130 | -0.008 | -40.50 | 1/5 | -0.065 | 5,627 |
+| lead_btc_1h_z075 | 898 | -0.024 | -68.67 | 3/5 | -0.143 | 10,484 |
+| lead_btc_1h_z125 | 478 | +0.044 | +50.40 | 5/5 | -0.110 | 4,986 |
+| lead_btc_4h_z075 | 756 | +0.009 | +17.78 | 3/5 | -0.108 | 11,830 |
+| lead_btc_4h_z125 | 376 | +0.088 | +90.32 | 3/5 | -0.084 | 5,800 |
+| relative_24h_rebalance12h | 1,558 | -0.034 | -122.04 | 1/5 | -0.087 | 2,525 |
+| relative_24h_rebalance24h | 957 | -0.067 | -144.94 | 1/5 | -0.132 | 1,270 |
+| relative_72h_rebalance12h | 1,376 | -0.042 | -135.03 | 1/5 | -0.100 | 2,487 |
+| relative_72h_rebalance24h | 903 | -0.050 | -97.36 | 2/5 | -0.113 | 1,245 |
+
+No development rule had a corrected lower bound above zero. The positive
+BTC-lead rows were the only plausible lead, but even `lead_btc_1h_z125`,
+which was positive in all five development segments, still had a corrected
+LCB of -0.110. Per the preregistration, family champions were selected by
+the greatest corrected LCB rather than by the most attractive point estimate.
+
+The one-time holdout results were:
+
+| frozen family champion | trades | E[R] | PnL USD | positive segments | LCB | cost-skipped |
+|---|---:|---:|---:|---:|---:|---:|
+| mtf_break20_4h_ema20 | 730 | -0.078 | -133.74 | 0/5 | -0.165 | 2,015 |
+| vol_squeeze_q20_break20 | 544 | -0.025 | -35.18 | 2/5 | -0.110 | 1,319 |
+| lead_btc_4h_z125 | 67 | -0.004 | +0.90 | 3/5 | -0.354 | 1,186 |
+| relative_24h_rebalance12h | 413 | -0.024 | -28.30 | 2/5 | -0.113 | 652 |
+
+All four holdout samples exceeded the 50-trade floor, and **none passed**.
+Multi-timeframe confirmation failed most clearly. Volatility filtering and
+relative strength stayed mildly negative. BTC leadership's small positive
+dollar result came with negative per-trade expectancy, only 3/5 positive
+segments and a very wide negative corrected bound; it is not an edge.
+
+Time/session/weekday variants were intentionally not opened: their arbitrary
+boundaries add an especially overfit-prone search after both the 154,560-rule
+indicator search and this structural test failed. No new live strategy is
+justified, and `donchian_breakout_v3` remains disabled.
