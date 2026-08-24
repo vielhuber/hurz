@@ -35,6 +35,10 @@ def _rows(cutoff: str) -> list:
           AND exit_time IS NOT NULL AND realized_pnl IS NOT NULL
           AND size > 0 AND created_at >= %s
           AND ABS(COALESCE(fill_price, entry_price) - stop_loss) > 0
+          -- Abandoned rows carry a zero PnL because the position was
+          -- written off, not closed. Counted as R=0 they drag any small
+          -- sample toward the middle and read as neutral trades.
+          AND COALESCE(outcome, '') <> 'abandoned'
         ORDER BY exit_time
         """,
         (cutoff,),

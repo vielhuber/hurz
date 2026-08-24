@@ -417,6 +417,10 @@ def _realized_expectancy(
         WHERE accepted = 1 AND paper_mode = 0 AND exit_time IS NOT NULL
           AND realized_pnl IS NOT NULL AND size > 0
           AND ABS(COALESCE(fill_price, entry_price) - stop_loss) > 0
+          -- Abandoned rows carry a zero PnL because the position was
+          -- written off rather than closed; as R=0 they read as neutral
+          -- trades and dilute the veto's evidence.
+          AND COALESCE(outcome, '') <> 'abandoned'
           {{platform_clause}}
         GROUP BY {group_by}
         HAVING COUNT(*) >= %s

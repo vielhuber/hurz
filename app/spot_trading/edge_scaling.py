@@ -80,6 +80,7 @@ def assess_edge(
               AND exit_time IS NOT NULL AND realized_pnl IS NOT NULL
               AND size > 0 AND created_at >= %s
               AND ABS(COALESCE(fill_price, entry_price) - stop_loss) > 0
+              AND COALESCE(outcome, '') <> 'abandoned'
             """,
             (_cutoff(),),
         )
