@@ -1762,3 +1762,34 @@ The dynamic filter should have caught CORN at order time. It did not,
 because widening the stop pulls the share back under the ceiling — the
 widened stop is then no longer the one the strategy asked for. The named
 list does not have that loophole.
+
+## 43. What the forward test costs to run
+
+With expectancy at zero, the running cost *is* the expected loss. After
+the block list removed the expensive instruments (24, 42), the current
+configuration:
+
+| | |
+|---|---:|
+| tradeable combinations | 52 of 55 |
+| cost share per trade | 1.32 % median, 1.94 % mean of risk |
+| in dollars | 0.058 of the 3.00 USD risked |
+| **at 4.17 trades/day** | **0.24 USD/day** |
+| per month | 7.27 USD |
+
+Against a 559 EUR account that is about **1.2 % per year** — a tolerable
+price for keeping a forward test alive, and a different regime from the
+history: the expensive half of the book ran at roughly 0.475 R per trade,
+1.42 USD on the same 3 USD risk, twenty-four times the current figure.
+
+That reframes the state of the system honestly. It does not earn, and no
+measurement in this document suggests it will. But it no longer bleeds
+either: the -0.158 R capital-weighted expectancy of the historical
+record (20) was dominated by instruments that are now blocked by name,
+and what remains carries a drag of under 2 % of risk per trade.
+
+So the operating question is no longer "how much is this losing" but
+"is 0.24 USD/day a fair price for the data". At the current rate the
+forward test reaches a verdict-grade 40 closes in roughly ten days of
+trading, for about 2.40 USD. That is the only remaining open item in
+this investigation, and it costs almost nothing to let it finish.
