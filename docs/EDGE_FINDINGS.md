@@ -1256,3 +1256,40 @@ deserves the same suspicion.
 The benchmark now resolves differences from about **0.06 R** upward,
 against 0.156 R before. The target needs +4.68 R per trade — seventy-eight
 times that threshold.
+
+## 33. Cross-sectional relative strength: now properly powered, and negative
+
+Section 31 left this open rather than refuted, because 15 trades could
+not distinguish anything and the history was thought to be capped. The
+paging fix (32) removed that cap, so the **same preregistered
+specification** was rerun — 252h lookback, 120h rebalance, long top 3 /
+short bottom 3, unchanged execution — on a full year.
+
+| basis | instruments | n | difference vs random | t |
+|---|---:|---:|---:|---:|
+| section 31 | 14 (6 usable) | 15 | +0.0603 | +0.30 |
+| year, partial fetch | 6 | 235 | +0.0406 | +0.91 |
+| **year, full universe** | **14** | **215** | **+0.0191** | **+0.36** |
+
+**Not accepted.** The cross-sectional portfolio itself returns
+**+0.0002 R** — zero to four decimal places — against -0.0189 R for the
+matched random control.
+
+The middle row is worth keeping visible. With only six instruments
+reaching the simulator, "top 3 versus bottom 3" is merely the upper half
+against the lower half, and it measured +0.0406 R at t = 0.91. Restoring
+the full fourteen — a genuine ranking — cuts it to +0.0191 R at t = 0.36.
+The apparent effect shrank as the basis improved, exactly as
+`turtle_breakout` did in section 32 when its sample grew.
+
+Those six instruments were missing for a mundane reason: fetching a year
+for fourteen instruments issues around 126 chunked requests, and several
+died on transient transport errors. The fetch now retries and caches, so
+this is measurement plumbing rather than a finding — but a partial fetch
+that silently proceeds with whatever arrived is how the 6-instrument
+number got produced in the first place.
+
+This closes the last open signal class. Time-series breakouts (30, 32),
+mean reversion (retired by veto), lead-lag (preregistration), and now
+cross-sectional ranking have all been measured against a random control
+on a year of data. None beats it.
