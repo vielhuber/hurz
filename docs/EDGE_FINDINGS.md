@@ -1590,3 +1590,24 @@ Worth recording separately: the account balance is **559.77 EUR against
 realised losses across 495 trades. The demo account has evidently been
 topped up during its history, so its balance is not a running P&L and
 must not be read as one.
+
+## 39. Operational hardening for the longer backtest window
+
+Raising the backtest window to 180 days (34) made the nightly refresh
+about six times slower. Measured: **305 seconds for one strategy over the
+full instrument list**, so roughly fifteen minutes for the three the
+scheduler runs. That is acceptable — the subprocess is awaited
+asynchronously, so trading continues throughout.
+
+The risk it introduced is the unbounded wait. `_run_one_backtest` awaited
+`communicate()` with no timeout, so a hung fetch would stall the nightly
+refresh until the process was restarted, leaving the active list frozen
+with no visible symptom. Longer runs make that more likely, not less.
+
+A 1800-second timeout now bounds it: the subprocess is killed and the
+failure reported through the existing diagnostic path, so the run fails
+loudly and the next night retries.
+
+This changes nothing about profitability. It is here because the window
+change was mine, and an operational regression introduced while chasing
+a measurement improvement is still a regression.
