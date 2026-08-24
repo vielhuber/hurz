@@ -989,3 +989,70 @@ were open at the time and will close on their own logic.
 
 This is a real reduction in expected loss, not an edge. It removes a
 strategy that measurably loses; it does not make the remainder win.
+
+## 28. RETRACTION: sections 18, 23 and 25 rest on a fault I introduced
+
+Section 18 changed the backtest to apply the stop floor **before**
+expanding to the venue minimum, on the reasoning that the live loop
+"drops a signal outright and only widens afterwards". That reading of
+the live code was wrong, and two independent checks contradict it.
+
+**The live order is the reverse.** `evaluate_pair` is called with
+`apply_venue_min=True`; expansion happens at line 382 and the floor is
+applied at line 433. Since the venue minimum (1.05 %) exceeds the floor
+(1 %), a signal that has been expanded always clears it. The floor
+therefore almost never fires live — and the journal proves it: **zero
+entries** carrying "stop distance below" have ever been written.
+
+**A second fault compounded it.** `_venue_min_distance` returns 0 when
+the instrument is absent from `data/capital_min_distances.json`, which
+covers only 14 instruments — **US500, US30, GOLD and DE40 are not among
+them**. Zero meant "no expansion", so exactly the instruments discussed
+in sections 18 and 23 kept their narrow ATR stop, failed the floor, and
+vanished. `pair_selector` already defaults to 1.05 % in this case; the
+backtest now does the same.
+
+Re-measured with the correct order and the default in place —
+donchian_breakout, seven cheap instruments, 1h, 30 days:
+
+| | trades | E[R] |
+|---|---:|---:|
+| with my fault | **0** | — |
+| corrected | **40** | -0.028 |
+
+**What this retracts:**
+
+- Section 18's headline ("93 % of signals never open live") is wrong.
+  They do open, at the expanded stop.
+- Section 23's claim of "zero live-tradeable signals" on cheap
+  instruments is wrong, and with it the vise as stated. Expansion is
+  the mechanism that resolves it: a cheap instrument expanded to 1.05 %
+  still carries a cost share under 2 %.
+- Section 25's `stop_atr` sweep was run through the faulty path and its
+  trade counts are meaningless.
+
+The live record contradicted me the whole time and I did not check it:
+**125 closed trades in 30 days, 4.17 per day across 21 instruments**,
+against the 1.69 I projected from the broken backtest.
+
+### The target gap, on measured frequency
+
+| | |
+|---|---:|
+| measured closes per day | 4.17 |
+| risk per trade | 3.00 USD |
+| **required expectancy** | **+4.68 R** |
+| best systems achieve | +0.10 to +0.30 R |
+
+| at E[R] | USD/day | short by |
+|---:|---:|---:|
+| +0.05 | 0.63 | 94x |
+| +0.10 | 1.25 | 47x |
+| +0.20 | 2.50 | 23x |
+| +0.30 | 3.75 | 16x |
+
+At a realistic +0.20 R the target needs **97 closes per day** against
+the 4.17 achieved. The conclusion of section 26 is unchanged and the
+arithmetic is now sound: the gap is one to two orders of magnitude,
+and it is a frequency-times-capital problem, not one the stop floor
+explains.

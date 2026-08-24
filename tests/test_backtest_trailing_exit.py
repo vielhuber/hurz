@@ -85,3 +85,22 @@ class TrailStrategyRetirementTest(unittest.TestCase):
     def test_the_backtest_still_models_the_trail_for_analysis(self):
         # Disabling entries must not remove the ability to measure it.
         self.assertIsNotNone(trail_config_for("donchian_trail"))
+
+
+class StopFloorOrderTest(unittest.TestCase):
+    """The live loop expands to the venue minimum before applying the
+    floor. Checking the floor first rejected almost every signal on
+    instruments whose ATR stop is narrow — which live trades normally,
+    at the widened stop."""
+
+    def test_a_narrow_stop_survives_because_expansion_comes_first(self):
+        df = _frame([100.0 + (0.2 if i % 2 else -0.2) for i in range(40)])
+        df["atr_14"] = 0.05          # 0.05% stop, far under the 1% floor
+        signals = [SimpleNamespace(index=0, direction=1, confidence=1.0)]
+        outcomes = spot_backtest._simulate_trades(
+            "US500", df, signals, rr=1.5, stop_atr_mult=1.0,
+            max_hold_bars=20, platform="capital_com",
+            strategy_name="donchian_breakout",
+        )
+        # Expanded to the venue minimum, it clears the floor and trades.
+        self.assertEqual(1, len(outcomes))
