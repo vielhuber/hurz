@@ -28,6 +28,7 @@ def _rows(cutoff: str) -> list:
     return database.select(
         """
         SELECT created_at, exit_time, realized_pnl, size, strategy, pair,
+               direction, bar_time,
                COALESCE(fill_price, entry_price) AS px, stop_loss
         FROM spot_trades
         WHERE accepted = 1 AND paper_mode = 0 AND platform = 'capital_com'
@@ -80,6 +81,26 @@ def main() -> None:
         print(f"{'per day':<24}{per_day:+.2f} USD "
               f"({per_day / EUR_USD:+.2f} EUR)")
         print(f"{'share of target':<24}{100 * per_day / target_usd:.1f}%")
+
+    # Consensus check. In the calibration sample, signals that two
+    # strategies raised on the same bar returned +0.108R against -0.161R
+    # for lone signals — a 0.270R gap, but only t=1.65 across 44
+    # independent events, so it is a lead and not a finding. Tracked
+    # here so the forward window can confirm or bury it.
+    from collections import defaultdict
+    groups = defaultdict(list)
+    for row, value in zip(rows, r_values):
+        groups[(row["pair"], row["direction"], row["bar_time"])].append(value)
+    consensus, lone = [], []
+    for values in groups.values():
+        target = consensus if len(values) > 1 else lone
+        target.append(sum(values) / len(values))
+    if consensus or lone:
+        print()
+        for label, bucket in (("consensus", consensus), ("lone signal", lone)):
+            if bucket:
+                print(f"{label:<24}n={len(bucket)}  "
+                      f"{sum(bucket) / len(bucket):+.4f} R")
 
     # The sample size that would make a positive mean meaningful rather
     # than a run of luck, at the observed spread of outcomes.
