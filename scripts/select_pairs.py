@@ -19,7 +19,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.spot_trading.pair_selector import (
-    rank_pairs, persist_active_pairs,
+    rank_pairs, persist_active_pairs, VetoDataUnavailable,
 )
 
 
@@ -97,9 +97,17 @@ def _persist(args, scores) -> None:
         if args.platform
         else "data/active_pairs.json"
     )
-    payload = persist_active_pairs(scores, top_n=args.top,
-                                   out_path=out_path,
-                                   platform=args.platform)
+    try:
+        payload = persist_active_pairs(scores, top_n=args.top,
+                                       out_path=out_path,
+                                       platform=args.platform)
+    except VetoDataUnavailable as exc:
+        # Rewriting the list without the vetoes would hand every retired
+        # combo back to the trader, and the only visible sign would be
+        # the list quietly growing. Leaving the previous file in place is
+        # the safe failure.
+        print(f"\u26d4 {exc} \u2014 active list left unchanged")
+        raise SystemExit(1)
     pinned_n = sum(1 for p in payload["pairs"] if p.get("pinned"))
     print()
     print(f"✓ persisted top-{args.top} to {out_path} "

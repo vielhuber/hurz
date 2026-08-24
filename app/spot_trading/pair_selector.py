@@ -95,6 +95,10 @@ _ENTRY_STOP_WIDENING_CAP = 2.0
 _DEFAULT_VENUE_MIN_PERCENT = 1.05
 
 
+class VetoDataUnavailable(RuntimeError):
+    """Realized results could not be read, so no combo can be judged."""
+
+
 @dataclass
 class PairScore:
     platform: str
@@ -448,8 +452,14 @@ def _realized_expectancy(
             rows = database.select(
                 query.format(platform_clause=""), (min_trades,),
             )
-    except Exception:
-        return []
+    except Exception as exc:
+        # A veto that cannot read the journal must not pass silently: it
+        # would hand every retired combo straight back into the active
+        # list, and the only visible sign would be the list quietly
+        # growing again. Raise so the caller decides.
+        raise VetoDataUnavailable(
+            f"cannot evaluate realized results: {exc}"
+        ) from exc
     out: List[Dict] = []
     for row in rows or []:
         n = int(row.get("n") or 0)
@@ -482,6 +492,8 @@ def persist_active_pairs(
     included: a pin exists to survive a thin BACKTEST, not to outrank
     its own realized losses.
     Returns the persisted payload (also useful for dry-run inspection)."""
+    # Both vetoes read the same journal; if it is unavailable the list
+    # must stay as it is rather than being rewritten without them.
     vetoed = live_expectancy_veto(platform)
     vetoed_strategies = strategy_expectancy_veto(platform)
 

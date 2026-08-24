@@ -47,3 +47,22 @@ class PersistWithoutRankingTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class VetoFailureBlocksPersistTest(unittest.TestCase):
+    """If the journal cannot be read the vetoes cannot judge anything.
+    Rewriting the list anyway hands every retired combo straight back to
+    the trader, and the only visible sign would be the list quietly
+    growing — so the previous file must stay in place."""
+
+    def test_unavailable_veto_data_leaves_the_file_alone(self):
+        argv = ["select_pairs.py", "--platform", "capital_com"]
+        with patch.object(sys, "argv", argv), \
+                patch.object(select_pairs, "rank_pairs", return_value=[]), \
+                patch.object(select_pairs, "persist_active_pairs",
+                             side_effect=select_pairs.VetoDataUnavailable(
+                                 "journal unreachable")):
+            with self.assertRaises(SystemExit) as caught:
+                select_pairs.main()
+
+        self.assertEqual(1, caught.exception.code)
