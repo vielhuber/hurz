@@ -8,6 +8,7 @@ from unittest.mock import patch
 from app.platforms import OrderResult, PreparedOrder
 from app.spot_trading import autotrade, journal, pair_selector
 from app.spot_trading.autotrade import TradeIntent
+from app.spot_trading.risk_guard import DailyLoss
 
 
 class EmptyPositionPlatform:
@@ -85,8 +86,12 @@ class DuplicateInstrumentEntryTest(IsolatedAsyncioTestCase):
                              lambda *args, **kwargs: active_pairs), \
                 patch.object(journal, "list_unresolved_open",
                              lambda platform=None: []), \
-                patch.object(journal, "record"), \
+                patch.object(journal, "list_recent_issued_times",
+                             return_value=[]), \
+                patch.object(journal, "record") as record, \
                 patch.object(autotrade, "evaluate_pair", evaluate_pair), \
+                patch("app.spot_trading.risk_guard.daily_loss",
+                      return_value=DailyLoss(0.0, 6.0, False, 0)), \
                 patch.object(autotrade.subprocess, "Popen",
                              lambda *args, **kwargs: None):
             await autotrade.run_loop(
@@ -97,6 +102,8 @@ class DuplicateInstrumentEntryTest(IsolatedAsyncioTestCase):
             )
 
         self.assertEqual(1, len(platform.orders))
+        self.assertEqual(2, record.call_count)
+        self.assertIn("duplicate instrument signal", record.call_args.args[1].error)
 
 
 if __name__ == "__main__":

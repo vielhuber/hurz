@@ -139,5 +139,34 @@ class RegimeColumnsTest(unittest.TestCase):
         self.assertIsNone(params[-2])
 
 
+class RecentIssuedTimesTest(unittest.TestCase):
+    def test_order_attempts_are_loaded_for_the_rolling_cap(self):
+        created_at = datetime(2026, 8, 24, 9, 0)
+
+        class RecentDatabase(RecordingDatabase):
+            def select(self, query, params=None) -> list:
+                self.queries.append((query, params))
+                return [{"created_at": created_at}]
+
+        database = RecentDatabase()
+        since = datetime(2026, 8, 23, 10, 0, tzinfo=timezone.utc)
+
+        with patch.object(singletons, "database", database):
+            issued = journal.list_recent_issued_times(
+                "capital_com",
+                False,
+                since,
+            )
+
+        query, params = database.queries[0]
+        self.assertIn("accepted = 1", query)
+        self.assertIn("NOT LIKE 'skipped:%'", query)
+        self.assertEqual(
+            ("capital_com", False, "2026-08-23 10:00:00"),
+            params,
+        )
+        self.assertEqual(timezone.utc, issued[0].tzinfo)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -226,15 +226,21 @@ _MAX_COST_STOP_WIDENING = 2.0
 _DEFAULT_MIN_STOP_FRACTION = 0.01
 _SPREAD_PERCENT_PATH = "data/capital_spread_percent.json"
 _SPREAD_PERCENT_CACHE: Optional[Dict[str, float]] = None
+_CRYPTO_SPREAD_FALLBACK_PER_SIDE = {
+    "AAVEUSD": 0.0005,
+    "APTUSD": 0.0005,
+    "ARBUSD": 0.0005,
+    "NEARUSD": 0.0005,
+    "DOTUSD": 0.0005,
+}
 
 
 def _audited_round_trip_cost(pair: str, reference_price: float) -> float:
     """Round-trip spread from the cost audit, in price units.
 
     Used when the broker snapshot carries no quote — otherwise a closed
-    market would silently disable the cost filter. Returns 0.0 when the
-    instrument is not in the audit, which restores the old behaviour
-    rather than blocking a trade on missing data."""
+    market would silently disable the cost filter. Known crypto instruments
+    retain their conservative fallback when the audit is unavailable."""
     global _SPREAD_PERCENT_CACHE
     if _SPREAD_PERCENT_CACHE is None:
         try:
@@ -245,10 +251,16 @@ def _audited_round_trip_cost(pair: str, reference_price: float) -> float:
                 )
         except (OSError, ValueError):
             _SPREAD_PERCENT_CACHE = {}
-    percent = float(_SPREAD_PERCENT_CACHE.get(pair) or 0.0)
-    if percent <= 0 or reference_price <= 0:
+    if reference_price <= 0:
         return 0.0
-    return reference_price * percent / 100.0
+    percent = float(_SPREAD_PERCENT_CACHE.get(pair) or 0.0)
+    if percent > 0:
+        return reference_price * percent / 100.0
+    return (
+        reference_price
+        * 2.0
+        * _CRYPTO_SPREAD_FALLBACK_PER_SIDE.get(pair, 0.0)
+    )
 
 
 def _widen_stop_and_target(
@@ -302,6 +314,7 @@ async def evaluate_pair(
     stop_atr: float, rr: float, lookback_bars: int,
     apply_venue_min: bool = False,
     regime_veto_logger: Optional[_RegimeVetoLogger] = None,
+    on_rejected_intent: Optional[Callable[[TradeIntent, str], None]] = None,
 ) -> Optional[TradeIntent]:
     """Run a single strategy-evaluation cycle on `pair`. Returns a
     `TradeIntent` if the latest bar produced a signal, else None.
@@ -331,18 +344,6 @@ async def evaluate_pair(
     sig = _last_signal_for_bar(signals, last_idx)
     if sig is None:
         return None
-    # Regime filter: block a signal whose strategy style is wrong for
-    # the current regime (mean-reversion in a trend, trend-following in
-    # a range). Same policy the backtest applies, so selection and live
-    # stay consistent. Fails open on missing ADX.
-    from app.spot_trading.regime import gate as _regime_gate
-    decision = _regime_gate(strategy_name, df, last_idx)
-    if regime_veto_logger is not None:
-        regime_veto_logger.observe(pair, strategy_name, decision)
-    if decision.blocked and regime_veto_logger is None:
-        _safe_log(f"⛓ regime-veto {pair} {strategy_name}: {decision.reason}")
-    if decision.blocked:
-        return None
     last_row = df.iloc[last_idx]
     atr = last_row.get("atr_14")
     if atr is None or not np.isfinite(atr) or atr <= 0:
@@ -368,6 +369,25 @@ async def evaluate_pair(
             else:
                 sl = entry_price + new_stop_dist
                 tp = entry_price - new_target_dist
+    from app.spot_trading.regime import gate as _regime_gate
+    decision = _regime_gate(strategy_name, df, last_idx)
+    intent = TradeIntent(
+        pair=pair, direction=sig.direction,
+        entry_price=entry_price, stop_loss=sl, take_profit=tp,
+        strategy=strategy_name, confidence=sig.confidence,
+        bar_time=last_row["timestamp"], entry_adx=decision.adx,
+    )
+    if regime_veto_logger is not None:
+        regime_veto_logger.observe(pair, strategy_name, decision)
+    if decision.blocked and regime_veto_logger is None:
+        _safe_log(f"⛓ regime-veto {pair} {strategy_name}: {decision.reason}")
+    if decision.blocked:
+        if on_rejected_intent is not None:
+            on_rejected_intent(
+                intent,
+                f"skipped: regime filter: {decision.reason}",
+            )
+        return None
     # Cost floor. Spread and slippage are paid in price units, so the
     # narrower the stop the larger the share of the risk budget that is
     # gone before the trade can work. Live results across 489 closed
@@ -378,13 +398,14 @@ async def evaluate_pair(
     min_stop_fraction = _min_stop_fraction()
     if min_stop_fraction > 0 and entry_price > 0:
         if abs(entry_price - sl) / entry_price < min_stop_fraction:
+            if on_rejected_intent is not None:
+                on_rejected_intent(
+                    intent,
+                    f"skipped: stop distance below "
+                    f"{min_stop_fraction:.2%} floor",
+                )
             return None
-    return TradeIntent(
-        pair=pair, direction=sig.direction,
-        entry_price=entry_price, stop_loss=sl, take_profit=tp,
-        strategy=strategy_name, confidence=sig.confidence,
-        bar_time=last_row["timestamp"], entry_adx=decision.adx,
-    )
+    return intent
 
 
 async def execute_intent(
@@ -418,8 +439,33 @@ def _has_open_position(positions: List[Position], pair: str) -> bool:
     return any(p.asset == pair for p in positions)
 
 
+def _record_skip(
+    intent: TradeIntent,
+    error: str,
+    *,
+    platform_name: str,
+    paper_mode: bool,
+    size: Optional[float] = None,
+) -> None:
+    from app.spot_trading.journal import record
+    record(
+        intent,
+        OrderResult(
+            accepted=False,
+            asset=intent.pair,
+            direction=intent.direction,
+            size=size,
+            error=error,
+        ),
+        platform=platform_name,
+        paper_mode=paper_mode,
+        size=size,
+    )
+
+
 # Min seconds between stale-exit close attempts on the same position.
 _STALE_RETRY_COOLDOWN = 1800
+_DEFAULT_MAX_CONCURRENT_POSITIONS = 8
 
 # donchian_trail exit parameters. The trail arms once price has moved
 # `_TRAIL_ACTIVATION_R` × initial-risk in favor, then rides `_TRAIL_ATR_MULT`
@@ -445,6 +491,7 @@ _CORRELATION_CLUSTERS = {
     "ARBUSD": "crypto", "APTUSD": "crypto", "NEARUSD": "crypto",
     "EURUSD": "usd_fx", "GBPUSD": "usd_fx", "AUDUSD": "usd_fx",
     "NZDUSD": "usd_fx", "USDJPY": "usd_fx", "USDCAD": "usd_fx",
+    "USDCHF": "usd_fx",
     "DE40": "indices", "FR40": "indices", "UK100": "indices",
     "US30": "indices", "US500": "indices", "US100": "indices",
     "HK50": "indices", "J225": "indices", "AU200": "indices",
@@ -592,7 +639,8 @@ async def run_loop(
 
     `max_concurrent`: hard cap on simultaneous open positions. New
     signals are skipped (and journaled) once the cap is reached. None
-    = no cap (legacy behavior). Useful on platforms where correlated
+    uses the safe default; a non-positive value disables it. Useful on
+    platforms where correlated
     strategies fire identical-direction signals across pairs and would
     otherwise produce a single concentrated bet disguised as N trades.
 
@@ -600,11 +648,16 @@ async def run_loop(
     `notional_per_trade` remains a hard exposure cap. Broker minimum,
     maximum and increment constraints are applied without increasing size."""
     import os as _os
-    if max_concurrent is None and _os.getenv("HURZ_MAX_CONCURRENT"):
+    if max_concurrent is None:
         try:
-            max_concurrent = int(_os.environ["HURZ_MAX_CONCURRENT"])
+            max_concurrent = int(_os.getenv(
+                "HURZ_MAX_CONCURRENT",
+                str(_DEFAULT_MAX_CONCURRENT_POSITIONS),
+            ))
         except ValueError:
-            pass
+            max_concurrent = _DEFAULT_MAX_CONCURRENT_POSITIONS
+    if max_concurrent <= 0:
+        max_concurrent = None
     if notional_per_trade is None and _os.getenv("HURZ_NOTIONAL_PER_TRADE"):
         try:
             notional_per_trade = float(_os.environ["HURZ_NOTIONAL_PER_TRADE"])
@@ -652,6 +705,7 @@ async def run_loop(
     from app.spot_trading.regime import adx_at as _regime_adx_at
     from app.spot_trading.journal import (
         list_unresolved_open as _list_unresolved_open,
+        list_recent_issued_times as _list_recent_issued_times,
     )
 
     # Per-(pair, bar_time) dedup: an in-flight bar would otherwise re-emit
@@ -659,13 +713,45 @@ async def run_loop(
     # snapshot, so strategy-specific keys can open the same pair twice before
     # the newly accepted position becomes visible.
     issued_intents: Dict[str, datetime] = {}
+    issued_strategy_by_pair: Dict[str, str] = {}
+    rejected_evaluations: Dict[tuple, datetime] = {}
+    duplicate_intents_journaled: set = set()
+
+    def journal_duplicate_if_needed(intent: TradeIntent) -> None:
+        first_strategy = issued_strategy_by_pair.get(intent.pair)
+        duplicate_key = (intent.pair, intent.bar_time, intent.strategy)
+        if (first_strategy is None
+                or first_strategy == intent.strategy
+                or duplicate_key in duplicate_intents_journaled):
+            return
+        _record_skip(
+            intent,
+            "skipped: duplicate instrument signal for bar "
+            f"{intent.bar_time.isoformat()}",
+            platform_name=platform_name,
+            paper_mode=platform.paper_trade_only,
+        )
+        duplicate_intents_journaled.add(duplicate_key)
+
     # Circuit breaker: hard daily cap on signals issued by this loop.
     # Defends against a runaway scenario where a strategy bug or
     # corrupted active_pairs.json fires hundreds of intents in a day.
-    # Reset rolling 24h. The cap is generous given the backtest
+    # Seed the rolling 24h window from the journal. The cap is generous
+    # given the backtest
     # expectation of ~10-15 signals/day; anything above 100 is
     # almost certainly a bug.
-    issued_log: List[datetime] = []
+    issued_since = datetime.now(timezone.utc) - timedelta(hours=24)
+    recent_issued = _list_recent_issued_times(
+        platform_name,
+        platform.paper_trade_only,
+        issued_since,
+    )
+    daily_cap_history_available = recent_issued is not None
+    issued_log: List[datetime] = recent_issued or []
+    if not daily_cap_history_available:
+        _safe_log(
+            "⛔ daily-cap history unavailable — new entries remain blocked"
+        )
     # Log the daily-loss halt once per day, not once per blocked signal.
     daily_loss_logged = False
     daily_loss_day: Optional[str] = None
@@ -1129,6 +1215,7 @@ async def run_loop(
             # the whole point of the cap is the "everything fires at once"
             # burst.
             opened_this_cycle: List[tuple] = []
+            opened_this_cycle_count = 0
             for entry in active:
                 pair = entry.get("pair")
                 entry_strategy = entry.get("strategy") or strategy_name
@@ -1138,6 +1225,34 @@ async def run_loop(
                 if _has_open_position(positions, pair):
                     continue
                 entry_rr = risk_reward_for(entry_strategy, rr)
+
+                def journal_evaluation_rejection(
+                    rejected_intent: TradeIntent,
+                    error: str,
+                ) -> None:
+                    last_issued = issued_intents.get(rejected_intent.pair)
+                    if (last_issued is not None
+                            and last_issued >= rejected_intent.bar_time):
+                        journal_duplicate_if_needed(rejected_intent)
+                        return
+                    rejection_key = (
+                        rejected_intent.pair,
+                        rejected_intent.strategy,
+                    )
+                    last_rejected = rejected_evaluations.get(rejection_key)
+                    if (last_rejected is not None
+                            and last_rejected >= rejected_intent.bar_time):
+                        return
+                    _record_skip(
+                        rejected_intent,
+                        error,
+                        platform_name=platform_name,
+                        paper_mode=platform.paper_trade_only,
+                    )
+                    rejected_evaluations[rejection_key] = (
+                        rejected_intent.bar_time
+                    )
+
                 try:
                     intent = await evaluate_pair(
                         platform, pair,
@@ -1147,6 +1262,7 @@ async def run_loop(
                         lookback_bars=lookback_bars,
                         apply_venue_min=True,
                         regime_veto_logger=regime_veto_logger,
+                        on_rejected_intent=journal_evaluation_rejection,
                     )
                 except PlatformError as exc:
                     _safe_log(f"⚠ {pair}: evaluate failed: {exc}")
@@ -1162,7 +1278,9 @@ async def run_loop(
                 dedup_key = pair
                 last_seen = issued_intents.get(dedup_key)
                 if last_seen is not None and last_seen >= intent.bar_time:
+                    journal_duplicate_if_needed(intent)
                     continue
+                issued_strategy_by_pair[dedup_key] = intent.strategy
                 # Venue-min-stop guard: if our ATR-derived stop is
                 # tighter than the broker's minimum, the broker would
                 # auto-clamp it — silently distorting R:R away from
@@ -1208,9 +1326,16 @@ async def run_loop(
                     issued_intents[dedup_key] = intent.bar_time
                     continue
                 if intent.direction < 0 and intent.pair in long_only_pairs:
+                    error = "skipped: broker is LONG_ONLY"
                     _safe_log(
                         f"⏭ {intent.pair}: broker is LONG_ONLY — "
                         f"skipping short ({intent.strategy})"
+                    )
+                    _record_skip(
+                        intent,
+                        error,
+                        platform_name=platform_name,
+                        paper_mode=platform.paper_trade_only,
                     )
                     issued_intents[dedup_key] = intent.bar_time
                     continue
@@ -1230,11 +1355,22 @@ async def run_loop(
                         if c == cluster and dvec == intent.direction
                     )
                     if same_dir >= _CLUSTER_DIR_CAP:
+                        error = (
+                            f"skipped: cluster '{cluster}' "
+                            f"direction {intent.direction:+d} cap "
+                            f"{_CLUSTER_DIR_CAP} reached ({same_dir} open)"
+                        )
                         _safe_log(
                             f"⏭ {intent.pair}: cluster '{cluster}' "
                             f"dir={intent.direction:+d} cap {_CLUSTER_DIR_CAP} "
                             f"reached ({same_dir} open) — skipping "
                             f"({intent.strategy})"
+                        )
+                        _record_skip(
+                            intent,
+                            error,
+                            platform_name=platform_name,
+                            paper_mode=platform.paper_trade_only,
                         )
                         issued_intents[dedup_key] = intent.bar_time
                         continue
@@ -1244,10 +1380,25 @@ async def run_loop(
                 # pattern observed when a mean-reverter sees a correlated
                 # selloff: without the cap, that's one concentrated bet
                 # dressed as N independent trades.
-                if max_concurrent is not None and len(positions) >= max_concurrent:
+                concurrent_positions = (
+                    len(positions) + opened_this_cycle_count
+                )
+                if (max_concurrent is not None
+                        and concurrent_positions >= max_concurrent):
+                    error = (
+                        f"skipped: max_concurrent={max_concurrent} reached "
+                        f"({concurrent_positions} open)"
+                    )
                     _safe_log(
                         f"⏭ {intent.pair}: max_concurrent={max_concurrent} "
-                        f"reached ({len(positions)} open) — skipping ({intent.strategy})"
+                        f"reached ({concurrent_positions} open) — "
+                        f"skipping ({intent.strategy})"
+                    )
+                    _record_skip(
+                        intent,
+                        error,
+                        platform_name=platform_name,
+                        paper_mode=platform.paper_trade_only,
                     )
                     issued_intents[dedup_key] = intent.bar_time
                     continue
@@ -1398,13 +1549,33 @@ async def run_loop(
                 now_utc = datetime.now(timezone.utc)
                 cutoff = now_utc - timedelta(hours=24)
                 issued_log = [t for t in issued_log if t >= cutoff]
+                if not daily_cap_history_available:
+                    error = "skipped: daily-cap history unavailable"
+                    _record_skip(
+                        intent,
+                        error,
+                        platform_name=platform_name,
+                        paper_mode=platform.paper_trade_only,
+                    )
+                    issued_intents[dedup_key] = intent.bar_time
+                    continue
                 if len(issued_log) >= daily_cap:
+                    error = (
+                        f"skipped: daily cap of {daily_cap} signals reached"
+                    )
                     _safe_log(
                         f"⛔ daily cap of {daily_cap} signals reached — "
                         f"halting until rolling 24h window decays. "
                         f"This is a safety circuit breaker; investigate "
                         f"if this fires before live mode is enabled."
                     )
+                    _record_skip(
+                        intent,
+                        error,
+                        platform_name=platform_name,
+                        paper_mode=platform.paper_trade_only,
+                    )
+                    issued_intents[dedup_key] = intent.bar_time
                     continue
                 # The count above is not a risk limit — a hundred small
                 # trades and a hundred stop-outs look the same to it.
@@ -1417,14 +1588,33 @@ async def run_loop(
                     daily_loss_logged = False
                 loss = daily_loss(now_utc)
                 if loss.blocked:
+                    error = (
+                        f"skipped: daily loss guard unavailable: {loss.error}"
+                        if loss.error else
+                        f"skipped: daily loss {loss.realised_r:+.2f}R "
+                        f"reached {loss.limit_r:.1f}R limit"
+                    )
                     if not daily_loss_logged:
-                        _safe_log(
-                            f"⛔ daily loss {loss.realised_r:+.2f}R reached "
-                            f"the {loss.limit_r:.1f}R limit over "
-                            f"{loss.trades} closes — no new entries today. "
-                            f"Open positions keep their stops."
-                        )
+                        if loss.error:
+                            _safe_log(
+                                f"⛔ daily loss guard unavailable: "
+                                f"{loss.error} — no new entries"
+                            )
+                        else:
+                            _safe_log(
+                                f"⛔ daily loss {loss.realised_r:+.2f}R "
+                                f"reached the {loss.limit_r:.1f}R limit over "
+                                f"{loss.trades} closes — no new entries today. "
+                                f"Open positions keep their stops."
+                            )
                         daily_loss_logged = True
+                    _record_skip(
+                        intent,
+                        error,
+                        platform_name=platform_name,
+                        paper_mode=platform.paper_trade_only,
+                    )
+                    issued_intents[dedup_key] = intent.bar_time
                     continue
                 issued_intents[dedup_key] = intent.bar_time
                 issued_log.append(now_utc)
@@ -1461,6 +1651,7 @@ async def run_loop(
                         )
                     if cluster is not None:
                         opened_this_cycle.append((cluster, intent.direction))
+                    opened_this_cycle_count += 1
                 else:
                     _safe_log(f"  ⛔ rejected: {result.error}")
                     if "LONG_ONLY" in (result.error or ""):

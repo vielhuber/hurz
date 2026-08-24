@@ -12,6 +12,7 @@ from app.platforms import OrderResult, PreparedOrder
 from app.platforms.capital_com import CapitalComPlatform
 from app.spot_trading import autotrade, journal, pair_selector
 from app.spot_trading.autotrade import TradeIntent
+from app.spot_trading.risk_guard import DailyLoss
 from scripts.spot_backtest import _simulate_trades
 
 
@@ -132,8 +133,11 @@ class LiveTradeCostFilterTest(IsolatedAsyncioTestCase):
                     "resolution": "1h",
                 }]), \
                 patch.object(journal, "list_unresolved_open", lambda platform=None: []), \
+                patch.object(journal, "list_recent_issued_times", return_value=[]), \
                 patch.object(journal, "record") as record, \
                 patch.object(autotrade, "evaluate_pair", return_value=intent), \
+                patch("app.spot_trading.risk_guard.daily_loss",
+                      return_value=DailyLoss(0.0, 6.0, False, 0)), \
                 patch.object(autotrade.subprocess, "Popen", lambda *args, **kwargs: None):
             await autotrade.run_loop(
                 platform_name="capital_com",
@@ -201,11 +205,18 @@ class AuditedCostFallbackTest(TestCase):
             0.0, autotrade._audited_round_trip_cost("UNKNOWN", 100.0),
         )
 
-    def test_missing_audit_file_does_not_raise(self):
+    def test_missing_audit_file_uses_the_crypto_fallback(self):
         with patch.object(autotrade, "_SPREAD_PERCENT_PATH", "/nonexistent"):
-            self.assertEqual(
-                0.0, autotrade._audited_round_trip_cost("APTUSD", 2.0),
+            self.assertAlmostEqual(
+                0.002, autotrade._audited_round_trip_cost("APTUSD", 2.0),
             )
+
+    def test_aave_fallback_is_five_basis_points_per_side(self):
+        autotrade._SPREAD_PERCENT_CACHE = {}
+
+        self.assertAlmostEqual(
+            0.1, autotrade._audited_round_trip_cost("AAVEUSD", 100.0),
+        )
 
     def test_zero_reference_price_returns_zero(self):
         autotrade._SPREAD_PERCENT_CACHE = {"APTUSD": 5.0}

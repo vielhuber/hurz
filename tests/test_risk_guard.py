@@ -73,12 +73,13 @@ class DailyLossTest(unittest.TestCase):
 
         self.assertEqual(("2026-08-24 00:00:00",), database.params)
 
-    def test_unreadable_journal_does_not_halt_trading(self):
+    def test_unreadable_journal_halts_new_entries(self):
         with patch.object(singletons, "database", FailingDatabase()):
             loss = risk_guard.daily_loss(NOW)
 
-        self.assertFalse(loss.blocked)
+        self.assertTrue(loss.blocked)
         self.assertEqual(0.0, loss.realised_r)
+        self.assertEqual("journal unavailable", loss.error)
 
 
 if __name__ == "__main__":

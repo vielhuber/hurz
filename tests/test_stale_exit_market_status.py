@@ -107,6 +107,8 @@ class StaleExitMarketStatusTest(IsolatedAsyncioTestCase):
                 }]), \
                 patch.object(journal, "list_unresolved_open",
                              lambda platform=None: [row]), \
+                patch.object(journal, "list_recent_issued_times",
+                             return_value=[]), \
                 patch.object(autotrade, "_safe_log", log_messages.append), \
                 patch.object(autotrade.subprocess, "Popen", lambda *a, **kw: None):
             await autotrade.run_loop(
@@ -140,6 +142,8 @@ class StaleExitMarketStatusTest(IsolatedAsyncioTestCase):
                 }]), \
                 patch.object(journal, "list_unresolved_open",
                              lambda platform=None: [row]), \
+                patch.object(journal, "list_recent_issued_times",
+                             return_value=[]), \
                 patch.object(autotrade, "_safe_log", log_messages.append), \
                 patch.object(autotrade.subprocess, "Popen", lambda *a, **kw: None):
             await autotrade.run_loop(
@@ -172,6 +176,8 @@ class StaleExitMarketStatusTest(IsolatedAsyncioTestCase):
                 }]), \
                 patch.object(journal, "list_unresolved_open",
                              lambda platform=None: [row]), \
+                patch.object(journal, "list_recent_issued_times",
+                             return_value=[]), \
                 patch.object(autotrade, "_safe_log", lambda message: None), \
                 patch.object(autotrade.subprocess, "Popen", lambda *a, **kw: None):
             await autotrade.run_loop(
