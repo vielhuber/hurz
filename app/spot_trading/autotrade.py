@@ -216,6 +216,21 @@ def _derive_stop_target(entry: float, direction: int, atr: float,
     return entry + stop_dist, entry - target_dist
 
 
+_DEFAULT_MIN_STOP_FRACTION = 0.01
+
+
+def _min_stop_fraction() -> float:
+    """Smallest stop distance, as a fraction of entry price, still worth
+    trading. Set `HURZ_MIN_STOP_FRACTION=0` to disable the floor."""
+    raw = os.environ.get("HURZ_MIN_STOP_FRACTION")
+    if raw is None or raw == "":
+        return _DEFAULT_MIN_STOP_FRACTION
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        return _DEFAULT_MIN_STOP_FRACTION
+
+
 def _last_signal_for_bar(signals, target_index: int):
     """Return the most-recent signal whose entry index is at or before
     `target_index`. We only act on the LATEST signal for a fresh bar
@@ -298,6 +313,17 @@ async def evaluate_pair(
             else:
                 sl = entry_price + new_stop_dist
                 tp = entry_price - new_target_dist
+    # Cost floor. Spread and slippage are paid in price units, so the
+    # narrower the stop the larger the share of the risk budget that is
+    # gone before the trade can work. Live results across 489 closed
+    # trades: stops under 1% of entry returned -0.31R, stops at or above
+    # it -0.09R, and the gap holds separately for crypto (-0.383 vs
+    # -0.065, n=31/224) and for indices/commodities (-0.377 vs -0.075,
+    # n=22/154) — so it is a cost effect, not an asset-class artefact.
+    min_stop_fraction = _min_stop_fraction()
+    if min_stop_fraction > 0 and entry_price > 0:
+        if abs(entry_price - sl) / entry_price < min_stop_fraction:
+            return None
     return TradeIntent(
         pair=pair, direction=sig.direction,
         entry_price=entry_price, stop_loss=sl, take_profit=tp,
