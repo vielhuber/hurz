@@ -41,12 +41,13 @@ def record(
                 created_at, platform, pair, strategy, bar_time,
                 direction, entry_price, stop_loss, take_profit, size,
                 accepted, deal_id, fill_price, error, paper_mode,
-                sizing_reference_price, planned_risk_usd, fill_risk_usd
+                sizing_reference_price, planned_risk_usd, fill_risk_usd,
+                entry_adx, signal_confidence
             ) VALUES (
                 %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s,
-                %s, %s, %s
+                %s, %s, %s, %s, %s
             )
             """,
             (
@@ -61,6 +62,8 @@ def record(
                 if sizing_reference_price is not None else None,
                 float(planned_risk) if planned_risk is not None else None,
                 float(fill_risk) if fill_risk is not None else None,
+                float(intent.entry_adx) if intent.entry_adx is not None else None,
+                float(intent.confidence) if intent.confidence is not None else None,
             ),
         )
     except Exception:
