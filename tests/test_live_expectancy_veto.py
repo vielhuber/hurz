@@ -38,7 +38,7 @@ class LiveExpectancyVetoTest(unittest.TestCase):
     def test_clear_loser_with_enough_trades_is_retired(self):
         database = StubDatabase([
             {"strategy": "keltner_breakout", "pair": "PALLADIUM",
-             "n": 14, "total_r": -3.8},
+             "n": 14, "total_pnl": -11.4, "total_risk": 42},
         ])
 
         with patch.object(singletons, "database", database):
@@ -61,7 +61,7 @@ class LiveExpectancyVetoTest(unittest.TestCase):
     def test_mildly_negative_combo_survives(self):
         database = StubDatabase([
             {"strategy": "turtle_breakout", "pair": "OIL_BRENT",
-             "n": 17, "total_r": -0.5},
+             "n": 17, "total_pnl": -1.5, "total_risk": 51},
         ])
 
         with patch.object(singletons, "database", database):
@@ -72,7 +72,7 @@ class LiveExpectancyVetoTest(unittest.TestCase):
     def test_winners_are_never_promoted_by_this_path(self):
         database = StubDatabase([
             {"strategy": "turtle_breakout", "pair": "BTCUSD",
-             "n": 11, "total_r": 4.0},
+             "n": 11, "total_pnl": 12, "total_risk": 33},
         ])
 
         with patch.object(singletons, "database", database):
@@ -134,7 +134,7 @@ class VetoAppliesToSelectionTest(unittest.TestCase):
 class StrategyExpectancyVetoTest(unittest.TestCase):
     def test_structurally_unprofitable_strategy_is_retired(self):
         database = StubDatabase([
-            {"strategy": "bollinger_rev", "n": 121, "total_r": -15.5},
+            {"strategy": "bollinger_rev", "n": 121, "total_pnl": -46.5, "total_risk": 363},
         ])
 
         with patch.object(singletons, "database", database):
@@ -144,7 +144,7 @@ class StrategyExpectancyVetoTest(unittest.TestCase):
 
     def test_near_breakeven_strategy_survives(self):
         database = StubDatabase([
-            {"strategy": "donchian_breakout", "n": 110, "total_r": -0.33},
+            {"strategy": "donchian_breakout", "n": 110, "total_pnl": -0.99, "total_risk": 330},
         ])
 
         with patch.object(singletons, "database", database):

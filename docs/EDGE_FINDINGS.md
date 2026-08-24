@@ -648,3 +648,52 @@ edge loses faster, however the edge is sliced.
 It should be revisited the moment expectancy turns positive, because at
 that point it becomes the single largest constraint on frequency — and
 section 18 shows frequency is 60x short of the target.
+
+## 20. R-multiples were distorted by near-zero risk denominators
+
+Chasing why the 1.00–1.50 % stop band loses turned up a measurement
+fault in this project's own statistics rather than a property of the
+strategies.
+
+The trail: widened stops were suspected of harming results, but trades
+pinned at the venue minimum return -0.035 R against -0.686 R for
+naturally-wide stops — the opposite of the hypothesis. That gap then
+turned out to be exit composition, not stop width: the narrow class is
+44 % manual exits (timeouts near zero R), the wide class only 8 %.
+Holding exit type constant shrinks the difference to +0.184 R at t 1.38,
+which is nothing. **No stop-ceiling filter is warranted.**
+
+But the worst cell — manual exits on wide stops, E[R] -4.335 across 19
+trades — totals **-6.12 USD**, about 1 % of the loss. Its R values reach
+-19 and -22 because those May trades risked fractions of a cent:
+
+| risk denominator | USD |
+|---|---:|
+| P0 | 0.0008 |
+| P5 | 0.83 |
+| P50 | 3.25 |
+| P100 | 39.72 |
+
+Seventeen trades (3.9 %) risk under 0.30 USD, and they move the headline:
+
+| calculation | E[R] | t |
+|---|---:|---:|
+| all trades, unweighted mean of per-trade R | -0.384 | -3.82 |
+| excluding risk < 0.30 USD | -0.226 | -3.31 |
+| excluding risk < 1.00 USD | -0.184 | -3.64 |
+| **capital-weighted, SUM(pnl)/SUM(risk)** | **-0.158** | — |
+
+The sign never changes and significance holds throughout, so no earlier
+conclusion reverses — the system still loses, and every negative verdict
+in this document stands. But the magnitude was overstated by more than
+a factor of two, and the capital-weighted -0.158 R is the figure an
+account actually experiences.
+
+`_realized_expectancy` computed `SUM(pnl/risk)/n`, so both retirement
+vetoes ran on the distorted figure. They now compute
+`SUM(pnl)/SUM(risk)`. One combination changes verdict:
+`donchian_breakout/ETHUSD` reads -0.254 unweighted against -0.092
+weighted, so it was being retired over an artefact.
+
+Current vetoes on the corrected basis: seven combinations and five
+strategies retired.
