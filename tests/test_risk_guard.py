@@ -11,9 +11,10 @@ from app.utils import singletons
 
 class StubDatabase:
     def __init__(self, r_values) -> None:
-        # Stop distance 1.0 and size 1.0, so realized_pnl is R directly.
+        # The guard denominates in the 3 USD budget, so a loss of one
+        # budget unit is -1R regardless of the stop distance used.
         self.rows = [
-            {"realized_pnl": v, "size": 1.0, "px": 100.0, "stop_loss": 99.0}
+            {"pnl_fill": v * 3.0, "realized_pnl": v * 3.0}
             for v in r_values
         ]
         self.params = None
@@ -84,3 +85,33 @@ class DailyLossTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OversizedPositionTest(unittest.TestCase):
+    """The guard used to divide by the risk each trade happened to take,
+    so a position sized far above the budget reported -1R however much it
+    actually cost — the exact case the limit exists to catch."""
+
+    def _loss(self, rows):
+        with patch("app.utils.singletons.database") as db:
+            db.select.return_value = rows
+            return risk_guard.daily_loss(
+                datetime(2026, 8, 24, 12, 0, tzinfo=timezone.utc)
+            )
+
+    def test_one_oversized_loss_counts_every_budget_unit_it_cost(self):
+        # 39 USD lost against a 3 USD budget is thirteen units, not one.
+        result = self._loss([{"pnl_fill": -39.0, "realized_pnl": -39.0}])
+        self.assertAlmostEqual(-13.0, result.realised_r)
+        self.assertTrue(result.blocked)
+
+    def test_a_micro_position_cannot_trip_the_limit_on_its_own(self):
+        # Two cents lost on a position risking a fraction of one: the old
+        # ratio made this -20R and blocked the day.
+        result = self._loss([{"pnl_fill": -0.02, "realized_pnl": -0.02}])
+        self.assertAlmostEqual(-0.02 / 3.0, result.realised_r)
+        self.assertFalse(result.blocked)
+
+    def test_the_fill_based_figure_is_preferred_over_the_booked_one(self):
+        result = self._loss([{"pnl_fill": -18.0, "realized_pnl": -3.0}])
+        self.assertAlmostEqual(-6.0, result.realised_r)

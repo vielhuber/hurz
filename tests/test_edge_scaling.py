@@ -10,9 +10,9 @@ from app.utils import singletons
 class StubDatabase:
     def __init__(self, r_values) -> None:
         # Every row carries a stop distance of 1.0 and size 1.0, so
-        # realized_pnl is the R multiple directly.
+        # Stop distance 1.0 and size 1.0, so pnl_fill is the R multiple.
         self.rows = [
-            {"realized_pnl": v, "size": 1.0, "px": 100.0, "stop_loss": 99.0}
+            {"pnl_fill": v, "size": 1.0, "px": 100.0, "stop_loss": 99.0}
             for v in r_values
         ]
         self.params = None

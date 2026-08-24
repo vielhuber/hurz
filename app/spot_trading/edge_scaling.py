@@ -55,6 +55,22 @@ def _cutoff() -> str:
     return os.environ.get("HURZ_EDGE_CUTOFF") or DEFAULT_EDGE_CUTOFF
 
 
+_MIN_RISK_FRACTION = 0.10
+
+
+def _target_risk() -> float:
+    """The per-trade risk budget outlier positions are measured against."""
+    raw = os.getenv("HURZ_RISK_PER_TRADE")
+    if raw:
+        try:
+            configured = float(raw)
+            if configured > 0:
+                return configured
+        except ValueError:
+            pass
+    return DEFAULT_TARGET_RISK_USD
+
+
 def assess_edge(
     base_risk: float = DEFAULT_TARGET_RISK_USD,
     account_equity: Optional[float] = None,
@@ -73,8 +89,10 @@ def assess_edge(
         from app.utils.singletons import database
         rows = database.select(
             """
-            SELECT realized_pnl, size,
-                   COALESCE(fill_price, entry_price) AS px, stop_loss
+            SELECT CASE WHEN exit_price IS NOT NULL AND fill_price IS NOT NULL
+                        THEN (exit_price - fill_price) * direction * size
+                        ELSE realized_pnl END AS pnl_fill,
+                   size, COALESCE(fill_price, entry_price) AS px, stop_loss
             FROM spot_trades
             WHERE accepted = 1 AND paper_mode = 0 AND platform = 'capital_com'
               AND exit_time IS NOT NULL AND realized_pnl IS NOT NULL
@@ -87,11 +105,17 @@ def assess_edge(
     except Exception:
         return EdgeAssessment(0, None, None, base_risk,
                               "journal unavailable")
+    # Booked against the fill, and ignoring positions sized far below the
+    # budget: their R carries a near-zero denominator, which both shifts
+    # the mean and inflates the variance the confidence bound is built
+    # from. Scaling risk up on that would be the worst place to get it
+    # wrong.
+    floor = _MIN_RISK_FRACTION * _target_risk()
     values = []
     for row in rows or []:
         risk = abs(float(row["px"]) - float(row["stop_loss"])) * float(row["size"])
-        if risk > 0:
-            values.append(float(row["realized_pnl"]) / risk)
+        if risk >= floor:
+            values.append(float(row["pnl_fill"]) / risk)
     if len(values) < MIN_SAMPLE:
         return EdgeAssessment(len(values), None, None, base_risk,
                               f"only {len(values)} of {MIN_SAMPLE} "
