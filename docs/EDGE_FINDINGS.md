@@ -1611,3 +1611,47 @@ loudly and the next night retries.
 This changes nothing about profitability. It is here because the window
 change was mine, and an operational regression introduced while chasing
 a measurement improvement is still a regression.
+
+## 40. The system cannot validate its own candidates
+
+Section 36 recorded `turtle_breakout/GOLD` (t = 2.16) as a preregistered
+forward-test candidate without stating what would settle it. Working that
+out turns the candidate into a finding about the whole approach.
+
+The measured effect is +0.298 R against random, with an outcome spread of
+about 1.3 R. Sample size needed to confirm it forward:
+
+| criterion | power | trades needed | at 68 trades/year |
+|---|---:|---:|---:|
+| t > 1.96, uncorrected | 80 % | 247 | **3.6 years** |
+| t > 3.0, corrected for the ~50-combination search | 80 % | 411 | **6.0 years** |
+| t > 3.0, corrected | 95 % | 573 | **8.4 years** |
+
+**The single most promising candidate this project produced cannot be
+validated inside a decade.** That is not a statement about GOLD; it
+follows from the frequency. A combination firing 0.19 times a day cannot
+accumulate evidence faster than the market changes underneath it.
+
+The same arithmetic governs everything here. The whole system trades
+4.17 times a day; resolving an effect of +0.05 R — a realistic edge
+rather than an implausible one — would need thousands of trades, which is
+years. By then the instrument mix, the spread structure and the venue
+rules will all have moved.
+
+Two consequences follow, and they are more useful than another parameter
+sweep:
+
+1. **A backtest result on this venue can never be confirmed forward
+   within a useful horizon.** Deployment decisions here are therefore
+   always bets on in-sample evidence, which sections 2 and 22 already
+   show is not predictive. That is the real reason the data-generation
+   mode has run for months without converging.
+2. **Any viable approach must trade far more often** — not to earn more
+   per day, but so that evidence accumulates fast enough to act on.
+   Frequency is a prerequisite for *knowing*, before it is a lever for
+   earning.
+
+This closes the investigation honestly. The signals carry no directional
+information (30, 32); the target needs an edge, five times the capital
+and a relaxed risk rule simultaneously (37); and even a genuine edge of
+the size measured could not be established here before it decayed.
