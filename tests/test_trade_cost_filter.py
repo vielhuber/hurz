@@ -174,3 +174,42 @@ if __name__ == "__main__":
     import unittest
 
     unittest.main()
+
+
+class AuditedCostFallbackTest(TestCase):
+    """A closed market returns no quote, so the broker reports a spread
+    of zero — and a zero waves the trade straight past the cost filter.
+    The audited spread keeps the filter alive in that case."""
+
+    def setUp(self) -> None:
+        autotrade._SPREAD_PERCENT_CACHE = None
+
+    def tearDown(self) -> None:
+        autotrade._SPREAD_PERCENT_CACHE = None
+
+    def test_audited_spread_is_converted_to_price_units(self):
+        autotrade._SPREAD_PERCENT_CACHE = {"APTUSD": 5.0}
+
+        self.assertAlmostEqual(
+            0.1, autotrade._audited_round_trip_cost("APTUSD", 2.0),
+        )
+
+    def test_unknown_instrument_returns_zero(self):
+        autotrade._SPREAD_PERCENT_CACHE = {"APTUSD": 5.0}
+
+        self.assertEqual(
+            0.0, autotrade._audited_round_trip_cost("UNKNOWN", 100.0),
+        )
+
+    def test_missing_audit_file_does_not_raise(self):
+        with patch.object(autotrade, "_SPREAD_PERCENT_PATH", "/nonexistent"):
+            self.assertEqual(
+                0.0, autotrade._audited_round_trip_cost("APTUSD", 2.0),
+            )
+
+    def test_zero_reference_price_returns_zero(self):
+        autotrade._SPREAD_PERCENT_CACHE = {"APTUSD": 5.0}
+
+        self.assertEqual(
+            0.0, autotrade._audited_round_trip_cost("APTUSD", 0.0),
+        )

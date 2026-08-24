@@ -224,6 +224,31 @@ def _derive_stop_target(entry: float, direction: int, atr: float,
 _MAX_COST_STOP_WIDENING = 2.0
 
 _DEFAULT_MIN_STOP_FRACTION = 0.01
+_SPREAD_PERCENT_PATH = "data/capital_spread_percent.json"
+_SPREAD_PERCENT_CACHE: Optional[Dict[str, float]] = None
+
+
+def _audited_round_trip_cost(pair: str, reference_price: float) -> float:
+    """Round-trip spread from the cost audit, in price units.
+
+    Used when the broker snapshot carries no quote — otherwise a closed
+    market would silently disable the cost filter. Returns 0.0 when the
+    instrument is not in the audit, which restores the old behaviour
+    rather than blocking a trade on missing data."""
+    global _SPREAD_PERCENT_CACHE
+    if _SPREAD_PERCENT_CACHE is None:
+        try:
+            import json
+            with open(_SPREAD_PERCENT_PATH, "r", encoding="utf-8") as handle:
+                _SPREAD_PERCENT_CACHE = (
+                    (json.load(handle) or {}).get("spread_percent") or {}
+                )
+        except (OSError, ValueError):
+            _SPREAD_PERCENT_CACHE = {}
+    percent = float(_SPREAD_PERCENT_CACHE.get(pair) or 0.0)
+    if percent <= 0 or reference_price <= 0:
+        return 0.0
+    return reference_price * percent / 100.0
 
 
 def _widen_stop_and_target(
@@ -1266,8 +1291,19 @@ async def run_loop(
                 stop_distance = abs(
                     prepared.reference_price - intent.stop_loss
                 )
+                # The broker only reports a spread when the snapshot
+                # carries both sides of the quote; with a closed market
+                # it comes back as zero, and a zero silently waves the
+                # trade past the cost filter. Fall back on the audited
+                # spread for the instrument so the filter cannot be
+                # switched off by a missing quote.
+                round_trip_cost = prepared.round_trip_cost
+                if round_trip_cost <= 0:
+                    round_trip_cost = _audited_round_trip_cost(
+                        intent.pair, prepared.reference_price,
+                    )
                 cost_fraction = calculate_round_trip_cost_fraction(
-                    round_trip_cost=prepared.round_trip_cost,
+                    round_trip_cost=round_trip_cost,
                     stop_distance=stop_distance,
                 )
                 # Cost share falls linearly as the stop widens, and the
@@ -1278,10 +1314,10 @@ async def run_loop(
                 # out of the cost trap while a structurally unhandelable
                 # one still falls through to the skip below rather than
                 # being handed a stop its strategy never asked for.
-                if (prepared.round_trip_cost > 0
+                if (round_trip_cost > 0
                         and cost_fraction > MAX_ROUND_TRIP_COST_RISK_FRACTION
                         and stop_distance > 0):
-                    needed = (prepared.round_trip_cost
+                    needed = (round_trip_cost
                               / MAX_ROUND_TRIP_COST_RISK_FRACTION)
                     capped = min(needed,
                                  stop_distance * _MAX_COST_STOP_WIDENING)
@@ -1295,21 +1331,21 @@ async def run_loop(
                                 f"↔ {intent.pair}: stop widened "
                                 f"{stop_distance:.8g} → {capped:.8g} to cut "
                                 f"cost share {cost_fraction:.1%} → "
-                                f"{prepared.round_trip_cost / capped:.1%} "
+                                f"{round_trip_cost / capped:.1%} "
                                 f"({intent.strategy})"
                             )
                             stop_distance = capped
                             cost_fraction = (
                                 calculate_round_trip_cost_fraction(
-                                    round_trip_cost=prepared.round_trip_cost,
+                                    round_trip_cost=round_trip_cost,
                                     stop_distance=stop_distance,
                                 )
                             )
-                if (prepared.round_trip_cost > 0
+                if (round_trip_cost > 0
                         and cost_fraction
                         > MAX_ROUND_TRIP_COST_RISK_FRACTION):
                     error = (
-                        f"skipped: round-trip cost {prepared.round_trip_cost:.8g} "
+                        f"skipped: round-trip cost {round_trip_cost:.8g} "
                         f"is {cost_fraction:.1%} of stop distance "
                         f"{stop_distance:.8g}"
                     )
