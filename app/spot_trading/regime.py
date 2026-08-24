@@ -64,15 +64,21 @@ _TREND = {"donchian_breakout", "momentum", "turtle_breakout", "donchian_atr",
 _DEFAULT_ADX_TREND = 30.0
 _DEFAULT_ADX_RANGE = 20.0
 
-# The 1h core runs a raised trend floor. Its entries kept clearing the
-# global ADX 30 gate on short spikes that had no follow-through: −$10.58
-# over 63 trades in the 14 days to 2026-07-27 (win rate 32–38%), while
-# the same strategies stayed net-positive all-time. Operator decision
-# 2026-07-20: test 35 for this group only — the 4h book, the R:R variants
-# and the keltner/trail forward-tests keep the global threshold so their
-# comparisons stay clean. Tune via HURZ_REGIME_ADX_TREND_CORE.
+# The 1h core ran a raised trend floor of 35 from 2026-07-20, on the
+# theory that its entries were clearing the global ADX 30 gate on short
+# spikes without follow-through (−$10.58 over 63 trades to 2026-07-27).
+#
+# Concluded 2026-08-24. Over the month it ran, the core book returned
+# +0.015R across 100 trades against −0.008R across 76 before the change:
+# a difference of +0.022R at t=0.14, i.e. no measurable effect. What it
+# did cost is entries — the gate rejects most signals in the 25-30 band,
+# and trade frequency is the binding constraint on gathering any
+# forward evidence at all. Back to the global floor; `entry_adx` is now
+# journalled per trade, so the threshold can be settled on realised
+# results instead of another year-long unexamined test.
+# Tune via HURZ_REGIME_ADX_TREND_CORE.
 _CORE_1H = {"donchian_breakout", "momentum", "turtle_breakout"}
-_DEFAULT_ADX_TREND_CORE = 35.0
+_DEFAULT_ADX_TREND_CORE = 30.0
 
 
 @dataclass(frozen=True)

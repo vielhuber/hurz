@@ -56,6 +56,16 @@ class StrategyParameterTest(unittest.TestCase):
             args = spot_backtest._parse_args()
         self.assertEqual(3.5, args.rr)
 
+    def test_core_floor_defaults_to_the_global_threshold(self) -> None:
+        """The raised 1h-core floor of 35 was a test that ran from
+        2026-07-20 and produced +0.022R at t=0.14 — no effect, while
+        rejecting most signals in the 25-30 band. Concluded 2026-08-24."""
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(30.0, trend_floor("donchian_breakout"))
+            self.assertEqual(30.0, trend_floor("momentum"))
+            self.assertEqual(30.0, trend_floor("turtle_breakout"))
+
+
     def test_stability_uses_v3_live_adx_floor(self) -> None:
         data_frame = pd.DataFrame({
             "close": [100.0, 104.0, 104.0],
