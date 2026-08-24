@@ -239,3 +239,38 @@ settings.load_env()
 This cost one aborted backtest run and one misdiagnosis — the failure
 was first attributed to the running bot holding the only allowed broker
 session, which was wrong.
+
+## 9. Historical PnL understates the loss by ~216 USD
+
+Until 21 Aug 2026 the journal computed `realized_pnl` from the SIGNAL
+price rather than the actual fill. Commit `8dd3f30` changed it to the
+recorded entry fill; every trade closed from 21 Aug 12:05 onward books
+against the fill, and the transition is clean.
+
+Of the 415 closed Capital.com trades whose fill differs from the signal
+price, **360 are booked against the signal price**. Recomputing them
+against the fill gives an additional **-216.05 USD**.
+
+| basis | trades |
+|---|---:|
+| fill price (correct) | 55 |
+| signal price (understates) | 360 |
+
+By month, signal-priced closes: May 29, June 68, July 197, August 66 —
+all August cases fall before the fix.
+
+Two consequences for anything read out of this table:
+
+- The realised result to 24 Aug is closer to **-450 USD** than to the
+  -234.57 USD the column sums to. Entry slippage was simply never
+  booked, which is also why the independent spread estimate of 379.94
+  USD looked so large next to the recorded loss.
+- Every expectancy derived from pre-21-Aug rows is optimistic, this
+  document included. The vetoes calibrated on them are therefore too
+  lenient rather than too strict — combos were retired on understated
+  losses, so none of them was retired unfairly.
+
+The 360 rows were left untouched: correcting them means a mass update
+of production data on a derived column, which is an owner decision, and
+the forward window that decides anything from here on is already
+booking against the fill.
