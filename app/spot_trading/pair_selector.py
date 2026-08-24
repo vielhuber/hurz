@@ -61,7 +61,7 @@ import json
 import math
 import os
 from dataclasses import dataclass, asdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
 
@@ -217,6 +217,28 @@ def _stability_blocks(stats: Dict, min_stability_ratio: float) -> bool:
         return False
 
 
+_MAX_RESULT_AGE_DAYS = 30
+
+
+def _generated_before(payload: dict, cutoff: datetime) -> bool:
+    """Whether a persisted result block predates the cutoff.
+
+    An unparsable or absent timestamp counts as stale: the fee correction
+    of 2026-08-24 makes "unknown age" indistinguishable from "priced on
+    the old, far too cheap fee table".
+    """
+    raw = payload.get("generated_at")
+    if not raw:
+        return True
+    try:
+        stamp = datetime.strptime(raw, "%Y-%m-%dT%H:%M:%SZ").replace(
+            tzinfo=timezone.utc
+        )
+    except (TypeError, ValueError):
+        return True
+    return stamp < cutoff
+
+
 def rank_pairs(
     *,
     platform: Optional[str] = None,
@@ -228,6 +250,7 @@ def rank_pairs(
     min_stability_ratio: float = 0.66,
     allowed_strategies: Optional[set] = None,
     results_path: str = _RESULTS_PATH,
+    max_age_days: Optional[int] = _MAX_RESULT_AGE_DAYS,
 ) -> List[PairScore]:
     """Read persisted backtest results and return ranked pair scores.
 
@@ -243,11 +266,21 @@ def rank_pairs(
     must hold in at least 2 of 3 segments". Set to 0.0 to disable.
     Combos lacking the field entirely are NOT blocked (the score is
     "unknown", not "failed"), so legacy backtest results still rank.
+
+    `max_age_days` drops results generated before the cutoff. Fee and
+    spread inputs were corrected on 2026-08-24, and results predating
+    that priced some instruments an order of magnitude too cheap — a
+    stale block does not merely go out of date, it ranks systematically
+    too high. A block without a timestamp is treated as stale.
     """
     if not os.path.exists(results_path):
         return []
     with open(results_path, "r", encoding="utf-8") as f:
         data = json.load(f)
+
+    cutoff = None
+    if max_age_days is not None:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=max_age_days)
 
     rows: List[PairScore] = []
     min_distances = _load_min_distances()
@@ -264,6 +297,8 @@ def rank_pairs(
                 and payload.get("strategy") not in allowed_strategies:
             continue
         if resolution and payload.get("resolution") != resolution:
+            continue
+        if cutoff is not None and _generated_before(payload, cutoff):
             continue
         for pair, stats in (payload.get("pairs") or {}).items():
             n = int(stats.get("n", 0))

@@ -491,3 +491,29 @@ collapse and 4.0 jumps back up, which no exit-target mechanism produces.
 
 **RR was left at its configured values.** The sweep is recorded here so
 the next person does not rerun it and stop at the first ✅.
+
+## 16. Stale backtest blocks rank systematically too high
+
+The results file the pair selector ranks from still held blocks
+generated on **2026-05-15**, three months old, alongside `capital_com`
+blocks from 2026-07-10. Everything predating 2026-08-24 was priced on
+the old fee table, which section 9 shows undercharged some instruments
+by an order of magnitude.
+
+That makes staleness here worse than ordinary staleness. An out-of-date
+block is not merely imprecise — it is biased in one direction, because
+the instruments priced most wrongly are exactly the expensive ones that
+then rank highest. It is the same distortion this project has been
+unwinding, preserved in a file that no longer gets fully rewritten.
+
+`rank_pairs` now drops blocks older than `max_age_days` (30). A block
+whose timestamp is missing or unparsable counts as stale: after the fee
+correction, "unknown age" cannot be distinguished from "priced on the
+old table". `max_age_days=None` disables the guard for analysis.
+
+The guard changes nothing about the current selection — that ranking was
+already empty, because the refreshed backtests yield around 15 trades per
+combination against a `min_trades` floor of 30, and the live basket runs
+off pins rather than the ranking. It matters the moment those filters are
+loosened, which is precisely when a three-month-old block priced on the
+wrong fees would otherwise come back to the top.
