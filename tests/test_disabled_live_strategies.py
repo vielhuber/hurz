@@ -16,7 +16,7 @@ class DisabledLiveStrategyTest(IsolatedAsyncioTestCase):
     async def test_v3_is_blocked_before_live_evaluation(self):
         intent = await evaluate_pair(
             UnexpectedPlatformCall(),
-            "DOTUSD",
+            "BTCUSD",
             strategy_name="donchian_breakout_v3",
             resolution="1h",
             stop_atr=1.0,
@@ -29,7 +29,7 @@ class DisabledLiveStrategyTest(IsolatedAsyncioTestCase):
 
     async def test_v3_is_rejected_before_order_submission(self):
         intent = TradeIntent(
-            pair="DOTUSD",
+            pair="BTCUSD",
             direction=1,
             entry_price=1.0,
             stop_loss=0.9,
