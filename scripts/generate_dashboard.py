@@ -32,6 +32,16 @@ sys.path.insert(0, _ROOT)
 from app.utils.singletons import settings
 settings.load_env()
 
+# Realised result recomputed from exit and fill price. Rows closed
+# before 2026-08-21 booked `realized_pnl` against the SIGNAL price,
+# understating the loss by entry slippage — about 216 USD across 360
+# trades. Reading the column would show a rosier account than the one
+# that actually traded. Kept on one line so it can be substituted into
+# any expression position. Falls back where exit or fill is missing.
+_PNL = ("(CASE WHEN exit_price IS NOT NULL AND fill_price IS NOT NULL "
+        "THEN (exit_price - fill_price) * direction * size "
+        "ELSE realized_pnl END)")
+
 from app.spot_trading.holding_period import stale_exit_after_seconds
 
 # Same calendars as app/utils/holiday_window.py — the dashboard must agree
@@ -120,7 +130,7 @@ def _fetch(days) -> dict:
     win_params = () if days is None else (days,)
     try:
         closed = _rows(cur, f"""
-            SELECT platform, exit_time, realized_pnl
+            SELECT platform, exit_time, {_PNL} AS realized_pnl
             FROM spot_trades
             WHERE accepted=1 AND realized_pnl IS NOT NULL AND exit_time IS NOT NULL
               AND platform <> 'kraken_futures'
@@ -131,9 +141,9 @@ def _fetch(days) -> dict:
         summary = _rows(cur, f"""
             SELECT platform,
                    COUNT(*) AS trades,
-                   SUM(realized_pnl > 0) AS wins,
-                   SUM(realized_pnl <= 0) AS losses,
-                   ROUND(SUM(realized_pnl), 2) AS pnl
+                   SUM({_PNL} > 0) AS wins,
+                   SUM({_PNL} <= 0) AS losses,
+                   ROUND(SUM({_PNL}), 2) AS pnl
             FROM spot_trades
             WHERE accepted=1 AND realized_pnl IS NOT NULL
               AND platform <> 'kraken_futures'
@@ -142,7 +152,7 @@ def _fetch(days) -> dict:
             GROUP BY platform
         """, win_params)
         alltime = _rows(cur, f"""
-            SELECT platform, ROUND(SUM(realized_pnl), 2) AS pnl
+            SELECT platform, ROUND(SUM({_PNL}), 2) AS pnl
             FROM spot_trades
             WHERE accepted=1 AND realized_pnl IS NOT NULL
               AND platform <> 'kraken_futures'
@@ -156,9 +166,9 @@ def _fetch(days) -> dict:
               AND platform <> 'kraken_futures'
             ORDER BY created_at ASC
         """)
-        recent = _rows(cur, """
+        recent = _rows(cur, f"""
             SELECT id, platform, pair, strategy, direction,
-                   entry_price, exit_price, outcome, realized_pnl, exit_time
+                   entry_price, exit_price, outcome, {_PNL} AS realized_pnl, exit_time
             FROM spot_trades
             WHERE accepted=1 AND realized_pnl IS NOT NULL
               AND platform <> 'kraken_futures'
@@ -171,13 +181,13 @@ def _fetch(days) -> dict:
         by_strategy = _rows(cur, f"""
             SELECT strategy,
                    COUNT(*) AS trades,
-                   SUM(realized_pnl > 0) AS wins,
-                   ROUND(SUM(realized_pnl), 2) AS pnl,
-                   ROUND(SUM(CASE WHEN realized_pnl > 0 THEN realized_pnl ELSE 0 END)
-                         / NULLIF(-SUM(CASE WHEN realized_pnl <= 0 THEN realized_pnl ELSE 0 END), 0), 2) AS pf,
-                   ROUND(SUM(CASE WHEN exit_time >= NOW() - INTERVAL 30 DAY THEN realized_pnl ELSE 0 END), 2) AS pnl30,
-                   ROUND(SUM(CASE WHEN exit_time >= NOW() - INTERVAL 14 DAY THEN realized_pnl ELSE 0 END), 2) AS pnl14,
-                   ROUND(SUM(CASE WHEN exit_time >= NOW() - INTERVAL 7 DAY THEN realized_pnl ELSE 0 END), 2) AS pnl7
+                   SUM({_PNL} > 0) AS wins,
+                   ROUND(SUM({_PNL}), 2) AS pnl,
+                   ROUND(SUM(CASE WHEN {_PNL} > 0 THEN {_PNL} ELSE 0 END)
+                         / NULLIF(-SUM(CASE WHEN {_PNL} <= 0 THEN {_PNL} ELSE 0 END), 0), 2) AS pf,
+                   ROUND(SUM(CASE WHEN exit_time >= NOW() - INTERVAL 30 DAY THEN {_PNL} ELSE 0 END), 2) AS pnl30,
+                   ROUND(SUM(CASE WHEN exit_time >= NOW() - INTERVAL 14 DAY THEN {_PNL} ELSE 0 END), 2) AS pnl14,
+                   ROUND(SUM(CASE WHEN exit_time >= NOW() - INTERVAL 7 DAY THEN {_PNL} ELSE 0 END), 2) AS pnl7
             FROM spot_trades
             WHERE accepted=1 AND realized_pnl IS NOT NULL
               AND platform <> 'kraken_futures'
@@ -190,10 +200,10 @@ def _fetch(days) -> dict:
         by_combo = _rows(cur, f"""
             SELECT platform, pair, strategy,
                    COUNT(*) AS trades,
-                   SUM(realized_pnl > 0) AS wins,
-                   ROUND(SUM(realized_pnl), 2) AS pnl,
+                   SUM({_PNL} > 0) AS wins,
+                   ROUND(SUM({_PNL}), 2) AS pnl,
                    SUM(
-                       realized_pnl / NULLIF(
+                       {_PNL} / NULLIF(
                            ABS(COALESCE(fill_price, entry_price) * size), 0
                        )
                    ) AS return_sum
