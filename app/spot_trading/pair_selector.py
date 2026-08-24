@@ -461,9 +461,17 @@ def _realized_expectancy(
     query = f"""
         SELECT {group_by},
                COUNT(*) AS n,
-               SUM(({result}) / (
-                   ABS(COALESCE(fill_price, entry_price) - stop_loss) * size
-               )) AS total_r
+               -- Capital-weighted: SUM(pnl) / SUM(risk), not the mean of
+               -- per-trade R. A trade sized down to a fraction of the risk
+               -- budget produces an R with a near-zero denominator, and a
+               -- handful of those dominate an unweighted mean — measured at
+               -- -0.384R unweighted against -0.158R weighted across 435
+               -- closed trades. The weighted figure is what the account
+               -- actually experiences, which is what a retire decision is
+               -- about.
+               SUM({result}) AS total_pnl,
+               SUM(ABS(COALESCE(fill_price, entry_price) - stop_loss) * size)
+                   AS total_risk
         FROM spot_trades
         WHERE accepted = 1 AND paper_mode = 0 AND exit_time IS NOT NULL
           AND realized_pnl IS NOT NULL AND size > 0
@@ -498,10 +506,11 @@ def _realized_expectancy(
     out: List[Dict] = []
     for row in rows or []:
         n = int(row.get("n") or 0)
-        total_r = row.get("total_r")
-        if not n or total_r is None:
+        total_pnl = row.get("total_pnl")
+        total_risk = row.get("total_risk")
+        if not n or total_pnl is None or not total_risk:
             continue
-        out.append({**row, "mean_r": float(total_r) / n})
+        out.append({**row, "mean_r": float(total_pnl) / float(total_risk)})
     return out
 
 
