@@ -1,0 +1,95 @@
+"""Risk budget that follows proven forward edge.
+
+The daily-return target cannot be reached at 3 USD of risk per trade —
+it needs roughly ten times that. But raising the budget while expectancy
+is negative just scales the losses, so the size has to be earned rather
+than assumed.
+
+This module derives the budget from realised forward results: the risk
+grows only once a sufficiently large out-of-sample sample shows an
+expectancy whose lower confidence bound is still positive, and it grows
+in bounded steps. If the edge decays, the budget shrinks again on the
+next evaluation. With no edge, nothing changes.
+
+Trades before `cutoff` are excluded on purpose — the entry filters were
+calibrated on them, so their expectancy is in-sample and worthless as
+evidence for sizing.
+"""
+from __future__ import annotations
+
+import math
+import os
+from dataclasses import dataclass
+from typing import Optional
+
+from app.spot_trading.position_sizing import DEFAULT_TARGET_RISK_USD
+
+# Out-of-sample window. Everything before this date fed the calibration
+# of the cost and veto filters.
+DEFAULT_EDGE_CUTOFF = "2026-08-24"
+# Below this many closed trades no expectancy is believable, however
+# good it looks.
+MIN_SAMPLE = 40
+# How far the budget may run ahead of the base risk.
+MAX_RISK_MULTIPLE = 10.0
+# Confidence for the lower bound on expectancy, in standard errors.
+CONFIDENCE_SIGMAS = 2.0
+
+
+@dataclass(frozen=True)
+class EdgeAssessment:
+    trades: int
+    mean_r: Optional[float]
+    lower_bound_r: Optional[float]
+    risk_usd: float
+    reason: str
+
+
+def _cutoff() -> str:
+    return os.environ.get("HURZ_EDGE_CUTOFF") or DEFAULT_EDGE_CUTOFF
+
+
+def assess_edge(base_risk: float = DEFAULT_TARGET_RISK_USD) -> EdgeAssessment:
+    """Risk budget justified by out-of-sample results so far.
+
+    Returns `base_risk` unchanged whenever the evidence does not carry a
+    larger size — too few trades, an unreadable journal, or a lower
+    confidence bound at or below zero."""
+    try:
+        from app.utils.singletons import database
+        rows = database.select(
+            """
+            SELECT realized_pnl, size,
+                   COALESCE(fill_price, entry_price) AS px, stop_loss
+            FROM spot_trades
+            WHERE accepted = 1 AND paper_mode = 0 AND platform = 'capital_com'
+              AND exit_time IS NOT NULL AND realized_pnl IS NOT NULL
+              AND size > 0 AND created_at >= %s
+              AND ABS(COALESCE(fill_price, entry_price) - stop_loss) > 0
+            """,
+            (_cutoff(),),
+        )
+    except Exception:
+        return EdgeAssessment(0, None, None, base_risk,
+                              "journal unavailable")
+    values = []
+    for row in rows or []:
+        risk = abs(float(row["px"]) - float(row["stop_loss"])) * float(row["size"])
+        if risk > 0:
+            values.append(float(row["realized_pnl"]) / risk)
+    if len(values) < MIN_SAMPLE:
+        return EdgeAssessment(len(values), None, None, base_risk,
+                              f"only {len(values)} of {MIN_SAMPLE} "
+                              f"out-of-sample trades")
+    mean_r = sum(values) / len(values)
+    variance = sum((v - mean_r) ** 2 for v in values) / (len(values) - 1)
+    standard_error = math.sqrt(variance / len(values))
+    lower = mean_r - CONFIDENCE_SIGMAS * standard_error
+    if lower <= 0:
+        return EdgeAssessment(len(values), mean_r, lower, base_risk,
+                              "no edge proven at this confidence")
+    # Scale with the proven lower bound, not the point estimate: the
+    # size is only as trustworthy as the weakest defensible edge.
+    multiple = min(1.0 + lower / 0.10, MAX_RISK_MULTIPLE)
+    return EdgeAssessment(len(values), mean_r, lower, base_risk * multiple,
+                          f"edge proven, scaling {multiple:.2f}x")

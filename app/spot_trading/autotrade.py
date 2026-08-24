@@ -600,6 +600,21 @@ async def run_loop(
               f"paper_trade_only={platform.paper_trade_only})")
     if max_concurrent is not None:
         _safe_log(f"  max_concurrent_positions={max_concurrent}")
+    # Size follows proven forward edge. The daily target needs roughly
+    # ten times the base risk, but raising it while expectancy is
+    # negative only scales the losses — so the budget is earned from
+    # out-of-sample results rather than assumed.
+    from app.spot_trading.edge_scaling import assess_edge
+    edge = assess_edge(risk_per_trade)
+    if edge.risk_usd > risk_per_trade:
+        _safe_log(
+            f"  ⬆ risk scaled ${risk_per_trade:.2f} → ${edge.risk_usd:.2f} "
+            f"({edge.reason}; {edge.trades} trades, "
+            f"lower bound {edge.lower_bound_r:+.3f}R)"
+        )
+        risk_per_trade = edge.risk_usd
+    else:
+        _safe_log(f"  risk held at base: {edge.reason}")
     _safe_log(f"  risk_per_trade=${risk_per_trade:.2f}")
     _safe_log(f"  notional_cap=${notional_per_trade:.2f}")
     from app.spot_trading.regime import summary as _regime_summary
