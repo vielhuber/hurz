@@ -1425,3 +1425,58 @@ why this is not a close call: even granting the finding entirely, at
 face value, with no correction for selection, it moves the daily result
 from roughly zero to roughly zero. It is recorded as a preregistered
 forward-test candidate, nothing more.
+
+## 37. What reaching the target would actually require
+
+The daily result is a product of three terms:
+
+    daily = trades_per_day x E[R] x risk_per_trade
+
+Two are measured and near zero; the third is bounded by the account and
+by the project's own risk rule. Required risk per trade for 58.49 USD/day
+(50 EUR), on a 654 USD account:
+
+| E[R] | 2 trades/day | 5 | 10 | 20 | 50 |
+|---:|---:|---:|---:|---:|---:|
+| +0.05 | 585 | 234 | 117 | 58 | 23 |
+| +0.10 | 292 | 117 | 58 | 29 | 12 |
+| +0.20 | 146 | 58 | 29 | 15 | 6 |
+| +0.30 | 97 | 39 | 19 | 10 | 4 |
+| +0.50 | 58 | 23 | 12 | 6 | 2 |
+
+Measured: **4.17 trades/day, E[R] between 0.00 and +0.02, 3 USD risk** —
+which is 0.46 % of the account, deliberately conservative and fixed by
+the project's 3 USD / 250 USD notional rule.
+
+Even suspending that rule and risking 2 % of the account (13 USD) at the
+current frequency:
+
+| E[R] | USD/day | short by |
+|---:|---:|---:|
+| +0.10 | 5.42 | 11x |
+| +0.20 | 10.84 | 5x |
+| +0.30 | 16.26 | 4x |
+
+At a genuine +0.20 R — better than the measured value by an amount no
+test in this project could establish — the target still needs an account
+of about **3,500 USD**, five times the current one.
+
+So the target requires all three simultaneously:
+
+1. **an edge of roughly +0.20 R**, where thirty-six sections of
+   measurement against random controls find approximately zero;
+2. **about five times the capital**, which only the account holder can
+   provide;
+3. **a relaxation of the 3 USD risk rule**, which is a standing project
+   constraint and not mine to change.
+
+None of the three is a code problem, and the first is the one that
+matters: with E[R] at zero, the other two multiply zero.
+
+### Current state
+
+Forward test since the cutoff: 30 trades, 3 closed, **-2.53 USD**.
+Seven positions open. The bot is running on the Capital demo account
+with the corrected risk controls, the cost blocklist, `donchian_trail`
+and `donchian_breakout_v3` blocked for entries, and backtests now
+measuring 180 days instead of 30.
