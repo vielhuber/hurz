@@ -70,6 +70,14 @@ _ACTIVE_PAIRS_PATH = "data/active_pairs.json"
 _MIN_DIST_PATH = "data/capital_min_distances.json"
 _PINNED_PATH = "data/pinned_pairs.json"
 
+# Live-expectancy veto. Deliberately asymmetric: realized results are
+# never used to PROMOTE a combo — with 3-20 trades per combo the top of
+# that ranking is noise, which is exactly how the pinned list filled up
+# with losers. They are only used to RETIRE one, and only once the
+# sample is large enough for a clearly negative mean to mean something.
+_VETO_MIN_TRADES = 8
+_VETO_MAX_EXPECTANCY_R = -0.15
+
 
 @dataclass
 class PairScore:
@@ -299,6 +307,57 @@ def _pinned_scores(
     return rows
 
 
+def live_expectancy_veto(platform: Optional[str] = None) -> Dict[tuple, float]:
+    """Combos whose realized live trading proves them unprofitable.
+
+    Returns `{(strategy, pair): mean_R}` for every combo with at least
+    `_VETO_MIN_TRADES` closed live trades whose mean R is at or below
+    `_VETO_MAX_EXPECTANCY_R`. R is computed per trade from the risk
+    actually taken (fill price to stop, times size), so combos on
+    different instruments stay comparable.
+
+    A journal that cannot be read yields an empty veto — the selection
+    must degrade to its previous behaviour rather than stop trading."""
+    query = """
+        SELECT strategy, pair,
+               COUNT(*) AS n,
+               SUM(realized_pnl / (
+                   ABS(COALESCE(fill_price, entry_price) - stop_loss) * size
+               )) AS total_r
+        FROM spot_trades
+        WHERE accepted = 1 AND paper_mode = 0 AND exit_time IS NOT NULL
+          AND realized_pnl IS NOT NULL AND size > 0
+          AND ABS(COALESCE(fill_price, entry_price) - stop_loss) > 0
+          {platform_clause}
+        GROUP BY strategy, pair
+        HAVING COUNT(*) >= %s
+    """
+    try:
+        from app.utils.singletons import database
+        if platform:
+            rows = database.select(
+                query.format(platform_clause="AND platform = %s"),
+                (platform, _VETO_MIN_TRADES),
+            )
+        else:
+            rows = database.select(
+                query.format(platform_clause=""),
+                (_VETO_MIN_TRADES,),
+            )
+    except Exception:
+        return {}
+    vetoed: Dict[tuple, float] = {}
+    for row in rows or []:
+        n = int(row.get("n") or 0)
+        total_r = row.get("total_r")
+        if not n or total_r is None:
+            continue
+        mean_r = float(total_r) / n
+        if mean_r <= _VETO_MAX_EXPECTANCY_R:
+            vetoed[(row.get("strategy"), row.get("pair"))] = mean_r
+    return vetoed
+
+
 def persist_active_pairs(
     scores: List[PairScore], top_n: int = 5,
     out_path: str = _ACTIVE_PAIRS_PATH,
@@ -316,14 +375,21 @@ def persist_active_pairs(
     entries and pollute the experiment's forward data (observed 2026-07-11:
     the nightly refresh picked donchian on HK50 + SILVER where the 4h book
     is pinned). Non-exclusive pins keep the old permissive behavior.
+
+    Combos retired by `live_expectancy_veto` are dropped first, pins
+    included: a pin exists to survive a thin BACKTEST, not to outrank
+    its own realized losses.
     Returns the persisted payload (also useful for dry-run inspection)."""
-    pins = _pinned_scores(platform)
+    vetoed = live_expectancy_veto(platform)
+    pins = [s for s in _pinned_scores(platform)
+            if (s.strategy, s.pair) not in vetoed]
     reserved: Dict[str, set] = {}
     for s in pins:
         if s.exclusive:
             reserved.setdefault(s.pair, set()).add(s.strategy)
     ranked = [s for s in scores
-              if s.pair not in reserved or s.strategy in reserved[s.pair]]
+              if (s.pair not in reserved or s.strategy in reserved[s.pair])
+              and (s.strategy, s.pair) not in vetoed]
     chosen = ranked[:top_n]
     have = {(s.platform, s.strategy, s.resolution, s.pair) for s in chosen}
     chosen += [s for s in pins
