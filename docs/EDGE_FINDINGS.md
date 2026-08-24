@@ -761,3 +761,59 @@ Every remaining lever — venue (section 14), risk-reward (15), holding
 leash (17), stop floor (19), selection filters (22) — has now been
 measured and none moves the result. What is missing is upstream of all
 of them.
+
+## 23. The structural vise: cheap instruments cannot clear the venue's minimum stop
+
+This is the deepest explanation the project has reached, and it makes
+sections 18–19 follow from one fact rather than several.
+
+Capital.com enforces a **minimum stop distance of 1.05 %** of price
+(including the 5 % buffer). The live floor of 1 % is not an arbitrary
+setting — it is that venue rule. Now put it against the cost table:
+
+| instrument | spread | stop needed for a 10 % cost share | ATR stop the strategies produce (1h) |
+|---|---:|---:|---|
+| US30 | 0.004 % | 0.04 % | ~0.2–0.5 % |
+| US500 | 0.008 % | 0.08 % | ~0.3 % |
+| EURUSD | 0.006 % | 0.06 % | ~0.2 % |
+| GOLD | 0.006 % | 0.06 % | ~0.4 % |
+| DOTUSD | 0.51 % | 5.1 % | ~1.5 % |
+| AAVEUSD | 1.00 % | 10 % | ~2 % |
+| APTUSD | 5.00 % | 50 % | ~2 % |
+
+**The two constraints select disjoint sets:**
+
+- Instruments cheap enough to trade (indices, FX) produce ATR stops
+  *below* the venue minimum. Every signal is either rejected or widened
+  to 1.05 %, at which point it is no longer the stop the strategy asked
+  for.
+- Instruments volatile enough to clear the venue minimum naturally
+  (crypto, some commodities) carry spreads 60–600x wider, so the cost
+  share is far past any sensible ceiling.
+
+Measured: `donchian_breakout` on six cheap instruments over 30 days
+produces **zero live-tradeable signals** at 1h — 93 signals, all below
+the floor. At 4h the rejection count drops (2–6 per instrument instead
+of 9–25) but the surviving count is still **zero**: even four-hour ATR
+stops on indices sit under 1 %.
+
+This explains, from a single mechanism, why:
+
+- frequency is 60x short of the target (section 18) — the venue rule
+  removes almost every signal on the only instruments worth trading;
+- the traded book lost money (sections 9, 19) — what *did* clear the
+  minimum naturally was the expensive half, and 177 such trades account
+  for -308.59 USD, 68 % of the total loss;
+- no parameter helps (sections 14–17, 22) — RR, leash, filters and
+  venue-of-execution all operate inside a set that is nearly empty.
+
+Dropping the floor to 0.2 % in backtest does produce trades on cheap
+instruments — 33 of them, 42.4 % win rate, **E[R] +0.041** — but those
+are trades whose stop was widened to the venue minimum, so they are not
+what the strategy signalled, and t = 0.19 makes the figure
+indistinguishable from zero anyway. **The floor was left in place.**
+
+The only structural escape is a venue without a percentage-based
+minimum stop, which would allow tight stops on the cheap instruments.
+Section 14 shows that even then the hit rate would have to rise, so this
+is a necessary condition, not a sufficient one.
