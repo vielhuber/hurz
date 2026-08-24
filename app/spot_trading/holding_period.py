@@ -22,6 +22,11 @@ _STRATEGY_MAX_HOLD_BARS = {
 }
 
 
+def max_hold_bars_for(strategy_name: str, default: int = _DEFAULT_MAX_HOLD_BARS) -> int:
+    """Keep strategy-specific holding leashes identical in every execution path."""
+    return _STRATEGY_MAX_HOLD_BARS.get(strategy_name, default)
+
+
 def _configured_max_hold_bars() -> int:
     configured_bars = os.getenv("HURZ_MAX_HOLD_BARS")
     try:
