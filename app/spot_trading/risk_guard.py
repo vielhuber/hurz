@@ -30,6 +30,7 @@ class DailyLoss:
     limit_r: float
     blocked: bool
     trades: int
+    error: Optional[str] = None
 
 
 def _limit() -> float:
@@ -48,9 +49,8 @@ def _limit() -> float:
 def daily_loss(now: Optional[datetime] = None) -> DailyLoss:
     """Realised result so far today, in R, and whether it bars entries.
 
-    A journal that cannot be read reports no loss: the guard must not
-    halt trading because of an infrastructure hiccup — that decision
-    belongs to the operator, not to a failed query."""
+    A journal that cannot be read blocks entries because an unknown daily
+    loss must never be treated as zero."""
     limit = _limit()
     now = now or datetime.now(timezone.utc)
     try:
@@ -67,8 +67,8 @@ def daily_loss(now: Optional[datetime] = None) -> DailyLoss:
             """,
             (now.strftime("%Y-%m-%d 00:00:00"),),
         )
-    except Exception:
-        return DailyLoss(0.0, limit, False, 0)
+    except Exception as exc:
+        return DailyLoss(0.0, limit, True, 0, str(exc))
     total = 0.0
     count = 0
     for row in rows or []:

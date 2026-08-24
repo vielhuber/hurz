@@ -15,13 +15,21 @@ from app.platforms import OrderResult
 from app.spot_trading.autotrade import TradeIntent
 
 
+def _log_failure(operation: str, exc: Exception) -> None:
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    print(
+        f"[spot] {now} ⚠ journal {operation} failed: "
+        f"{type(exc).__name__}: {exc}"
+    )
+
+
 def record(
     intent: TradeIntent, result: OrderResult, *,
     platform: str, paper_mode: bool, size: Optional[float] = None,
     sizing_reference_price: Optional[float] = None,
     planned_risk: Optional[float] = None,
     fill_risk: Optional[float] = None,
-) -> None:
+) -> bool:
     """Persist a single (intent, result) pair to the journal.
 
     Failures are logged-and-swallowed: the trade journal must never
@@ -66,9 +74,10 @@ def record(
                 float(intent.confidence) if intent.confidence is not None else None,
             ),
         )
-    except Exception:
-        # Journal failures must never crash the autotrader.
-        pass
+        return True
+    except Exception as exc:
+        _log_failure("record", exc)
+        return False
 
 
 def find_open_by_deal_id(deal_id: str) -> Optional[Dict[str, Any]]:
@@ -88,7 +97,8 @@ def find_open_by_deal_id(deal_id: str) -> Optional[Dict[str, Any]]:
             (deal_id,),
         )
         return rows[0] if rows else None
-    except Exception:
+    except Exception as exc:
+        _log_failure("find-open", exc)
         return None
 
 
@@ -123,13 +133,50 @@ def list_unresolved_open(platform: Optional[str] = None) -> List[Dict[str, Any]]
             ORDER BY id ASC
             """
         )
-    except Exception:
+    except Exception as exc:
+        _log_failure("list-open", exc)
         return []
+
+
+def list_recent_issued_times(
+    platform: str,
+    paper_mode: bool,
+    since: datetime,
+) -> Optional[List[datetime]]:
+    """Load order attempts so the rolling cap survives process restarts."""
+    try:
+        from app.utils.singletons import database
+        rows = database.select(
+            """
+            SELECT created_at
+            FROM spot_trades
+            WHERE platform = %s AND paper_mode = %s AND created_at >= %s
+              AND (accepted = 1 OR COALESCE(error, '') NOT LIKE 'skipped:%')
+            ORDER BY created_at ASC
+            """,
+            (
+                platform,
+                bool(paper_mode),
+                since.strftime("%Y-%m-%d %H:%M:%S"),
+            ),
+        )
+    except Exception as exc:
+        _log_failure("list-recent-issued", exc)
+        return None
+    issued = []
+    for row in rows or []:
+        created_at = row.get("created_at")
+        if created_at is None:
+            continue
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        issued.append(created_at)
+    return issued
 
 
 def update_deal_id(
     journal_id: int, deal_id: str, *, fill_price: Optional[float] = None,
-) -> None:
+) -> bool:
     """Replace a row's deal_id — used by the startup reconcile when a
     journal row holds the order's dealReference (confirms poll failed
     at entry) but a matching broker position exists under its real
@@ -165,15 +212,17 @@ def update_deal_id(
                 int(journal_id),
             ),
         )
-    except Exception:
-        pass
+        return True
+    except Exception as exc:
+        _log_failure("update-deal-id", exc)
+        return False
 
 
 def record_exit(
     journal_id: int, *,
     exit_price: float, exit_time: datetime,
     outcome: str, realized_pnl: Optional[float],
-) -> None:
+) -> bool:
     """Update a spot_trades row with exit details. `outcome` is one of
     'win' / 'loss' / 'timeout' / 'manual' / 'unknown'. Like `record`,
     failures are swallowed to keep the autotrader running."""
@@ -194,5 +243,7 @@ def record_exit(
                 int(journal_id),
             ),
         )
-    except Exception:
-        pass
+        return True
+    except Exception as exc:
+        _log_failure("record-exit", exc)
+        return False

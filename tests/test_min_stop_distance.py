@@ -59,19 +59,28 @@ class MinStopFractionTest(unittest.TestCase):
 
 
 class StopFloorRejectionTest(IsolatedAsyncioTestCase):
-    async def _evaluate(self) -> object:
-        passing_gate = SimpleNamespace(blocked=False, adx=42.0, reason="")
+    async def _evaluate(self, *, gate=None, on_rejected_intent=None) -> object:
+        gate = gate or SimpleNamespace(blocked=False, adx=42.0, reason="")
         with patch.object(autotrade, "get_strategy", return_value=_signal), \
-                patch("app.spot_trading.regime.gate", return_value=passing_gate):
+                patch("app.spot_trading.regime.gate", return_value=gate):
             return await autotrade.evaluate_pair(
                 TightStopPlatform(), "TESTUSD",
                 strategy_name="donchian_breakout", resolution="1h",
                 stop_atr=1.0, rr=1.5, lookback_bars=240,
+                on_rejected_intent=on_rejected_intent,
             )
 
     async def test_signal_with_a_stop_inside_the_cost_floor_is_dropped(self):
+        rejected = []
         with patch.dict(os.environ, {"HURZ_MIN_STOP_FRACTION": "0.01"}):
-            self.assertIsNone(await self._evaluate())
+            self.assertIsNone(await self._evaluate(
+                on_rejected_intent=lambda intent, reason: rejected.append(
+                    (intent, reason)
+                ),
+            ))
+
+        self.assertEqual(1, len(rejected))
+        self.assertIn("stop distance below", rejected[0][1])
 
     async def test_same_signal_survives_once_the_floor_is_disabled(self):
         with patch.dict(os.environ, {"HURZ_MIN_STOP_FRACTION": "0"}):
@@ -84,6 +93,27 @@ class StopFloorRejectionTest(IsolatedAsyncioTestCase):
             abs(intent.entry_price - intent.stop_loss) / intent.entry_price,
             0.01,
         )
+
+    async def test_regime_veto_reports_the_rejected_intent(self):
+        rejected = []
+        gate = SimpleNamespace(
+            blocked=True,
+            adx=20.0,
+            reason="trend-following needs ADX>=30, got 20.0",
+        )
+
+        with patch.dict(os.environ, {"HURZ_MIN_STOP_FRACTION": "0"}):
+            result = await self._evaluate(
+                gate=gate,
+                on_rejected_intent=lambda intent, reason: rejected.append(
+                    (intent, reason)
+                ),
+            )
+
+        self.assertIsNone(result)
+        self.assertEqual(1, len(rejected))
+        self.assertEqual(20.0, rejected[0][0].entry_adx)
+        self.assertIn("regime filter", rejected[0][1])
 
 
 if __name__ == "__main__":

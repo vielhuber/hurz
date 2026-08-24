@@ -72,6 +72,8 @@ class ReconcileAdoptionTest(IsolatedAsyncioTestCase):
                                                 "resolution": "1h"}]), \
                 patch.object(journal, "list_unresolved_open",
                              lambda platform=None: [row]), \
+                patch.object(journal, "list_recent_issued_times",
+                             return_value=[]), \
                 patch.object(journal, "update_deal_id",
                              lambda journal_id, deal_id, **kw:
                              adopted.append((journal_id, deal_id, kw))), \

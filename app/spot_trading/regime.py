@@ -24,8 +24,8 @@ is blocked *above* the range threshold. The gap between the two
 thresholds is the deliberate stand-aside band.
 
 Strategies whose style is "neutral" (e.g. multi_consensus) and unknown
-strategies are never blocked. When ADX is unavailable (warmup, NaN) we
-fail OPEN — never block on missing data.
+strategies are never blocked. Classified strategies fail closed when ADX
+is unavailable so missing indicator data cannot silently disable the router.
 
 CONSISTENCY
 -----------
@@ -39,8 +39,7 @@ TOGGLE / TUNE via env (read per call; set before bot start):
     HURZ_REGIME_FILTER    = 1|0   (default 1 = on)
     HURZ_REGIME_ADX_TREND = float (default 30 — trend-following floor)
     HURZ_REGIME_ADX_RANGE = float (default 20 — mean-reversion ceiling)
-    HURZ_REGIME_ADX_TREND_CORE = float (default 35 — raised floor for the
-                                        1h core, see _CORE_1H)
+    HURZ_REGIME_ADX_TREND_CORE = float (default 30, see _CORE_1H)
 """
 from __future__ import annotations
 
@@ -132,8 +131,8 @@ def decide(strategy_name: str, adx_value: Optional[float]) -> RegimeDecision:
     """Router policy: given a strategy and the current ADX, decide whether
     the signal may trade. Trend-following needs ADX >= adx_trend; mean-
     reversion needs ADX <= adx_range; the gap between is a no-trade zone
-    where both styles are blocked. Fails open on missing data / disabled
-    / neutral."""
+    where both styles are blocked. Missing ADX blocks classified strategies
+    because silently disabling the router is less safe than standing aside."""
     enabled, adx_trend, adx_range = _config()
     style = style_of(strategy_name)
     if not enabled:
@@ -141,7 +140,7 @@ def decide(strategy_name: str, adx_value: Optional[float]) -> RegimeDecision:
     if style == "neutral":
         return RegimeDecision(False, "n/a", adx_value, "neutral strategy")
     if adx_value is None or not math.isfinite(adx_value):
-        return RegimeDecision(False, "unknown", None, "ADX unavailable — allow")
+        return RegimeDecision(True, "unknown", None, "ADX unavailable — block")
     if style == "trend":
         floor = _trend_floor(strategy_name, adx_trend)
         if adx_value >= floor:
