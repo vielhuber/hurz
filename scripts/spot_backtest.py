@@ -307,6 +307,11 @@ def _bars_to_df(bars: List[Bar]) -> pd.DataFrame:
     return pd.DataFrame([{
         "timestamp": b.timestamp,
         "open": b.open, "high": b.high, "low": b.low, "close": b.close,
+        # The strategy contract in app/strategies/base.py promises a
+        # volume column; dropping it here meant any strategy using it
+        # would raise KeyError, so none could be written. Capital.com
+        # populates it on every bar.
+        "volume": b.volume,
     } for b in bars])
 
 
