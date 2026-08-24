@@ -85,7 +85,11 @@ class RuntimeGuardWiringTest(IsolatedAsyncioTestCase):
         # cost filter. Without an empty spread table the audited-spread
         # fallback would skip the crypto alts before a guard ever sees
         # them, and the assertions below would silently test nothing.
-        with patch.object(autotrade, "_SPREAD_PERCENT_CACHE", {}), \
+        # The live veto reads the real journal; these tests exercise the
+        # position and loss guards, so it must not thin the list here.
+        with patch.object(autotrade, "_drop_retired",
+                          lambda active, platform: (active, [])), \
+                patch.object(autotrade, "_SPREAD_PERCENT_CACHE", {}), \
                 patch.object(autotrade, "get_platform", lambda name: platform), \
                 patch.object(pair_selector, "load_active_pairs",
                              lambda *args, **kwargs: active), \
@@ -218,7 +222,11 @@ class RuntimeGuardWiringTest(IsolatedAsyncioTestCase):
         # cost filter. Without an empty spread table the audited-spread
         # fallback would skip the crypto alts before a guard ever sees
         # them, and the assertions below would silently test nothing.
-        with patch.object(autotrade, "_SPREAD_PERCENT_CACHE", {}), \
+        # The live veto reads the real journal; these tests exercise the
+        # position and loss guards, so it must not thin the list here.
+        with patch.object(autotrade, "_drop_retired",
+                          lambda active, platform: (active, [])), \
+                patch.object(autotrade, "_SPREAD_PERCENT_CACHE", {}), \
                 patch.object(autotrade, "get_platform", lambda name: platform), \
                 patch.object(pair_selector, "load_active_pairs",
                              return_value=active), \
