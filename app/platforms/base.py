@@ -136,6 +136,7 @@ class PreparedOrder:
     take_profit: Optional[float]
     constraints: OrderConstraints = field(default_factory=OrderConstraints)
     adjustments: Tuple[str, ...] = ()
+    round_trip_cost: float = 0.0
 
 
 class Platform(ABC):

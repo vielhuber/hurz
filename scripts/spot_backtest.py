@@ -50,7 +50,9 @@ from app.spot_trading.strategy_parameters import (
 from app.spot_trading.position_sizing import (
     DEFAULT_NOTIONAL_CAP_USD,
     DEFAULT_TARGET_RISK_USD,
+    MAX_ROUND_TRIP_COST_RISK_FRACTION,
     calculate_position_size,
+    calculate_round_trip_cost_fraction,
 )
 
 
@@ -296,6 +298,14 @@ def _simulate_trades(asset: str, df: pd.DataFrame, signals, *,
         venue_min = _venue_min_distance(platform, asset, entry)
         if venue_min > 0 and stop_dist < venue_min:
             stop_dist = venue_min
+        round_trip_cost = 2.0 * fee_rate * entry
+        cost_fraction = calculate_round_trip_cost_fraction(
+            round_trip_cost=round_trip_cost,
+            stop_distance=stop_dist,
+        )
+        if (round_trip_cost > 0
+                and cost_fraction > MAX_ROUND_TRIP_COST_RISK_FRACTION):
+            continue
         target_dist = rr * stop_dist
         if sig.direction == +1:
             sl = entry - stop_dist; tp = entry + target_dist

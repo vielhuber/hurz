@@ -51,7 +51,9 @@ from app.spot_trading.strategy_parameters import (
 from app.spot_trading.position_sizing import (
     DEFAULT_NOTIONAL_CAP_USD,
     DEFAULT_TARGET_RISK_USD,
+    MAX_ROUND_TRIP_COST_RISK_FRACTION,
     calculate_position_size,
+    calculate_round_trip_cost_fraction,
 )
 from app.strategies import get_strategy, add_indicators
 
@@ -1215,6 +1217,37 @@ async def run_loop(
                         if prepared.take_profit is not None else intent.take_profit
                     ),
                 )
+                stop_distance = abs(
+                    prepared.reference_price - intent.stop_loss
+                )
+                cost_fraction = calculate_round_trip_cost_fraction(
+                    round_trip_cost=prepared.round_trip_cost,
+                    stop_distance=stop_distance,
+                )
+                if (prepared.round_trip_cost > 0
+                        and cost_fraction
+                        > MAX_ROUND_TRIP_COST_RISK_FRACTION):
+                    error = (
+                        f"skipped: round-trip cost {prepared.round_trip_cost:.8g} "
+                        f"is {cost_fraction:.1%} of stop distance "
+                        f"{stop_distance:.8g}"
+                    )
+                    _safe_log(f"⏭ {intent.pair}: {error} ({intent.strategy})")
+                    skip_result = OrderResult(
+                        accepted=False,
+                        asset=intent.pair,
+                        direction=intent.direction,
+                        error=error,
+                    )
+                    from app.spot_trading.journal import record as _journal_record
+                    _journal_record(
+                        intent,
+                        skip_result,
+                        platform=platform_name,
+                        paper_mode=platform.paper_trade_only,
+                    )
+                    issued_intents[dedup_key] = intent.bar_time
+                    continue
                 constraints = prepared.constraints
                 sizing = calculate_position_size(
                     entry_price=prepared.reference_price,

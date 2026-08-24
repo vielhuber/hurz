@@ -483,6 +483,10 @@ class CapitalComPlatform(Platform):
                 max_size=max_size if max_size > 0 else None,
             ),
             adjustments=tuple(adjustments),
+            round_trip_cost=(
+                float(offer) - float(bid)
+                if bid is not None and offer is not None else 0.0
+            ),
         )
 
     async def place_order(
