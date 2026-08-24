@@ -151,6 +151,11 @@ def _load_min_dist_cache() -> dict:
     return _MIN_DIST_CACHE
 
 
+# Capital.com's percentage rule including the 5% runtime buffer,
+# matching pair_selector._DEFAULT_VENUE_MIN_PERCENT.
+_DEFAULT_VENUE_MIN_PERCENT = 1.05
+
+
 def _venue_min_distance(platform: str, pair: str, ref_price: float) -> float:
     """Compute the venue's minimum stop-distance for `pair` at `ref_price`.
 
@@ -161,14 +166,18 @@ def _venue_min_distance(platform: str, pair: str, ref_price: float) -> float:
     if platform != "capital_com":
         return 0.0
     rules = _load_min_dist_cache()
-    entry = rules.get(pair)
-    if not entry:
-        return 0.0
+    entry = rules.get(pair) or {}
     unit = entry.get("min_dist_unit")
     value = entry.get("min_dist_value", 0)
-    if unit != "PERCENTAGE" or not value:
-        return 0.0
-    return ref_price * float(value) * 1.05
+    if unit == "PERCENTAGE" and value:
+        return ref_price * float(value) * 1.05
+    # The audit file covers 14 instruments; US500, US30, GOLD and DE40 are
+    # not among them. Returning 0 here meant "no expansion", so their
+    # signals then failed the floor and vanished from every backtest —
+    # while live they expand against the broker's own rule and trade
+    # normally. The selector already assumes this default for the same
+    # reason; the two must agree.
+    return ref_price * _DEFAULT_VENUE_MIN_PERCENT / 100.0
 
 
 def _venue_min_fraction(platform: str, pair: str) -> float:
@@ -336,21 +345,19 @@ def _simulate_trades(asset: str, df: pd.DataFrame, signals, *,
             continue
         entry = float(row["close"])
         stop_dist = stop_atr_mult * atr
-        # The live loop drops a signal outright when its stop sits inside
-        # the floor, and only widens afterwards. Widening here without
-        # that check traded a whole class of signals live never opens.
+        # Order matters and is not obvious: the live loop expands to the
+        # venue minimum FIRST (evaluate_pair, apply_venue_min=True) and
+        # only then applies the floor. Since the venue minimum (1.05%)
+        # exceeds the floor (1%), the floor almost never fires live.
+        # Checking it before expansion — as this once did — rejects
+        # roughly fifteen signals in sixteen that live trades happily.
+        venue_min = _venue_min_distance(platform, asset, entry)
+        if venue_min > 0 and stop_dist < venue_min:
+            stop_dist = venue_min
         if (min_stop_fraction > 0 and entry > 0
                 and stop_dist / entry < min_stop_fraction):
             skipped_below_stop_floor += 1
             continue
-
-        # Adaptive stop expansion. The venue may refuse SL/TP closer
-        # than X% — in that case the autotrader expands stop_dist to
-        # the venue minimum; the backtest must mirror that to remain
-        # a credible model of live fills.
-        venue_min = _venue_min_distance(platform, asset, entry)
-        if venue_min > 0 and stop_dist < venue_min:
-            stop_dist = venue_min
         round_trip_cost = 2.0 * fee_rate * entry
         cost_fraction = calculate_round_trip_cost_fraction(
             round_trip_cost=round_trip_cost,
