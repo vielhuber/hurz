@@ -1056,3 +1056,44 @@ the 4.17 achieved. The conclusion of section 26 is unchanged and the
 arithmetic is now sound: the gap is one to two orders of magnitude,
 and it is a frequency-times-capital problem, not one the stop floor
 explains.
+
+## 29. The 15m timeframe raises frequency but trades noise
+
+With section 28 establishing frequency as the binding constraint and the
+cheap instruments confirmed tradeable, the shortest untested lever is
+resolution. 15m carries four times the bars of 1h.
+
+Eighteen cheap instruments, 10 days (the broker's ~1000-bar limit caps
+the window at 15m):
+
+| resolution | trades | win% | PF | E[R] | capital-weighted |
+|---|---:|---:|---:|---:|---:|
+| 15m | 74 | 1.4 | 1.66 | +0.048 | +0.157 |
+| 1h | 17 | 5.9 | 0.69 | -0.112 | -0.154 |
+
+Frequency roughly doubles per unit time and the sign flips positive. It
+does not survive inspection.
+
+**The per-instrument extremes give it away.** Best and worst trades are
++0.57/+0.02 on US30, +0.13/-0.15 on DE40, +0.07/-0.18 on NZDUSD — a
+fraction of a stop in either direction. Only GOLD reaches a target
+(+1.49). The overall hit rate is **1.4 %**.
+
+These are not trades in any strategic sense. The stop is expanded to
+1.05 % and the target to 1.575 %, while the holding leash is 24 bars —
+**six hours** at 15m. An index rarely travels a full percent in six
+hours, so almost every position exits on timeout, somewhere near entry.
+The positive expectancy is the mean of that drift, not of the strategy.
+
+Statistically it is nothing: Sharpe 0.157 per trade over 74 trades gives
+**t = 1.35** (p ~ 0.088), against 2.0 for a single test and 2.4 for the
+three resolutions tried. Eleven of eighteen instruments are positive,
+five negative, three produce nothing.
+
+And taken at face value it would still not matter: 7.4 trades/day at
++0.048 R and 3 USD risk is **1.07 USD/day**, short of the target by a
+factor of 55.
+
+**Resolution was left at 1h.** Trading a shorter timeframe against an
+expanded stop converts a breakout strategy into a six-hour random
+position, which is a way to accumulate cost, not edge.
