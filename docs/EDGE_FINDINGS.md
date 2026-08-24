@@ -1855,3 +1855,33 @@ Neither the instrument nor the strategy loophole ever permitted a trade;
 both entry guards held throughout. What they corrupted was the file that
 describes what the system trades — which is the artefact every later
 analysis reads.
+
+### 44c. The loophole class is closed
+
+Both leaks had one shape: a guard living in the trader that the selector
+could not consult, so a pin walked past it. Enumerating every early
+return in the two entry paths settles whether more exist.
+
+`evaluate_pair`:
+
+| guard | kind | in the selector? |
+|---|---|---|
+| `DISABLED_LIVE_STRATEGIES` | static | yes, now |
+| `COST_BLOCKED_PAIRS` | static | yes, now |
+| fewer than 50 bars | data-dependent | not applicable |
+| no signals from the strategy | data-dependent | not applicable |
+| ATR missing or non-finite | data-dependent | not applicable |
+| regime router (ADX) | runtime | not applicable |
+| stop below the floor | runtime | not applicable |
+
+`execute_intent` carries the same two static guards plus platform error
+handling.
+
+**There are exactly two static blocks, and the selector reads both.**
+Everything else depends on the bar being evaluated and cannot be
+precomputed into a list — a combination blocked by ADX this hour is
+tradeable the next, which is the router working, not a leak.
+
+So the class is closed rather than merely two instances of it patched.
+Any future static block belongs in `trading_blocks.py`, where both sides
+see it by construction.
