@@ -197,6 +197,25 @@ def _load_spreads_cache() -> dict:
     return _SPREADS_CACHE
 
 
+_SPREAD_PCT_PATH = "data/capital_spread_percent.json"
+_SPREAD_PCT_CACHE: Optional[dict] = None
+
+
+def _load_spread_percent_cache() -> dict:
+    """Broker bid-ask spread per instrument, in percent of mid."""
+    global _SPREAD_PCT_CACHE
+    if _SPREAD_PCT_CACHE is not None:
+        return _SPREAD_PCT_CACHE
+    try:
+        with open(_SPREAD_PCT_PATH, "r", encoding="utf-8") as handle:
+            _SPREAD_PCT_CACHE = (
+                (json.load(handle) or {}).get("spread_percent") or {}
+            )
+    except (OSError, json.JSONDecodeError):
+        _SPREAD_PCT_CACHE = {}
+    return _SPREAD_PCT_CACHE
+
+
 def _fee_for(platform: str, pair: str) -> float:
     """Resolve the per-side fee for a given platform / pair.
 
@@ -212,6 +231,14 @@ def _fee_for(platform: str, pair: str) -> float:
         spreads = _load_spreads_cache()
         if pair in spreads:
             return float(spreads[pair].get("fee_per_side", 0.0))
+        # Percentage audit covering all 38 traded instruments. Without
+        # it the crypto fallback below applies 0.05%/side to every alt,
+        # while the broker quotes ~0.25%/side on ADAUSD, DOTUSD,
+        # LINKUSD and the rest — a tenfold understatement that makes
+        # exactly the untradeable instruments look backtestable.
+        percent = _load_spread_percent_cache().get(pair)
+        if percent:
+            return float(percent) / 100.0 / 2.0
         is_crypto = any(pair.startswith(prefix) for prefix in _CRYPTO_PREFIXES)
         if is_crypto:
             return 0.0005
