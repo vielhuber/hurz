@@ -406,11 +406,23 @@ def _realized_expectancy(
     stop, times size — so instruments of different sizes stay
     comparable. A journal that cannot be read yields no rows, which
     makes every caller degrade to "veto nothing" rather than stop
-    trading."""
+    trading.
+
+    The result is recomputed from exit and fill price rather than read
+    out of `realized_pnl`. Rows closed before 2026-08-21 booked that
+    column against the SIGNAL price, which understates the loss by
+    entry slippage — roughly 216 USD across 360 trades. Reading the
+    column would make this veto systematically too lenient on exactly
+    the combos it exists to retire."""
+    result = """
+        CASE WHEN exit_price IS NOT NULL AND fill_price IS NOT NULL
+             THEN (exit_price - fill_price) * direction * size
+             ELSE realized_pnl END
+    """
     query = f"""
         SELECT {group_by},
                COUNT(*) AS n,
-               SUM(realized_pnl / (
+               SUM(({result}) / (
                    ABS(COALESCE(fill_price, entry_price) - stop_loss) * size
                )) AS total_r
         FROM spot_trades

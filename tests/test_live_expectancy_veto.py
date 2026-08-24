@@ -178,3 +178,24 @@ class StrategyExpectancyVetoTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FillBasedResultTest(unittest.TestCase):
+    """Rows closed before 2026-08-21 booked `realized_pnl` against the
+    SIGNAL price, understating the loss by entry slippage. Reading that
+    column would make the veto too lenient on exactly the combos it
+    exists to retire, so the result is recomputed from exit and fill."""
+
+    def test_result_is_recomputed_from_exit_and_fill(self):
+        import inspect
+
+        source = inspect.getsource(pair_selector._realized_expectancy)
+
+        self.assertIn("(exit_price - fill_price) * direction * size", source)
+
+    def test_realized_pnl_remains_the_fallback(self):
+        import inspect
+        source = inspect.getsource(pair_selector._realized_expectancy)
+        # Rows without an exit or fill price still contribute via the
+        # stored column rather than dropping out of the sample.
+        self.assertIn("ELSE realized_pnl END", source)
