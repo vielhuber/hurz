@@ -218,7 +218,35 @@ def _derive_stop_target(entry: float, direction: int, atr: float,
     return entry + stop_dist, entry - target_dist
 
 
+# How far the cost filter may stretch a stop before giving up on the
+# trade. Beyond roughly double, the position no longer resembles the one
+# the strategy signalled.
+_MAX_COST_STOP_WIDENING = 2.0
+
 _DEFAULT_MIN_STOP_FRACTION = 0.01
+
+
+def _widen_stop_and_target(
+    intent: TradeIntent, reference_price: float, stop_distance: float,
+) -> Optional[TradeIntent]:
+    """Move stop and target out to `stop_distance`, keeping R:R intact.
+
+    Returns None when the intent carries no usable reward distance to
+    scale, so the caller can fall back to skipping the trade."""
+    old_stop_distance = abs(reference_price - intent.stop_loss)
+    if old_stop_distance <= 0 or stop_distance <= 0:
+        return None
+    rr = abs(intent.take_profit - reference_price) / old_stop_distance
+    if rr <= 0:
+        return None
+    target_distance = rr * stop_distance
+    if intent.direction == +1:
+        stop = reference_price - stop_distance
+        target = reference_price + target_distance
+    else:
+        stop = reference_price + stop_distance
+        target = reference_price - target_distance
+    return replace(intent, stop_loss=stop, take_profit=target)
 
 
 def _min_stop_fraction() -> float:
@@ -1224,6 +1252,41 @@ async def run_loop(
                     round_trip_cost=prepared.round_trip_cost,
                     stop_distance=stop_distance,
                 )
+                # Cost share falls linearly as the stop widens, and the
+                # risk budget keeps the dollar risk constant by shrinking
+                # size to match — so widening is free in risk terms where
+                # the signal can carry it. Bounded by
+                # _MAX_COST_STOP_WIDENING so a cheap instrument is nudged
+                # out of the cost trap while a structurally unhandelable
+                # one still falls through to the skip below rather than
+                # being handed a stop its strategy never asked for.
+                if (prepared.round_trip_cost > 0
+                        and cost_fraction > MAX_ROUND_TRIP_COST_RISK_FRACTION
+                        and stop_distance > 0):
+                    needed = (prepared.round_trip_cost
+                              / MAX_ROUND_TRIP_COST_RISK_FRACTION)
+                    capped = min(needed,
+                                 stop_distance * _MAX_COST_STOP_WIDENING)
+                    if capped > stop_distance:
+                        widened = _widen_stop_and_target(
+                            intent, prepared.reference_price, capped,
+                        )
+                        if widened is not None:
+                            intent = widened
+                            _safe_log(
+                                f"↔ {intent.pair}: stop widened "
+                                f"{stop_distance:.8g} → {capped:.8g} to cut "
+                                f"cost share {cost_fraction:.1%} → "
+                                f"{prepared.round_trip_cost / capped:.1%} "
+                                f"({intent.strategy})"
+                            )
+                            stop_distance = capped
+                            cost_fraction = (
+                                calculate_round_trip_cost_fraction(
+                                    round_trip_cost=prepared.round_trip_cost,
+                                    stop_distance=stop_distance,
+                                )
+                            )
                 if (prepared.round_trip_cost > 0
                         and cost_fraction
                         > MAX_ROUND_TRIP_COST_RISK_FRACTION):

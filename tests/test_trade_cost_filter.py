@@ -20,8 +20,10 @@ class HighSpreadPlatform:
     demo = True
     paper_trade_only = False
 
-    def __init__(self, stop_event: asyncio.Event) -> None:
+    def __init__(self, stop_event: asyncio.Event,
+                 round_trip_cost: float = 0.25) -> None:
         self.stop_event = stop_event
+        self.round_trip_cost = round_trip_cost
         self.orders = []
 
     async def connect(self) -> None:
@@ -44,7 +46,7 @@ class HighSpreadPlatform:
             reference_price,
             stop_loss,
             take_profit,
-            round_trip_cost=0.25,
+            round_trip_cost=self.round_trip_cost,
         )
 
     async def place_order(self, **kwargs):
@@ -110,9 +112,7 @@ class LiveTradeCostFilterTest(IsolatedAsyncioTestCase):
 
         self.assertAlmostEqual(0.2, prepared.round_trip_cost)
 
-    async def test_live_order_is_skipped_above_cost_limit(self) -> None:
-        stop_event = asyncio.Event()
-        platform = HighSpreadPlatform(stop_event)
+    async def _run(self, platform, stop_event):
         intent = TradeIntent(
             pair="TEST",
             direction=1,
@@ -141,6 +141,29 @@ class LiveTradeCostFilterTest(IsolatedAsyncioTestCase):
                 poll_seconds=1,
                 stop_event=stop_event,
             )
+        return record
+
+    async def test_moderate_cost_widens_the_stop_instead_of_skipping(self) -> None:
+        stop_event = asyncio.Event()
+        # 0.25 cost on a 1.0 stop is 25% — over the limit, but a stop of
+        # 1.25 brings it to exactly 20%, well inside the 2x widening cap.
+        platform = HighSpreadPlatform(stop_event, round_trip_cost=0.25)
+
+        await self._run(platform, stop_event)
+
+        self.assertEqual(1, len(platform.orders))
+        order = platform.orders[0]
+        self.assertAlmostEqual(98.75, order["stop_loss"])
+        # R:R of 1.5 survives the widening.
+        self.assertAlmostEqual(101.875, order["take_profit"])
+
+    async def test_unreachable_cost_still_skips(self) -> None:
+        stop_event = asyncio.Event()
+        # 0.5 cost would need a stop of 2.5 — beyond the 2x cap, so the
+        # trade is dropped rather than handed a stop it never asked for.
+        platform = HighSpreadPlatform(stop_event, round_trip_cost=0.5)
+
+        record = await self._run(platform, stop_event)
 
         self.assertEqual([], platform.orders)
         self.assertEqual(1, record.call_count)
