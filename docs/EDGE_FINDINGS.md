@@ -1097,3 +1097,46 @@ factor of 55.
 **Resolution was left at 1h.** Trading a shorter timeframe against an
 expanded stop converts a breakout strategy into a six-hour random
 position, which is a way to accumulate cost, not edge.
+
+## 30. The signals do not beat random entries
+
+Section 28 establishes that on cheap instruments the stop is always
+expanded to the venue minimum. Stop and target therefore come from broker
+mechanics, not from the strategy — which leaves the signal responsible
+for exactly two things: **when** to enter and in **which direction**.
+
+That is directly testable. Same bars, same simulator, same expansion,
+same costs, same holding leash, same number of entries — only the choice
+of bar and direction differs. Random entries were drawn uniformly over
+the usable bar range with a coin-flip direction, 20 draws per instrument
+to average out luck, across 14 cheap instruments, 1h, 30 days.
+
+| | n | E[R] | t |
+|---|---:|---:|---:|
+| strategy signals | 75 | **-0.0199** | -0.26 |
+| random entries | 1,378 | **+0.0006** | 0.04 |
+
+Difference, signal minus random: **-0.0206 R** (SE 0.0779, t = -0.26).
+
+**The signals do not beat random entry. They are marginally worse.**
+
+Two things follow.
+
+First, random trading on these instruments is break-even after costs
+(+0.0006 R). That confirms section 24 from the other direction: where
+the cost share is small, execution is not what loses the money.
+
+Second, the missing edge is in the signals themselves, not in sizing,
+exits, filters, venue or timing. Every mechanism this project spent
+twenty-nine sections measuring sits downstream of a directional call that
+carries no information.
+
+**On the test's power:** with SE 0.0779 it resolves differences from
+about **0.156 R** upward. The target requires +4.68 R per trade
+(section 28), thirty times that threshold. An edge large enough to
+matter here would be unmissable. What was measured is -0.0206 R.
+
+This is the cleanest statement of the project's central finding, and it
+is the one that should have been made first — before the parameter
+sweeps, the venue comparison, and the exit modelling. Those were all
+searches for a better way to act on a signal that says nothing.
