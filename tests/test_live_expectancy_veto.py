@@ -80,9 +80,13 @@ class LiveExpectancyVetoTest(unittest.TestCase):
 
         self.assertEqual({}, vetoed)
 
-    def test_unreadable_journal_vetoes_nothing(self):
+    def test_unreadable_journal_raises_instead_of_vetoing_nothing(self):
+        # Returning an empty veto here would hand every retired combo
+        # back to the trader on any database hiccup, with the list
+        # quietly growing as the only symptom.
         with patch.object(singletons, "database", FailingDatabase()):
-            self.assertEqual({}, pair_selector.live_expectancy_veto("capital_com"))
+            with self.assertRaises(pair_selector.VetoDataUnavailable):
+                pair_selector.live_expectancy_veto("capital_com")
 
 
 class VetoAppliesToSelectionTest(unittest.TestCase):
