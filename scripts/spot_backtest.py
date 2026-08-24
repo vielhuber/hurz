@@ -692,8 +692,11 @@ def _parse_args() -> argparse.Namespace:
                    help="write results to data/spot_backtest_results.json (default on)")
     p.add_argument("--no-persist", dest="persist", action="store_false")
     args = p.parse_args()
-    default_rr = args.rr if args.rr is not None else DEFAULT_RISK_REWARD
-    args.rr = risk_reward_for(args.strategy, default_rr)
+    # An explicit --rr is an instruction, not a default: without this the
+    # strategy table silently overrode it and every RR sweep re-measured
+    # the same configuration.
+    if args.rr is None:
+        args.rr = risk_reward_for(args.strategy, DEFAULT_RISK_REWARD)
     return args
 
 

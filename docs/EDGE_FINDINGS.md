@@ -448,3 +448,41 @@ by exhaustive search. The cost work in this project was still worth
 doing — it removed a real and large drag, and it stopped the system
 trading instruments it could never win on — but it was never going to
 be sufficient on its own.
+
+## 15. The risk-reward ratio is not the missing lever either
+
+Section 14 showed the strategies need RR 2.03 to break even at their
+33 % hit rate, against the 1.5 they trade. That makes RR the last
+untested structural knob, so it was swept over six values on the three
+surviving candidates plus GOLD, BTCUSD and ETHUSD (capital_com, 1h,
+30 days).
+
+Finding the sweep first required a fix: `--rr` was folded into the
+strategy table's *default* lookup, so for any strategy carrying its own
+value the flag was silently discarded. An RR sweep would have measured
+one configuration six times and reported six identical numbers as if
+they were six experiments.
+
+| RR | n | win% | E[R] | SE | t | p (1-sided) |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1.0 | 57 | 59.6 | +0.153 | 0.134 | 1.14 | 0.127 |
+| 1.5 | 50 | 48.0 | +0.220 | 0.180 | 1.23 | 0.110 |
+| 2.0 | 49 | 42.9 | +0.307 | 0.215 | 1.43 | 0.076 |
+| 2.5 | 45 | 31.1 | +0.115 | 0.247 | 0.47 | 0.321 |
+| 3.0 | 44 | 27.3 | +0.131 | 0.273 | 0.48 | 0.316 |
+| 4.0 | 41 | 26.8 | +0.423 | 0.348 | 1.22 | 0.112 |
+
+Best t is **1.43** at RR 2.0. Six values tested means Bonferroni
+`alpha = 0.0083`, so t would have to exceed **2.64**. Nothing comes
+close, and the widest apparent improvement (+0.423 at RR 4.0) carries
+the largest standard error of all — it is the noisiest cell in the
+table, not the best one.
+
+The shape settles it independently. A real mechanism would trend: hit
+rate falls as the target widens, and expectancy either rises or falls
+with it. Instead the differences run **+0.067, +0.087, -0.192, +0.016,
++0.292** — two sign changes across five steps. The 2.5 and 3.0 cells
+collapse and 4.0 jumps back up, which no exit-target mechanism produces.
+
+**RR was left at its configured values.** The sweep is recorded here so
+the next person does not rerun it and stop at the first ✅.
