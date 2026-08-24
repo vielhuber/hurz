@@ -1140,3 +1140,31 @@ This is the cleanest statement of the project's central finding, and it
 is the one that should have been made first — before the parameter
 sweeps, the venue comparison, and the exit modelling. Those were all
 searches for a better way to act on a signal that says nothing.
+
+### 30b. The same holds for every active strategy
+
+Section 30 tested `donchian_breakout`. Repeating it for the whole active
+set, identical method:
+
+| strategy | n | signal E[R] | random E[R] | difference | t |
+|---|---:|---:|---:|---:|---:|
+| donchian_breakout | 75 | -0.0199 | +0.0006 | -0.0206 | -0.26 |
+| turtle_breakout | 54 | +0.0562 | -0.0250 | **+0.0812** | +0.84 |
+| momentum | 7 | -0.2778 | -0.0476 | -0.2302 | -1.12 |
+| keltner_breakout | 69 | -0.0448 | -0.0336 | -0.0112 | -0.15 |
+
+**Not one beats random entry.** Every |t| is below 1.2, against 2.0 for a
+single test and roughly 2.5 once the four comparisons are corrected for.
+Three of the four are worse than a coin flip.
+
+`turtle_breakout` is the only one above random (+0.0812 R) and it is the
+one worth naming explicitly as *not* a finding: t = 0.84 over 54 trades,
+which is exactly the kind of number this project has repeatedly chased
+and repeatedly had to retract. `momentum` produced 7 signals in 30 days
+across 14 instruments, too few to say anything at all.
+
+This closes the question the project set out to answer. The strategies
+select entries that are statistically indistinguishable from picking a
+bar at random and flipping a coin — and on the cheap instruments, that
+coin flip is break-even after costs. There is no edge to size up, filter,
+re-time, re-venue or re-exit.
