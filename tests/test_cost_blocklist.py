@@ -16,12 +16,14 @@ class CostBlockedPairsTest(IsolatedAsyncioTestCase):
     def test_the_audited_instruments_are_all_listed(self):
         for pair in ("APTUSD", "AAVEUSD", "ATOMUSD", "ADAUSD", "LTCUSD",
                      "DOTUSD", "XRPUSD", "LINKUSD", "SOLUSD", "AVAXUSD",
-                     "PALLADIUM"):
+                     "PALLADIUM", "CORN", "NATURALGAS"):
             with self.subTest(pair=pair):
                 self.assertIn(pair, autotrade._COST_BLOCKED_PAIRS)
 
     def test_a_tradeable_instrument_is_not_listed(self):
-        for pair in ("US500", "EURUSD", "BTCUSD", "GOLD"):
+        # WHEAT was audited at the same time and kept: 8.5 % mean cost
+        # share against the 10 % ceiling.
+        for pair in ("US500", "EURUSD", "BTCUSD", "GOLD", "WHEAT"):
             with self.subTest(pair=pair):
                 self.assertNotIn(pair, autotrade._COST_BLOCKED_PAIRS)
 

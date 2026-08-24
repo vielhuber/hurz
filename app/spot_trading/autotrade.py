@@ -114,6 +114,14 @@ _DISABLED_LIVE_STRATEGIES = {"donchian_breakout_v3", "donchian_trail"}
 _COST_BLOCKED_PAIRS = {
     "APTUSD", "AAVEUSD", "ATOMUSD", "ADAUSD", "LTCUSD", "DOTUSD",
     "XRPUSD", "LINKUSD", "SOLUSD", "AVAXUSD", "PALLADIUM",
+    # Added 2026-08-25 after an instrument-level audit against measured
+    # live stops. CORN: 0.135 % spread against a 1.14 % mean stop is
+    # 11.8 % of risk, and 12.9 % at the tightest stop observed — it never
+    # cleared the 10 % ceiling. NATURALGAS: 0.174 % against the 1.05 %
+    # venue minimum is 16.6 %; it has produced no fills, so the figure is
+    # structural rather than observed, but spread and minimum are both
+    # measured. WHEAT was examined and kept: 8.5 % mean, 10.0 % worst.
+    "CORN", "NATURALGAS",
 }
 
 
