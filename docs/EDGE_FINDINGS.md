@@ -363,3 +363,41 @@ out-of-sample, at 3 USD of risk and roughly five trades a day it is
 **about 0.42 USD per day** — two orders of magnitude below the 50 EUR
 target, which sections 6 and 7 show to be out of reach on this account
 regardless.
+
+## 13. The backtest was pricing the untradeable instruments as cheap
+
+`_fee_for` charged a flat **0.05 % per side** to any Capital.com crypto
+pair without an entry in the 14-instrument spread audit. The broker
+actually quotes about **0.25 % per side** on the alts and **2.50 %** on
+APTUSD — an understatement of ten- to fiftyfold, concentrated precisely
+on the instruments section 3 shows to be unhandelable.
+
+This closes a loop that ran through the whole system:
+
+1. the backtest made alts look cheap, so they scored well;
+2. the pair selector picked them up;
+3. the live path traded them and lost to the spread;
+4. the PnL column booked against the signal price and hid the slippage;
+5. the vetoes read that column and retired them too slowly;
+6. the dashboard summed the same column and showed a profit.
+
+Every step biased the same way — toward expensive instruments.
+
+The percentage audit covering all 38 traded instruments is now consulted
+before the flat defaults. A 30-day run on 1h bars after the change:
+
+| pair | trades | E[R] |
+|---|---:|---:|
+| BTCUSD | 7 | +0.449 |
+| ETHUSD | 8 | +0.187 |
+| ADAUSD | **0** | — |
+| DOTUSD | **0** | — |
+| DE40 | 8 | -0.404 |
+
+ADAUSD and DOTUSD now produce **no tradeable signals at all**: the cost
+filter rejects every one. Under the old fee they would have produced a
+full set of results and gone straight into the candidate pool.
+
+Note that `data/spot_backtest_results.json` was generated under the old
+fee and is therefore optimistic for every alt in it. The nightly refresh
+regenerates it with the corrected costs.
