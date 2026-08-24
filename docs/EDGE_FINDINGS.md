@@ -889,3 +889,52 @@ have widened the tradeable set from inside the strategy configuration.
 The dead combinations are left in place: they consume scan time but no
 slots, and removing them would only hide the finding that the venue rule,
 not the selection, is what silences them.
+
+## 26. What the current configuration delivers, and why the number flatters
+
+The active list, measured over its own trading history:
+
+| set | n | win% | E[R] | capital-weighted | t | USD |
+|---|---:|---:|---:|---:|---:|---:|
+| active combinations only | 133 | 42.1 | +0.020 | **+0.126** | 0.23 | +87.23 |
+| every combination ever traded | 513 | 36.1 | -0.335 | -0.158 | -3.84 | -462.96 |
+
+The active set looks profitable. **It is not evidence of anything.** That
+list was produced by vetoes that retire combinations on realised losses,
+so the surviving set is positive by construction — the selection rule and
+the measurement read the same data. t = 0.23 says as much on its own.
+
+The unbiased estimate is the forward test, which has produced **one**
+closed trade since the cutoff.
+
+Taking the flattered number at face value anyway, as a best case:
+
+| | |
+|---|---:|
+| closes per day | 1.27 |
+| per trade at 3 USD risk | +0.378 USD |
+| **best-case daily** | **+0.48 USD** |
+| target | +58.49 USD |
+| **gap** | **122x** |
+
+So even the in-sample, selection-biased, statistically insignificant
+reading of the best configuration this project has produced falls short
+of the target by two orders of magnitude. The honest reading is not
+positive at all.
+
+### Closing balance
+
+Twenty-six sections of measurement have found: nine accounting and parity
+defects (7–13, 15, 17, 18, 20, 21, 24), all of which flattered results in
+the same direction; zero statistically significant edges across 154,560
+parameter combinations, 18 structural signal rules, and 1,440 Kraken
+variants; and one structural constraint (23) that explains the rest —
+Capital.com's 1.05 % minimum stop and instrument spreads select disjoint
+sets, leaving almost nothing tradeable.
+
+Every operational lever has been tested and none moves the result: venue
+(14), risk-reward (15), holding leash (17), stop floor (19), selection
+filters (22), ATR multiple (25).
+
+What is missing is predictive value in the signals. No configuration
+change can supply it.
