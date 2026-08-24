@@ -91,6 +91,19 @@ _RES_MINUTES = {
 }
 _DISABLED_LIVE_STRATEGIES = {"donchian_breakout_v3"}
 
+# Instruments whose spread cannot clear the cost ceiling against the
+# venue's minimum stop, recorded from the instrument-level audits. The
+# dynamic cost filter is the primary mechanism, but it reads a broker
+# quote and a missing quote used to score as zero cost — 33 trades on
+# these names still opened in August as a result, losing 74.55 USD.
+# A named list cannot be switched off by absent data.
+#
+# Changing this list requires a fresh instrument-level cost audit.
+_COST_BLOCKED_PAIRS = {
+    "APTUSD", "AAVEUSD", "ATOMUSD", "ADAUSD", "LTCUSD", "DOTUSD",
+    "XRPUSD", "LINKUSD", "SOLUSD", "AVAXUSD", "PALLADIUM",
+}
+
 
 def _safe_log(message: str) -> None:
     """Lightweight logger — keeps the spot-trading subsystem
@@ -327,6 +340,8 @@ async def evaluate_pair(
     (ATR ~0.0007 vs 1% minimum = 0.01)."""
     if strategy_name in _DISABLED_LIVE_STRATEGIES:
         return None
+    if pair in _COST_BLOCKED_PAIRS:
+        return None
     strategy = get_strategy(strategy_name)
     bars = await _fetch_recent_bars(platform, pair, resolution, lookback_bars)
     if len(bars) < 50:
@@ -421,6 +436,12 @@ async def execute_intent(
 ) -> OrderResult:
     """Hand the intent to the platform. Errors are returned in the
     OrderResult — the loop should not crash on a single bad order."""
+    if intent.pair in _COST_BLOCKED_PAIRS:
+        return OrderResult(
+            accepted=False, asset=intent.pair, direction=intent.direction,
+            size=size,
+            error=f"cost-blocked instrument: {intent.pair}",
+        )
     if intent.strategy in _DISABLED_LIVE_STRATEGIES:
         return OrderResult(
             accepted=False, asset=intent.pair, direction=intent.direction,

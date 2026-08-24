@@ -817,3 +817,35 @@ The only structural escape is a venue without a percentage-based
 minimum stop, which would allow tight stops on the cheap instruments.
 Section 14 shows that even then the hit rate would have to rise, so this
 is a necessary condition, not a sufficient one.
+
+## 24. The cost ceiling explains most of the loss — and it was leaking
+
+Splitting every closed trade by whether its cost share cleared the 10 %
+ceiling separates the book almost completely:
+
+| | n | win% | E[R] | capital-weighted | t | USD |
+|---|---:|---:|---:|---:|---:|---:|
+| cost/R <= 10 % (tradeable) | 322 | 39.4 | -0.069 | **-0.052** | -1.25 | -113.58 |
+| cost/R > 10 % (too expensive) | 185 | 29.7 | -0.801 | **-0.475** | -3.67 | **-346.70** |
+
+The expensive side loses at t = -3.67 and accounts for **75 % of the
+total loss**. The tradeable side sits at -0.052 R with t = -1.25 —
+still negative, but no longer distinguishable from zero. The system's
+losses are, to first order, a cost problem on instruments it should
+never have opened.
+
+The entry-time filter is correctly built: it widens the stop, re-checks,
+and skips the trade if the share still exceeds the ceiling. But it reads
+a **broker quote**, and a missing quote scored as zero cost — an open
+gate. The audited-spread fallback fixed that, yet the damage is visible
+in the record: **33 August trades on ATOMUSD, DOTUSD, AAVEUSD and
+PALLADIUM, losing 74.55 USD**, the most recent on 2026-08-22.
+
+All four are on the instrument block list, which until now existed only
+as a project rule enforced through that one dynamic filter. It is now
+also a named set in `autotrade`, checked at both entry boundaries —
+`evaluate_pair` and `execute_intent` — so absent data cannot reopen it.
+The dynamic filter remains primary; the list is the fail-closed backstop.
+
+Current active list contains none of these eleven instruments, so this
+changes nothing today. It closes the path by which they returned.

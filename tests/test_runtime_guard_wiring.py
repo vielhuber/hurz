@@ -125,7 +125,7 @@ class RuntimeGuardWiringTest(IsolatedAsyncioTestCase):
 
     async def test_cluster_cap_journals_the_blocked_signal(self):
         platform, record = await self._run([
-            "BTCUSD", "ETHUSD", "SOLUSD", "ADAUSD",
+            "BTCUSD", "ETHUSD", "ARBUSD", "NEARUSD",
         ])
 
         self.assertEqual(3, len(platform.orders))
