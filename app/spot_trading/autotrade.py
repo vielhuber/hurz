@@ -388,13 +388,21 @@ async def evaluate_pair(
                 f"skipped: regime filter: {decision.reason}",
             )
         return None
-    # Cost floor. Spread and slippage are paid in price units, so the
-    # narrower the stop the larger the share of the risk budget that is
-    # gone before the trade can work. Live results across 489 closed
-    # trades: stops under 1% of entry returned -0.31R, stops at or above
-    # it -0.09R, and the gap holds separately for crypto (-0.383 vs
-    # -0.065, n=31/224) and for indices/commodities (-0.377 vs -0.075,
-    # n=22/154) — so it is a cost effect, not an asset-class artefact.
+    # Volume floor. The original justification — narrow stops lose more
+    # because spread eats a bigger share of a small risk budget — does not
+    # survive booking against actual fills. Over 435 closed trades:
+    # stops under 1% return -0.058R (n=56), stops at or above it -0.432R
+    # (n=379). The floor removes the *better* side, not the worse one; the
+    # old figures came from the signal-price PnL column that overstated
+    # narrow-stop losses precisely because slippage is a larger share of a
+    # small R.
+    #
+    # It stays on regardless, for a different reason: expectancy is
+    # negative on both sides, so trading more of either only loses faster.
+    # Removing it would lift the blended expectancy (-0.432 to -0.384) and
+    # raise the loss in dollars, because it multiplies volume roughly
+    # fifteenfold. Revisit only once expectancy is positive — at that point
+    # the floor becomes the single largest constraint on frequency.
     min_stop_fraction = _min_stop_fraction()
     if min_stop_fraction > 0 and entry_price > 0:
         if abs(entry_price - sl) / entry_price < min_stop_fraction:
