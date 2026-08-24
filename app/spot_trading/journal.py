@@ -64,7 +64,13 @@ def record(
                 float(intent.stop_loss), float(intent.take_profit),
                 float(size) if size is not None else None,
                 bool(result.accepted), result.deal_id,
-                float(result.fill_price) if result.fill_price is not None else None,
+                # A fill of exactly zero is not a price, it is a missing
+                # value that slipped through as one. Stored as 0 it
+                # defeats every `COALESCE(fill_price, entry_price)`
+                # downstream, so the risk maths silently reads a zero
+                # reference price instead of falling back.
+                float(result.fill_price)
+                if result.fill_price else None,
                 err, bool(paper_mode),
                 float(sizing_reference_price)
                 if sizing_reference_price is not None else None,

@@ -170,3 +170,38 @@ class RecentIssuedTimesTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ZeroFillPriceTest(unittest.TestCase):
+    """A fill of exactly zero is a missing value wearing a number. Left
+    as 0 it defeats every COALESCE(fill_price, entry_price) downstream,
+    so the risk maths reads a zero reference price instead of falling
+    back to the signal price."""
+
+    def test_zero_fill_is_stored_as_null(self):
+        database = RecordingDatabase()
+        result = OrderResult(
+            accepted=True, asset="ATOMUSD", direction=1,
+            deal_id="pos-real", fill_price=0.0, size=97.0,
+        )
+
+        with patch.object(singletons, "database", database):
+            journal.record(_intent(), result, platform="capital_com",
+                           paper_mode=False, size=97.0)
+
+        _, params = database.queries[0]
+        self.assertIsNone(params[12])
+
+    def test_a_real_fill_is_preserved(self):
+        database = RecordingDatabase()
+        result = OrderResult(
+            accepted=True, asset="ATOMUSD", direction=1,
+            deal_id="pos-real", fill_price=1.69140, size=97.0,
+        )
+
+        with patch.object(singletons, "database", database):
+            journal.record(_intent(), result, platform="capital_com",
+                           paper_mode=False, size=97.0)
+
+        _, params = database.queries[0]
+        self.assertEqual(1.69140, params[12])
