@@ -77,3 +77,42 @@ class SelectorHonoursBlocklistTest(unittest.TestCase):
             finally:
                 os.unlink(path)
         self.assertEqual([], [p for p in payload["pairs"] if p["pair"] == "CORN"])
+
+
+class SelectorHonoursStrategyBlockTest(unittest.TestCase):
+    """Same loophole as the instrument block: two pinned donchian_trail
+    combos stayed in the active list after the strategy was retired.
+    Entries were refused, but the file misdescribed what was tradeable."""
+
+    def test_a_blocked_strategy_is_dropped_even_when_pinned(self):
+        import os
+        import tempfile
+        from unittest.mock import patch
+        from app.spot_trading import pair_selector
+
+        pinned = [pair_selector.PairScore(
+            platform="capital_com", strategy="donchian_trail",
+            resolution="1h", pair="US500", n=50, win_rate=0.5,
+            profit_factor=1.2, expectancy_R=0.1, sharpe=0.5, score=1.0,
+            pinned=True,
+        )]
+        with patch.object(pair_selector, "_pinned_scores", return_value=pinned), \
+                patch.object(pair_selector, "live_expectancy_veto", return_value={}), \
+                patch.object(pair_selector, "strategy_expectancy_veto", return_value={}):
+            fd, path = tempfile.mkstemp(suffix=".json")
+            os.close(fd)
+            try:
+                payload = pair_selector.persist_active_pairs(
+                    [], top_n=5, out_path=path, platform="capital_com",
+                )
+            finally:
+                os.unlink(path)
+        self.assertEqual([], payload["pairs"])
+
+    def test_open_positions_are_managed_from_the_broker_not_this_list(self):
+        # Guards live at the entry boundaries only, so a retired strategy
+        # keeps its exit path for positions already open.
+        import inspect
+        from app.spot_trading import autotrade
+        source = inspect.getsource(autotrade.run_loop)
+        self.assertIn("await platform.list_positions()", source)

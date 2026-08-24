@@ -63,7 +63,9 @@ import os
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta, timezone
 
-from app.spot_trading.instrument_blocks import COST_BLOCKED_PAIRS
+from app.spot_trading.trading_blocks import (
+    COST_BLOCKED_PAIRS, DISABLED_LIVE_STRATEGIES,
+)
 from typing import Dict, List, Optional
 
 
@@ -550,6 +552,7 @@ def persist_active_pairs(
     # cycle. Keeping them out makes the file describe what is tradeable.
     def _retired(score: PairScore) -> bool:
         return (score.pair in COST_BLOCKED_PAIRS
+                or score.strategy in DISABLED_LIVE_STRATEGIES
                 or (score.strategy, score.pair) in vetoed
                 or score.strategy in vetoed_strategies)
 
