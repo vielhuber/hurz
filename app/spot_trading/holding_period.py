@@ -22,6 +22,34 @@ _STRATEGY_MAX_HOLD_BARS = {
 }
 
 
+# Trailing-exit parameters per strategy, shared so a backtest models the
+# same exit the live loop runs. Values mirror the live defaults in
+# autotrade; a strategy absent here exits on fixed SL/TP only.
+_STRATEGY_TRAIL = {
+    "donchian_trail": ("HURZ_TRAIL_ACTIVATION_R", 1.0,
+                       "HURZ_TRAIL_ATR_MULT", 2.0),
+}
+
+
+def trail_config_for(strategy_name: str):
+    """Return (activation_R, atr_multiple) for a trailing strategy, else None."""
+    entry = _STRATEGY_TRAIL.get(strategy_name)
+    if entry is None:
+        return None
+    act_key, act_default, mult_key, mult_default = entry
+
+    def _read(key: str, default: float) -> float:
+        raw = os.getenv(key)
+        if not raw:
+            return default
+        try:
+            return float(raw)
+        except ValueError:
+            return default
+
+    return _read(act_key, act_default), _read(mult_key, mult_default)
+
+
 def max_hold_bars_for(strategy_name: str, default: int = _DEFAULT_MAX_HOLD_BARS) -> int:
     """Keep strategy-specific holding leashes identical in every execution path."""
     return _STRATEGY_MAX_HOLD_BARS.get(strategy_name, default)

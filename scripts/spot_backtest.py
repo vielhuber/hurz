@@ -95,7 +95,7 @@ _DEFAULT_RESOLUTION = "1h"
 _DEFAULT_DAYS = 30
 _DEFAULT_STOP_ATR = 1.0
 from app.spot_trading.holding_period import (
-    _DEFAULT_MAX_HOLD_BARS, max_hold_bars_for,
+    _DEFAULT_MAX_HOLD_BARS, max_hold_bars_for, trail_config_for,
 )
 _INTER_CALL_SLEEP_SEC = 0.6
 _RESULTS_PATH = "data/spot_backtest_results.json"
@@ -380,11 +380,28 @@ def _simulate_trades(asset: str, df: pd.DataFrame, signals, *,
         out_p: Optional[float] = None
         outcome_type = "open"
         bars_held = 0
+        # The live loop rides a trailing stop for some strategies. Without
+        # modelling it here the backtest scored donchian_trail as a plain
+        # RR 5.0 target, which is not the exit it runs.
+        trail = trail_config_for(strategy_name)
+        best_excursion = entry
         for j in range(1, max_hold_bars + 1):
             if i + j >= len(df):
                 break
             f = df.iloc[i + j]
             high = f["high"]; low = f["low"]
+            if trail is not None:
+                activation_r, atr_mult = trail
+                best_excursion = (max(best_excursion, high) if sig.direction == +1
+                                  else min(best_excursion, low))
+                moved = (best_excursion - entry) * sig.direction
+                if moved >= activation_r * stop_dist:
+                    # Never give back below break-even, matching live.
+                    trailed = (best_excursion - sig.direction * atr_mult * atr)
+                    if sig.direction == +1:
+                        sl = max(sl, min(trailed, best_excursion), entry)
+                    else:
+                        sl = min(sl, max(trailed, best_excursion), entry)
             if sig.direction == +1:
                 hit_sl = low <= sl
                 hit_tp = high >= tp
