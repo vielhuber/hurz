@@ -1722,3 +1722,43 @@ Volume is now available for future work and two of its standard uses are
 recorded as measured and dead. That is the useful state: the column
 exists, the obvious hypotheses are closed, and nobody has to re-derive
 them.
+
+## 42. Two more instruments fail the cost audit
+
+With expectancy at zero, cost is the only systematic drag left, so it is
+the only lever that still moves the result — from slightly negative
+toward zero. Auditing the 55 active combinations by cost share against
+their measured live stops:
+
+| cost share of risk | combinations |
+|---|---:|
+| under 2 % | 35 |
+| 2–5 % | 10 |
+| 5–10 % | 7 |
+| **over 10 %** | **3** |
+
+The three over the ceiling, audited per instrument as the block-list rule
+requires:
+
+| instrument | spread | mean live stop | cost/R mean | worst | verdict |
+|---|---:|---:|---:|---:|---|
+| CORN | 0.135 % | 1.14 % | **11.8 %** | 12.9 % | blocked |
+| NATURALGAS | 0.174 % | — | **16.6 %** | — | blocked |
+| WHEAT | 0.113 % | 1.32 % | 8.5 % | 10.0 % | kept |
+
+CORN never cleared the 10 % ceiling in any of its four fills, and it was
+still trading on 2026-08-24. NATURALGAS has produced no fills, so its
+figure is structural — 0.174 % against the 1.05 % venue minimum — but
+both terms are measured rather than assumed. WHEAT was examined at the
+same time and kept.
+
+The reasoning is structural, not performance-based: spread and venue
+minimum are both measured quantities, and their ratio breaches the
+ceiling regardless of how the trades happened to turn out. CORN's E[R] of
+-0.104 across four trades is far too small a sample to justify anything
+on its own.
+
+The dynamic filter should have caught CORN at order time. It did not,
+because widening the stop pulls the share back under the ceiling — the
+widened stop is then no longer the one the strategy asked for. The named
+list does not have that loophole.

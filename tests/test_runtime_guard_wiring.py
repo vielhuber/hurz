@@ -115,7 +115,7 @@ class RuntimeGuardWiringTest(IsolatedAsyncioTestCase):
 
     async def test_concurrent_cap_counts_orders_opened_in_the_same_cycle(self):
         platform, record = await self._run(
-            ["CORN", "WHEAT"],
+            ["COPPER", "WHEAT"],
             max_concurrent=1,
         )
 
@@ -144,7 +144,7 @@ class RuntimeGuardWiringTest(IsolatedAsyncioTestCase):
     async def test_daily_cap_survives_a_process_restart(self):
         now = datetime.now(timezone.utc)
         platform, record = await self._run(
-            ["CORN"],
+            ["COPPER"],
             recent_issued=[now] * 100,
         )
 
@@ -154,7 +154,7 @@ class RuntimeGuardWiringTest(IsolatedAsyncioTestCase):
 
     async def test_unreadable_daily_cap_history_blocks_and_records(self):
         platform, record = await self._run(
-            ["CORN"],
+            ["COPPER"],
             history_available=False,
         )
 
@@ -164,7 +164,7 @@ class RuntimeGuardWiringTest(IsolatedAsyncioTestCase):
 
     async def test_unreadable_daily_loss_journal_blocks_and_records(self):
         platform, record = await self._run(
-            ["CORN"],
+            ["COPPER"],
             daily_loss=DailyLoss(
                 0.0,
                 6.0,
@@ -187,7 +187,7 @@ class RuntimeGuardWiringTest(IsolatedAsyncioTestCase):
         bar_time = datetime.now(timezone.utc)
         active = [
             {
-                "pair": "CORN",
+                "pair": "COPPER",
                 "platform": "capital_com",
                 "strategy": strategy,
                 "resolution": "1h",
