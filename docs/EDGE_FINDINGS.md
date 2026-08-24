@@ -1793,3 +1793,42 @@ So the operating question is no longer "how much is this losing" but
 forward test reaches a verdict-grade 40 closes in roughly ten days of
 trading, for about 2.40 USD. That is the only remaining open item in
 this investigation, and it costs almost nothing to let it finish.
+
+## 44. The nightly pipeline verified, and a pin loophole closed
+
+The nightly refresh had never run with the 180-day window or the timeout,
+so it was exercised directly rather than left to fire unattended at
+05:30 UTC:
+
+| step | result |
+|---|---|
+| one strategy backtest | ok, **321 s** |
+| `_refresh_pairs` | ok, 4 s |
+
+Three strategies is therefore about sixteen minutes, comfortably inside
+the 1800 s bound.
+
+The run surfaced a loophole. **CORN reappeared in the refreshed active
+list under two strategies**, one day after being blocked, because a pin
+bypasses the ranking's cost filter. The entry guard still refused it, so
+no trade could occur — but the file no longer described what was
+tradeable, and every cycle re-checked a name that could never open.
+
+The block list now lives in `app/spot_trading/instrument_blocks.py`,
+which both the selector and the trader read. Putting it there rather than
+importing the trader from the selector matters: the first attempt did
+exactly that and perturbed unrelated tests, which is the dependency
+direction telling the truth about itself.
+
+Two tests were fragile in the same area and are now deterministic. One
+left `strategy_expectancy_veto` unstubbed, so it reached for a real
+database and passed or failed depending on whether an earlier test had
+opened a connection. The other used PALLADIUM — now cost-blocked — as an
+arbitrary instrument while testing something else entirely.
+
+After the fix the refreshed list holds 60 combinations and **no blocked
+instrument**. `turtle_breakout/GOLD` returned to it legitimately: the
+capital-weighted correction (20) moved its live figure from -0.271 R to
+-0.129 R, above the -0.15 veto threshold. That is the selection working
+as designed on corrected data, not a decision of mine — and section 36
+still applies to what it is worth.

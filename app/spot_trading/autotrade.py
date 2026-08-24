@@ -103,26 +103,9 @@ _RES_MINUTES = {
 # Entries only. Open positions keep their exit path, including the trail.
 _DISABLED_LIVE_STRATEGIES = {"donchian_breakout_v3", "donchian_trail"}
 
-# Instruments whose spread cannot clear the cost ceiling against the
-# venue's minimum stop, recorded from the instrument-level audits. The
-# dynamic cost filter is the primary mechanism, but it reads a broker
-# quote and a missing quote used to score as zero cost — 33 trades on
-# these names still opened in August as a result, losing 74.55 USD.
-# A named list cannot be switched off by absent data.
-#
-# Changing this list requires a fresh instrument-level cost audit.
-_COST_BLOCKED_PAIRS = {
-    "APTUSD", "AAVEUSD", "ATOMUSD", "ADAUSD", "LTCUSD", "DOTUSD",
-    "XRPUSD", "LINKUSD", "SOLUSD", "AVAXUSD", "PALLADIUM",
-    # Added 2026-08-25 after an instrument-level audit against measured
-    # live stops. CORN: 0.135 % spread against a 1.14 % mean stop is
-    # 11.8 % of risk, and 12.9 % at the tightest stop observed — it never
-    # cleared the 10 % ceiling. NATURALGAS: 0.174 % against the 1.05 %
-    # venue minimum is 16.6 %; it has produced no fills, so the figure is
-    # structural rather than observed, but spread and minimum are both
-    # measured. WHEAT was examined and kept: 8.5 % mean, 10.0 % worst.
-    "CORN", "NATURALGAS",
-}
+from app.spot_trading.instrument_blocks import (
+    COST_BLOCKED_PAIRS as _COST_BLOCKED_PAIRS,
+)
 
 
 def _safe_log(message: str) -> None:
