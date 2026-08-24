@@ -401,3 +401,50 @@ full set of results and gone straight into the candidate pool.
 Note that `data/spot_backtest_results.json` was generated under the old
 fee and is therefore optimistic for every alt in it. The nightly refresh
 regenerates it with the corrected costs.
+
+## 14. There is no gross edge either — retracting section 3's headline
+
+Section 3 concluded that the strategies carry a positive gross edge of
+**+261.42 USD** which trading costs then consume. That figure was
+computed against the booked PnL of -118.52 USD, and section 9 shows that
+column understates the loss by entry slippage.
+
+Against actual fills:
+
+| | USD |
+|---|---:|
+| realised, booked against fill | **-450.84** |
+| estimated spread paid | 379.94 |
+| hypothetically cost-free | **-70.90** |
+
+**Even with zero trading costs the system loses.** The gross edge does
+not exist; it was an artefact of the same signal-price booking that
+inflated every other figure in this project.
+
+The break-even arithmetic says the same thing independently. With
+`p_BE = (1 + cost/R) / (1 + RR)` at the realised RR of 1.5:
+
+| venue and instrument | cost/R | break-even hit rate |
+|---|---:|---:|
+| Capital, crypto alt (0.5 % / 1.05 % stop) | 47.6 % | 59.0 % |
+| Capital, alt with stop widened 2x | 23.8 % | 49.5 % |
+| Capital, BTC/ETH | 5.7 % | 42.3 % |
+| Capital, index | 0.6 % | 40.2 % |
+| Kraken Futures (0.1 % RT, 1 % stop) | 10.0 % | 44.0 % |
+| **cost-free, any venue** | **0 %** | **40.0 %** |
+
+The system achieves **33.0 %**. It misses break-even by seven points
+*before any cost is charged*. Moving to a venue ten times cheaper buys
+two points of the seven.
+
+To break even at 33 % the strategies would need an RR of **2.03 even
+cost-free**, and 2.33 on Kraken Futures — against the 1.5 they actually
+realise.
+
+**So the venue is not the problem and never was.** Cheaper execution
+would have reduced the loss, not removed it. What is missing is
+predictive value in the signals, which sections 1 and 5 already showed
+by exhaustive search. The cost work in this project was still worth
+doing — it removed a real and large drag, and it stopped the system
+trading instruments it could never win on — but it was never going to
+be sufficient on its own.
