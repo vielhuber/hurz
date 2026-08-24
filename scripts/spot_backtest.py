@@ -168,6 +168,19 @@ def _venue_min_distance(platform: str, pair: str, ref_price: float) -> float:
     return ref_price * float(value) * 1.05
 
 
+def _venue_min_fraction(platform: str, pair: str) -> float:
+    """Venue minimum stop distance as a fraction of price.
+
+    The same rule as `_venue_min_distance` without needing a reference
+    price, so the walk-forward check can apply it per bar."""
+    if platform != "capital_com":
+        return 0.0
+    entry = _load_min_dist_cache().get(pair)
+    if not entry or entry.get("min_dist_unit") != "PERCENTAGE":
+        return 0.0
+    return float(entry.get("min_dist_value") or 0.0) * 1.05
+
+
 def _load_spreads_cache() -> dict:
     global _SPREADS_CACHE
     if _SPREADS_CACHE is not None:
@@ -559,6 +572,14 @@ async def main(args) -> None:
                 segments=3, rr=args.rr, stop_atr=args.stop_atr,
                 max_hold=args.max_hold,
                 strategy_name=args.strategy,
+                # Without these the stability gate certifies combos the
+                # cost filter then refuses to trade — which is how the
+                # expensive instruments got waved through in the first
+                # place. `fee_rate` is per side, so double it.
+                cost_fraction=2.0 * pair_fee,
+                venue_min_fraction=_venue_min_fraction(
+                    args.platform, pair,
+                ),
             )
             if stability is not None:
                 stats["segment_stability"] = stability.as_dict()
