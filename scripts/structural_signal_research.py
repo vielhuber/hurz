@@ -30,6 +30,13 @@ from scipy import stats
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Load .env the way the bot does. Sourcing it from the shell instead
+# (`set -a; . ./.env`) lets bash expand `$` inside quoted secrets, which
+# corrupts the Capital.com password and surfaces as a 401 that looks
+# like a session limit.
+from app.utils.singletons import settings
+settings.load_env()
+
 from app.platforms import OrderConstraints, PlatformAPIError, PlatformAuthError
 from app.platforms.registry import clear_cache, get_platform
 from app.spot_trading.position_sizing import (

@@ -25,6 +25,13 @@ from dotenv import load_dotenv
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, _ROOT)
 
+# Load .env the way the bot does. Sourcing it from the shell instead
+# (`set -a; . ./.env`) lets bash expand `$` inside quoted secrets, which
+# corrupts the Capital.com password and surfaces as a 401 that looks
+# like a session limit.
+from app.utils.singletons import settings
+settings.load_env()
+
 from app.spot_trading.holding_period import stale_exit_after_seconds
 
 # Same calendars as app/utils/holiday_window.py — the dashboard must agree

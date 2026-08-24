@@ -17,6 +17,13 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Load .env the way the bot does. Sourcing it from the shell instead
+# (`set -a; . ./.env`) lets bash expand `$` inside quoted secrets, which
+# corrupts the Capital.com password and surfaces as a 401 that looks
+# like a session limit.
+from app.utils.singletons import settings
+settings.load_env()
+
 # Filters went live here; trades before this are the calibration sample.
 DEFAULT_CUTOFF = "2026-08-24"
 DEFAULT_TARGET_EUR = 50.0
