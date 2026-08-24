@@ -92,7 +92,15 @@ _DEFAULT_CAPITAL_PAIRS = [
     "PLATINUM", "PALLADIUM", "CORN", "WHEAT",
 ]
 _DEFAULT_RESOLUTION = "1h"
-_DEFAULT_DAYS = 30
+# Raised from 30 once the history paging fix landed: the adapter used to
+# fail with HTTP 400 on any range wider than ~40 days, so 30 was the
+# practical ceiling rather than a considered choice. 180 days yields
+# ~3,000 hourly bars per instrument against the ~660 before, which is the
+# difference between a sample that can reject a hypothesis and one that
+# cannot. Not 365, to keep the nightly run's request count manageable.
+_DEFAULT_DAYS = 180
+_FETCH_ATTEMPTS = 3
+_FETCH_RETRY_SECONDS = 2.0
 _DEFAULT_STOP_ATR = 1.0
 from app.spot_trading.holding_period import (
     _DEFAULT_MAX_HOLD_BARS, max_hold_bars_for, trail_config_for,
@@ -496,11 +504,27 @@ def _summarise(outcomes: List[TradeOutcome]) -> dict:
 
 
 async def _fetch(platform, pair, resolution, days):
+    """Fetch history, retrying transient transport failures.
+
+    A year of hourly data is ~9 chunked requests per instrument, and a
+    sweep over fourteen instruments issues enough of them that a few die
+    on transport errors. Without a retry the caller silently proceeds
+    with whichever instruments survived — which once turned a 14-instrument
+    cross-sectional test into a 6-instrument one and changed its result.
+    """
     to_ts = datetime.now(timezone.utc)
     from_ts = to_ts - timedelta(days=days)
-    return await platform.fetch_history(
-        pair, from_ts=from_ts, to_ts=to_ts, resolution=resolution,
-    )
+    last_error = None
+    for attempt in range(_FETCH_ATTEMPTS):
+        try:
+            return await platform.fetch_history(
+                pair, from_ts=from_ts, to_ts=to_ts, resolution=resolution,
+            )
+        except Exception as exc:
+            last_error = exc
+            if attempt + 1 < _FETCH_ATTEMPTS:
+                await asyncio.sleep(_FETCH_RETRY_SECONDS * (attempt + 1))
+    raise last_error
 
 
 def _load_persisted_results() -> dict:
