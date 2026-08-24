@@ -95,3 +95,45 @@ class EdgeScalingTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AccountCeilingTest(unittest.TestCase):
+    """A proven edge justifies a bigger bet only up to what the account
+    can absorb. Without this the 10x multiple would put roughly 43% of a
+    474 EUR balance at risk across eight concurrent positions."""
+
+    def test_equity_caps_a_proven_edge(self):
+        database = StubDatabase([0.5] * 60)
+
+        with patch.object(singletons, "database", database):
+            edge = edge_scaling.assess_edge(3.0, account_equity=474.0)
+
+        self.assertAlmostEqual(4.74, edge.risk_usd)
+        self.assertIn("capped at", edge.reason)
+
+    def test_generous_equity_leaves_the_multiple_alone(self):
+        database = StubDatabase([0.5] * 60)
+
+        with patch.object(singletons, "database", database):
+            capped = edge_scaling.assess_edge(3.0, account_equity=100_000.0)
+            uncapped = edge_scaling.assess_edge(3.0)
+
+        self.assertAlmostEqual(uncapped.risk_usd, capped.risk_usd)
+
+    def test_a_tiny_account_never_pushes_below_base_risk(self):
+        # Scaling is about edge, not about shrinking on balance alone.
+        database = StubDatabase([0.5] * 60)
+
+        with patch.object(singletons, "database", database):
+            edge = edge_scaling.assess_edge(3.0, account_equity=50.0)
+
+        self.assertEqual(3.0, edge.risk_usd)
+
+    def test_unknown_equity_does_not_unlock_the_multiple(self):
+        database = StubDatabase([0.5] * 60)
+
+        with patch.object(singletons, "database", database):
+            edge = edge_scaling.assess_edge(3.0, account_equity=None)
+
+        # No ceiling applied, but the edge multiple still governs.
+        self.assertGreater(edge.risk_usd, 3.0)

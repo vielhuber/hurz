@@ -683,7 +683,16 @@ async def run_loop(
     # negative only scales the losses — so the budget is earned from
     # out-of-sample results rather than assumed.
     from app.spot_trading.edge_scaling import assess_edge
-    edge = assess_edge(risk_per_trade)
+    # The equity ceiling is only as good as the balance we hand in; a
+    # broker that will not answer must not silently unlock the full
+    # multiple, so an unreadable balance keeps the base risk.
+    try:
+        balances = await platform.account_balance()
+        account_equity = max(balances.values()) if balances else None
+    except Exception as exc:
+        account_equity = None
+        _safe_log(f"  ⚠ account balance unavailable ({exc}) — risk held at base")
+    edge = assess_edge(risk_per_trade, account_equity=account_equity)
     if edge.risk_usd > risk_per_trade:
         _safe_log(
             f"  ⬆ risk scaled ${risk_per_trade:.2f} → ${edge.risk_usd:.2f} "
