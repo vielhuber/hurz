@@ -16,7 +16,8 @@ class ExplicitRiskRewardTest(unittest.TestCase):
             return spot_backtest._parse_args()
 
     def test_explicit_rr_survives_a_strategy_with_its_own_value(self):
-        args = self._parse(["--strategy", "donchian_breakout_v2", "--rr", "2.0"])
+        args = self._parse(["--strategy", "donchian_breakout_v2",
+                            "--rr", "2.0", "--no-persist"])
         self.assertEqual(2.0, args.rr)
 
     def test_omitted_rr_still_falls_back_to_the_strategy_table(self):

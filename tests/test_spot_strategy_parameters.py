@@ -46,15 +46,29 @@ class StrategyParameterTest(unittest.TestCase):
             args = spot_backtest._parse_args()
         self.assertEqual(3.5, args.rr)
 
-    def test_strategy_override_wins_over_cli_default(self) -> None:
+    def test_a_persisting_run_refuses_an_rr_the_live_loop_never_trades(self) -> None:
+        """Sweeping RR is legitimate; writing the result into the file the
+        pair selector ranks from is not, because the ranking would then
+        describe an exit target nothing executes."""
         argv = [
             "spot_backtest.py",
             "--strategy", "donchian_breakout_v3",
             "--rr", "1.5",
         ]
         with patch.object(sys, "argv", argv):
+            with self.assertRaises(SystemExit) as caught:
+                spot_backtest._parse_args()
+        self.assertIn("--no-persist", str(caught.exception))
+
+    def test_the_same_run_is_allowed_once_it_cannot_persist(self) -> None:
+        argv = [
+            "spot_backtest.py",
+            "--strategy", "donchian_breakout_v3",
+            "--rr", "1.5", "--no-persist",
+        ]
+        with patch.object(sys, "argv", argv):
             args = spot_backtest._parse_args()
-        self.assertEqual(3.5, args.rr)
+        self.assertEqual(1.5, args.rr)
 
     def test_core_floor_defaults_to_the_global_threshold(self) -> None:
         """The raised 1h-core floor of 35 was a test that ran from
