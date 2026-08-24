@@ -127,5 +127,54 @@ class VetoAppliesToSelectionTest(unittest.TestCase):
         self.assertEqual({("turtle_breakout", "BTCUSD")}, combos)
 
 
+class StrategyExpectancyVetoTest(unittest.TestCase):
+    def test_structurally_unprofitable_strategy_is_retired(self):
+        database = StubDatabase([
+            {"strategy": "bollinger_rev", "n": 121, "total_r": -15.5},
+        ])
+
+        with patch.object(singletons, "database", database):
+            vetoed = pair_selector.strategy_expectancy_veto("capital_com")
+
+        self.assertIn("bollinger_rev", vetoed)
+
+    def test_near_breakeven_strategy_survives(self):
+        database = StubDatabase([
+            {"strategy": "donchian_breakout", "n": 110, "total_r": -0.33},
+        ])
+
+        with patch.object(singletons, "database", database):
+            self.assertEqual({}, pair_selector.strategy_expectancy_veto("capital_com"))
+
+    def test_strategy_veto_uses_the_higher_trade_floor(self):
+        database = StubDatabase([])
+
+        with patch.object(singletons, "database", database):
+            pair_selector.strategy_expectancy_veto("capital_com")
+
+        self.assertEqual(
+            ("capital_com", pair_selector._STRATEGY_VETO_MIN_TRADES),
+            database.params,
+        )
+
+    def test_retired_strategy_removes_all_its_combos(self):
+        ranked = [_score("keltner_breakout", "DE40"),
+                  _score("keltner_breakout", "US30"),
+                  _score("turtle_breakout", "BTCUSD")]
+
+        with patch.object(pair_selector, "_pinned_scores", return_value=[]), \
+                patch.object(pair_selector, "live_expectancy_veto", return_value={}), \
+                patch.object(pair_selector, "strategy_expectancy_veto",
+                             return_value={"keltner_breakout": -0.17}), \
+                patch.object(pair_selector.json, "dump"), \
+                patch("builtins.open"), patch.object(pair_selector.os, "makedirs"):
+            payload = pair_selector.persist_active_pairs(
+                ranked, top_n=5, platform="capital_com",
+            )
+
+        combos = {(p["strategy"], p["pair"]) for p in payload["pairs"]}
+        self.assertEqual({("turtle_breakout", "BTCUSD")}, combos)
+
+
 if __name__ == "__main__":
     unittest.main()

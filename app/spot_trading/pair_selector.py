@@ -78,6 +78,13 @@ _PINNED_PATH = "data/pinned_pairs.json"
 _VETO_MIN_TRADES = 8
 _VETO_MAX_EXPECTANCY_R = -0.15
 
+# The same veto one level up. A whole strategy can be structurally
+# unprofitable across every instrument it touches, and there the sample
+# is large enough to say so with more confidence than per combo — hence
+# the higher trade floor and the milder R threshold.
+_STRATEGY_VETO_MIN_TRADES = 25
+_STRATEGY_VETO_MAX_EXPECTANCY_R = -0.10
+
 
 @dataclass
 class PairScore:
@@ -318,8 +325,40 @@ def live_expectancy_veto(platform: Optional[str] = None) -> Dict[tuple, float]:
 
     A journal that cannot be read yields an empty veto — the selection
     must degrade to its previous behaviour rather than stop trading."""
-    query = """
-        SELECT strategy, pair,
+    return {
+        (row["strategy"], row["pair"]): row["mean_r"]
+        for row in _realized_expectancy("strategy, pair", platform,
+                                        _VETO_MIN_TRADES)
+        if row["mean_r"] <= _VETO_MAX_EXPECTANCY_R
+    }
+
+
+def strategy_expectancy_veto(platform: Optional[str] = None) -> Dict[str, float]:
+    """Strategies whose realized live trading proves them unprofitable
+    across every instrument they traded.
+
+    Same asymmetry as `live_expectancy_veto`, applied one level up: a
+    strategy is only ever retired, never promoted."""
+    return {
+        row["strategy"]: row["mean_r"]
+        for row in _realized_expectancy("strategy", platform,
+                                        _STRATEGY_VETO_MIN_TRADES)
+        if row["mean_r"] <= _STRATEGY_VETO_MAX_EXPECTANCY_R
+    }
+
+
+def _realized_expectancy(
+    group_by: str, platform: Optional[str], min_trades: int,
+) -> List[Dict]:
+    """Mean realized R per group, for groups with enough closed trades.
+
+    R is derived per trade from the risk actually taken — fill price to
+    stop, times size — so instruments of different sizes stay
+    comparable. A journal that cannot be read yields no rows, which
+    makes every caller degrade to "veto nothing" rather than stop
+    trading."""
+    query = f"""
+        SELECT {group_by},
                COUNT(*) AS n,
                SUM(realized_pnl / (
                    ABS(COALESCE(fill_price, entry_price) - stop_loss) * size
@@ -328,8 +367,8 @@ def live_expectancy_veto(platform: Optional[str] = None) -> Dict[tuple, float]:
         WHERE accepted = 1 AND paper_mode = 0 AND exit_time IS NOT NULL
           AND realized_pnl IS NOT NULL AND size > 0
           AND ABS(COALESCE(fill_price, entry_price) - stop_loss) > 0
-          {platform_clause}
-        GROUP BY strategy, pair
+          {{platform_clause}}
+        GROUP BY {group_by}
         HAVING COUNT(*) >= %s
     """
     try:
@@ -337,25 +376,22 @@ def live_expectancy_veto(platform: Optional[str] = None) -> Dict[tuple, float]:
         if platform:
             rows = database.select(
                 query.format(platform_clause="AND platform = %s"),
-                (platform, _VETO_MIN_TRADES),
+                (platform, min_trades),
             )
         else:
             rows = database.select(
-                query.format(platform_clause=""),
-                (_VETO_MIN_TRADES,),
+                query.format(platform_clause=""), (min_trades,),
             )
     except Exception:
-        return {}
-    vetoed: Dict[tuple, float] = {}
+        return []
+    out: List[Dict] = []
     for row in rows or []:
         n = int(row.get("n") or 0)
         total_r = row.get("total_r")
         if not n or total_r is None:
             continue
-        mean_r = float(total_r) / n
-        if mean_r <= _VETO_MAX_EXPECTANCY_R:
-            vetoed[(row.get("strategy"), row.get("pair"))] = mean_r
-    return vetoed
+        out.append({**row, "mean_r": float(total_r) / n})
+    return out
 
 
 def persist_active_pairs(
@@ -381,15 +417,20 @@ def persist_active_pairs(
     its own realized losses.
     Returns the persisted payload (also useful for dry-run inspection)."""
     vetoed = live_expectancy_veto(platform)
-    pins = [s for s in _pinned_scores(platform)
-            if (s.strategy, s.pair) not in vetoed]
+    vetoed_strategies = strategy_expectancy_veto(platform)
+
+    def _retired(score: PairScore) -> bool:
+        return ((score.strategy, score.pair) in vetoed
+                or score.strategy in vetoed_strategies)
+
+    pins = [s for s in _pinned_scores(platform) if not _retired(s)]
     reserved: Dict[str, set] = {}
     for s in pins:
         if s.exclusive:
             reserved.setdefault(s.pair, set()).add(s.strategy)
     ranked = [s for s in scores
               if (s.pair not in reserved or s.strategy in reserved[s.pair])
-              and (s.strategy, s.pair) not in vetoed]
+              and not _retired(s)]
     chosen = ranked[:top_n]
     have = {(s.platform, s.strategy, s.resolution, s.pair) for s in chosen}
     chosen += [s for s in pins
