@@ -457,11 +457,16 @@ untested structural knob, so it was swept over six values on the three
 surviving candidates plus GOLD, BTCUSD and ETHUSD (capital_com, 1h,
 30 days).
 
-Finding the sweep first required a fix: `--rr` was folded into the
-strategy table's *default* lookup, so for any strategy carrying its own
-value the flag was silently discarded. An RR sweep would have measured
-one configuration six times and reported six identical numbers as if
-they were six experiments.
+The sweep ran on `donchian_breakout`, which carries no table entry, so
+its RR varied correctly. For the three strategies that *do* carry one
+(`donchian_breakout_v2`, `_v3`, `donchian_trail`) the flag was silently
+discarded, and a sweep there would have reported six identical numbers
+as if they were six experiments.
+
+That override was deliberate, though: the results file feeds the pair
+selector, so a persisted run at an off-live RR would rank pairs on an
+exit target nothing executes. Both concerns now hold — `--rr` is
+honoured, and a run that departs from the live value refuses to persist.
 
 | RR | n | win% | E[R] | SE | t | p (1-sided) |
 |---:|---:|---:|---:|---:|---:|---:|

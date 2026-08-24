@@ -692,11 +692,19 @@ def _parse_args() -> argparse.Namespace:
                    help="write results to data/spot_backtest_results.json (default on)")
     p.add_argument("--no-persist", dest="persist", action="store_false")
     args = p.parse_args()
-    # An explicit --rr is an instruction, not a default: without this the
-    # strategy table silently overrode it and every RR sweep re-measured
-    # the same configuration.
+    # An explicit --rr is an instruction, not a default, so a sweep can
+    # actually vary it. But the results file feeds the pair selector, so a
+    # run at an RR the live loop will never trade must not be written into
+    # it — that would rank pairs on an exit target nothing uses.
+    live_rr = risk_reward_for(args.strategy, DEFAULT_RISK_REWARD)
     if args.rr is None:
-        args.rr = risk_reward_for(args.strategy, DEFAULT_RISK_REWARD)
+        args.rr = live_rr
+    elif args.rr != live_rr and args.persist:
+        raise SystemExit(
+            f"--rr {args.rr} differs from the live value {live_rr} for "
+            f"{args.strategy}; rerun with --no-persist to sweep, or drop "
+            f"--rr to measure what is actually traded."
+        )
     return args
 
 
