@@ -335,3 +335,31 @@ The ceiling stays at 10 %. It sits near the flat optimum, it is the more
 conservative end of the plateau, and moving it to 15 % to capture three
 more trades and 0.005 R would be exactly the kind of fitting this
 document keeps warning about.
+
+## 12. Where the running configuration stands
+
+All figures below book each close against its actual fill (section 9)
+and exclude abandoned rows.
+
+| configuration | trades | mean R | PnL |
+|---|---:|---:|---:|
+| whole history | 495 | -0.1817 | -450.84 |
+| minus retired strategies | 220 | -0.1036 | -26.61 |
+| minus retired combos too | 171 | -0.0688 | +16.46 |
+| **combos actually live today** | **132** | **+0.0283** | **+90.35** |
+
+**Read the last row with care.** It is not a forecast. Those combos are
+on the list precisely because they did not look bad in this same data,
+so the number partly reflects a selection made after the fact. Quoting
+it as the system's expectancy would repeat the mistake that filled the
+original pinned list with losers.
+
+What the table does support is the ordering: every filter step improves
+expectancy, monotonically, and the gap between -0.1817 and +0.0283 R is
+what all the changes in this project add up to.
+
+Only the forward window settles it. And even if +0.0283 R survives
+out-of-sample, at 3 USD of risk and roughly five trades a day it is
+**about 0.42 USD per day** — two orders of magnitude below the 50 EUR
+target, which sections 6 and 7 show to be out of reach on this account
+regardless.
