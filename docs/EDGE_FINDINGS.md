@@ -2010,3 +2010,48 @@ Fourth time in this document that a near-threshold value dissolved under
 a larger sample: the cost-threshold band (19), turtle_breakout (32), the
 cross-sectional effect (33), and now the router. The pattern is the
 finding.
+
+## 47. The exit paths audited, and one more denominator trap
+
+The entry guards were audited in 44c; the exit paths only for existence.
+A defect there costs money directly, so:
+
+| outcome | n | mean R | USD |
+|---|---:|---:|---:|
+| loss | 234 | **-1.029** | -1,347.83 |
+| manual | 167 | -0.647 | +117.67 |
+| win | 115 | +1.221 | +805.41 |
+
+**The stops work.** Losses average -1.029 R against a designed -1.0, and
+only 3 of 221 stop exits run past -1.5 R — those are gaps, not a
+mechanism failure. Wins average +1.221 R against a 1.5 target, the
+shortfall being costs and early exits, which is expected.
+
+The `manual` row is contradictory: a mean of **-0.647 R** alongside a
+**positive** dollar total. That is the denominator trap of section 20
+again, and this instance shows how violent it is:
+
+| basis | n | E[R] | t |
+|---|---:|---:|---:|
+| all manual exits | 111 | **-0.647** | -1.84 |
+| excluding risk under 1 USD | 106 | **+0.118** | +1.76 |
+| capital-weighted | 111 | +0.180 | — |
+
+**Five trades out of 111 flip the sign**, and they flip it from
+significantly-looking-negative to positive. Both t values are near
+threshold in opposite directions, from the same data.
+
+This is not a new code defect — the vetoes and both risk controls were
+corrected in 20 and 21. It is a defect in *analysis practice*: ad-hoc
+queries throughout this investigation used unweighted R means, and this
+one would have supported either conclusion depending on a filter nobody
+would think to mention.
+
+**No action taken on the +0.118.** Time-based exits (stale, flip, trail)
+outperforming stop/target exits would be an interesting claim, but t =
+1.76 selected after seeing the data is precisely the pattern that
+dissolved four times already (46b). Recorded, not acted on.
+
+The rule for future work: **report capital-weighted expectancy, or state
+the risk floor applied.** An unweighted R mean over trades of unequal
+size is not a summary of anything.
