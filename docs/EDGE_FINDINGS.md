@@ -1923,3 +1923,49 @@ years: the nightly run would take about half an hour per strategy, and
 2023 data describes a regime two years gone. A year is enough for
 walk-forward segments and recent enough to resemble what the bot trades
 now.
+
+## 46. The regime router discards the better half
+
+Breaking down what the live loop rejects: of 31 signals refused since the
+cutoff, **25 were stopped by the ADX regime router** — 81 %, far ahead of
+the duplicate lock (3), the stop floor (2) and the position cap (1). It
+is by a wide margin the system's strongest throttle, and its value had
+never been measured against a random control.
+
+Preregistered: the passing set must beat the unfiltered set at t > 2.0.
+A filter discarding four signals in five without improving expectancy is
+pure throughput loss — and section 40 shows throughput is exactly what
+this system lacks to validate anything.
+
+Ten cheap instruments, 1h, 365 days, router applied by hand so both sides
+are visible:
+
+| group | n | E[R] | t |
+|---|---:|---:|---:|
+| **passed by the router** | 675 | **-0.0518** | -1.93 |
+| **rejected by the router** | 1,445 | **+0.0116** | +0.66 |
+| all signals | 2,120 | -0.0086 | -0.58 |
+| random control | 5,203 | -0.0050 | -0.55 |
+
+| comparison | difference | t |
+|---|---:|---:|
+| passed minus all | -0.0433 | -1.41 |
+| **passed minus rejected** | **-0.0635** | **-1.98** |
+
+**Not accepted** — and the direction is the opposite of its purpose. The
+router keeps the worse half and throws away the better one, while cutting
+signal count by 68 %.
+
+t = -1.98 sits just under the threshold, so **the router was left on**.
+This document has retracted several findings built on values like that,
+and acting on one now would repeat the error the whole exercise has been
+about. The passing set's own t of -1.93 against zero is likewise not
+significant.
+
+But it is recorded as the strongest filter effect measured here, and the
+only one whose point estimate is materially negative. Two things would
+settle it: the same test on the three-year history (32, 45), and a
+forward comparison — which section 40 shows needs throughput the router
+is itself suppressing. If a later test reaches t < -2.0 on an independent
+sample, turning the router off is the indicated change, and it would
+roughly triple the signal rate at no cost in expectancy.
