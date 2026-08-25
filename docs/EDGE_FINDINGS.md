@@ -1885,3 +1885,41 @@ tradeable the next, which is the router working, not a leak.
 So the class is closed rather than merely two instances of it patched.
 Any future static block belongs in `trading_blocks.py`, where both sides
 see it by construction.
+
+## 45. Three years are available, and the core finding survives the wider test
+
+The paging fix (32) understated what the venue serves. Probing further:
+
+| requested | bars on US500 | earliest |
+|---|---:|---|
+| 365 days | 6,140 | 2025-08-25 |
+| 730 days | 12,100 | 2024-08-25 |
+| 1,095 days | **18,007** | 2023-08-27 |
+
+Capital.com holds three years of hourly data. Every measurement in this
+document before section 32 ran on ~660 bars of it.
+
+The random-entry benchmark was rerun on the full three years. Comparing
+the two largest independent samples of the same strategy:
+
+| basis | signal n | difference vs random | t |
+|---|---:|---:|---:|
+| 1 year, 16 instruments | 1,131 | **-0.0220** | -0.83 |
+| 3 years, 4 instruments | 810 | **+0.0302** | +1.12 |
+
+**The sign reverses.** Neither is significant, and the second test
+resolves differences from 0.054 R upward, so both readings sit inside
+the noise band. A real effect does not change direction between samples
+of eight hundred and eleven hundred trades — this is the same lesson
+section 34 drew from three conflicting readings of the same strategy,
+now on samples an order of magnitude larger.
+
+That makes the finding stronger, not weaker. "No edge" is no longer just
+an absence of significance; it is a quantity that will not hold a sign
+across independent large samples.
+
+The backtest default moves from 180 to **365 days**. Not the full three
+years: the nightly run would take about half an hour per strategy, and
+2023 data describes a regime two years gone. A year is enough for
+walk-forward segments and recent enough to resemble what the bot trades
+now.

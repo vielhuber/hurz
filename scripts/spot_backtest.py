@@ -94,11 +94,12 @@ _DEFAULT_CAPITAL_PAIRS = [
 _DEFAULT_RESOLUTION = "1h"
 # Raised from 30 once the history paging fix landed: the adapter used to
 # fail with HTTP 400 on any range wider than ~40 days, so 30 was the
-# practical ceiling rather than a considered choice. 180 days yields
-# ~3,000 hourly bars per instrument against the ~660 before, which is the
-# difference between a sample that can reject a hypothesis and one that
-# cannot. Not 365, to keep the nightly run's request count manageable.
-_DEFAULT_DAYS = 180
+# practical ceiling rather than a considered choice. Capital.com actually
+# serves three years — 18,007 hourly bars on US500 back to Aug 2023 — but
+# 365 days (~6,100 bars) is the working point: enough for meaningful
+# walk-forward segments, recent enough that the regime still resembles
+# today's, and about ten minutes per strategy in the nightly run.
+_DEFAULT_DAYS = 365
 _FETCH_ATTEMPTS = 3
 _FETCH_RETRY_SECONDS = 2.0
 _DEFAULT_STOP_ATR = 1.0
