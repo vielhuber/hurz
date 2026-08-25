@@ -17,6 +17,7 @@ from __future__ import annotations
 import os
 import re
 import sys
+from typing import Optional
 from datetime import datetime, timezone
 
 import mysql.connector
@@ -151,6 +152,18 @@ def _fetch(days) -> dict:
               {win}
             GROUP BY platform
         """, win_params)
+        # The retired book, so the excluded loss stays visible. Without
+        # this the dashboard showed -92.95 USD over 292 trades and called
+        # it all-time, while the journal held -465.56 over 519 — the
+        # retired mean-reversion strategies alone account for -372.60.
+        retired = _rows(cur, f"""
+            SELECT COUNT(*) AS trades, ROUND(SUM({_PNL}), 2) AS pnl
+            FROM spot_trades
+            WHERE accepted=1 AND realized_pnl IS NOT NULL
+              AND exit_time IS NOT NULL
+              AND (strategy IN ('bollinger_rev','stochastic_mr','rsi_mr')
+                   OR platform = 'kraken_futures')
+        """, ())
         alltime = _rows(cur, f"""
             SELECT platform, ROUND(SUM({_PNL}), 2) AS pnl
             FROM spot_trades
@@ -226,6 +239,7 @@ def _fetch(days) -> dict:
         """)
         return {
             "closed": closed, "summary": summary, "alltime": alltime,
+            "retired": retired,
             "open": open_pos, "recent": recent,
             "by_strategy": by_strategy, "by_combo": by_combo,
             "span": span[0] if span else None,
@@ -353,7 +367,7 @@ def _render_chart(series: list, width: int = 920, height: int = 340) -> str:
 
 
 def _render_cards(summary: list, alltime: list, open_pos: list,
-                  period: str) -> str:
+                  period: str, retired: Optional[list] = None) -> str:
     by_plat = {r["platform"]: r for r in summary}
     alltime_by = {r["platform"]: float(r["pnl"] or 0.0) for r in alltime}
     open_count: dict = {}
@@ -367,6 +381,20 @@ def _render_cards(summary: list, alltime: list, open_pos: list,
         pnl = float(s.get("pnl") or 0.0)
         wr = (wins / trades * 100) if trades else 0.0
         at = alltime_by.get(plat, 0.0)
+        # The stat views exclude retired strategies by design. Showing the
+        # excluded total keeps "all-time" from reading as the whole book.
+        retired_row = ""
+        r = (retired or [{}])[0]
+        r_trades = int(r.get("trades") or 0)
+        if r_trades:
+            r_pnl = float(r.get("pnl") or 0.0)
+            retired_row = (
+                f'<div class="row"><span>stillgelegt ({r_trades} Trades)</span>'
+                f'<b class="{_money_class(r_pnl)}">{_fmt_money(r_pnl)}</b></div>'
+                f'<div class="row"><span>Gesamt inkl. stillgelegt</span>'
+                f'<b class="{_money_class(at + r_pnl)}">'
+                f'{_fmt_money(at + r_pnl)}</b></div>'
+            )
         cards.append(f"""
         <div class="card">
           <h2>{_LABELS[plat]}</h2>
@@ -375,8 +403,9 @@ def _render_cards(summary: list, alltime: list, open_pos: list,
           <div class="row"><span>Trades</span><b>{trades}</b></div>
           <div class="row"><span>Win-Rate</span><b>{wr:.0f}%</b></div>
           <div class="row"><span>Offen</span><b>{open_count.get(plat, 0)}</b></div>
-          <div class="row"><span>All-time</span>
+          <div class="row"><span>All-time (aktives Buch)</span>
             <b class="{_money_class(at)}">{_fmt_money(at)}</b></div>
+          {retired_row}
         </div>""")
     return "".join(cards)
 
@@ -892,7 +921,8 @@ def _render_html(data: dict, days) -> str:
         "vetoes_24h": veto24,
     }
     status = _render_status(stats)
-    cards = _render_cards(data["summary"], data["alltime"], data["open"], period)
+    cards = _render_cards(data["summary"], data["alltime"], data["open"],
+                          period, data.get("retired"))
     open_rows = _render_open(data["open"])
     recent_rows = _render_recent(data["recent"])
     strategy_perf = _render_strategy_perf(

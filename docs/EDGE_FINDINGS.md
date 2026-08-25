@@ -2055,3 +2055,40 @@ dissolved four times already (46b). Recorded, not acted on.
 The rule for future work: **report capital-weighted expectancy, or state
 the risk floor applied.** An unweighted R mean over trades of unequal
 size is not a summary of anything.
+
+## 48. The dashboard showed a fifth of the loss
+
+The dashboard's stat views exclude retired mean-reversion strategies and
+Kraken — deliberately, and documented: they describe the active
+trend-only book. But the figure was labelled **"All-time"**:
+
+| | trades | PnL |
+|---|---:|---:|
+| shown as "all-time" | 292 | **-92.95 USD** |
+| excluded (mean reversion, Kraken) | 227 | **-372.60 USD** |
+| **actual total** | **519** | **-465.56 USD** |
+
+**The dashboard reported a fifth of the realised loss** under a label
+meaning the opposite. The excluded trades are not hypothetical — they
+were opened, closed and settled on the account.
+
+This is the same shape as every accounting defect in this document: a
+view that flatters in one direction, with a plausible reason attached.
+The reason here is genuinely good — a chart of a book that no longer
+trades tells you nothing about what the bot does now — which is exactly
+why it survived unexamined.
+
+The filtering is unchanged, because the intent behind it is right. What
+changed is that the excluded total is now on the card:
+
+- `All-time (aktives Buch)` — was just "All-time"
+- `stillgelegt (227 Trades)` — the excluded book
+- `Gesamt inkl. stillgelegt` — the two summed
+
+Five tests cover the rows, including the empty-retired case, so the
+excluded total cannot silently vanish again.
+
+Worth stating plainly: I have spent this investigation correcting
+measurements that flattered results, and the operator-facing summary —
+the one artefact a human actually looks at — was the last and largest of
+them. It was showing -93 USD where the truth is -466.
