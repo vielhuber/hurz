@@ -17,58 +17,65 @@ earlier ones**. Three are retracted outright — 18, 23 and 25, by section
 The entry signals carry no directional information. Measured against
 random entries through the identical simulator — same bars, same stop
 expansion, same costs, same holding leash, same number of entries, only
-the choice of bar and direction differing — on a full year of hourly
-data (32):
+the choice of bar and direction differing (30, 32, 45):
 
 | strategy | signal n | difference vs random | t |
 |---|---:|---:|---:|
-| donchian_breakout | 1,131 | -0.0220 | -0.83 |
+| donchian_breakout, 1 year | 1,131 | -0.0220 | -0.83 |
+| donchian_breakout, 3 years | 810 | **+0.0302** | +1.12 |
 | turtle_breakout | 924 | -0.0441 | -1.44 |
 | keltner_breakout | 1,023 | -0.0100 | -0.34 |
 
-None beats a coin flip; three of four are worse than one. Mean reversion
-(retired by veto), lead-lag (preregistration) and cross-sectional
-ranking (33) were tested the same way, with the same result. On cheap
-instruments random entry is break-even after costs, so the shortfall is
-in the signals, not in execution (30).
+**The sign reverses between the two largest samples**, both far from
+significance. That is stronger than an absence of significance: the
+quantity will not hold a direction across independent samples of ~1,000
+trades. Mean reversion, lead-lag, cross-sectional ranking (33) and both
+uses of volume (41, 41b) were tested the same way, with the same result.
+On cheap instruments random entry is break-even after costs, so the
+shortfall is in the signals, not in execution.
 
 ### The target
 
-`daily = trades_per_day x E[R] x risk_per_trade`. Measured: 4.17 trades
-per day, E[R] between 0.00 and +0.02, 3 USD risk — about **0.11 USD per
-day** against the 58.49 USD (50 EUR) required, a factor of ~500 (34, 37).
+`daily = trades_per_day x E[R] x risk_per_trade`. Measured: ~4 trades per
+day, E[R] indistinguishable from zero, 3 USD risk — about **0.11 USD per
+day** against the 58.49 USD (50 EUR) required (34, 37).
 
-Reaching it needs all three at once: an edge near +0.20 R where
+Reaching it needs three things at once: an edge near +0.20 R where
 measurement finds zero, roughly five times the capital, and a relaxation
 of the 3 USD risk rule. With E[R] at zero the other two multiply zero.
+Worse, section 40 shows a candidate of the size ever measured here could
+not be *validated* inside a decade at this trade frequency.
+
+### The methodological finding
+
+Four times a near-threshold value dissolved under a larger sample: the
+cost-threshold band (19), `turtle_breakout` (32), the cross-sectional
+effect (33), and the regime router (46, 46b — from t = -1.98 to t =
+-0.34). None was acted on. Section 34 shows the same strategy measuring
+-0.112, -0.028 and +0.018 R depending on sample: **the spread between
+readings exceeded any of them.**
 
 ### What was wrong with the measurements
 
-Ten defects, all flattering results in the same direction:
-
-- PnL booked against signal price, hiding 216 USD of slippage (9)
-- fee tables understating crypto spreads tenfold (9)
-- cost filter opening when a broker quote was missing (24)
-- `--rr` and the holding leash diverging between live and backtest (15, 17)
-- the trailing exit never modelled at all (27)
-- R-multiples distorted by near-zero risk denominators (20)
-- both risk controls reading the flattering column (21)
-- history paging broken, capping every backtest at ~660 bars (32)
-- account equity read as free margin (38)
-
-The methodological lesson (34): the same strategy measured -0.112, -0.028
-and +0.018 R depending on sample. **The spread between readings exceeded
-any of them.** Every conclusion drawn from tens of trades in this
-document — including several of mine that had to be withdrawn — was noise
-presented as evidence.
+Sixteen defects, all flattering results in the same direction — PnL
+booked against signal price (9), fee tables understating crypto spreads
+tenfold (9), the cost filter opening on a missing quote (24), `--rr` and
+the holding leash diverging between live and backtest (15, 17), the
+trailing exit never modelled (27), R-multiples distorted by near-zero
+risk denominators (20), both risk controls reading the flattering column
+(21), history paging capping every backtest at ~660 bars of an available
+18,000 (32, 45), account equity read as free margin (38), volume dropped
+from the strategy frame despite the documented contract (41), and pinned
+combinations bypassing both static blocks (44, 44b).
 
 ### Current state
 
-Broker and journal reconcile exactly, 7 open positions (38). Forward test
-since the 2026-08-24 cutoff: 30 trades, 3 closed, -2.53 USD.
-`donchian_trail` (27) and `donchian_breakout_v3` are blocked for entries;
-eleven high-cost instruments are blocked by name (24); backtests measure
-180 days.
+Broker and journal reconcile exactly. `donchian_trail` (27) and
+`donchian_breakout_v3` are blocked for entries; thirteen high-cost
+instruments are blocked by name (24, 42); backtests measure 365 days of
+the three years available. Running cost is **0.24 USD/day** (43) — the
+system no longer bleeds, it simply does not earn. Forward test since the
+2026-08-24 cutoff: 5 positions opened, 3 closed, -2.53 USD.
 
 ---
 
