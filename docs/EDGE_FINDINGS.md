@@ -1969,3 +1969,37 @@ forward comparison — which section 40 shows needs throughput the router
 is itself suppressing. If a later test reaches t < -2.0 on an independent
 sample, turning the router off is the indicated change, and it would
 roughly triple the signal rate at no cost in expectancy.
+
+### 46b. The router question, settled on three years
+
+Section 46 measured the router at t = -1.98 against its rejected half and
+left it on, because acting on a value just under threshold is the error
+this document keeps retracting. The three-year history settles it.
+
+Same specification, no parameter changes, only more data — five
+instruments, ~18,000 bars each:
+
+| basis | passed | rejected | difference | t |
+|---|---:|---:|---:|---:|
+| 1 year, 10 instruments | -0.0518 | +0.0116 | -0.0635 | **-1.98** |
+| **3 years, 5 instruments** | **+0.0073** | **+0.0164** | **-0.0091** | **-0.34** |
+
+The effect shrinks sevenfold and the sample nearly triples per side
+(1,038 passed, 2,078 rejected). **The one-year reading was noise.**
+
+The standing rule — keep the router until an independent test reaches
+t < -2.0 — was correct, and the independent test has now come back at
+t = -0.34. **The router stays on**, and this is the resolution rather
+than another deferral.
+
+What remains true is narrower than section 46 suggested: the router
+suppresses 67 % of signals for no measurable gain *and* no measurable
+harm. That matters only for section 40's validation problem — tripling
+throughput at neutral expectancy would let forward evidence accumulate
+three times faster. It is not a profitability lever, and nothing here
+justifies changing it.
+
+Fourth time in this document that a near-threshold value dissolved under
+a larger sample: the cost-threshold band (19), turtle_breakout (32), the
+cross-sectional effect (33), and now the router. The pattern is the
+finding.
