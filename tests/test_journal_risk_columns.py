@@ -14,8 +14,9 @@ class RecordingDatabase:
     def __init__(self) -> None:
         self.queries = []
 
-    def query(self, query, params=None) -> None:
+    def query(self, query, params=None) -> bool:
         self.queries.append((query, params))
+        return True
 
     def select(self, query, params=None) -> list:
         return []
@@ -36,6 +37,26 @@ def _intent() -> TradeIntent:
 
 
 class RecordRiskColumnsTest(unittest.TestCase):
+    def test_database_failure_is_reported(self):
+        class FailingDatabase(RecordingDatabase):
+            def query(self, query, params=None) -> bool:
+                super().query(query, params)
+                return False
+
+        result = OrderResult(
+            accepted=False,
+            asset="ATOMUSD",
+            direction=1,
+            error="skipped",
+        )
+
+        with patch.object(singletons, "database", FailingDatabase()):
+            recorded = journal.record(
+                _intent(), result, platform="capital_com", paper_mode=False
+            )
+
+        self.assertFalse(recorded)
+
     def test_sizing_reference_and_both_risks_are_persisted(self):
         database = RecordingDatabase()
         result = OrderResult(

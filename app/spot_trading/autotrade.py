@@ -545,8 +545,7 @@ async def _resolve_closed_trade(
     pair = journal_row["pair"]
     direction = int(journal_row["direction"])
     # Bar timestamps from fetch_history are tz-aware UTC, but the
-    # DATETIME column in MySQL gives us back a tz-naive datetime.
-    # Make them comparable.
+    # Stored timestamps are UTC without timezone metadata.
     entry_time = journal_row["bar_time"]
     if entry_time.tzinfo is None:
         entry_time = entry_time.replace(tzinfo=timezone.utc)

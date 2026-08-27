@@ -1,10 +1,18 @@
 import os
+import sqlite3
 import threading
-import mysql.connector
+from datetime import datetime
+from decimal import Decimal
+from pathlib import Path
 from typing import Optional, Tuple
 
 from app.utils.singletons import utils
 from app.utils.helpers import singleton
+
+
+sqlite3.register_adapter(Decimal, str)
+sqlite3.register_adapter(datetime, lambda value: value.isoformat(sep=" "))
+sqlite3.register_converter("TIMESTAMP", lambda value: datetime.fromisoformat(value.decode()))
 
 
 @singleton
@@ -12,372 +20,282 @@ class Database:
 
     _lock = threading.Lock()
 
-    def init_connection(self) -> None:
+    def __init__(self) -> None:
         self.db_conn = None
 
+    def init_connection(self) -> None:
+        self.db_conn = None
+        self.DB_PATH = os.getenv("DB_PATH", "data/hurz.sqlite")
+
         try:
-            self.DB_HOST = os.getenv("DB_HOST")
-            self.DB_PORT = os.getenv("DB_PORT")
-            self.DB_USERNAME = os.getenv("DB_USERNAME")
-            self.DB_PASSWORD = os.getenv("DB_PASSWORD")
-            self.DB_NAME = os.getenv("DB_NAME")
-            self.db_conn = mysql.connector.connect(
-                host=self.DB_HOST,
-                user=self.DB_USERNAME,
-                password=self.DB_PASSWORD,
-                database=self.DB_NAME,
-                port=self.DB_PORT,
-                autocommit=True,
+            database_path = Path(self.DB_PATH).expanduser()
+            if not database_path.is_absolute():
+                database_path = Path(__file__).resolve().parents[2] / database_path
+            database_path.parent.mkdir(parents=True, exist_ok=True)
+            self.db_conn = sqlite3.connect(
+                database_path,
+                timeout=30,
+                check_same_thread=False,
+                detect_types=sqlite3.PARSE_DECLTYPES,
             )
+            self.db_conn.row_factory = sqlite3.Row
+            self.db_conn.execute("PRAGMA journal_mode = WAL")
+            self.db_conn.execute("PRAGMA synchronous = NORMAL")
+            self.db_conn.execute("PRAGMA foreign_keys = ON")
+            self.db_conn.execute("PRAGMA busy_timeout = 30000")
+            self.db_conn.create_function("LEAST", -1, min)
             utils.print(
-                f"✅ Sucessfully connected to mysql database '{self.DB_NAME}'.", 1
+                f"✅ Successfully connected to SQLite database '{database_path}'.", 1
             )
-
-        except mysql.connector.Error as err:
-            if err.errno == mysql.connector.errorcode.ER_ACCESS_DENIED_ERROR:
-                utils.print("⛔ Database error: wrong credentials.", 0)
-            elif err.errno == mysql.connector.errorcode.ER_BAD_DB_ERROR:
-                utils.print(
-                    f"⛔ Database error: Database '{self.DB_NAME}' does not exist.", 0
-                )
-            else:
-                utils.print(f"⛔ Database error: {err}", 0)
-
-        except Exception as e:
-            utils.print(f"⛔ Database error: {e}", 0)
+        except sqlite3.Error as error:
+            utils.print(f"⛔ Database error: {error}", 0)
 
     def _ensure_connection(self) -> None:
-        """Make sure the MySQL connection is alive; reconnect if it went stale.
-
-        MySQL servers close idle connections after `wait_timeout` (default 8h
-        but often lower in shared setups). Long-running processes like the
-        trade loop need to detect this and reconnect transparently.
-        """
         try:
             if self.db_conn is None:
                 self.init_connection()
+                if self.db_conn is None:
+                    raise RuntimeError("Database connection failed.")
                 return
-            # ping with auto-reconnect: mysql-connector-python will raise if
-            # the connection is truly dead and cannot be revived
-            self.db_conn.ping(reconnect=True, attempts=3, delay=1)
-        except Exception as e:
-            utils.print(f"⚠️ DB connection lost ({e}), reconnecting...", 1)
-            try:
-                self.init_connection()
-            except Exception as e2:
-                utils.print(f"⛔ DB reconnect failed: {e2}", 0)
-                raise
+            self.db_conn.execute("SELECT 1")
+        except sqlite3.Error as error:
+            utils.print(f"⚠️ DB connection lost ({error}), reconnecting...", 1)
+            self.init_connection()
+            if self.db_conn is None:
+                raise RuntimeError("Database reconnect failed.") from error
 
     def reset_tables(self) -> None:
         self._ensure_connection()
-        with self.db_conn.cursor() as cursor:
-
-            try:
-                cursor.execute("SHOW TABLES")
-                tables = cursor.fetchall()
-                if not tables:
-                    utils.print(f"ℹ️ No tables in database '{self.DB_NAME}'.", 1)
-                    return
-                for table_tuple in tables:
-                    table_name = table_tuple[0]
-                    drop_query = f"DROP TABLE IF EXISTS `{table_name}`;"
-                    cursor.execute(drop_query)
-                self.db_conn.commit()
-                utils.print(
-                    f"✅ Successfully deleted all tables in '{self.DB_NAME}'.", 1
-                )
-
-            except mysql.connector.Error as err:
-                utils.print(f"⛔ Database error: {err}", 0)
-
-            except Exception as e:
-                utils.print(f"⛔ Database error: {e}", 0)
+        try:
+            tables = self.db_conn.execute(
+                "SELECT name FROM sqlite_master "
+                "WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+            ).fetchall()
+            if not tables:
+                utils.print(f"ℹ️ No tables in database '{self.DB_PATH}'.", 1)
+                return
+            for table in tables:
+                table_name = table["name"]
+                self.db_conn.execute(f'DROP TABLE IF EXISTS "{table_name}"')
+            self.db_conn.commit()
+            utils.print(
+                f"✅ Successfully deleted all tables in '{self.DB_PATH}'.", 1
+            )
+        except sqlite3.Error as error:
+            utils.print(f"⛔ Database error: {error}", 0)
 
     def flush_historical_data(self) -> None:
         self._ensure_connection()
-        with self.db_conn.cursor() as cursor:
-
-            try:
-                cursor.execute("TRUNCATE TABLE trading_data;")
-                self.db_conn.commit()
-                utils.print(
-                    f"✅ Successfully deleted all historical data from 'trading_data'.",
-                    1,
-                )
-
-            except mysql.connector.Error as err:
-                utils.print(f"⛔ Database error: {err}", 0)
-
-            except Exception as e:
-                utils.print(f"⛔ Database error: {e}", 0)
+        try:
+            self.db_conn.execute("DELETE FROM trading_data")
+            self.db_conn.commit()
+            utils.print(
+                "✅ Successfully deleted all historical data from 'trading_data'.",
+                1,
+            )
+        except sqlite3.Error as error:
+            utils.print(f"⛔ Database error: {error}", 0)
 
     def create_tables(self) -> None:
         self._ensure_connection()
-        with self.db_conn.cursor() as cursor:
+        tables = {
+            "assets": """
+                CREATE TABLE IF NOT EXISTS assets (
+                    platform TEXT NOT NULL,
+                    model TEXT NOT NULL,
+                    asset TEXT NOT NULL,
+                    last_trade_confidence INTEGER,
+                    last_fulltest_quote_trading REAL,
+                    last_fulltest_quote_success REAL,
+                    last_fulltest_ev REAL,
+                    is_inverted INTEGER NOT NULL DEFAULT 0,
+                    updated_at TIMESTAMP
+                )
+            """,
+            "trades": """
+                CREATE TABLE IF NOT EXISTS trades (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    session_id TEXT NOT NULL,
+                    asset_name TEXT NOT NULL,
+                    is_demo INTEGER NOT NULL,
+                    model TEXT NOT NULL,
+                    trade_time INTEGER NOT NULL,
+                    trade_confidence INTEGER NOT NULL,
+                    trade_platform TEXT NOT NULL,
+                    open_timestamp TIMESTAMP NOT NULL,
+                    close_timestamp TIMESTAMP NOT NULL,
+                    amount REAL NOT NULL,
+                    payout_percent REAL,
+                    profit REAL,
+                    direction INTEGER NOT NULL,
+                    success INTEGER,
+                    status TEXT NOT NULL
+                )
+            """,
+            "trading_data": """
+                CREATE TABLE IF NOT EXISTS trading_data (
+                    trade_asset TEXT NOT NULL,
+                    trade_platform TEXT NOT NULL,
+                    timestamp TIMESTAMP NOT NULL,
+                    price REAL,
+                    indicator_rsi_14 REAL,
+                    indicator_macd REAL,
+                    indicator_macd_signal REAL,
+                    indicator_macd_hist REAL,
+                    indicator_bb_pos REAL,
+                    indicator_atr_14 REAL,
+                    indicator_roc_10 REAL,
+                    indicator_vol_30 REAL,
+                    PRIMARY KEY (trade_asset, trade_platform, timestamp)
+                )
+            """,
+            "spot_trades": """
+                CREATE TABLE IF NOT EXISTS spot_trades (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at TIMESTAMP NOT NULL,
+                    platform TEXT NOT NULL,
+                    pair TEXT NOT NULL,
+                    strategy TEXT NOT NULL,
+                    bar_time TIMESTAMP NOT NULL,
+                    direction INTEGER NOT NULL,
+                    entry_price REAL NOT NULL,
+                    stop_loss REAL NOT NULL,
+                    take_profit REAL NOT NULL,
+                    size REAL,
+                    accepted INTEGER NOT NULL,
+                    deal_id TEXT,
+                    fill_price REAL,
+                    error TEXT,
+                    paper_mode INTEGER NOT NULL,
+                    exit_price REAL,
+                    exit_time TIMESTAMP,
+                    outcome TEXT,
+                    realized_pnl REAL,
+                    sizing_reference_price REAL,
+                    planned_risk_usd REAL,
+                    fill_risk_usd REAL,
+                    entry_adx REAL,
+                    signal_confidence REAL
+                )
+            """,
+        }
+        indexes = (
+            "CREATE INDEX IF NOT EXISTS idx_trading_data_platform_asset_timestamp "
+            "ON trading_data (trade_platform, trade_asset, timestamp)",
+            "CREATE INDEX IF NOT EXISTS idx_spot_trades_pair_bar "
+            "ON spot_trades (pair, bar_time)",
+            "CREATE INDEX IF NOT EXISTS idx_spot_trades_platform_strategy "
+            "ON spot_trades (platform, strategy)",
+        )
 
-            tables = {
-                "assets": """
-                    CREATE TABLE IF NOT EXISTS assets (
-                        platform VARCHAR(50) NOT NULL,
-                        model VARCHAR(50) NOT NULL,
-                        asset VARCHAR(50) NOT NULL,
-                        last_trade_confidence SMALLINT,
-                        last_fulltest_quote_trading DECIMAL(5,2),
-                        last_fulltest_quote_success DECIMAL(5,2),
-                        last_fulltest_ev DECIMAL(15,2) NULL,
-                        is_inverted BOOLEAN NOT NULL DEFAULT 0,
-                        updated_at DATETIME
-                    );
-                """,
-                "trades": """
-                    CREATE TABLE IF NOT EXISTS trades (
-                        id VARCHAR(36) NOT NULL PRIMARY KEY,
-                        session_id VARCHAR(36) NOT NULL,
-                        asset_name VARCHAR(50) NOT NULL,
-                        is_demo BOOLEAN NOT NULL,
-                        model VARCHAR(50) NOT NULL,
-                        trade_time INT NOT NULL,
-                        trade_confidence INT NOT NULL,
-                        trade_platform VARCHAR(50) NOT NULL,
-                        open_timestamp DATETIME NOT NULL,
-                        close_timestamp DATETIME NOT NULL,
-                        amount DECIMAL(10, 2) NOT NULL,
-                        profit DECIMAL(10, 2) NULL,
-                        direction BOOLEAN NOT NULL,
-                        success BOOLEAN NULL,
-                        status VARCHAR(10) NOT NULL
-                    );
-                """,
-                "trading_data": """
-                    CREATE TABLE IF NOT EXISTS trading_data (
-                        trade_asset VARCHAR(50) NOT NULL,
-                        trade_platform VARCHAR(50) NOT NULL,
-                        timestamp DATETIME NOT NULL,
-                        price DECIMAL(10, 5) NULL,
-                        indicator_rsi_14 DECIMAL(15, 8) NULL,
-                        indicator_macd DECIMAL(15, 8) NULL,
-                        indicator_macd_signal DECIMAL(15, 8) NULL,
-                        indicator_macd_hist DECIMAL(15, 8) NULL,
-                        indicator_bb_pos DECIMAL(15, 8) NULL,
-                        indicator_atr_14 DECIMAL(15, 8) NULL,
-                        indicator_roc_10 DECIMAL(15, 8) NULL,
-                        indicator_vol_30 DECIMAL(15, 8) NULL,
-                        PRIMARY KEY (trade_asset, trade_platform, timestamp),
-
-                        INDEX idx_trading_data_trade_platform_trade_asset_timestamp (trade_platform ASC, trade_asset ASC, timestamp ASC)
-                    )
-                """,
-                "spot_trades": """
-                    CREATE TABLE IF NOT EXISTS spot_trades (
-                        id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                        created_at DATETIME NOT NULL,
-                        platform VARCHAR(20) NOT NULL,
-                        pair VARCHAR(50) NOT NULL,
-                        strategy VARCHAR(40) NOT NULL,
-                        bar_time DATETIME NOT NULL,
-                        direction TINYINT NOT NULL,
-                        entry_price DECIMAL(18, 8) NOT NULL,
-                        stop_loss DECIMAL(18, 8) NOT NULL,
-                        take_profit DECIMAL(18, 8) NOT NULL,
-                        size DECIMAL(18, 8) NULL,
-                        accepted BOOLEAN NOT NULL,
-                        deal_id VARCHAR(100) NULL,
-                        fill_price DECIMAL(18, 8) NULL,
-                        error VARCHAR(500) NULL,
-                        paper_mode BOOLEAN NOT NULL,
-                        sizing_reference_price DECIMAL(18, 8) NULL,
-                        planned_risk_usd DECIMAL(18, 8) NULL,
-                        fill_risk_usd DECIMAL(18, 8) NULL,
-                        entry_adx DECIMAL(10, 4) NULL,
-                        signal_confidence DECIMAL(10, 4) NULL,
-                        INDEX idx_spot_trades_pair_bar (pair, bar_time),
-                        INDEX idx_spot_trades_platform_strategy (platform, strategy)
-                    )
-                """,
-            }
-
+        try:
             for table_name, create_statement in tables.items():
-
-                # first check if table already exists
-                cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
-                result = cursor.fetchone()
-                if result:
+                existed = self.db_conn.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+                    (table_name,),
+                ).fetchone()
+                self.db_conn.execute(create_statement)
+                if existed:
                     utils.print(f"ℹ️ Database table '{table_name}' already exists.", 1)
-                    continue
-
-                try:
-                    cursor.execute(create_statement)
-                    self.db_conn.commit()
+                if not existed:
                     utils.print(
                         f"✅ Successfully created database table '{table_name}'.", 1
                     )
 
-                except mysql.connector.Error as err:
-                    utils.print(f"⛔ Database error: {err}", 0)
-
-            # schema migrations for already-existing tables
-            migrations = [
-                (
-                    "assets",
-                    "is_inverted",
-                    "ALTER TABLE assets ADD COLUMN is_inverted BOOLEAN NOT NULL DEFAULT 0",
-                ),
-                (
-                    "assets",
-                    "last_fulltest_ev",
-                    "ALTER TABLE assets ADD COLUMN last_fulltest_ev DECIMAL(15,2) NULL",
-                ),
-                # Exit-tracking for spot trades. The autotrade loop diffs
-                # the open-positions list each cycle; when a deal_id
-                # disappears, it resolves the closing event and writes
-                # back here. Without these columns we journal entries
-                # only and have no idea whether they won or lost.
-                (
-                    "spot_trades",
-                    "exit_price",
-                    "ALTER TABLE spot_trades ADD COLUMN exit_price DECIMAL(18,8) NULL",
-                ),
-                (
-                    "spot_trades",
-                    "exit_time",
-                    "ALTER TABLE spot_trades ADD COLUMN exit_time DATETIME NULL",
-                ),
-                (
-                    "spot_trades",
-                    "outcome",
-                    "ALTER TABLE spot_trades ADD COLUMN outcome VARCHAR(20) NULL",
-                ),
-                (
-                    "spot_trades",
-                    "realized_pnl",
-                    "ALTER TABLE spot_trades ADD COLUMN realized_pnl DECIMAL(18,8) NULL",
-                ),
-                # Risk-sizing audit trail. The reference price the size
-                # was derived from is not the fill, and the fill risk is
-                # not the planned risk — keeping all three apart is what
-                # makes slippage measurable after the fact.
-                (
-                    "spot_trades",
-                    "sizing_reference_price",
-                    "ALTER TABLE spot_trades ADD COLUMN sizing_reference_price "
-                    "DECIMAL(18,8) NULL",
-                ),
-                (
-                    "spot_trades",
-                    "planned_risk_usd",
-                    "ALTER TABLE spot_trades ADD COLUMN planned_risk_usd "
-                    "DECIMAL(18,8) NULL",
-                ),
-                (
-                    "spot_trades",
-                    "fill_risk_usd",
-                    "ALTER TABLE spot_trades ADD COLUMN fill_risk_usd "
-                    "DECIMAL(18,8) NULL",
-                ),
-                # Regime state at entry. The gate blocks signals by ADX,
-                # but without recording what it saw there is no way to
-                # tell whether its thresholds separate winners or merely
-                # cut the trade count.
-                (
-                    "spot_trades",
-                    "entry_adx",
-                    "ALTER TABLE spot_trades ADD COLUMN entry_adx "
-                    "DECIMAL(10,4) NULL",
-                ),
-                (
-                    "spot_trades",
-                    "signal_confidence",
-                    "ALTER TABLE spot_trades ADD COLUMN signal_confidence "
-                    "DECIMAL(10,4) NULL",
-                ),
-            ]
-            for table_name, column_name, alter_sql in migrations:
-                cursor.execute(
-                    "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS "
-                    "WHERE TABLE_SCHEMA = DATABASE() "
-                    "AND TABLE_NAME = %s AND COLUMN_NAME = %s",
-                    (table_name, column_name),
+            migrations = (
+                ("assets", "is_inverted", "INTEGER NOT NULL DEFAULT 0"),
+                ("assets", "last_fulltest_ev", "REAL"),
+                ("trades", "payout_percent", "REAL"),
+                ("spot_trades", "exit_price", "REAL"),
+                ("spot_trades", "exit_time", "TIMESTAMP"),
+                ("spot_trades", "outcome", "TEXT"),
+                ("spot_trades", "realized_pnl", "REAL"),
+                ("spot_trades", "sizing_reference_price", "REAL"),
+                ("spot_trades", "planned_risk_usd", "REAL"),
+                ("spot_trades", "fill_risk_usd", "REAL"),
+                ("spot_trades", "entry_adx", "REAL"),
+                ("spot_trades", "signal_confidence", "REAL"),
+            )
+            for table_name, column_name, column_definition in migrations:
+                columns = {
+                    row["name"]
+                    for row in self.db_conn.execute(
+                        f'PRAGMA table_info("{table_name}")'
+                    ).fetchall()
+                }
+                if column_name in columns:
+                    continue
+                self.db_conn.execute(
+                    f'ALTER TABLE "{table_name}" ADD COLUMN '
+                    f'"{column_name}" {column_definition}'
                 )
-                if cursor.fetchone()[0] == 0:
-                    try:
-                        cursor.execute(alter_sql)
-                        self.db_conn.commit()
-                        utils.print(
-                            f"✅ Migration: added '{column_name}' to '{table_name}'.", 1
-                        )
-                    except mysql.connector.Error as err:
-                        utils.print(f"⛔ Migration error: {err}", 0)
+                utils.print(
+                    f"✅ Migration: added '{column_name}' to '{table_name}'.", 1
+                )
+
+            for create_index_statement in indexes:
+                self.db_conn.execute(create_index_statement)
+            self.db_conn.commit()
+        except sqlite3.Error as error:
+            utils.print(f"⛔ Database migration error: {error}", 0)
 
     def select(self, query: str, params: Optional[Tuple] = None) -> list:
         with self._lock:
             self._ensure_connection()
-            with self.db_conn.cursor() as cursor:
+            try:
+                cursor = self.db_conn.execute(
+                    query.replace("%s", "?"),
+                    params or (),
+                )
+                return [dict(row) for row in cursor.fetchall()]
+            except sqlite3.Error as error:
+                utils.print(f"⛔ Database (select: {query}) error: {error}", 0)
+                return []
 
-                try:
-                    if params:
-                        cursor.execute(query, params)
-                    else:
-                        cursor.execute(query)
-                    results = []
-                    while True:
-                        if cursor.description:
-                            column_names = [i[0] for i in cursor.description]
-                            rows = cursor.fetchall()
-                            current_set_results = []
-                            for row in rows:
-                                current_set_results.append(dict(zip(column_names, row)))
-                            results.extend(current_set_results)
-                        if not cursor.nextset():
-                            break
-                    return results
-
-                except mysql.connector.Error as err:
-                    utils.print(f"⛔ Database (select: {query}) error: {err}", 0)
-                    return []
-
-    def query(self, query: str, params: Optional[Tuple] = None) -> None:
+    def query(self, query: str, params: Optional[Tuple] = None) -> bool:
         with self._lock:
             self._ensure_connection()
-            with self.db_conn.cursor() as cursor:
+            try:
+                self.db_conn.execute(query.replace("%s", "?"), params or ())
+                self.db_conn.commit()
+                utils.print("✅ Query successfully executed.", 1)
+                return True
+            except sqlite3.Error as error:
+                utils.print(f"⛔ Database (query) error: {error}", 0)
+                return False
 
-                try:
-                    if params:
-                        cursor.execute(query, params)
-                    else:
-                        cursor.execute(query)
-                    self.db_conn.commit()
-                    utils.print("✅ Query successfully executed.", 1)
-
-                except mysql.connector.Error as err:
-                    utils.print(f"⛔ Database (query) error: {err}", 0)
-
-    def insert_many(self, query: str, data_to_insert: list = None) -> None:
+    def insert_many(self, query: str, data_to_insert: Optional[list] = None) -> bool:
         if data_to_insert is None:
             data_to_insert = []
         with self._lock:
             self._ensure_connection()
-            with self.db_conn.cursor() as cursor:
-
-                batch_size = 20000
-                for i in range(0, len(data_to_insert), batch_size):
-                    batch = data_to_insert[i : i + batch_size]
-                    try:
-                        cursor.executemany(query, batch)
-                        self.db_conn.commit()
-                        utils.print(
-                            f"✅ Successfully inserted batch {i//batch_size + 1} (rows {i}-{min(i+batch_size, len(data_to_insert))})",
-                            1,
-                        )
-                    except mysql.connector.Error as err:
-                        self.db_conn.rollback()
-                        utils.print(
-                            f"⛔ Error when inserting batch {i//batch_size + 1}: {err}",
-                            1,
-                        )
-                        break
-                utils.print("✅ Query successfully executed.", 1)
+            batch_size = 20000
+            prepared_query = query.replace("%s", "?")
+            for index in range(0, len(data_to_insert), batch_size):
+                batch = data_to_insert[index : index + batch_size]
+                try:
+                    self.db_conn.executemany(prepared_query, batch)
+                    self.db_conn.commit()
+                    utils.print(
+                        f"✅ Successfully inserted batch "
+                        f"{index // batch_size + 1} "
+                        f"(rows {index}-{min(index + batch_size, len(data_to_insert))})",
+                        1,
+                    )
+                except sqlite3.Error as error:
+                    self.db_conn.rollback()
+                    utils.print(
+                        f"⛔ Error when inserting batch "
+                        f"{index // batch_size + 1}: {error}",
+                        1,
+                    )
+                    return False
+            utils.print("✅ Query successfully executed.", 1)
+            return True
 
     def close_connection(self) -> None:
-        if self.db_conn and self.db_conn.is_connected():
-            self.db_conn.close()
-            utils.print("ℹ️ Database connection closed.", 1)
+        if self.db_conn is None:
+            return
+        self.db_conn.close()
+        self.db_conn = None
+        utils.print("ℹ️ Database connection closed.", 1)

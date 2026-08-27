@@ -432,7 +432,7 @@ class LiveStats:
                     trade_asset,
                     MIN(timestamp),
                     MAX(timestamp),
-                    LEAST(1, ROUND((COUNT(*) / %s), 4)) as progress
+                    LEAST(1, ROUND((COUNT(*) * 1.0 / %s), 4)) as progress
                 FROM trading_data
                 GROUP BY trade_platform, trade_asset
                 ORDER BY progress DESC

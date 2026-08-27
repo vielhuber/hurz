@@ -43,7 +43,7 @@ def record(
         bar_time = intent.bar_time.strftime("%Y-%m-%d %H:%M:%S")
         # Truncate error message to fit VARCHAR(500).
         err = (result.error or "")[:500] if not result.accepted else None
-        database.query(
+        return database.query(
             """
             INSERT INTO spot_trades (
                 created_at, platform, pair, strategy, bar_time,
@@ -80,7 +80,6 @@ def record(
                 float(intent.confidence) if intent.confidence is not None else None,
             ),
         )
-        return True
     except Exception as exc:
         _log_failure("record", exc)
         return False
@@ -195,12 +194,11 @@ def update_deal_id(
     computable at exit. An already-recorded fill wins — it is the price
     our own order actually got.
 
-    `fill_risk_usd` is assigned before `fill_price` on purpose: MySQL
-    applies SET clauses left to right, so the risk still reads the
-    pre-update fill and an already-journalled fill keeps its own risk."""
+    The risk expression reads the pre-update fill value, so an already
+    journalled fill keeps its own risk before the missing fill is backfilled."""
     try:
         from app.utils.singletons import database
-        database.query(
+        return database.query(
             """
             UPDATE spot_trades
             SET fill_risk_usd = COALESCE(
@@ -218,7 +216,6 @@ def update_deal_id(
                 int(journal_id),
             ),
         )
-        return True
     except Exception as exc:
         _log_failure("update-deal-id", exc)
         return False
@@ -235,7 +232,7 @@ def record_exit(
     try:
         from app.utils.singletons import database
         exit_str = exit_time.strftime("%Y-%m-%d %H:%M:%S")
-        database.query(
+        return database.query(
             """
             UPDATE spot_trades
             SET exit_price = %s, exit_time = %s,
@@ -249,7 +246,6 @@ def record_exit(
                 int(journal_id),
             ),
         )
-        return True
     except Exception as exc:
         _log_failure("record-exit", exc)
         return False

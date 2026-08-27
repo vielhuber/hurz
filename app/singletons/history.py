@@ -5,7 +5,8 @@ import pandas as pd
 import pytz
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 
 from app.utils.singletons import store, utils, database
 from app.utils.helpers import singleton
@@ -331,7 +332,7 @@ class History:
 
                     # keep 5 spaces after comma
                     df["Wert"] = pd.to_numeric(df["Wert"], errors="coerce").map(
-                        lambda x: f"{x:.5f}" if pd.notnull(x) else ""
+                        lambda x: f"{x:.5f}" if pd.notnull(x) else None
                     )
 
                     # remove duplicate lines
@@ -386,10 +387,7 @@ class History:
                                 "Wert",
                             ]
                         ]
-                        # NaN → None so mysql-connector binds them as SQL NULL
-                        # (otherwise NaN is stringified to the literal "nan",
-                        # which MySQL parses as a column name and raises
-                        # "Unknown column 'nan' in 'field list'")
+                        # NaN values must become SQL NULL before binding.
                         df_tmp = df_tmp.astype(object).where(pd.notna(df_tmp), None)
                         df_tmp = df_tmp.values.tolist()
 
@@ -412,17 +410,21 @@ class History:
                                 f.write(str(row) + "\n")
                             f.write("--- end ---\n")
 
-                        await utils.run_sync_as_async(
+                        inserted = await utils.run_sync_as_async(
                             database.insert_many,
                             """
                                 INSERT INTO trading_data
                                 (trade_asset, trade_platform, timestamp, price)
                                 VALUES (%s, %s, %s, %s)
-                                ON DUPLICATE KEY UPDATE
-                                price = VALUES(price)
+                                ON CONFLICT(trade_asset, trade_platform, timestamp)
+                                DO UPDATE SET price = excluded.price
                             """,
                             df_tmp,
                         )
+                        if not inserted:
+                            raise RuntimeError(
+                                f"Could not persist historical data for {trade_asset}."
+                            )
                         utils.print(
                             f"✅ Successfully inserted data in database.",
                             1,
@@ -441,7 +443,7 @@ class History:
                             f"ℹ️ Truncate data to {truncate_date}...",
                             1,
                         )
-                        await utils.run_sync_as_async(
+                        truncated = await utils.run_sync_as_async(
                             database.query,
                             """
                                 DELETE FROM trading_data
@@ -451,6 +453,10 @@ class History:
                             """,
                             (trade_asset, trade_platform, truncate_date),
                         )
+                        if not truncated:
+                            raise RuntimeError(
+                                f"Could not truncate historical data for {trade_asset}."
+                            )
                         utils.print(
                             f"✅ Successfully truncated data.",
                             1,
@@ -646,7 +652,7 @@ class History:
         # delegate indicator calculation to the pure helper (needs FULL history)
         df = self.compute_features_df(df, price_col="price")
 
-        # Build rows for bulk INSERT ... ON DUPLICATE KEY UPDATE
+        # Build rows for a bulk upsert.
         # (trade_asset, trade_platform, timestamp, 8 features).
         # IMPORTANT: we only emit rows where
         #   (a) `needs_compute` is True (row was NULL in DB), AND
@@ -682,12 +688,13 @@ class History:
                 ]
             rows.append(row_values)
 
-        self._bulk_write_feature_rows(asset, rows, feature_cols)
-        return True
+        return self._bulk_write_feature_rows(asset, rows, feature_cols)
 
-    def _bulk_write_feature_rows(self, asset: str, rows: list, feature_cols: list) -> None:
+    def _bulk_write_feature_rows(
+        self, asset: str, rows: list, feature_cols: list
+    ) -> bool:
         """Write a list of [asset, platform, timestamp, <8 features>] rows to
-        trading_data via batched INSERT ... ON DUPLICATE KEY UPDATE. Handles
+        trading_data via batched SQLite upserts. Handles
         the empty case gracefully (logs and returns)."""
         total = len(rows)
         if total == 0:
@@ -695,34 +702,28 @@ class History:
                 f"ℹ️ {asset}: no new feature rows to write.",
                 0,
             )
-            return
+            return True
 
         utils.print(f"ℹ️ {asset}: writing features for {total} rows...", 0)
         sys.stdout.flush()
 
         cols = ["trade_asset", "trade_platform", "timestamp"] + feature_cols
-        placeholders = "(" + ", ".join(["%s"] * len(cols)) + ")"
-        update_clause = ", ".join(f"{c} = VALUES({c})" for c in feature_cols)
+        placeholders = ", ".join(["%s"] * len(cols))
+        update_clause = ", ".join(
+            f"{column} = excluded.{column}" for column in feature_cols
+        )
 
-        # 25000 rows per INSERT batch: reduces the 57-batch-per-asset
-        # roundtrip count by ~5× (280k rows → 12 batches instead of 57),
-        # cutting the dominant DB-write cost of compute_features_of_asset
-        # by roughly 30-40%. Each batch sends ~5 MB to MySQL, well under
-        # the default 64 MB max_allowed_packet, so no tuning required.
         batch_size = 25000
         for i in range(0, total, batch_size):
             batch = rows[i : i + batch_size]
-            values_sql = ", ".join([placeholders] * len(batch))
-            flat_values = [v for row in batch for v in row]
             sql = (
                 f"INSERT INTO trading_data ({', '.join(cols)}) "
-                f"VALUES {values_sql} "
-                f"ON DUPLICATE KEY UPDATE {update_clause}"
+                f"VALUES ({placeholders}) "
+                f"ON CONFLICT(trade_asset, trade_platform, timestamp) "
+                f"DO UPDATE SET {update_clause}"
             )
-            database._ensure_connection()
-            with database.db_conn.cursor() as cursor:
-                cursor.execute(sql, flat_values)
-                database.db_conn.commit()
+            if not database.insert_many(sql, batch):
+                return False
             done = min(i + batch_size, total)
             pct = round(100 * done / total)
             utils.print(f"⏳ {asset}: {done}/{total} ({pct}%)", 0)
@@ -730,6 +731,7 @@ class History:
 
         utils.print(f"✅ {asset}: updated features for {total} rows.", 0)
         sys.stdout.flush()
+        return True
 
     def verify_data_of_asset(self, asset: str, output_success: bool = True) -> bool:
         # read from database — only timestamp + price (verify doesn't touch
@@ -1085,15 +1087,14 @@ class History:
 
     def get_time_in_seconds_since_begin(self, months: int = None) -> int:
         months = months if months is not None else store.historic_data_period_in_months
-        time_in_seconds_since_begin = database.select(
-            """
-            SELECT
-                TIMESTAMPDIFF(MINUTE,
-                    DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL %s MONTH), '%Y-%m-01'),
-                    NOW() - INTERVAL 24 HOUR
-                ) as time
-            """,
-            (months,),
+        now = datetime.now()
+        first_month = now - relativedelta(months=months)
+        first_month = first_month.replace(
+            day=1,
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
         )
-        time_in_seconds_since_begin = int(time_in_seconds_since_begin[0]["time"])
-        return time_in_seconds_since_begin
+        end = now - timedelta(hours=24)
+        return int((end - first_month).total_seconds() / 60)

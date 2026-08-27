@@ -16,11 +16,12 @@ from __future__ import annotations
 
 import os
 import re
+from pathlib import Path
 import sys
 from typing import Optional
 from datetime import datetime, timezone
 
-import mysql.connector
+import sqlite3
 from dotenv import load_dotenv
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -98,19 +99,25 @@ _LABELS = {
 
 
 def _connect():
-    return mysql.connector.connect(
-        host=os.getenv("DB_HOST", "localhost"),
-        port=int(os.getenv("DB_PORT", "3306")),
-        user=os.getenv("DB_USERNAME", "root"),
-        password=os.getenv("DB_PASSWORD", ""),
-        database=os.getenv("DB_NAME", "hurz"),
+    sqlite3.register_converter(
+        "TIMESTAMP",
+        lambda value: datetime.fromisoformat(value.decode()),
     )
+    database_path = Path(os.getenv("DB_PATH", "data/hurz.sqlite")).expanduser()
+    if not database_path.is_absolute():
+        database_path = Path(_ROOT) / database_path
+    connection = sqlite3.connect(
+        database_path,
+        timeout=30,
+        detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES,
+    )
+    connection.row_factory = sqlite3.Row
+    return connection
 
 
 def _rows(cur, query, params=None):
-    cur.execute(query, params or ())
-    cols = [c[0] for c in cur.description]
-    return [dict(zip(cols, r)) for r in cur.fetchall()]
+    cur.execute(query.replace("%s", "?"), params or ())
+    return [dict(row) for row in cur.fetchall()]
 
 
 # Retired strategies (mean-reversion, removed from the live rotation
@@ -127,8 +134,8 @@ def _fetch(days) -> dict:
     conn = _connect()
     cur = conn.cursor()
     # All-time when days is None: drop the rolling-window clause entirely.
-    win = "" if days is None else "AND exit_time >= NOW() - INTERVAL %s DAY"
-    win_params = () if days is None else (days,)
+    win = "" if days is None else "AND exit_time >= datetime('now', %s)"
+    win_params = () if days is None else (f"-{days} days",)
     try:
         closed = _rows(cur, f"""
             SELECT platform, exit_time, {_PNL} AS realized_pnl
@@ -198,9 +205,9 @@ def _fetch(days) -> dict:
                    ROUND(SUM({_PNL}), 2) AS pnl,
                    ROUND(SUM(CASE WHEN {_PNL} > 0 THEN {_PNL} ELSE 0 END)
                          / NULLIF(-SUM(CASE WHEN {_PNL} <= 0 THEN {_PNL} ELSE 0 END), 0), 2) AS pf,
-                   ROUND(SUM(CASE WHEN exit_time >= NOW() - INTERVAL 30 DAY THEN {_PNL} ELSE 0 END), 2) AS pnl30,
-                   ROUND(SUM(CASE WHEN exit_time >= NOW() - INTERVAL 14 DAY THEN {_PNL} ELSE 0 END), 2) AS pnl14,
-                   ROUND(SUM(CASE WHEN exit_time >= NOW() - INTERVAL 7 DAY THEN {_PNL} ELSE 0 END), 2) AS pnl7
+                   ROUND(SUM(CASE WHEN exit_time >= datetime('now', '-30 days') THEN {_PNL} ELSE 0 END), 2) AS pnl30,
+                   ROUND(SUM(CASE WHEN exit_time >= datetime('now', '-14 days') THEN {_PNL} ELSE 0 END), 2) AS pnl14,
+                   ROUND(SUM(CASE WHEN exit_time >= datetime('now', '-7 days') THEN {_PNL} ELSE 0 END), 2) AS pnl7
             FROM spot_trades
             WHERE accepted=1 AND realized_pnl IS NOT NULL
               AND platform <> 'kraken_futures'
@@ -231,7 +238,9 @@ def _fetch(days) -> dict:
         # Full-period span for the projection tile (how many days the
         # realized PnL was earned over — the daily-rate denominator).
         span = _rows(cur, f"""
-            SELECT MIN(exit_time) AS mn, MAX(exit_time) AS mx, COUNT(*) AS n
+            SELECT MIN(exit_time) AS "mn [TIMESTAMP]",
+                   MAX(exit_time) AS "mx [TIMESTAMP]",
+                   COUNT(*) AS n
             FROM spot_trades
             WHERE accepted=1 AND realized_pnl IS NOT NULL AND exit_time IS NOT NULL
               AND platform <> 'kraken_futures'

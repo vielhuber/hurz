@@ -168,7 +168,13 @@ class Asset:
             """
             SELECT
                 COUNT(*) AS cnt,
-                TIMESTAMPDIFF(MINUTE, MIN(timestamp), MAX(timestamp)) + 1 AS expected
+                CAST(
+                    ROUND(
+                        (julianday(MAX(timestamp)) - julianday(MIN(timestamp)))
+                        * 1440
+                    )
+                    AS INTEGER
+                ) + 1 AS expected
             FROM trading_data
             WHERE trade_asset = %s AND trade_platform = %s
             """,
