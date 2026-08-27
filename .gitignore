@@ -5,11 +5,12 @@
 # operator-pinned combos are config worth versioning, not runtime state
 !/data/pinned_pairs.json
 /.env
+/.env.*
+!/.env.example
 __pycache__
 *.pyc
 *.prof
 /NOTES.MD
-/hurz-models
 /.ralph
 /.ralphrc
 # generated static dashboard (regenerated every 30s, not source)

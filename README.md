@@ -68,18 +68,38 @@ and Capital.com without editing JSON files.
 #### install requirements
 
 - `sudo apt install -y git unzip python3 python3-pip python3-venv`
-- install nvidia cuda according to https://developer.nvidia.com/cuda-downloads
 - `git clone https://github.com/vielhuber/hurz.git .`
 - `python3 -m venv venv`
-- `pip3 install -r requirements.txt`
+- `venv/bin/pip install -r requirements.txt`
 - `cp .env.example .env`
+
+The default installation runs all models on the CPU. CUDA is optional:
+
+```sh
+venv/bin/pip install -r requirements-cuda.txt
+```
+
+The optional CUDA setup requires an NVIDIA GPU and a driver compatible with
+CUDA 12.
 
 #### setup local database
 
-- `mysql -u root -p`
-- `CREATE DATABASE IF NOT EXISTS hurz;`
-- `exit;`
-- modify `.env` and fill in credentials for `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`
+Hurz creates the SQLite database configured through `DB_PATH` automatically.
+The default is `data/hurz.sqlite`.
+
+To migrate an existing MySQL database without modifying the source:
+
+```sh
+venv/bin/pip install -r requirements-migration.txt
+cp .env .env.mysql
+venv/bin/python scripts/migrate_mysql_to_sqlite.py --source-env .env.mysql --target data/hurz.sqlite
+```
+
+The migration uses a consistent source snapshot, writes to a temporary SQLite
+file, compares every table's source and destination row counts, runs SQLite's
+integrity check, and only then replaces the target. Add `--force` when replacing
+an existing SQLite target intentionally. After migration, replace the old
+`DB_*` connection values in `.env` with `DB_PATH="data/hurz.sqlite"`.
 
 ## trading platforms
 
@@ -189,9 +209,9 @@ DEMO_SESSION_ID="${AppData.demoSessionId}"
 - modify `PROXY="USERNAME:PASSWORD@IP_ADDRESS:PORT"` in .env (used by
   the Pocket Option WebSocket only)
 
-#### premium models (optional)
+#### models
 
-- place your custom models inside `external/` (see `random.py` for the
+- place custom models inside `external/` (see `random.py` for the
   minimal model interface — works on every platform).
 
 ## platform interface
