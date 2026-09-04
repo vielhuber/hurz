@@ -16,6 +16,11 @@ set -e
 cd "$(dirname "$0")/.."
 mkdir -p tmp
 
+# Apache serves dashboard/index.html as www-data. A caller with a strict
+# umask (agent sessions run with 077) would otherwise produce a 0600 file
+# and the dashboard answers 403 while the loop reports success.
+umask 022
+
 PID_FILE="tmp/dashboard_loop.pid"
 LOG_FILE="tmp/dashboard_loop.log"
 DAYS="${DASHBOARD_DAYS:-all}"
