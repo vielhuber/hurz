@@ -35,7 +35,7 @@ case "$cmd" in
       echo "Already running (PID $(cat "$PID_FILE"))."
       exit 0
     fi
-    nohup bash -c "
+    setsid nohup bash -c "
       while true; do
         '$PYTHON_BIN' scripts/generate_dashboard.py $DAYS >>'$LOG_FILE' 2>&1
         sleep $INTERVAL

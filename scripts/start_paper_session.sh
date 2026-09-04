@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Start a long-running paper-mode autotrade session in the background.
-# Wraps `python3 hurz.py` with nohup so it survives terminal close.
+# Wraps `python3 hurz.py` with setsid+nohup so it survives terminal close
+# and outlives the session of whatever started it.
 # Logs to tmp/paper_session.log, PID to tmp/paper_session.pid.
 #
 # Usage:
@@ -60,7 +61,10 @@ case "$cmd" in
     # reboot survival, DNS hiccups, 502s, asyncio timeouts) trigger
     # an auto-restart instead of leaving the bot dead. The watchdog
     # uses `python3 -u` internally for unbuffered logging.
-    nohup bash scripts/_session_watchdog.sh >"$LOG_FILE" 2>&1 &
+    # `setsid` puts the watchdog into its own session. nohup alone only
+    # blocks SIGHUP; a caller whose whole session is torn down (agent run,
+    # SSH session, terminal) would still take the bot with it.
+    setsid nohup bash scripts/_session_watchdog.sh >"$LOG_FILE" 2>&1 &
     echo $! > "$PID_FILE"
     echo "✓ session started in $mode mode (PID $(cat "$PID_FILE"))"
     echo "  log:  $LOG_FILE"
