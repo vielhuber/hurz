@@ -57,6 +57,7 @@ def _simulate(df, signals, *, rr, stop_atr, max_hold, platform, pair):
     target scaled the win leg while the cost leg stayed invisible.
     """
     rs = []
+    modes = {"win": 0, "loss": 0, "timeout": 0}
     in_until = -1
     fee = _fee_for(platform, pair)
     for sig in signals:
@@ -91,15 +92,15 @@ def _simulate(df, signals, *, rr, stop_atr, max_hold, platform, pair):
                 if h >= sl: outcome = "loss"; in_until = i + j; break
                 if l <= tp: outcome = "win"; in_until = i + j; break
         if outcome == "win":
-            rs.append(rr - cost_r)
+            rs.append(rr - cost_r); modes["win"] += 1
         elif outcome == "loss":
-            rs.append(-1.0 - cost_r)
+            rs.append(-1.0 - cost_r); modes["loss"] += 1
         elif i + max_hold < len(df):
             cl = float(df.iloc[i + max_hold]["close"])
             pnl = (cl - entry) * sig.direction
             risk = abs(entry - sl)
             if risk > 0:
-                rs.append(pnl / risk - cost_r)
+                rs.append(pnl / risk - cost_r); modes["timeout"] += 1
             in_until = i + max_hold
     if not rs:
         return None
@@ -109,6 +110,7 @@ def _simulate(df, signals, *, rr, stop_atr, max_hold, platform, pair):
     return {
         "n": len(arr), "win_rate": float((arr > 0).mean()),
         "pf": pf, "E[R]": float(arr.mean()),
+        "timeout_share": modes["timeout"] / len(arr),
     }
 
 
@@ -164,7 +166,8 @@ async def main(args):
                     continue
                 pf_str = f"{stats['pf']:.2f}" if stats['pf'] != float("inf") else "∞"
                 print(f"  segment {s+1}: n={stats['n']:>3} win={stats['win_rate']*100:>4.0f}% "
-                      f"PF={pf_str:>5} E[R]={stats['E[R]']:>+5.2f}")
+                      f"PF={pf_str:>5} E[R]={stats['E[R]']:>+5.2f} "
+                      f"timeout={stats['timeout_share']*100:>3.0f}%")
                 seg_E.append(stats["E[R]"])
             if seg_E:
                 pos_segs = sum(1 for e in seg_E if e > 0)
