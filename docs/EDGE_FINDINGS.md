@@ -2092,3 +2092,135 @@ Worth stating plainly: I have spent this investigation correcting
 measurements that flattered results, and the operator-facing summary —
 the one artefact a human actually looks at — was the last and largest of
 them. It was showing -93 USD where the truth is -466.
+
+## 49. Three levers tested, three levers dead
+
+Four days of downtime (the `@reboot` cron entry had gone missing) ended
+with the book restarted and three candidate levers queued. All three
+were measured and none survived. Recording them so the next run does not
+re-test the same ideas.
+
+### 49a. The book stopped losing when the blocklists were applied
+
+The -77 USD since the router era looked like an active bleed. Recomputing
+the same window under the configuration that is actually live today —
+`COST_BLOCKED_PAIRS` removed, `donchian_breakout_v3` and `donchian_trail`
+removed, mean reversion removed — leaves 161 of 266 trades:
+
+| basis | n | PnL | mean/trade | t | p |
+|---|---:|---:|---:|---:|---:|
+| everything closed since 2026-07-10 | 266 | -77.25 | -0.290 | | |
+| **only what today's config would trade** | **161** | **-1.76** | **-0.011** | **-0.05** | **0.96** |
+
+The loss was produced almost entirely by instruments and strategies that
+have since been blocked. The remaining book is not losing; it is flat and
+statistically indistinguishable from zero. That reframes the problem: not
+a bleed to stop, an edge to find.
+
+Nothing survives correction. Every strategy (6 tested) and every pair
+(12 tested, n>=5) has a Bonferroni-corrected p of 1.000. The largest
+remaining single position is OIL_CRUDE at -16.10 over 29 trades, raw
+p = 0.35.
+
+### 49b. OIL_CRUDE is not a cost problem — not blocked
+
+OIL_CRUDE was the obvious block candidate, and OIL_BRENT earning +5.70
+over 25 trades in the same window made a spread difference the obvious
+suspect. Fresh instrument-level audit against measured live stops:
+
+| pair | %/side | mean live stop | cost/risk | at tightest stop |
+|---|---:|---:|---:|---:|
+| OIL_CRUDE | 0.0225 % | 1.161 % | **3.9 %** | 4.3 % |
+| OIL_BRENT | 0.0213 % | 1.248 % | 3.4 % | 4.1 % |
+| WHEAT | 0.0531 % | 1.289 % | 8.2 % | 9.4 % |
+| AAVEUSD (blocked) | — | 1.128 % | 88.6 % | 95.2 % |
+| DOTUSD (blocked) | — | 1.055 % | 48.3 % | 48.6 % |
+
+The two oils cost the same to trade. OIL_CRUDE sits at 3.9 % of risk
+against a 10 % ceiling. **No block** — the difference between them is
+noise, and the table also confirms the existing blocklist was right by an
+order of magnitude.
+
+### 49c. The walk-forward simulator charged no costs
+
+Before the reward:risk sweep could mean anything, the tool had to be
+fixed. `_simulate` scored a win as exactly `+rr` and a loss as `-1.0`:
+no spread, no venue minimum stop. That is not a rounding issue for an
+`--rr` comparison — a wider target scales the win leg while the cost leg
+stays invisible, so the sweep was rigged toward whatever target was
+largest. Costs are charged on the entry price but measured against the
+stop distance, which is exactly why the live book realises a 1.41 payoff
+against a planned 1.5.
+
+Now reusing the resolvers `spot_backtest.py` already owns.
+
+### 49d. A wider target does not pay — 1.5 stays
+
+`donchian_breakout`, 10 instruments, 60 days, 3 segments, net of costs:
+
+| rr | mean E[R] across pairs |
+|---|---:|
+| 1.0 | -0.0216 |
+| **1.5 (current)** | **-0.0027** |
+| 2.0 | -0.0213 |
+| 2.5 | -0.0228 |
+| 3.0 | -0.0028 |
+
+No monotonic gain, no ordering worth acting on, and the current setting
+is among the best. **The reward:risk lever is dead.**
+
+The reason is visible once the resolution mix is reported, which it now
+is: **EURUSD and GBPUSD resolve 100 % by timeout.** Not one trade in 60
+days touches stop or target inside the 24h limit — Capital's 1.05 %
+minimum stop is far wider than hourly FX movement, so both barriers are
+decorative and the trade is whatever the close gives after 24 hours. That
+also explains the live book's 116 of 266 time-based exits.
+
+Tempting conclusion: the venue floor is destroying the edge. It is not
+supported. Splitting live trades by whether the stop sat on the floor:
+
+| | n | PnL | mean | t | p |
+|---|---:|---:|---:|---:|---:|
+| stop pinned to venue minimum | 108 | +20.86 | +0.193 | +0.85 | 0.39 |
+| stop set by ATR | 53 | -22.63 | -0.427 | -0.92 | 0.36 |
+
+The pinned trades did *better*, and neither side is significant. The
+100 %-timeout mechanic is real but does not translate into worse results.
+
+### 49e. The router, settled a second time — now forward
+
+Section 46 asked for a forward comparison the backtests could not supply.
+The journal now supplies it: every regime-vetoed signal is written with
+its full entry, stop and target, so the bars that followed decide what it
+would have returned. 170 vetoed and 18 taken signals since instrumentation
+began, replayed net of spread (`scripts/regime_counterfactual.py`):
+
+| group | n | E[R] | win | t |
+|---|---:|---:|---:|---:|
+| passed by the router (ADX>=30) | 15 | -0.177 | 40.0 % | -0.81 |
+| rejected by the router (ADX<30) | 155 | -0.097 | 43.2 % | -1.69 |
+| **difference** | | **-0.079** | | **-0.35** |
+
+The forward reading lands on **t = -0.35** against 46b's three-year
+backtest value of **t = -0.34**. Two independent samples, one historical
+and one live, agreeing to the second decimal. **The router stays on**, and
+the question is now settled from both directions.
+
+The decisive part is not the difference but the levels: *both* groups are
+negative. Switching the router off would not have bought profit, it would
+have bought more losing trades. The suppressed signals are not the better
+half — they are the same flat nothing, in greater quantity.
+
+Below ADX 20 the suppressed signals win 51.2 % of the time at E[R]
+-0.121: frequent small wins against rare large losses, which is the
+mean-reversion payoff shape that was retired in July for losing money.
+
+### What this run establishes
+
+The active book is flat, not bleeding. Blocklists, reward:risk, and the
+regime router have each been measured and none of them is the missing
+piece. At 3.5 trades a day and this dispersion, no per-pair or
+per-strategy effect can reach significance in any reasonable time — the
+constraint is not analysis quality, it is that a flat book cannot be
+tuned into a 50 EUR/day book by adjusting exit levels on the strategies
+it already runs.
