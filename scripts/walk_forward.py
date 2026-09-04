@@ -32,6 +32,7 @@ settings.load_env()
 from app.platforms import get_platform, Bar
 from app.platforms.registry import clear_cache
 from app.strategies import get_strategy, available_strategies, add_indicators
+from scripts.spot_backtest import _fee_for, _venue_min_distance
 
 
 _DEFAULT_KRAKEN = ["XBTEUR", "ETHEUR", "ADAUSD", "LINKEUR", "DOTEUR"]
@@ -45,9 +46,19 @@ def _bars_to_df(bars: List[Bar]) -> pd.DataFrame:
     } for b in bars])
 
 
-def _simulate(df, signals, *, rr, stop_atr, max_hold):
+def _simulate(df, signals, *, rr, stop_atr, max_hold, platform, pair):
+    """Replay `signals` and return R-multiple statistics net of costs.
+
+    Costs are not cosmetic here: the round-trip spread is charged on the
+    entry price while R is measured against the stop distance, so the
+    cost in R units grows as the stop tightens. A cost-free simulation
+    therefore rewards exactly the configurations that lose money live —
+    and it made every `--rr` comparison meaningless, because a higher
+    target scaled the win leg while the cost leg stayed invisible.
+    """
     rs = []
     in_until = -1
+    fee = _fee_for(platform, pair)
     for sig in signals:
         i = sig.index
         if i <= in_until or i >= len(df):
@@ -56,9 +67,18 @@ def _simulate(df, signals, *, rr, stop_atr, max_hold):
         if atr is None or not np.isfinite(atr) or atr <= 0:
             continue
         entry = float(df.iloc[i]["close"])
-        stop_d = stop_atr * atr; tp_d = rr * stop_d
+        stop_d = stop_atr * atr
+        # The venue refuses a stop closer than its minimum; the live
+        # trader widens it and stretches the target to hold R:R. Without
+        # this the backtest keeps a stop the broker would never accept.
+        venue_min = _venue_min_distance(platform, pair, entry)
+        if venue_min > 0 and stop_d < venue_min:
+            stop_d = venue_min
+        tp_d = rr * stop_d
         sl = entry - stop_d if sig.direction == 1 else entry + stop_d
         tp = entry + tp_d if sig.direction == 1 else entry - tp_d
+        # Round-trip spread expressed in R, charged on every trade.
+        cost_r = (2.0 * fee * entry / stop_d) if stop_d > 0 else 0.0
         outcome = None
         for j in range(1, max_hold + 1):
             if i + j >= len(df):
@@ -71,15 +91,15 @@ def _simulate(df, signals, *, rr, stop_atr, max_hold):
                 if h >= sl: outcome = "loss"; in_until = i + j; break
                 if l <= tp: outcome = "win"; in_until = i + j; break
         if outcome == "win":
-            rs.append(rr)
+            rs.append(rr - cost_r)
         elif outcome == "loss":
-            rs.append(-1.0)
+            rs.append(-1.0 - cost_r)
         elif i + max_hold < len(df):
             cl = float(df.iloc[i + max_hold]["close"])
             pnl = (cl - entry) * sig.direction
             risk = abs(entry - sl)
             if risk > 0:
-                rs.append(pnl / risk)
+                rs.append(pnl / risk - cost_r)
             in_until = i + max_hold
     if not rs:
         return None
@@ -137,7 +157,8 @@ async def main(args):
                 signals = strategy(seg_df, {})
                 stats = _simulate(seg_df, signals,
                                   rr=args.rr, stop_atr=args.stop_atr,
-                                  max_hold=args.max_hold)
+                                  max_hold=args.max_hold,
+                                  platform=args.platform, pair=pair)
                 if stats is None:
                     print(f"  segment {s+1}: no trades")
                     continue
