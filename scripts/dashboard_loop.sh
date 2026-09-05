@@ -27,6 +27,11 @@ DAYS="${DASHBOARD_DAYS:-all}"
 # 30s to match the page's 30s auto-reload — the DB aggregates are cheap,
 # so regenerating this often keeps the reloaded page genuinely current.
 INTERVAL="${DASHBOARD_INTERVAL:-30}"
+# One success line every 30s is ~350 KB/day that nothing ever truncated —
+# the log had reached 145k lines. Unlike tmp/log.txt the bot rotates from
+# inside its own event loop, this one has no writer to do it, so the loop
+# rolls it over itself and keeps a single previous file.
+LOG_MAX_BYTES="${DASHBOARD_LOG_MAX_BYTES:-10485760}"
 # Bare `python3` resolves to the system interpreter, which lacks the venv
 # deps — pin the venv one so a reboot can't start the wrong python.
 PYTHON_BIN="$PWD/venv/bin/python3"
@@ -55,6 +60,9 @@ case "$cmd" in
     setsid nohup bash -c "
       while true; do
         '$PYTHON_BIN' scripts/generate_dashboard.py $DAYS >>'$LOG_FILE' 2>&1
+        if [[ \$(stat -c %s '$LOG_FILE' 2>/dev/null || echo 0) -gt $LOG_MAX_BYTES ]]; then
+          mv -f '$LOG_FILE' '$LOG_FILE.1'
+        fi
         sleep $INTERVAL
       done
     " >/dev/null 2>&1 &
