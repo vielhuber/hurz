@@ -32,14 +32,26 @@ INTERVAL="${DASHBOARD_INTERVAL:-30}"
 PYTHON_BIN="$PWD/venv/bin/python3"
 [[ -x "$PYTHON_BIN" ]] || PYTHON_BIN="python3"
 
+# tmp/ survives a reboot, so `kill -0` on a stale PID file answers
+# "alive" as soon as the kernel reuses that PID for something else.
+# See start_paper_session.sh for the outage this caused.
+loop_alive() {
+  [[ -f "$PID_FILE" ]] || return 1
+  local pid
+  pid="$(cat "$PID_FILE")"
+  kill -0 "$pid" 2>/dev/null || return 1
+  tr -d '\0' <"/proc/$pid/cmdline" 2>/dev/null | grep -q 'generate_dashboard.py'
+}
+
 cmd="${1:-start}"
 
 case "$cmd" in
   start)
-    if [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+    if loop_alive; then
       echo "Already running (PID $(cat "$PID_FILE"))."
       exit 0
     fi
+    rm -f "$PID_FILE"
     setsid nohup bash -c "
       while true; do
         '$PYTHON_BIN' scripts/generate_dashboard.py $DAYS >>'$LOG_FILE' 2>&1
@@ -52,18 +64,20 @@ case "$cmd" in
     echo "  log:  $LOG_FILE"
     ;;
   status)
-    if [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+    if loop_alive; then
       echo "✓ running (PID $(cat "$PID_FILE"))"
       tail -n 3 "$LOG_FILE" 2>/dev/null | sed 's/^/    /'
     else
       echo "✗ not running"
-      [[ -f "$PID_FILE" ]] && rm -f "$PID_FILE"
+      rm -f "$PID_FILE"
+      exit 1
     fi
     ;;
   stop)
     if [[ ! -f "$PID_FILE" ]]; then echo "✗ no PID file"; exit 0; fi
-    pid="$(cat "$PID_FILE")"
-    kill "$pid" 2>/dev/null || true
+    if loop_alive; then
+      kill "$(cat "$PID_FILE")" 2>/dev/null || true
+    fi
     rm -f "$PID_FILE"
     echo "✓ stopped"
     ;;

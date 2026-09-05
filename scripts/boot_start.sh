@@ -25,13 +25,12 @@ mkdir -p tmp
 LOG="tmp/boot_start.log"
 stamp() { date -u '+%Y-%m-%d %H:%M:%SZ'; }
 
-# Stale PID files from the killed processes would make the wrappers think
-# a session is already running.
-for pid_file in tmp/paper_session.pid tmp/dashboard_loop.pid; do
-  [[ -f "$pid_file" ]] && ! kill -0 "$(cat "$pid_file")" 2>/dev/null && rm -f "$pid_file"
-done
-
-if [[ -f tmp/paper_session.pid && -f tmp/dashboard_loop.pid ]]; then
+# Both wrappers verify that the recorded PID still belongs to their own
+# process and drop the file otherwise, so their `status` is the single
+# source of truth. Judging the PID files here instead would call a PID
+# the kernel has since reassigned healthy and skip the start.
+if bash scripts/start_paper_session.sh status >/dev/null 2>&1 \
+   && bash scripts/dashboard_loop.sh status >/dev/null 2>&1; then
   exit 0
 fi
 

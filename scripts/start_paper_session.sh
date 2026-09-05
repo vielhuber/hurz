@@ -18,14 +18,29 @@ mkdir -p tmp
 PID_FILE="tmp/paper_session.pid"
 LOG_FILE="tmp/paper_session.log"
 
+# tmp/ survives a reboot, so a stale PID file outlives the process it
+# named. `kill -0` alone then reports "alive" once the kernel has handed
+# that PID to an unrelated process, and the PIDs handed out here are low
+# enough to land in the range system daemons reoccupy after a boot. That
+# false positive would make the keepalive skip the start and leave the
+# bot down unnoticed, and `stop` would signal the foreign process tree.
+session_alive() {
+  [[ -f "$PID_FILE" ]] || return 1
+  local pid
+  pid="$(cat "$PID_FILE")"
+  kill -0 "$pid" 2>/dev/null || return 1
+  tr -d '\0' <"/proc/$pid/cmdline" 2>/dev/null | grep -q '_session_watchdog.sh'
+}
+
 cmd="${1:-start}"
 
 case "$cmd" in
   start)
-    if [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+    if session_alive; then
       echo "Already running (PID $(cat "$PID_FILE"))."
       exit 0
     fi
+    rm -f "$PID_FILE"
     # Determine session mode from .env. Two valid configurations:
     #   PAPER_TRADE_ONLY=1                         → paper, no real orders
     #   PAPER_TRADE_ONLY=0 with CAPITAL_COM_DEMO=1 → live demo (demo-acc orders)
@@ -74,7 +89,7 @@ case "$cmd" in
     fi
     ;;
   status)
-    if [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+    if session_alive; then
       pid="$(cat "$PID_FILE")"
       uptime="$(ps -o etime= -p "$pid" | tr -d ' ')"
       echo "✓ running (PID $pid, uptime $uptime)"
@@ -82,7 +97,8 @@ case "$cmd" in
       tail -n 5 "$LOG_FILE" | sed 's/^/    /'
     else
       echo "✗ not running"
-      [[ -f "$PID_FILE" ]] && rm -f "$PID_FILE"
+      rm -f "$PID_FILE"
+      exit 1
     fi
     ;;
   stop)
@@ -90,7 +106,7 @@ case "$cmd" in
       echo "✗ no PID file"; exit 0
     fi
     pid="$(cat "$PID_FILE")"
-    if ! kill -0 "$pid" 2>/dev/null; then
+    if ! session_alive; then
       echo "✗ process not running"; rm -f "$PID_FILE"; exit 0
     fi
     # The watchdog runs `python3 hurz.py` as a child. Killing only the
