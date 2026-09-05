@@ -835,6 +835,11 @@ async def run_loop(
     # log shows the loop is alive even when no signals fire. Without
     # this a quiet day looks identical to a wedged process.
     last_heartbeat_at: Optional[datetime] = None
+    # Handle of the fire-and-forget dashboard refresh below. Kept so the
+    # loop can reap it: without a wait() the finished child stays a
+    # zombie, and over a multi-week uptime that is one leaked PID per
+    # hour.
+    dashboard_proc: Optional[subprocess.Popen] = None
 
     # Exit-tracking. Each cycle we diff the current position deal_ids
     # against the previous cycle's set; missing ones are positions the
@@ -1746,6 +1751,12 @@ async def run_loop(
                     fill_risk=fill_risk,
                 )
 
+            # Reap the previous dashboard refresh every cycle rather than
+            # only at the next heartbeat, so the finished child lingers as
+            # a zombie for one poll interval instead of a full hour.
+            if dashboard_proc is not None and dashboard_proc.poll() is not None:
+                dashboard_proc = None
+
             # Heartbeat: prove the loop is alive even on quiet cycles.
             # Always log on the first cycle so the operator gets quick
             # confirmation polling actually happened.
@@ -1767,7 +1778,7 @@ async def run_loop(
                 try:
                     repo_root = os.path.dirname(os.path.dirname(
                         os.path.dirname(os.path.abspath(__file__))))
-                    subprocess.Popen(
+                    dashboard_proc = subprocess.Popen(
                         [sys.executable,
                          os.path.join(repo_root, "scripts",
                                       "generate_dashboard.py"), "all"],
