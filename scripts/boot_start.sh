@@ -22,6 +22,13 @@ set -o pipefail
 cd "$(dirname "$0")/.."
 mkdir -p tmp
 
+# @reboot and the */5 keepalive can fire in the same minute, and the DNS
+# wait below keeps a run alive long enough to overlap the next tick. Both
+# would then see an unhealthy bot and start one each — the wrapper's own
+# alive check cannot prevent that, it runs before the PID file is written.
+exec 9>tmp/boot_start.lock
+flock -n 9 || exit 0
+
 LOG="tmp/boot_start.log"
 stamp() { date -u '+%Y-%m-%d %H:%M:%SZ'; }
 
