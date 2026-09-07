@@ -2580,3 +2580,20 @@ before the router took six signals in ten. This is the most consistent
 instrument in the book and still not a lever by the rule; it is exactly
 what section 40 predicted — an effect of this size cannot be validated
 at this trade count. GOLD keeps its two ranked slots and gets no third.
+
+## 67. The router at the 2-ATR stop — a third sign flip
+
+Re-measured at the live configuration (`scripts/router_at_stop.py`,
+both samples, random control):
+
+| sample | passed − rejected | t | all − random | t | passed − random | t |
+|---|---:|---:|---:|---:|---:|---:|
+| last 365 d | -0.0371 | -1.47 | +0.0396 | +2.67 | +0.0075 | +0.35 |
+| prior 730 d | +0.0333 | +1.94 | +0.0100 | +1.00 | +0.0317 | +2.13 |
+
+Section 46 read the router at t = -1.98, 46b at -0.34, 49e forward at
+-0.35; now -1.47 and +1.94 on two samples of the same configuration.
+Whatever the router does, it does not do it consistently, and the rule
+that it comes off only on a forward reading below t = -2.0 stands. The
+signal-versus-random line repeats section 45 at the wider stop: the
+recent year says yes at t = 2.67, the two years before say t = 1.00.

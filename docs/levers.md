@@ -508,3 +508,31 @@ the section numbers below point there.
 - **Decision:** not built in — the preregistered bar was not met. GOLD
   stays active for donchian and turtle as ranked; no pin for keltner. No
   code change, no restart.
+
+## 2026-09-07 (eighteenth run) — ADX router at the 2-ATR stop
+
+- **Lever:** regime filter — the router re-measured at the
+  configuration now live (46b and 49e settled it at the 1-ATR stop).
+  Passed vs rejected vs count-matched random, three live trend
+  strategies, ten instruments, two disjoint samples. By the standing
+  rule the router only comes off on an independent *forward* reading
+  below t = -2.0, so this run could at most confirm.
+- **Measurement:** `scripts/router_at_stop.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, live `regime.gate` applied per signal, three random
+  draws per segment, run sequentially per sample.
+- **Result (pooled):**
+
+  | sample | n passed | E[R] passed | n rejected | E[R] rejected | passed − rejected | t | all − random | t | passed − random | t |
+  |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+  | last 365 d | 2,155 | -0.0037 | 4,061 | +0.0334 | -0.0371 | -1.47 | +0.0396 | +2.67 | +0.0075 | +0.35 |
+  | prior 730 d | 4,424 | +0.0095 | 8,347 | -0.0238 | +0.0333 | +1.94 | +0.0100 | +1.00 | +0.0317 | +2.13 |
+
+  The router's effect flips sign between the samples for the third time
+  (46, 46b, now this), and every cell that clears t = 2 on one sample
+  reads below 1 on the other. Signals as a whole beat random on the
+  recent year (t = 2.67) and not on the older two (t = 1.00) — the same
+  reversal section 45 recorded for the 1-ATR stop.
+- **Decision:** not changed — the router stays on, per the standing
+  rule and because nothing here points anywhere twice. No code change,
+  no restart.
