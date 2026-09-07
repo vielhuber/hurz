@@ -570,3 +570,29 @@ the section numbers below point there.
   expensive — holds at the wider stop; with all ten instruments under
   10 %, the ceiling is a backstop, not a lever.
 - **Decision:** not changed — 10 % stays. No code change, no restart.
+
+## 2026-09-07 (twentieth run) — ADX regime exit
+
+- **Lever:** exit logic — close an open trade at the first bar whose
+  ADX(14) drops below a threshold (15 / 20 / 25), on the theory that a
+  trend trade should not sit through a range; measured against the live
+  fixed 24-bar leash at the 2-ATR stop, three live trend strategies,
+  ten instruments, two disjoint samples.
+- **Measurement:** `scripts/regime_exit.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, run sequentially per sample.
+- **Result (pooled, diff vs live):**
+
+  | ADX exit below | last 365 d: n / E[R] / diff / t / early exits | prior 730 d: n / E[R] / diff / t / early exits |
+  |---:|---|---|
+  | **none (live)** | 5,428 / +0.0280 / — | 11,161 / -0.0122 / — |
+  | 15 | 5,916 / +0.0084 / -0.0196 / -1.13 / 18 % | 12,227 / -0.0095 / +0.0026 / +0.22 / 20 % |
+  | 20 | 6,977 / -0.0024 / -0.0304 / -1.93 / 47 % | 14,708 / -0.0180 / -0.0059 / -0.55 / 49 % |
+  | 25 | 8,165 / -0.0155 / -0.0435 / -2.96 / 68 % | 17,190 / -0.0179 / -0.0058 / -0.58 / 70 % |
+
+  Worse at every threshold on the recent year, monotonically, and
+  significantly so at 25; flat on the older sample. The exit frees
+  capital for more trades (n rises) but each early close books a
+  random-walk residual plus the spread already paid, which is the same
+  arithmetic that killed the break-even stop (52).
+- **Decision:** not built in — dead. No code change, no restart.

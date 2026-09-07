@@ -2615,3 +2615,23 @@ better than the middle bucket on the older one — cost share does not
 order expectancy once the untradeable instruments are gone, which is
 what section 11 said of the live journal. Tightening the ceiling only
 removes trades. It stays at 10 %.
+
+## 69. Exiting when the regime fades loses
+
+An ADX-based exit — close when ADX(14) falls below 15, 20 or 25 —
+against the fixed 24-bar leash at the live configuration
+(`scripts/regime_exit.py`, both samples):
+
+| ADX exit below | last 365 d diff vs live | t | prior 730 d diff vs live | t |
+|---:|---:|---:|---:|---:|
+| 15 | -0.0196 | -1.13 | +0.0026 | +0.22 |
+| 20 | -0.0304 | -1.93 | -0.0059 | -0.55 |
+| 25 | -0.0435 | -2.96 | -0.0058 | -0.58 |
+
+Monotonically worse on the recent year and no better on the older one.
+Cutting a trade on a regime reading truncates it at a random point of
+its path with the spread already paid; the leash does the same but
+later, after the barriers had their chance. The exit side has now been
+measured on hold (50, 62), trail (27), break-even (52), target (49d,
+61) and regime (this); none beats the fixed stop, target and 24-bar
+leash the live loop runs.
