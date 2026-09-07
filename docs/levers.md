@@ -1017,3 +1017,28 @@ the section numbers below point there.
   restart. Lesson recorded: any book-level (as opposed to per-trade)
   measurement in this log must use the merged one-position-per-
   instrument timeline, or it will manufacture day-level autocorrelation.
+
+## 2026-09-08 (fifteenth run) — the concurrent-position cap
+
+- **Lever:** risk guard — the cap of 8 simultaneous positions,
+  replayed at 4 / 6 / 8 / 12 on the merged one-position-per-instrument
+  timeline (run 14's lesson), ten core instruments, three live trend
+  strategies, 2-ATR stop, both samples. Peak concurrency without a cap
+  is 10 on this book; the live universe is 27 instruments, so the cap
+  binds more often live than here.
+- **Measurement:** `scripts/concurrent_cap_replay.py`.
+
+  | cap | last 365 d: blocked / E[R] blocked / E[R] kept / delta | prior 730 d: blocked / E[R] blocked / E[R] kept / delta |
+  |---:|---|---|
+  | 4 | 44.9 % / -0.015 / +0.075 / +15.7 R | 44.7 % / -0.015 / -0.009 / +31.0 R |
+  | 6 | 22.7 % / -0.073 / +0.066 / +38.1 R | 23.0 % / **+0.011** / -0.018 / -11.5 R |
+  | **8 (live)** | 6.4 % / -0.026 / +0.039 / +3.9 R | 6.5 % / -0.034 / -0.010 / +10.6 R |
+  | 12 | 0 % | 0 % |
+
+  At 8 the refused entries (149 and 308 trades) carry a slightly
+  negative expectancy on both samples, at t of -0.3 and -0.6 — the cap
+  costs nothing measurable and keeps the book's exposure bounded. A
+  tighter cap of 6 looks strong on the recent year and reverses on the
+  older one; 4 removes almost half the trades for a gain that is inside
+  the noise of what it removes.
+- **Decision:** not changed — 8 stays. No code change, no restart.

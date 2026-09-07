@@ -2848,3 +2848,12 @@ days a year for nothing (`scripts/daily_loss_replay.py`). The stacked
 book counted the same instrument's loss three times on the same day,
 so its bad days predicted themselves. The limit stays at 6 R, and any
 future measurement of anything day-shaped uses the merged timeline.
+
+## 85. The concurrent-position cap costs nothing measurable
+
+On the merged timeline the cap of 8 refuses 6.4 % of entries whose
+expectancy reads -0.026 and -0.034 R on the two samples, both inside
+noise (`scripts/concurrent_cap_replay.py`). Tightening to 6 gains 38 R
+on the recent year and loses 12 R on the older one — the familiar
+reversal — and 4 halves the book. The cap stays at 8: it bounds
+exposure and the trades it turns away are not the good ones.
