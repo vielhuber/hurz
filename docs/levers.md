@@ -832,3 +832,27 @@ the section numbers below point there.
   guard being true, not about profit. The backtest's dollar figures
   keep the same defect (R-multiples are unaffected) and are recorded
   as follow-up. Hurz restarted.
+
+## 2026-09-08 (eighth run) — quote-currency conversion in the backtest — BUILT IN
+
+- **Lever:** pair selection through the nightly ranking — the shared
+  backtest sized in the quote currency exactly as live had (run 7), so
+  the JPY instruments never produced a single sizeable trade and the
+  selector could not rank them: the persisted `donchian_breakout` file
+  (2026-09-06) carries n = 0 for J225, AUDJPY and CHFJPY and 12 trades
+  in 365 days for HK50, against 125 for BTCUSD.
+- **Measurement:** the same six instruments re-run through
+  `scripts/spot_backtest.py` after the change (120 days, `--no-persist`):
+  J225 19 trades, AUDJPY 16, CHFJPY 16, HK50 21, DE40 18, UK100 12,
+  BTCUSD 27 — every instrument now sizes at the USD budget; USD figures
+  for EUR/GBP instruments scale by the rate (UK100 -34.20 USD persisted
+  was -25.25 GBP).
+- **Decision:** built in. The backtest fetches `usd_per_quote` through
+  `prepare_order`, divides both budgets by it and converts planned
+  risk, notional and realised PnL of every outcome back to USD; an
+  unknown rate skips the instrument as live does. No live behaviour
+  changed, so no restart; the next nightly selector run ranks the JPY
+  and HKD instruments for the first time and prices the European
+  indices in dollars. Whether they *should* be ranked is section 70's
+  question, which their expectancy (random, 70) will now answer through
+  the selector's own gates rather than through a sizing accident.

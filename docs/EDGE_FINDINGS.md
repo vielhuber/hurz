@@ -2767,3 +2767,14 @@ no rate, no trade. Eighteenth measurement defect, and the first one
 that ran in *both* directions — over the cap on the European indices,
 under it everywhere east. Section 20's near-zero risk denominators
 were partly this.
+
+## 78. The backtest had the same currency blind spot
+
+Companion to 77: `spot_backtest.py` sized in the quote currency too,
+so the persisted ranking carried n = 0 for J225, AUDJPY and CHFJPY and
+12 trades a year for HK50 — not because the signals were rare but
+because 3 JPY buys no contract. Sized in USD they produce 16–21 trades
+per 120 days, on par with the rest. The ranking file the selector
+reads is therefore the first place where yen and Hong Kong instruments
+will be judged on expectancy at all; section 70 says that expectancy
+is random, and the selector's gates now get to see it.

@@ -649,6 +649,24 @@ async def main(args) -> None:
                 continue
             pair_fee = (fee_override if fee_override is not None
                         else _fee_for(args.platform, pair))
+            # The budgets are USD and the stop distance is in the quote
+            # currency; size like the live loop does (EDGE_FINDINGS 77).
+            try:
+                prepared = await platform.prepare_order(
+                    asset=pair, direction=1,
+                    reference_price=float(df.iloc[-1]["close"]),
+                    stop_loss=None, take_profit=None,
+                )
+                usd_per_quote = prepared.usd_per_quote
+            except Exception as exc:
+                print(f"{pair:<14} ⛔ quote rate failed: {str(exc)[:50]}")
+                await asyncio.sleep(_INTER_CALL_SLEEP_SEC)
+                continue
+            if usd_per_quote is None or usd_per_quote <= 0:
+                print(f"{pair:<14} ⛔ no USD rate for the quote currency — "
+                      f"skipped as live would")
+                await asyncio.sleep(_INTER_CALL_SLEEP_SEC)
+                continue
             outcomes = _simulate_trades(
                 pair, df, signals,
                 rr=args.rr, stop_atr_mult=args.stop_atr,
@@ -656,10 +674,14 @@ async def main(args) -> None:
                 fee_rate=pair_fee,
                 platform=args.platform,
                 strategy_name=args.strategy,
-                target_risk=args.risk_per_trade,
-                notional_cap=args.notional_cap,
+                target_risk=args.risk_per_trade / usd_per_quote,
+                notional_cap=args.notional_cap / usd_per_quote,
                 constraints=constraints,
             )
+            for outcome in outcomes:
+                outcome.planned_risk *= usd_per_quote
+                outcome.notional *= usd_per_quote
+                outcome.realized_pnl *= usd_per_quote
             all_outcomes.extend(outcomes)
             stats = _summarise(outcomes)
             stats["pair"] = pair
