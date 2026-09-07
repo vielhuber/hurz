@@ -639,3 +639,32 @@ the section numbers below point there.
   immediately. Tests cover both lists and both guards. Hurz restarted.
   Expected effect is small (AU200 was 5 of 266 live trades) and
   one-directional: it removes a component that loses in every reading.
+
+## 2026-09-08 — ADX trend threshold at the 2-ATR stop
+
+- **Lever:** regime filter — the router's trend floor (30 for the 1h
+  core) at 20 / 25 / 35, measured as router-passed expectancy per
+  threshold against random entries drawn from the same passing bars,
+  three live trend strategies, ten instruments, two disjoint samples.
+- **Measurement:** `scripts/adx_threshold.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, live `regime.gate` with the threshold set per run, run
+  sequentially per sample.
+- **Result (pooled, diff vs live 30):**
+
+  | ADX ≥ | last 365 d: n / E[R] / vs random / diff vs 30 / t | prior 730 d: n / E[R] / vs random / diff vs 30 / t |
+  |---:|---|---|
+  | 20 | 4,205 / -0.0096 / +0.0101 / -0.0060 / -0.24 | 8,545 / -0.0195 / -0.0024 / -0.0272 / -1.58 |
+  | 25 | 3,135 / +0.0061 / +0.0295 / +0.0097 / +0.37 | 6,353 / -0.0143 / +0.0118 / -0.0219 / -1.21 |
+  | **30 (live)** | 2,159 / -0.0036 / -0.0187 / — | 4,437 / +0.0077 / +0.0339 / — |
+  | 35 | 1,451 / -0.0467 / +0.0026 / -0.0431 / -1.34 | 2,978 / +0.0013 / +0.0381 / -0.0064 / -0.29 |
+
+  25 is mildly better on the recent year and worse on the older one; 20
+  and 35 are worse or flat on both. The live floor is the best value on
+  the older sample and within noise of the best on the recent one.
+- **Decision:** not changed — 30 stays. No code change, no restart.
+- **Forward note:** the bot reconnected at midnight and closed three
+  stale positions opened before the stop change (US30 +1.92, US500
+  +0.89, US100 -0.58 USD); those are not attributable to either lever
+  built in on 2026-09-07. First entries at the 2-ATR stop are still
+  pending.

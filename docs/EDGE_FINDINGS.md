@@ -2660,3 +2660,20 @@ on a separate expectancy list so the cost audit's criterion stays
 clean. SILVER (t = -1.84 / -2.83) is a watch. This is the second lever
 in the session to hold on two samples, and like the first (60) it is a
 removal of a measured loss, not the discovery of an edge.
+
+## 71. The router's threshold is not the lever either
+
+The trend floor at 20 / 25 / 35 against the live 30, router-passed
+expectancy at the 2-ATR stop (`scripts/adx_threshold.py`, both samples):
+
+| ADX ≥ | last 365 d diff vs 30 | t | prior 730 d diff vs 30 | t |
+|---:|---:|---:|---:|---:|
+| 20 | -0.0060 | -0.24 | -0.0272 | -1.58 |
+| 25 | +0.0097 | +0.37 | -0.0219 | -1.21 |
+| 35 | -0.0431 | -1.34 | -0.0064 | -0.29 |
+
+Lowering the floor adds trades at lower expectancy on the older sample
+and does nothing on the recent one; raising it removes trades without
+improving what remains. With 46, 46b, 49e, 67 and this, the router has
+been measured on and off, forward and back, and at every plausible
+level: it stays at 30 because nothing else is better twice.
