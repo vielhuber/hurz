@@ -1129,3 +1129,33 @@ the section numbers below point there.
   spread at the moment of the quote. A journal flag for widened stops
   would make it measurable; that is a schema change and is left as
   follow-up rather than done on one observation.
+
+## 2026-09-08 (nineteenth run) — the bank-holiday guard
+
+- **Lever:** exit logic / regime — the guard shuts the whole loop down on
+  any DE, US, GB or CH bank holiday and lets open positions run through
+  the pause, closing them as stale exits afterwards (yesterday: US30
+  +1.92, US500 +0.89, US100 -0.58 USD after 81 h). Measured on the
+  journal since July whether positions carried through long pauses come
+  back worse than regular stale exits, and how many weekdays the guard
+  removes.
+- **Measurement (journal, read-only):**
+
+  | exit class | n | mean R | t | Σ R |
+  |---|---:|---:|---:|---:|
+  | stale exit ≤ 30 h | 91 | +0.016 | +0.20 | +1.4 |
+  | stale exit 30–60 h (weekend) | 7 | -0.077 | -1.90 | -0.5 |
+  | stale exit > 60 h (holiday / long weekend) | 20 | **+0.118** | +0.98 | +2.4 |
+  | stop or target | 150 | -0.196 | -1.96 | -29.5 |
+
+  Carrying a position through a pause has not hurt: the 20 long holds
+  came back at +0.118 R and the 31 shutdown closes since July sum to
+  +5.32 USD. Calendar cost: 21 of 261 weekdays in 2026 are holidays in
+  at least one of the four centres (8 %), and on each of them every
+  instrument stands still, including crypto, Asian indices and the
+  markets that are open.
+- **Decision:** not changed. The guard costs about 8 % of weekdays at
+  zero measured expectancy and protects against holiday liquidity on
+  the instruments that are actually closed; narrowing it per instrument
+  would be a throughput lever on a zero, which is not a lever. No code
+  change, no restart.

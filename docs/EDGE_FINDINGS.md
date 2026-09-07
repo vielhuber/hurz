@@ -2892,3 +2892,12 @@ what the live loop widens, and neither the bars nor the journal record
 the spread that decided it. Not measurable today; recorded as the one
 live/backtest divergence in this document that no history can settle
 without a journal flag.
+
+## 89. Positions carried through holidays come back fine
+
+Twenty positions held through a pause of more than sixty hours since
+July closed at +0.118 R, against +0.016 R for ordinary stale exits and
+-0.196 R for stops and targets; the shutdown closes sum to +5.32 USD.
+The holiday guard idles the whole book on 21 weekdays a year — 8 % of
+weekdays, crypto and open markets included — for no measured cost and
+no measured gain. It stays as written.
