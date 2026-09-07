@@ -668,3 +668,26 @@ the section numbers below point there.
   +0.89, US100 -0.58 USD); those are not attributable to either lever
   built in on 2026-09-07. First entries at the 2-ATR stop are still
   pending.
+
+## 2026-09-08 (second run) — the 4h strategy variants
+
+- **Lever:** strategy parameter / pair selection — `donchian_breakout_4h`
+  and `turtle_breakout_4h` sit in the live rotation through pins
+  (SILVER, HK50) and never appeared in a measurement of this session.
+  Measured on 4h bars at the 2-ATR stop against count-matched random
+  entries and with the router-passed subset, ten instruments, two
+  disjoint samples. Preregistered: disable the 4h names if significantly
+  worse than random on both samples; promote nothing on one.
+- **Measurement:** `scripts/h4_variants.py` — cost-charging walk-forward
+  simulator, capital_com, 4h, 3 segments, hold 24 bars, RR 1.5, stop
+  2.0 ATR, three random draws per segment, run sequentially per sample.
+- **Result (pooled over both strategies):**
+
+  | sample | n | E[R] all | vs random | t | n passed | E[R] passed | vs random | t |
+  |---|---:|---:|---:|---:|---:|---:|---:|---:|
+  | last 365 d | 981 | -0.0401 | -0.0430 | -1.09 | 380 | -0.0181 | -0.0211 | -0.35 |
+  | prior 730 d | 2,060 | -0.0065 | +0.0243 | +0.89 | 878 | +0.0048 | +0.0357 | +0.91 |
+
+  Random on both samples, in both directions, before and after the
+  router. Nothing to disable, nothing to promote.
+- **Decision:** not changed. No code change, no restart.

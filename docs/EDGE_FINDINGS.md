@@ -2677,3 +2677,17 @@ and does nothing on the recent one; raising it removes trades without
 improving what remains. With 46, 46b, 49e, 67 and this, the router has
 been measured on and off, forward and back, and at every plausible
 level: it stays at 30 because nothing else is better twice.
+
+## 72. The 4h variants are random too
+
+The two 4h strategy names in the live rotation, measured on 4h bars at
+the 2-ATR stop (`scripts/h4_variants.py`, both samples, random control):
+
+| sample | E[R] all | vs random | t | E[R] router-passed | vs random | t |
+|---|---:|---:|---:|---:|---:|---:|
+| last 365 d | -0.0401 | -0.0430 | -1.09 | -0.0181 | -0.0211 | -0.35 |
+| prior 730 d | -0.0065 | +0.0243 | +0.89 | +0.0048 | +0.0357 | +0.91 |
+
+The slower timeframe changes the trade count and nothing else. The
+4h pins stay as they are — there is no reading that would justify
+removing or expanding them.
