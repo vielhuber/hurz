@@ -2398,3 +2398,20 @@ preregistration as the opening-range run).
 Nothing to dissolve this time — it never rose. GOLD alone is positive
 on both samples (t = 1.6, 1.3), which is one instrument of three read
 after the fact, and both oils are negative on both. Not adopted.
+
+## 58. The channel length was the unswept grid axis, and it is flat too
+
+Section 1's grid varied RR, stop, hold and ADX but never the Donchian
+lookback. Swept here at 10 / 20 / 40 / 80 bars on both samples
+(`scripts/donchian_period_sweep.py`, ten instruments, costs charged):
+
+| period | last 365 d diff vs 20 | t | prior 730 d diff vs 20 | t |
+|---:|---:|---:|---:|---:|
+| 10 | -0.0292 | -1.03 | +0.0024 | +0.12 |
+| 40 | -0.0472 | -1.48 | +0.0168 | +0.77 |
+| 80 | +0.0106 | +0.30 | +0.0311 | +1.29 |
+
+Nothing reaches threshold on either sample, 40 changes sign between
+them, and the only consistent direction (80) buys 0.01–0.03 R with half
+the trades. The lookback is not the lever; the grid's conclusion holds
+on its missing axis as well.

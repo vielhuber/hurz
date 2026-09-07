@@ -248,3 +248,27 @@ the section numbers below point there.
   at t = 1.6 / 1.3 and post hoc as a single instrument. Below the live
   entry on the recent year.
 - **Decision:** not built in — dead. No code change, no restart.
+
+## 2026-09-07 (ninth run) — donchian channel length
+
+- **Lever:** strategy parameter — the 20-bar channel of
+  `donchian_breakout`, the one grid dimension section 1 never swept
+  (RR, stop, hold and ADX were). Periods 10 / 40 / 80 against the live
+  20, two-sample criterion (better than live at t > 2.0 on both).
+- **Measurement:** `scripts/donchian_period_sweep.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 1.0 ATR, the 10 unblocked instruments, last 365 days and the
+  disjoint two years before.
+- **Result (pooled over instruments, diff vs live period 20):**
+
+  | period | last 365 d: n / E[R] / diff / t | prior 730 d: n / E[R] / diff / t |
+  |---:|---|---|
+  | 10 | 2,864 / -0.0143 / -0.0292 / -1.03 | 5,570 / -0.0320 / +0.0024 / +0.12 |
+  | **20 (live)** | 2,277 / +0.0149 / — | 4,576 / -0.0344 / — |
+  | 40 | 1,725 / -0.0323 / -0.0472 / -1.48 | 3,458 / -0.0176 / +0.0168 / +0.77 |
+  | 80 | 1,178 / +0.0255 / +0.0106 / +0.30 | 2,440 / -0.0033 / +0.0311 / +1.29 |
+
+  Period 40 flips sign between the samples, 80 is positive on both but
+  far from threshold and halves the trade count, 10 adds trades at
+  lower expectancy. The live 20 stays.
+- **Decision:** not built in — dead. No code change, no restart.
