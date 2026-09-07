@@ -371,3 +371,28 @@ the section numbers below point there.
   trades in five to the timeout. Same sign twice is necessary, not
   sufficient.
 - **Decision:** not built in — 1.5 stays. No code change, no restart.
+
+## 2026-09-07 (thirteenth run) — holding leash at the new 2-ATR stop
+
+- **Lever:** exit logic — the 24-bar leash re-measured at the
+  configuration now live, since the wider stop raised the timeout share
+  from 39 % to 47 % and the first sweep (run 1) ran at the 1-ATR stop.
+  Holds 12 / 48 / 96 against 24, stop 2.0 ATR, RR 1.5, three live trend
+  strategies pooled, two disjoint samples, gross and cost split.
+- **Measurement:** `scripts/max_hold_at_stop_sweep.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, the 10 unblocked
+  instruments, run sequentially per sample.
+- **Result (pooled, diff vs live 24):**
+
+  | hold | last 365 d: net diff / t / timeout % | prior 730 d: net diff / t / timeout % |
+  |---:|---|---|
+  | 12 | -0.0292 / -1.82 / 67 | +0.0001 / +0.01 / 68 |
+  | **24 (live)** | — / — / 47 | — / — / 49 |
+  | 48 | -0.0300 / -1.45 / 26 | +0.0050 / +0.35 / 28 |
+  | 96 | -0.0411 / -1.81 / 11 | +0.0169 / +1.06 / 12 |
+
+  24 is the maximum on the recent year at every alternative; on the
+  older sample the long leash is mildly positive, so the direction flips
+  between samples. The cost column barely moves, so nothing here is
+  mechanical.
+- **Decision:** not built in — 24 stays. No code change, no restart.

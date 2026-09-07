@@ -2485,3 +2485,19 @@ The cost column does not move with rr, so this is entirely a gross
 claim, and it does not reach t = 1 on either sample. The wider targets
 buy their 0.01 R by never being hit: at 3.0 the trade is a 24-bar hold
 with a decorative target. 1.5 stays, as 15 and 49d concluded.
+
+## 62. The leash at the 2-ATR stop — still 24 bars
+
+The wider stop (60) leaves more trades to the timeout, so the leash was
+re-swept at the live configuration (`scripts/max_hold_at_stop_sweep.py`,
+both samples):
+
+| hold | last 365 d net diff | t | prior 730 d net diff | t |
+|---:|---:|---:|---:|---:|
+| 12 | -0.0292 | -1.82 | +0.0001 | +0.01 |
+| 48 | -0.0300 | -1.45 | +0.0050 | +0.35 |
+| 96 | -0.0411 | -1.81 | +0.0169 | +1.06 |
+
+Same answer as the first sweep (50): the live leash is the best value
+on the recent year, and the only alternative that looks better on the
+older sample is the one that looks worst on the recent one. 24 stays.
