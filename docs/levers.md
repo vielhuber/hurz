@@ -1150,11 +1150,11 @@ the section numbers below point there.
 
   Carrying a position through a pause has not hurt: the 20 long holds
   came back at +0.118 R and the 31 shutdown closes since July sum to
-  +5.32 USD. Calendar cost: 21 of 261 weekdays in 2026 are holidays in
-  at least one of the four centres (8 %), and on each of them every
+  +5.32 USD. Calendar cost: 18 of 261 weekdays in 2026 are holidays in
+  at least one of the four centres (6.9 %), and on each of them every
   instrument stands still, including crypto, Asian indices and the
   markets that are open.
-- **Decision:** not changed. The guard costs about 8 % of weekdays at
+- **Decision:** not changed. The guard costs about 7 % of weekdays at
   zero measured expectancy and protects against holiday liquidity on
   the instruments that are actually closed; narrowing it per instrument
   would be a throughput lever on a zero, which is not a lever. No code
