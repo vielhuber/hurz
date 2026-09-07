@@ -1723,7 +1723,27 @@ async def run_loop(
                 # trades and a hundred stop-outs look the same to it.
                 # This one is measured in R, so it holds regardless of
                 # what the risk budget has scaled itself to.
-                from app.spot_trading.risk_guard import daily_loss
+                from app.spot_trading.risk_guard import (
+                    daily_loss, stop_out_cooldown,
+                )
+                cooldown = stop_out_cooldown(intent.pair, now_utc)
+                if cooldown.blocked:
+                    error = (
+                        f"skipped: stop-out cooldown unavailable: {cooldown.error}"
+                        if cooldown.error else
+                        f"skipped: stop-out cooldown, last stop-out "
+                        f"{cooldown.last_stop_out:%Y-%m-%d %H:%M} UTC "
+                        f"within {cooldown.hours:g}h"
+                    )
+                    _safe_log(f"⏭ {intent.pair}: {error} ({intent.strategy})")
+                    _record_skip(
+                        intent,
+                        error,
+                        platform_name=platform_name,
+                        paper_mode=platform.paper_trade_only,
+                    )
+                    issued_intents[dedup_key] = intent.bar_time
+                    continue
                 today = now_utc.strftime("%Y-%m-%d")
                 if today != daily_loss_day:
                     daily_loss_day = today

@@ -106,3 +106,58 @@ def daily_loss(now: Optional[datetime] = None) -> DailyLoss:
     budget = _target_risk()
     total = total_pnl / budget if budget > 0 else 0.0
     return DailyLoss(total, limit, total <= -limit, count)
+
+
+# Re-entering an instrument right after it stopped out re-buys the same
+# failed move: within six hours of a stop-out the re-entry read -0.135 R
+# and -0.064 R against the rest on the two walk-forward samples
+# (EDGE_FINDINGS 86). A non-positive value disables the cooldown.
+DEFAULT_STOP_OUT_COOLDOWN_HOURS = 6.0
+
+
+@dataclass(frozen=True)
+class StopOutCooldown:
+    blocked: bool
+    last_stop_out: Optional[datetime]
+    hours: float
+    error: Optional[str] = None
+
+
+def _cooldown_hours() -> float:
+    raw = os.environ.get("HURZ_STOP_OUT_COOLDOWN_HOURS")
+    if raw is None or raw == "":
+        return DEFAULT_STOP_OUT_COOLDOWN_HOURS
+    try:
+        return float(raw)
+    except ValueError:
+        return DEFAULT_STOP_OUT_COOLDOWN_HOURS
+
+
+def stop_out_cooldown(pair: str, now: Optional[datetime] = None) -> StopOutCooldown:
+    """Whether `pair` stopped out inside the cooldown window; an unreadable journal blocks."""
+    hours = _cooldown_hours()
+    now = now or datetime.now(timezone.utc)
+    if hours <= 0:
+        return StopOutCooldown(False, None, hours)
+    try:
+        from app.utils.singletons import database
+        rows = database.select(
+            """
+            SELECT MAX(exit_time) AS last_exit
+            FROM spot_trades
+            WHERE accepted = 1 AND paper_mode = 0 AND platform = 'capital_com'
+              AND pair = %s AND outcome = 'loss' AND exit_time IS NOT NULL
+            """,
+            (pair,),
+        )
+    except Exception as exc:
+        return StopOutCooldown(True, None, hours, str(exc))
+    last = (rows or [{}])[0].get("last_exit") if rows else None
+    if last is None:
+        return StopOutCooldown(False, None, hours)
+    if isinstance(last, str):
+        last = datetime.fromisoformat(last)
+    if last.tzinfo is None:
+        last = last.replace(tzinfo=timezone.utc)
+    elapsed_hours = (now - last).total_seconds() / 3600.0
+    return StopOutCooldown(elapsed_hours < hours, last, hours)

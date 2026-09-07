@@ -2857,3 +2857,16 @@ noise (`scripts/concurrent_cap_replay.py`). Tightening to 6 gains 38 R
 on the recent year and loses 12 R on the older one — the familiar
 reversal — and 4 halves the book. The cap stays at 8: it bounds
 exposure and the trades it turns away are not the good ones.
+
+## 86. Re-entering right after a stop-out re-buys the failed move
+
+On the merged timeline an entry within six hours of a stop-out on the
+same instrument reads -0.135 R against the rest on the recent year
+(t = -2.11) and -0.064 R on the two years before (t = -1.50)
+(`scripts/reentry_after_stop.py`); the live journal's 32 such
+re-entries since July are flat. Not a two-sample pass by this
+document's signal standard, but this is the stop-out cooldown the risk
+rules already call for, and both samples say it costs nothing to have.
+Built in at six hours, reading the journal's last stop-out per
+instrument, fail-closed. One entry in eight on the core book falls
+under it.

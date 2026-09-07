@@ -1042,3 +1042,39 @@ the section numbers below point there.
   older one; 4 removes almost half the trades for a gain that is inside
   the noise of what it removes.
 - **Decision:** not changed — 8 stays. No code change, no restart.
+
+## 2026-09-08 (sixteenth run) — stop-out re-entry cooldown — BUILT IN
+
+- **Lever:** regime filter after a stop-out — the project's risk rules
+  foresee a cooldown before re-entering an instrument that just stopped
+  out, and none existed in the code (only the stale-exit retry backoff).
+  Measured on the merged one-position-per-instrument timeline: entries
+  within 6 / 24 / 72 h after a stop-out (R ≤ -0.9) on the same
+  instrument against all other entries, ten core instruments, three
+  live trend strategies, 2-ATR stop, both samples; live journal since
+  July as the forward reading.
+- **Measurement:** `scripts/reentry_after_stop.py`.
+
+  | window after a stop-out | last 365 d: n / E[R] / vs rest / t | prior 730 d: n / E[R] / vs rest / t |
+  |---|---|---|
+  | **6 h** | 301 / -0.083 / **-0.135** / **-2.11** | 698 / -0.066 / **-0.064** / -1.50 |
+  | 24 h | 612 / +0.014 / -0.028 / -0.58 | 1,344 / -0.053 / -0.058 / -1.77 |
+  | 72 h | 719 / +0.048 / +0.019 / +0.40 | 1,531 / -0.052 / -0.060 / -1.91 |
+  | live journal, 6 h | 32 / +0.008 / — | — |
+
+  The immediate re-entry is the one window that is negative on both
+  samples: the instrument that just stopped out re-breaks the same
+  level and fails again. Longer windows dilute it on the recent year.
+  It clears t = 2 on one sample and reads t = 1.5 on the other, so it
+  does not meet the bar this log applies to signal claims — but it is
+  not a signal claim, it is the risk rule the project already specifies,
+  measured to point the right way twice.
+- **Decision:** built in at 6 hours as `stop_out_cooldown` in
+  `risk_guard.py`, read from the journal's last `loss` exit per
+  instrument, fail-closed when the journal cannot be read,
+  `HURZ_STOP_OUT_COOLDOWN_HOURS` ≤ 0 disables it. Checked against the
+  live journal before restart (no instrument blocked, no error). Tests
+  cover block, expiry, no history, unreadable journal and disable. It
+  removes about one entry in eight on this book at -0.08 R; expected
+  effect +0.06 to +0.14 R on those entries, zero on the rest. Hurz
+  restarted.
