@@ -900,3 +900,30 @@ the section numbers below point there.
   stops accruing with run 9. The figures above are the reference for
   reading pre-2026-09-08 sums. Reported daily-gain tables from here on
   use the booked journal values and carry this footnote.
+
+## 2026-09-08 (eleventh run) — the 250 USD notional cap
+
+- **Lever:** position sizing — the notional cap binds on instruments
+  whose stop the venue floor pins at 1.05 % (a 3 USD risk there needs
+  286 USD of notional), so planned risk on US500, US30, AUDUSD and GOLD
+  sits at 2.2–2.5 USD instead of 3. Measured with the live sizing
+  function at caps of 250 / 300 / 400 USD, ten core instruments, 2-ATR
+  stop, 365 days.
+- **Measurement:** `scripts/notional_cap_sweep.py`.
+
+  | cap | n | planned risk, kept trades | E[R] | USD per trade | USD per backtest year |
+  |---:|---:|---:|---:|---:|---:|
+  | **250 (live)** | 5,426 | 2.59 | +0.0286 | +0.079 | +420.7 |
+  | 300 | 5,426 | 2.82 | +0.0286 | +0.087 | +463.3 |
+  | 400 | 5,426 | 2.82 | +0.0286 | +0.087 | +463.3 |
+
+  The cap removes 0.23 USD of target risk per trade and nothing else:
+  E[R] is identical by construction, the dollar line scales with the
+  risk taken, and 400 adds nothing over 300 because the broker's size
+  increments bind next. Raising it is a 20 % loosening of a hard
+  exposure limit in exchange for a proportional change in dollar
+  outcome whose sign is the book's expectancy — which every section of
+  this document puts at zero.
+- **Decision:** not changed — the cap stays at 250 USD. Buying dollar
+  gain through a looser exposure limit is exactly what the project rules
+  forbid, and at zero edge it buys variance. No code change, no restart.

@@ -2801,3 +2801,14 @@ the forward test since 24 August from -8.11 to -10.24. Small, and in
 the flattering direction like every other defect here. The journal is
 not rewritten; new closures are booked in USD (79), and these deltas
 are the footnote for the older sums.
+
+## 81. The notional cap is a risk limit, not a lever
+
+At the venue floor a 3 USD risk needs 286 USD of notional, so the
+250 USD cap trims planned risk to 2.2–2.5 USD on the pinned
+instruments (`scripts/notional_cap_sweep.py`): 2.59 USD average at
+250, 2.82 at 300, no further change at 400 because size increments
+bind next. R-multiples are unaffected, dollars scale with risk taken,
+and the sign of that scaling is the book's expectancy. Loosening a
+hard exposure limit to lever a zero is not a trade this document will
+make. The cap stays.
