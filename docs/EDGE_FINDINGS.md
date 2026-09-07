@@ -2691,3 +2691,20 @@ the 2-ATR stop (`scripts/h4_variants.py`, both samples, random control):
 The slower timeframe changes the trade count and nothing else. The
 4h pins stay as they are — there is no reading that would justify
 removing or expanding them.
+
+## 73. Momentum — positive twice, significant never
+
+The strategy the selector ranks highest on the indices, measured
+against random on twelve instruments (`scripts/momentum_check.py`,
+both samples):
+
+| sample | vs random, all | t | vs random, router-passed | t | passed / all |
+|---|---:|---:|---:|---:|---:|
+| last 365 d | +0.0514 | +1.41 | +0.0428 | +0.53 | 148 / 1,042 |
+| prior 730 d | +0.0271 | +1.06 | +0.0725 | +1.32 | 298 / 1,941 |
+
+Same sign on both samples and on both sides of the router, and nothing
+near threshold. The router discards six momentum signals in seven,
+which section 46b already measured as neither help nor harm. Recorded
+with GOLD (66) as the two consistently-signed readings in the book;
+neither clears the bar, and at these trade counts neither can (40).

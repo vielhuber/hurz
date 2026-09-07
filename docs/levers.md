@@ -691,3 +691,28 @@ the section numbers below point there.
   Random on both samples, in both directions, before and after the
   router. Nothing to disable, nothing to promote.
 - **Decision:** not changed. No code change, no restart.
+
+## 2026-09-08 (third run) — the momentum strategy
+
+- **Lever:** strategy / pair selection — `momentum` is ranked first in
+  the active list on four indices yet produced two live trades since
+  July. Measured against count-matched random entries and with the
+  router-passed subset on twelve instruments (the ten core plus US100
+  and EU50 where it is ranked), 1h, 2-ATR stop, two disjoint samples.
+- **Measurement:** `scripts/momentum_check.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, three random draws per segment, run sequentially per
+  sample.
+- **Result:**
+
+  | sample | n | E[R] all | vs random | t | n passed | E[R] passed | vs random | t |
+  |---|---:|---:|---:|---:|---:|---:|---:|---:|
+  | last 365 d | 1,042 | +0.0341 | +0.0514 | +1.41 | 148 | +0.0255 | +0.0428 | +0.53 |
+  | prior 730 d | 1,941 | -0.0279 | +0.0271 | +1.06 | 298 | +0.0174 | +0.0725 | +1.32 |
+
+  Positive against its control on both samples, before and after the
+  router, never above t = 1.4 — the GOLD shape (66) again. The router
+  passes one momentum signal in seven, which is why the live book
+  barely sees the strategy; loosening the router for it would be run
+  18 and 22 over again, and those were flat.
+- **Decision:** not changed. No code change, no restart.
