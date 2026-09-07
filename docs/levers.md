@@ -175,3 +175,27 @@ the section numbers below point there.
   reversing direction flips the gross leg but doubles the cost leg and
   breaks the 1.5:1 asymmetry, and it would be post hoc. No code change,
   no restart.
+
+## 2026-09-07 (sixth run) — breakout retest continuation
+
+- **Lever:** new signal source, preregistered at the end of the fifth
+  run — when a close returns inside the broken level within K bars of a
+  breakout, enter *with* the breakout at that close (the classic
+  "retest" entry). Same simulator, controls and instruments as the
+  failed-breakout run, only the direction differs.
+- **Measurement:** `scripts/retest_continuation.py` — cost-charging
+  walk-forward, capital_com, 1h, 365 days, 3 segments, hold 24, RR 1.5,
+  stop 1.0 ATR, three live trend strategies as the trigger, 10 unblocked
+  instruments, K = 3 / 6, count-matched random control.
+- **Result (pooled over strategies):**
+
+  | K | n | E[R] | t vs 0 | vs random | t | vs live breakout | t |
+  |---:|---:|---:|---:|---:|---:|---:|---:|
+  | 3 | 3,776 | -0.0082 | -0.52 | +0.0147 | +0.85 | -0.0145 | -0.71 |
+  | 6 | 4,420 | -0.0201 | -1.36 | +0.0077 | +0.47 | -0.0264 | -1.34 |
+
+  Indistinguishable from random, slightly below the live entry, no
+  strategy above t = 1.4. The fade (54) lost significantly and its
+  mirror does not win: the difference between the two is the doubled
+  cost leg and the inverted payoff, exactly as section 54 said.
+- **Decision:** not built in — dead. No code change, no restart.

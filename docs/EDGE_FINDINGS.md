@@ -2345,3 +2345,19 @@ close, since its fade loses — is not implied by this table. Reversing a
 trade negates the gross leg but pays the cost leg twice and inverts the
 1.5:1 payoff, so the continuation version is a separate, post-hoc
 hypothesis that would need its own preregistered run.
+
+## 55. The retest entry is random too
+
+Section 54 closed with the warning that a losing fade does not imply a
+winning continuation. Measured as its own preregistered run
+(`scripts/retest_continuation.py`, same setup, direction with the
+breakout):
+
+| K | n | E[R] | vs random | t | vs live breakout | t |
+|---:|---:|---:|---:|---:|---:|---:|
+| 3 | 3,776 | -0.0082 | +0.0147 | +0.85 | -0.0145 | -0.71 |
+| 6 | 4,420 | -0.0201 | +0.0077 | +0.47 | -0.0264 | -1.34 |
+
+Random. The fade lost 0.063 R, the continuation loses 0.008 R, and the
+gap between them is the cost paid twice plus the inverted 1.5:1 payoff.
+Both retest variants are closed.
