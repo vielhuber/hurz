@@ -2708,3 +2708,19 @@ near threshold. The router discards six momentum signals in seven,
 which section 46b already measured as neither help nor harm. Recorded
 with GOLD (66) as the two consistently-signed readings in the book;
 neither clears the bar, and at these trade counts neither can (40).
+
+## 74. The wider stop drops HK50 at the broker minimum
+
+First live intent under the 2-ATR stop: HK50, refused because the
+halved size (0.0099) sits under the 0.01 minimum — at the 1.05 % floor
+the same signal sized to 0.0112 and traded. The remaining active
+instruments were replayed with the live sizing function
+(`scripts/min_size_skips.py`): USD-quoted ones skip at 0 % (SILVER
+5.8 %); the JPY- and HKD-quoted rows of that replay are not live
+figures because the script does not convert quote currencies, which
+is now on record.
+
+HK50 measured -0.0625 and -0.0353 R on the two samples (70) and its
+random control was positive, so the guard is removing an instrument
+that lost. Nothing to change; the sizing guard remains fail-closed and
+the stop stays at 2 ATR.

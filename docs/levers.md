@@ -716,3 +716,37 @@ the section numbers below point there.
   barely sees the strategy; loosening the router for it would be run
   18 and 22 over again, and those were flat.
 - **Decision:** not changed. No code change, no restart.
+
+## 2026-09-08 (fourth run) — minimum-size skips on the remaining instruments
+
+- **Lever:** position sizing — after the first live intent under the
+  new rules (HK50, donchian_breakout, 1.19 % stop = 2 ATR) was refused
+  by the minimum-size guard (0.0099 against a 0.01 minimum; the 1.05 %
+  floor would have given 0.0112), the 16 remaining active instruments
+  were replayed with the live sizing function at the 1-ATR and 2-ATR
+  stop to see how much throughput the wider stop removes there.
+- **Measurement:** `scripts/min_size_skips.py` with the remaining
+  instruments, 365 days, three live trend strategies, live broker
+  constraints. Caveat: the script sizes in the instrument's quote
+  currency without FX conversion, so its skip figures for JPY- and
+  HKD-quoted instruments (J225, AUDJPY, CHFJPY, HK50) are not the live
+  figures — live converts and did trade AUDJPY and HK50 in July/August.
+- **Result (USD-quoted instruments, reliable):**
+
+  | instrument | skips at 1 ATR | skips at 2 ATR | E[R] at 2 ATR |
+  |---|---:|---:|---:|
+  | SILVER | 1.5 % | 5.8 % | -0.006 |
+  | US100, COPPER, USD-quoted FX, EU indices | 0 % | 0 % | -0.003 to -0.121 |
+
+  Live evidence for HKD: HK50 now skips at 2 ATR because its
+  ATR-bound stop (1.19 %) exceeds the venue floor and the halved size
+  falls under the 0.01 minimum; at 1 ATR it was pinned to the floor and
+  traded. HK50 measured -0.0625 / -0.0353 R on the two samples (70), so
+  the guard is removing a losing instrument. The group as a whole loses
+  -352 USD per backtest year at the 2-ATR stop on the recent sample,
+  consistent with 70.
+- **Decision:** not changed — the guard is doing what section 64
+  described, on instruments the book is better off without. No code
+  change, no restart. Follow-up recorded: the sizing replay script
+  should convert quote currencies before its JPY/HKD rows are read as
+  live behaviour.
