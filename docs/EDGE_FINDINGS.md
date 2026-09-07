@@ -2297,3 +2297,25 @@ by seven, and the expectancy difference is 0.005 R. On a random-walk
 path that is exactly what should happen — a stop at entry removes
 symmetric mass from both tails — and the measurement is consistent with
 the entries being random (30, 45). The live fixed stop stays.
+
+## 53. Entering on the pullback instead of the breakout changes nothing
+
+First candidate from the "different signal source" list: keep the
+breakout as the trigger, but enter with a limit at the level that was
+broken and only if price returns to it within K bars
+(`scripts/pullback_entry.py`; 365 days, ten instruments, three live
+trend strategies, costs charged on the fill, hold counted from the fill).
+
+| K | n | fill % | E[R] | diff vs market entry | t |
+|---:|---:|---:|---:|---:|---:|
+| 0 (live) | 5,830 | 100 | +0.0063 | — | — |
+| 3 | 4,499 | 67 | -0.0058 | -0.0121 | -0.61 |
+| 6 | 4,789 | 74 | +0.0015 | -0.0048 | -0.25 |
+| 12 | 4,941 | 80 | +0.0193 | +0.0130 | +0.67 |
+
+A fifth to a third of the signals never retrace and are lost; those are
+by construction the moves that ran, and what remains starts nearer its
+stop. Per strategy the sign is not even stable (turtle negative at every
+K, keltner positive at every K, donchian both). Consistent with random
+entries (30, 45): shifting the entry price by a fraction of an ATR on a
+signal that carries no information shifts nothing. Not adopted.

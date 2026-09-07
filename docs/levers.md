@@ -114,3 +114,34 @@ the section numbers below point there.
   keltner 0.5 R at t = +0.71). Full-loss frequency drops, expectancy
   does not.
 - **Decision:** not built in — dead. No code change, no restart.
+
+## 2026-09-07 (fourth run) — pullback entry at the breakout level
+
+- **Lever:** new entry logic — after a breakout signal, do not enter at
+  the signal close but place a limit at the breakout level (the channel
+  high/low or the Keltner band the close just crossed) and enter only if
+  price retraces to it within K bars. Trades that never retrace are
+  skipped. Preregistered as the first "new signal source" candidate
+  after the exit side was closed.
+- **Measurement:** `scripts/pullback_entry.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 365 days, 3 segments, hold 24
+  from the fill bar, RR 1.5, stop 1.0 ATR, full round-trip spread still
+  charged on the limit fill, three live trend strategies, the same 10
+  unblocked instruments. K = 3 / 6 / 12 bars against K = 0 (live market
+  entry at the signal close).
+- **Result (pooled over strategies):**
+
+  | K | n | fill % | E[R] | win % | loss % | Σ R / year | diff vs live | t |
+  |---:|---:|---:|---:|---:|---:|---:|---:|---:|
+  | **0 (live)** | 5,830 | 100 | +0.0063 | 24.3 | 36.9 | +36.7 | — | — |
+  | 3 | 4,499 | 67 | -0.0058 | 22.7 | 36.2 | -26.0 | -0.0121 | -0.61 |
+  | 6 | 4,789 | 74 | +0.0015 | 23.2 | 36.4 | +7.1 | -0.0048 | -0.25 |
+  | 12 | 4,941 | 80 | +0.0193 | 23.9 | 35.7 | +95.4 | +0.0130 | +0.67 |
+
+  The better price on the fill (roughly the breakout overshoot) is paid
+  for by the trades that never come back — the strongest breakouts —
+  and by a filled trade starting closer to its stop in time. No ordering
+  in K, turtle_breakout worse at every K (-0.045 to -0.014), nothing
+  near significance. Live implementation would in addition need working
+  orders at the venue, which this measurement did not have to model.
+- **Decision:** not built in — dead. No code change, no restart.
