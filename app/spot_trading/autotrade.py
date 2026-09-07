@@ -1725,8 +1725,8 @@ async def run_loop(
                     f"sizing_entry={prepared.reference_price:.5f} "
                     f"sl={intent.stop_loss:.5f} tp={intent.take_profit:.5f} "
                     f"strat={intent.strategy} size={trade_size:.6f} "
-                    f"planned_risk=${sizing.planned_risk:.4f} "
-                    f"notional=${sizing.notional:.2f}"
+                    f"planned_risk=${sizing.planned_risk * usd_per_quote:.4f} "
+                    f"notional=${sizing.notional * usd_per_quote:.2f}"
                 )
                 result = await execute_intent(platform, intent, size=trade_size)
                 fill_risk = None
