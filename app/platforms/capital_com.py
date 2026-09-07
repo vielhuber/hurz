@@ -79,6 +79,25 @@ _CATEGORY_MAP = {
 }
 
 
+_USD_BASE_PAIRS = {"EUR", "GBP", "AUD", "NZD"}
+_USD_QUOTE_PAIRS = {"JPY", "CAD", "CHF", "HKD"}
+
+
+async def _usd_per_quote(currency: Optional[str], mid) -> Optional[float]:
+    """USD value of one unit of `currency` from the venue's own FX mid; None when unknown."""
+    if currency is None:
+        return None
+    if currency == "USD":
+        return 1.0
+    if currency in _USD_BASE_PAIRS:
+        rate = await mid(f"{currency}USD")
+        return rate if rate and rate > 0 else None
+    if currency in _USD_QUOTE_PAIRS:
+        rate = await mid(f"USD{currency}")
+        return 1.0 / rate if rate and rate > 0 else None
+    return None
+
+
 class CapitalComPlatform(Platform):
     """Capital.com adapter (REST + streaming WS)."""
 
@@ -443,6 +462,7 @@ class CapitalComPlatform(Platform):
             "min_dist_unit": (rules.get("minStopOrProfitDistance") or {}).get("unit"),
             "bid": snap.get("bid"),
             "offer": snap.get("offer"),
+            "currency": (data.get("instrument") or {}).get("currency"),
         }
         self._dealing_rules[epic] = out
         self._dealing_rules_at[epic] = now
@@ -468,6 +488,20 @@ class CapitalComPlatform(Platform):
         offer = rules.get("offer")
         if bid is not None and offer is not None:
             reference_price = (float(bid) + float(offer)) / 2.0
+
+        # Risk and notional are budgeted in USD, but size × distance is in
+        # the instrument's quote currency: DE40 is EUR, UK100 GBP, HK50 HKD,
+        # AUDJPY JPY. Without the rate a 3 USD budget became 3 GBP on UK100
+        # and 3 JPY on AUDJPY (EDGE_FINDINGS 77).
+        async def _mid(epic: str) -> Optional[float]:
+            try:
+                fx = await self._get_dealing_rules(epic)
+            except Exception:
+                return None
+            if fx.get("bid") is None or fx.get("offer") is None:
+                return None
+            return (float(fx["bid"]) + float(fx["offer"])) / 2.0
+        usd_per_quote = await _usd_per_quote(rules.get("currency"), _mid)
 
         adjustments = []
         if (rules.get("min_dist_unit") == "PERCENTAGE"
@@ -507,6 +541,7 @@ class CapitalComPlatform(Platform):
                 float(offer) - float(bid)
                 if bid is not None and offer is not None else 0.0
             ),
+            usd_per_quote=usd_per_quote,
         )
 
     async def place_order(

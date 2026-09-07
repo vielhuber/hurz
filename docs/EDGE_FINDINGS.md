@@ -2750,3 +2750,20 @@ beyond the stop. Weekend gaps cost the oils 1.75 R a stop rather than
 correction is 0.002–0.005 R, so no ranking moves on it except where it
 should — the two oils. Seventeenth measurement defect corrected in
 this document, and like the others it read in the flattering direction.
+
+## 77. The risk budget was in the wrong currency
+
+`calculate_position_size` divides a USD budget by a stop distance in
+the instrument's quote currency. The broker prices DE40 in EUR, UK100
+in GBP, HK50 in HKD and the yen crosses in JPY, and the account is in
+EUR. The journal confirms it: size × stop is 1.9–2.7 quote units on
+every instrument, meaning 4.06 USD of risk on UK100 and 0.02 USD on
+AUDJPY against a 3 USD cap — and the JPY/HKD instruments were being
+refused at the broker minimum because 3 JPY buys no contract.
+
+`prepare_order` now reports the USD value of the quote currency from
+the venue's FX mid and the loop sizes in quote units of a USD budget;
+no rate, no trade. Eighteenth measurement defect, and the first one
+that ran in *both* directions — over the cap on the European indices,
+under it everywhere east. Section 20's near-zero risk denominators
+were partly this.

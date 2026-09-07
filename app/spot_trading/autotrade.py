@@ -1600,11 +1600,28 @@ async def run_loop(
                     issued_intents[dedup_key] = intent.bar_time
                     continue
                 constraints = prepared.constraints
+                # size × stop distance is in the quote currency; the
+                # budgets are USD. Unknown rate → stand aside, as with a
+                # missing ADX or a missing quote.
+                usd_per_quote = prepared.usd_per_quote
+                if usd_per_quote is None or usd_per_quote <= 0:
+                    error = (
+                        f"skipped: no USD rate for the quote currency "
+                        f"of {intent.pair}"
+                    )
+                    _record_skip(
+                        intent,
+                        error,
+                        platform_name=platform_name,
+                        paper_mode=platform.paper_trade_only,
+                    )
+                    issued_intents[dedup_key] = intent.bar_time
+                    continue
                 sizing = calculate_position_size(
                     entry_price=prepared.reference_price,
                     stop_loss=intent.stop_loss,
-                    target_risk=risk_per_trade,
-                    notional_cap=notional_per_trade,
+                    target_risk=risk_per_trade / usd_per_quote,
+                    notional_cap=notional_per_trade / usd_per_quote,
                     min_size=constraints.min_size,
                     size_increment=constraints.size_increment,
                     max_size=constraints.max_size,
@@ -1719,10 +1736,10 @@ async def run_loop(
                         actual_size = result.size if result.size else trade_size
                         fill_risk = (
                             abs(float(result.fill_price) - intent.stop_loss)
-                            * actual_size
+                            * actual_size * usd_per_quote
                         )
                         _safe_log(
-                            f"  risk: planned=${sizing.planned_risk:.4f} "
+                            f"  risk: planned=${sizing.planned_risk * usd_per_quote:.4f} "
                             f"fill=${fill_risk:.4f}"
                         )
                     confirmation_error = result.raw.get("_confirmation_error")
@@ -1750,7 +1767,10 @@ async def run_loop(
                     paper_mode=platform.paper_trade_only,
                     size=result.size if result.size else trade_size,
                     sizing_reference_price=prepared.reference_price,
-                    planned_risk=sizing.planned_risk,
+                    planned_risk=(
+                        sizing.planned_risk * usd_per_quote
+                        if sizing.planned_risk is not None else None
+                    ),
                     fill_risk=fill_risk,
                 )
 

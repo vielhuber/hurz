@@ -801,3 +801,34 @@ the section numbers below point there.
   inherits it and will rank the oils on their real stop cost. It is a
   removal of a flattering measurement, the same class as 9, 20, 27 and
   49c, not a profit lever.
+
+## 2026-09-08 (seventh run) — quote-currency conversion in sizing — BUILT IN
+
+- **Lever:** position sizing — the 3 USD risk budget and the 250 USD
+  notional cap were applied in the instrument's quote currency. The
+  broker's market details put the active instruments in eight
+  currencies (DE40/FR40/EU50 EUR, UK100 GBP, HK50 HKD, J225/AUDJPY/CHFJPY
+  JPY, GBPCAD CAD, AUDNZD NZD, USDCHF CHF, AU200 AUD), the account itself
+  is EUR. Measured on the journal: size × stop distance is 1.9–2.7 quote
+  units on every instrument, so the real USD risk ran from 3 GBP =
+  4.06 USD on UK100 (35 % over the cap) down to 3 JPY = 0.02 USD on
+  AUDJPY, and JPY/HKD signals were refused at the broker minimum for
+  the wrong reason.
+- **Measurement:** broker market details (currency per instrument),
+  journal audit of size × stop per instrument, and an end-to-end replay
+  of the new sizing against live quotes: UK100 3.08 → 1.54 USD (coarse
+  0.01 increment), DE40 2.86 → 2.54, AUDJPY skip → 300 units at 2.27
+  USD, HK50 skip → 0.07 at 2.37 USD, BTCUSD unchanged at 2.57 USD.
+- **Decision:** built in. `prepare_order` now carries `usd_per_quote`
+  from the venue's own FX mid (EURUSD, GBPUSD, AUDUSD, NZDUSD direct;
+  USDJPY, USDCAD, USDCHF, USDHKD inverted); the live loop divides both
+  budgets by it and journals planned and fill risk in USD; an unknown
+  rate is a skip, not a trade. Tests cover the rate table and the
+  default. **Risk statement:** this restores the cap where it was
+  exceeded (GBP, EUR, CHF instruments) and raises exposure from
+  near zero to the intended budget on JPY and HKD instruments, all
+  inside the 3 USD limit; those instruments measured as random (70),
+  so the expected gain effect is neutral and the change is about the
+  guard being true, not about profit. The backtest's dollar figures
+  keep the same defect (R-multiples are unaffected) and are recorded
+  as follow-up. Hurz restarted.

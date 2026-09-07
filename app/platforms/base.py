@@ -137,6 +137,9 @@ class PreparedOrder:
     constraints: OrderConstraints = field(default_factory=OrderConstraints)
     adjustments: Tuple[str, ...] = ()
     round_trip_cost: float = 0.0
+    # USD value of one unit of the instrument's quote currency; None when
+    # the rate is unknown, which the sizing treats as "do not trade".
+    usd_per_quote: Optional[float] = 1.0
 
 
 class Platform(ABC):
