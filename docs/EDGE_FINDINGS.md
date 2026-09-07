@@ -2901,3 +2901,16 @@ July closed at +0.118 R, against +0.016 R for ordinary stale exits and
 The holiday guard idles the whole book on 18 weekdays a year — 6.9 % of
 weekdays, crypto and open markets included — for no measured cost and
 no measured gain. It stays as written.
+
+## 90. Stops fill where they sit; entries do not
+
+Across 235 stop-outs the fill sits 0.027 R beyond the stored stop on
+average and 0.003 R at the median — the venue executes stops where
+they are placed, and the tail is the weekend gap section 76 now
+charges. Targets fill at the target. The entry is the leg that costs:
+202 fills since July sit 0.128 R behind the signal-bar close the
+simulator enters at. Half of that is the spread the simulator does
+charge; the other half is the price moving on in the breakout's
+direction between the close and the order, which no section here has
+modelled. Section 3 measured the same thing in dollars. Next: entry at
+the next open versus a limit at the close, both samples.

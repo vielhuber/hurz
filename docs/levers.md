@@ -1159,3 +1159,30 @@ the section numbers below point there.
   the instruments that are actually closed; narrowing it per instrument
   would be a throughput lever on a zero, which is not a lever. No code
   change, no restart.
+
+## 2026-09-08 (twentieth run) — broker-side stop slippage
+
+- **Lever:** cost filter — whether stop orders at the venue fill
+  materially beyond the stored stop, which would be a cost neither the
+  spread table nor the simulator charges. Measured on the journal: fill
+  versus stored stop for every stop-out, fill versus target for every
+  target, and fill versus signal price for every entry since July.
+- **Measurement (journal, read-only, all Capital.com closes):**
+
+  | leg | n | mean | median | note |
+  |---|---:|---:|---:|---|
+  | stop-out fill vs stop | 235 | **-0.027 R** | -0.003 R | 63 % beyond the stop, 35 % exactly on it, worst -1.77 R (the ATOMUSD weekend gap) |
+  | target fill vs target | 116 | +0.004 R | — | targets fill where they sit |
+  | **entry fill vs signal price** | 202 | **-0.128 R** | — | since 2026-07-10; negative = worse |
+
+  Stops cost 0.027 R of slippage on average, almost all of it in a
+  handful of gaps that section 76 now books; the broker executes stops
+  where they are placed. The entry leg is another matter: the live fill
+  sits 0.128 R behind the bar close the simulator enters at — half a
+  spread plus the move between the signal bar's close and the order,
+  which for a breakout is by construction in the wrong direction.
+- **Decision:** stop and target placement unchanged — nothing to fix on
+  the exit side. The entry gap is preregistered as the next lever:
+  simulate entry at the next bar's open (what live approximates), a
+  limit at the signal close valid for one bar, and for three bars,
+  against the close entry, on the merged timeline and both samples.
