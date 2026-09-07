@@ -507,10 +507,12 @@ _TRAIL_ATR_MULT = float(os.getenv("HURZ_TRAIL_ATR_MULT", "2.0"))
 # indices), so N same-direction breakouts across them are one concentrated
 # bet disguised as N independent edges. _CLUSTER_DIR_CAP limits how many
 # same-direction positions may be open per cluster (env
-# HURZ_CLUSTER_DIRECTION_CAP). Pairs not listed are uncapped — FX crosses
-# and single commodities (EURAUD, CHFJPY, COPPER, WHEAT) are idiosyncratic
-# enough to stay their own singletons; over-clustering weakly-correlated
-# pairs would falsely throttle the book.
+# HURZ_CLUSTER_DIRECTION_CAP). Pairs not listed are uncapped — crosses
+# such as EURAUD, AUDNZD and GBPCAD measured below 0.4 against every
+# cluster on a year of hourly returns and stay singletons; over-clustering
+# weakly-correlated pairs would falsely throttle the book. EU50 (0.93 with
+# DE40), COPPER (0.58 with the metals) and the yen crosses (0.60 with each
+# other) were mapped on that measurement — EDGE_FINDINGS 82.
 _CORRELATION_CLUSTERS = {
     "BTCUSD": "crypto", "ETHUSD": "crypto", "SOLUSD": "crypto",
     "XRPUSD": "crypto", "ADAUSD": "crypto", "DOGEUSD": "crypto",
@@ -523,8 +525,11 @@ _CORRELATION_CLUSTERS = {
     "DE40": "indices", "FR40": "indices", "UK100": "indices",
     "US30": "indices", "US500": "indices", "US100": "indices",
     "HK50": "indices", "J225": "indices", "AU200": "indices",
+    "EU50": "indices",
     "GOLD": "metals", "SILVER": "metals", "PALLADIUM": "metals",
+    "COPPER": "metals",
     "OIL_BRENT": "energy", "OIL_CRUDE": "energy",
+    "AUDJPY": "jpy_crosses", "CHFJPY": "jpy_crosses",
 }
 _CLUSTER_DIR_CAP = int(os.getenv("HURZ_CLUSTER_DIRECTION_CAP", "3"))
 

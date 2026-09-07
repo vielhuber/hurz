@@ -2812,3 +2812,15 @@ bind next. R-multiples are unaffected, dollars scale with risk taken,
 and the sign of that scaling is the book's expectancy. Loosening a
 hard exposure limit to lever a zero is not a trade this document will
 make. The cap stays.
+
+## 82. Seven active instruments sat outside the cluster cap
+
+The same-direction cap counts only mapped instruments, and EU50,
+COPPER, AUDJPY, CHFJPY, AUDNZD, EURAUD and GBPCAD were unmapped —
+noticed because three shorts were open on HK50, CHFJPY and AUDJPY at
+once. On a year of hourly returns (`scripts/cluster_correlations.py`)
+EU50 sits at 0.93 with DE40, COPPER at 0.58 with the metals and the two
+yen crosses at 0.60 with each other; the three remaining crosses are
+below 0.4 against everything and stay singletons. Mapped accordingly,
+with a test that every active instrument is either mapped or one of
+those three. A guard gap, not a lever.

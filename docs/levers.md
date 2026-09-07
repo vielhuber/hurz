@@ -927,3 +927,36 @@ the section numbers below point there.
 - **Decision:** not changed — the cap stays at 250 USD. Buying dollar
   gain through a looser exposure limit is exactly what the project rules
   forbid, and at zero edge it buys variance. No code change, no restart.
+
+## 2026-09-08 (twelfth run) — correlation-cluster coverage — BUILT IN
+
+- **Lever:** risk guard — the same-direction cap of 3 per correlation
+  cluster only counts mapped instruments. Seven of the 27 active
+  instruments were unmapped (EU50, COPPER, AUDJPY, CHFJPY, AUDNZD,
+  EURAUD, GBPCAD), and at the time of measurement three same-direction
+  shorts were open on HK50, CHFJPY and AUDJPY with two of them outside
+  every cluster. Preregistered: map an instrument to a cluster whose
+  members it matches at a median |corr| of 0.5 or more on a year of
+  hourly log returns; leave the rest as singletons.
+- **Measurement:** `scripts/cluster_correlations.py` — 365 days of
+  1h closes for 20 instruments, pairwise return correlations.
+
+  | instrument | indices | usd_fx | metals | note |
+  |---|---:|---:|---:|---|
+  | EU50 | **0.76** | 0.34 | 0.38 | 0.93 with DE40 |
+  | COPPER | 0.40 | 0.34 | **0.58** | 0.56 GOLD, 0.59 SILVER |
+  | AUDJPY | 0.35 | 0.36 | 0.33 | 0.60 with CHFJPY, 0.64 AUDUSD, -0.71 EURAUD |
+  | CHFJPY | 0.09 | 0.21 | 0.16 | 0.60 with AUDJPY, 0.53 USDJPY |
+  | AUDNZD | 0.12 | 0.09 | 0.09 | singleton |
+  | EURAUD | 0.38 | 0.15 | 0.34 | singleton (inverse of AUD) |
+  | GBPCAD | 0.22 | 0.39 | 0.18 | singleton |
+
+- **Decision:** built in. EU50 → indices, COPPER → metals, AUDJPY and
+  CHFJPY → a new `jpy_crosses` cluster (measured members only; the
+  other yen crosses in the default universe are not active and were not
+  measured). AUDNZD, EURAUD and GBPCAD stay uncapped by measurement. A
+  test pins the mapping and asserts that every active instrument is
+  either mapped or one of those three. Hurz restarted. Expected gain
+  effect: none; this closes a gap in a risk control the project rules
+  require to be effective, and with three same-direction positions
+  already open it was not hypothetical.
