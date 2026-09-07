@@ -1106,3 +1106,26 @@ the section numbers below point there.
   All eight entry-side guards (cluster, duplicate, daily loss,
   concurrent, notional, minimum size, cooldown, entry cap) are now
   measured at the live configuration.
+
+## 2026-09-08 (eighteenth run) — cost-filter stop widening
+
+- **Lever:** cost filter — when a live quote puts the round-trip cost
+  above 10 % of the stop distance, the loop widens the stop up to 2×
+  to bring the share back to 10 % (the shared backtest skips such
+  trades instead). Seen once live under the new rules: HK50 at 23:55
+  UTC, 265 → 300 HKD, 11.3 % → 10.0 %. Measured whether widened trades
+  differ from the rest.
+- **Measurement:** `scripts/cost_widening_check.py` replays the
+  widening rule on the 16 remaining instruments at the 2-ATR stop,
+  both samples: **zero** trades exceed 10 % against the audited spread
+  table (0 of 7,425 and 0 of 14,764). The rule only fires on live
+  quotes wider than the audit — off-hours spreads — which no bar
+  history carries. The live trail is a log line the session wrapper
+  truncates at every restart, and the journal has no widening flag, so
+  the one known case cannot be joined to an outcome yet.
+- **Decision:** not changed. Two facts recorded for later: the backtest
+  and the live loop diverge here (skip vs widen), and the divergence is
+  invisible to every measurement in this log because it lives in the
+  spread at the moment of the quote. A journal flag for widened stops
+  would make it measurable; that is a schema change and is left as
+  follow-up rather than done on one observation.

@@ -2880,3 +2880,15 @@ sample. It stays, as the breaker it was written to be. With this every
 entry-side guard has been measured at the live configuration: none of
 them is a lever, and none of them is costing the book anything it
 would want back.
+
+## 88. The cost filter's stop widening happens only off the audited tape
+
+Against the audited spread table no trade on any active instrument
+exceeds the 10 % cost share at the 2-ATR stop, on either sample
+(`scripts/cost_widening_check.py`), so the live widening rule fires
+only when the quote is wider than the audit — the HK50 entry at 23:55
+UTC widened 265 → 300 HKD from 11.3 % to 10.0 %. The backtest skips
+what the live loop widens, and neither the bars nor the journal record
+the spread that decided it. Not measurable today; recorded as the one
+live/backtest divergence in this document that no history can settle
+without a journal flag.
