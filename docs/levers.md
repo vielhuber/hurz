@@ -417,3 +417,33 @@ the section numbers below point there.
   110 is positive on both but at t < 1 with a third fewer trades, and
   it carries no cost component that would make part of it arithmetic.
 - **Decision:** not built in — 55 stays. No code change, no restart.
+
+## 2026-09-07 (fifteenth run) — minimum-size skips at the halved position
+
+- **Lever:** position sizing / pair selection — the 2-ATR stop halves
+  the position, so the fail-closed minimum-size guard could start
+  refusing trades. Measured how many, on which instruments, with what
+  expectancy, and whether those instruments should leave the active
+  list. Live broker constraints and the live sizing function were used.
+- **Measurement:** `scripts/min_size_skips.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 365 days, 3 segments, hold 24,
+  RR 1.5, three live trend strategies, the 10 unblocked instruments,
+  `calculate_position_size` with the broker's min size and increment,
+  at the former 1-ATR and the live 2-ATR stop.
+- **Result:**
+
+  | stop | n | skipped | planned risk kept | E[R] all | E[R] kept | E[R] skipped | USD / trade kept |
+  |---:|---:|---:|---:|---:|---:|---:|---:|
+  | 1.0 | 5,831 | 0.1 % | 2.52 USD | +0.0060 | +0.0074 | -1.01 | +0.015 |
+  | **2.0 (live)** | 5,428 | **1.4 %** | 2.59 USD | +0.0283 | +0.0303 | -0.11 | +0.078 |
+
+  Skips occur only on OIL_CRUDE (6.3 %) and OIL_BRENT (7.5 %), whose
+  1-lot minimum is coarse against a wider stop; every other instrument
+  sizes at 0 % skips. The skipped trades carry negative expectancy on
+  this sample, so refusing them costs nothing. Planned risk moves
+  closer to the 3 USD target because the wider stop needs less notional
+  and the 250 USD cap binds less often. The stop change only bites on
+  BTCUSD, ETHUSD, the oils and GOLD — indices and FX stay pinned at the
+  1.05 % venue minimum either way.
+- **Decision:** no change — the guard is doing its job and the active
+  list stays. No code change, no restart.

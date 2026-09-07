@@ -2517,3 +2517,22 @@ minimum and not the bar: at t = 0.5 and 0.9 with 30 % fewer trades and
 no arithmetic component it is noise with a consistent sign, not a
 lever. 55 stays. All three live channel parameters (58, 59, 63) are
 now measured on their own axis.
+
+## 64. The halved position clears the broker minimum
+
+Follow-up to 60: at the 2-ATR stop the position is half its former
+size, and the sizing guard refuses rather than enlarges anything below
+the broker minimum. Replayed with the live constraints and the live
+sizing function (`scripts/min_size_skips.py`, 365 days, ten instruments):
+
+| stop | skipped | on | planned risk (kept) | USD per kept trade |
+|---:|---:|---|---:|---:|
+| 1.0 ATR | 0.1 % | — | 2.52 | +0.015 |
+| 2.0 ATR | 1.4 % | OIL_CRUDE 6 %, OIL_BRENT 8 % | 2.59 | +0.078 |
+
+Only the oils' 1-lot minimum is coarse enough to matter, and the
+refused trades read -0.11 R on this sample. Planned risk edges toward
+the 3 USD target because the wider stop needs less notional. Two things
+worth stating: the stop change is inert on indices and FX, which the
+1.05 % venue floor pins at either width, so its whole effect lives on
+BTCUSD, ETHUSD, GOLD and the oils; and the guard needs no adjustment.
