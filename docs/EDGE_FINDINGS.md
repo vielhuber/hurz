@@ -2536,3 +2536,28 @@ the 3 USD target because the wider stop needs less notional. Two things
 worth stating: the stop change is inert on indices and FX, which the
 1.05 % venue floor pins at either width, so its whole effect lives on
 BTCUSD, ETHUSD, GOLD and the oils; and the guard needs no adjustment.
+
+## 65. Pinned and ATR-bound instruments — no split, one candidate
+
+Whether the book should keep only the instruments where the 2-ATR
+stop actually binds (`scripts/pinned_groups.py`, both samples, per
+group against random entries):
+
+| sample | ATR-bound vs random | t | pinned vs random | t | group diff | t |
+|---|---:|---:|---:|---:|---:|---:|
+| last 365 d | +0.0915 | +4.04 | +0.0206 | +1.29 | +0.0365 | +1.51 |
+| prior 730 d | +0.0117 | +0.77 | +0.0065 | +0.59 | -0.0374 | -2.28 |
+
+The recent year's t = 4.04 for the ATR-bound group would have been the
+headline; the older sample returns it to noise, driven by both oils
+turning significantly negative there. The groups are not different in
+any stable way.
+
+One instrument survives both samples on its own: GOLD, +0.152 R over
+random at t = 2.71 on the recent year and +0.100 R at t = 3.24 on the
+prior two, from 498 and 917 trades. That is a post-hoc pick from ten,
+and section 36 recorded `turtle_breakout/GOLD` at t = 2.16 once before
+with live disagreeing. It is therefore not acted on here but
+preregistered: per strategy, router applied, both samples, t > 2.0
+against random per strategy, before GOLD is pinned to the other two
+trend strategies.

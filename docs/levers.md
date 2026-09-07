@@ -447,3 +447,35 @@ the section numbers below point there.
   1.05 % venue minimum either way.
 - **Decision:** no change — the guard is doing its job and the active
   list stays. No code change, no restart.
+
+## 2026-09-07 (sixteenth run) — pinned versus ATR-bound instruments
+
+- **Lever:** pair selection — section 64 showed the 2-ATR stop is inert
+  on instruments the 1.05 % venue floor pins (indices, FX) and only
+  bites on crypto, gold and the oils. Tested whether the book should
+  drop the pinned group: signal expectancy per group against
+  count-matched random entries, two disjoint samples, 2-ATR stop.
+- **Measurement:** `scripts/pinned_groups.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  three live trend strategies, five instruments per group, three random
+  draws per segment, run sequentially per sample.
+- **Result (signals, pooled per group):**
+
+  | sample | ATR-bound E[R] | vs random | t | pinned E[R] | vs random | t | ATR-bound − pinned | t |
+  |---|---:|---:|---:|---:|---:|---:|---:|---:|
+  | last 365 d | +0.0435 | +0.0915 | +4.04 | +0.0070 | +0.0206 | +1.29 | +0.0365 | +1.51 |
+  | prior 730 d | -0.0275 | +0.0117 | +0.77 | +0.0099 | +0.0065 | +0.59 | -0.0374 | -2.28 |
+
+  The group difference flips sign, and the ATR-bound group's strong
+  recent reading against random collapses to t = 0.77 on the older
+  sample — the oils turn significantly negative there. The pinned group
+  is flat on both. No basis for dropping either group.
+- **Decision:** not built in — dead. No code change, no restart.
+- **Preregistered for the next run:** GOLD is the one instrument that
+  beats its random control on *both* samples (+0.152 R, t = 2.71;
+  +0.100 R, t = 3.24), read after the fact as one of ten. It is
+  currently in the active list for turtle_breakout only. Next run
+  measures GOLD per strategy, with the live ADX router applied, on both
+  samples; acceptance for pinning GOLD to the other two trend strategies
+  is t > 2.0 against random per strategy on both samples after the
+  router.
