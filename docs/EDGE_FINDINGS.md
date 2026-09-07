@@ -2382,3 +2382,19 @@ two years, with twice the trades, return zero on every column. That is
 the sixth time (19, 32, 33, 46b, 51, now this), and it is the strongest
 case yet for the rule that nothing is accepted on one sample — the
 recent-year reading was not near the threshold, it was clearly past it.
+
+## 57. Previous-day range on the commodities: zero on both samples
+
+Companion to 56 for GOLD, OIL_CRUDE and OIL_BRENT: the first hourly
+close outside the previous day's range enters in that direction, once
+per day (`scripts/prev_day_range_breakout.py`, same setup and
+preregistration as the opening-range run).
+
+| sample | n | E[R] | vs random | t | vs donchian | t |
+|---|---:|---:|---:|---:|---:|---:|
+| last 365 days | 524 | +0.0071 | +0.0464 | +0.84 | -0.0588 | -0.89 |
+| prior 730 days | 976 | -0.0363 | +0.0105 | +0.29 | +0.0322 | +0.74 |
+
+Nothing to dissolve this time — it never rose. GOLD alone is positive
+on both samples (t = 1.6, 1.3), which is one instrument of three read
+after the fact, and both oils are negative on both. Not adopted.

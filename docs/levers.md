@@ -225,3 +225,26 @@ the section numbers below point there.
   near-threshold value in this project to dissolve on an independent
   sample.
 - **Decision:** not built in — dead. No code change, no restart.
+
+## 2026-09-07 (eighth run) — previous-day range breakout on the commodities
+
+- **Lever:** new signal source — the first hourly close of a UTC day
+  above the previous day's high (below its low) enters long (short),
+  one trade per day, on GOLD, OIL_CRUDE and OIL_BRENT. Preregistered
+  with the same two-sample criterion as the opening-range run (better
+  than count-matched random entries at t > 2.0 on both samples).
+- **Measurement:** `scripts/prev_day_range_breakout.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 1.0 ATR, random control with five draws per segment, live
+  donchian_breakout on the same bars as the second comparison.
+- **Result (pooled over the three commodities):**
+
+  | sample | n | E[R] | t vs 0 | vs random | t | vs donchian | t |
+  |---|---:|---:|---:|---:|---:|---:|---:|
+  | last 365 d | 524 | +0.0071 | +0.14 | +0.0464 | +0.84 | -0.0588 | -0.89 |
+  | prior 730 d | 976 | -0.0363 | -1.11 | +0.0105 | +0.29 | +0.0322 | +0.74 |
+
+  Zero on both samples, both oils negative on both, GOLD positive but
+  at t = 1.6 / 1.3 and post hoc as a single instrument. Below the live
+  entry on the recent year.
+- **Decision:** not built in — dead. No code change, no restart.
