@@ -2824,3 +2824,15 @@ yen crosses at 0.60 with each other; the three remaining crosses are
 below 0.4 against everything and stay singletons. Mapped accordingly,
 with a test that every active instrument is either mapped or one of
 those three. A guard gap, not a lever.
+
+## 83. One position per instrument absorbs five signals in six
+
+The three live trend strategies fire 11,325 signals a year on the ten
+core instruments; 83 % arrive while a position is already open there,
+and 80 % of those point the same way (`scripts/strategy_overlap.py`).
+The live loop's one-position-per-instrument rule refuses them all, so
+the book holds one bet per instrument regardless of how many channels
+break. Nothing to change — but the per-strategy backtests in this
+document each carry their own open-trade state, so their trade counts
+add up to roughly six times what live can open. Expectancies stand;
+throughput figures across strategies do not sum.

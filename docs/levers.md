@@ -960,3 +960,29 @@ the section numbers below point there.
   effect: none; this closes a gap in a risk control the project rules
   require to be effective, and with three same-direction positions
   already open it was not hypothetical.
+
+## 2026-09-08 (thirteenth run) — duplicate exposure across strategies
+
+- **Lever:** risk guard — whether the same breakout can be opened
+  several times on one instrument by donchian, turtle and keltner
+  firing on neighbouring bars. The live loop refuses any entry on an
+  instrument that already has an open position, whatever the strategy
+  (`_has_open_position`), so the guard exists; measured what it absorbs.
+- **Measurement:** `scripts/strategy_overlap.py` — signals of the three
+  live trend strategies on the ten core instruments over 365 days,
+  merged in time with a 24-bar hold, counting signals that arrive while
+  a position is open.
+
+  | instruments | signals | arriving while a position is open | same direction as the open trade |
+  |---|---:|---:|---:|
+  | 10 core, pooled | 11,325 | 9,441 (83.4 %) | 80 % of those |
+
+  Five signals in six would pyramid or flip an existing position; the
+  guard turns the three strategies into one bet per instrument, which
+  is what the cluster cap (82) does across instruments. One consequence
+  for reading this log: every per-strategy sweep here simulated each
+  strategy with its own open-trade state, so summed backtest frequency
+  is about six times what the live book can open — expectancy per trade
+  is unaffected, throughput comparisons are not additive.
+- **Decision:** not changed — the guard is in place and doing the
+  work. No code change, no restart.
