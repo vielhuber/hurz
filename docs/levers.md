@@ -536,3 +536,37 @@ the section numbers below point there.
 - **Decision:** not changed — the router stays on, per the standing
   rule and because nothing here points anywhere twice. No code change,
   no restart.
+
+## 2026-09-07 (nineteenth run) — cost ceiling at the 2-ATR stop
+
+- **Lever:** cost filter — the 10 % cost-per-risk ceiling re-examined at
+  the configuration now live, where the wider stop halves every
+  instrument's cost share. Trades bucketed by their own round-trip cost
+  in R, and the ceiling evaluated at 10 / 5 / 3 %, on both samples.
+- **Measurement:** `scripts/cost_buckets.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, three live trend strategies, the 10 unblocked
+  instruments, run sequentially per sample.
+- **Result:**
+
+  | bucket | last 365 d: share / E[R] net / gross | prior 730 d: share / E[R] net / gross |
+  |---|---|---|
+  | < 2 % | 56 % / +0.0250 / +0.0324 | 50 % / +0.0119 / +0.0188 |
+  | 2–5 % | 32 % / +0.0394 / +0.0752 | 36 % / **-0.0561** / -0.0178 |
+  | 5–10 % | 13 % / +0.0119 / +0.0708 | 13 % / +0.0163 / +0.0754 |
+
+  | ceiling | last 365 d: n / E[R] / Σ R | prior 730 d: n / E[R] / Σ R |
+  |---:|---|---|
+  | **10 % (live)** | 5,428 / +0.0279 / +151.5 | 11,161 / -0.0122 / -135.7 |
+  | 5 % | 4,752 / +0.0302 / +143.5 | 9,668 / -0.0166 / -160.1 |
+  | 3 % | 3,493 / +0.0207 / +72.5 | 6,214 / -0.0041 / -25.6 |
+
+  No monotonic cost effect: the most expensive bucket is not the worst
+  on either sample, and the middle bucket swings from the best to
+  significantly negative between them. Lowering the ceiling reduces the
+  yearly R sum on the recent year at every level and helps on the older
+  sample only at 3 %, where it removes 44 % of the trades. Section 11's
+  finding — the cost band was an artefact of which instruments were
+  expensive — holds at the wider stop; with all ten instruments under
+  10 %, the ceiling is a backstop, not a lever.
+- **Decision:** not changed — 10 % stays. No code change, no restart.

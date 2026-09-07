@@ -2597,3 +2597,21 @@ Whatever the router does, it does not do it consistently, and the rule
 that it comes off only on a forward reading below t = -2.0 stands. The
 signal-versus-random line repeats section 45 at the wider stop: the
 recent year says yes at t = 2.67, the two years before say t = 1.00.
+
+## 68. The cost ceiling at the 2-ATR stop — a backstop, not a lever
+
+At the wider stop every unblocked instrument sits below 10 % of risk,
+so the ceiling was re-read by bucketing trades on their own cost
+(`scripts/cost_buckets.py`, both samples):
+
+| ceiling | last 365 d Σ R | prior 730 d Σ R |
+|---:|---:|---:|
+| 10 % (live) | +151.5 | -135.7 |
+| 5 % | +143.5 | -160.1 |
+| 3 % | +72.5 | -25.6 |
+
+The 5–10 % bucket reads +0.012 and +0.016 R net on the two samples,
+better than the middle bucket on the older one — cost share does not
+order expectancy once the untradeable instruments are gone, which is
+what section 11 said of the live journal. Tightening the ceiling only
+removes trades. It stays at 10 %.
