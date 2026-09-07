@@ -2275,3 +2275,25 @@ Nothing changes, and the reason section 7 gave for not opening this
 family stands: a single preregistered window produced a |t| > 2 artefact
 on its first try, which is what a free search would have produced by the
 dozen.
+
+## 52. A break-even stop trades losses for scratches, one for one
+
+The ATR trail (27) lost because it capped winners. The mildest version
+of stop management — move the stop to entry once the trade has earned
+0.5, 0.75 or 1.0 R, and nothing further — was measured on the
+cost-charging simulator, 365 days, ten instruments, three live trend
+strategies (`scripts/breakeven_sweep.py`):
+
+| activation | E[R] | loss % | scratch % | win % | diff vs live | t |
+|---:|---:|---:|---:|---:|---:|---:|
+| none (live) | +0.0063 | 36.9 | 0.0 | 24.3 | — | — |
+| 0.5 R | +0.0110 | 25.2 | 30.0 | 17.4 | +0.0046 | +0.28 |
+| 0.75 R | +0.0048 | 30.2 | 17.4 | 20.1 | -0.0015 | -0.09 |
+| 1.0 R | +0.0010 | 33.5 | 9.6 | 21.9 | -0.0054 | -0.30 |
+
+Every full stop the move avoids is paid for by a full target it also
+avoids: at 0.5 R the loss share falls by twelve points and the win share
+by seven, and the expectancy difference is 0.005 R. On a random-walk
+path that is exactly what should happen — a stop at entry removes
+symmetric mass from both tails — and the measurement is consistent with
+the entries being random (30, 45). The live fixed stop stays.

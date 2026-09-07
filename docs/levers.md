@@ -86,3 +86,31 @@ the section numbers below point there.
 - **Decision:** not built in — dead in both directions. Fifth time a
   |t| ≈ 2 reading dissolved on an independent sample. Nothing changed in
   the trading code; no restart.
+
+## 2026-09-07 (third run) — break-even stop move
+
+- **Lever:** exit logic — once price has travelled `act` × stop distance
+  in favour, move the stop to the entry price (no trailing beyond that).
+  Distinct from the rejected ATR trail (27), which kept riding behind
+  price and capped winners; this only removes the full −1 R leg after a
+  trade has already worked.
+- **Measurement:** `scripts/breakeven_sweep.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 365 days, 3 segments, hold 24,
+  RR 1.5, stop 1.0 ATR, three live trend strategies, the same 10 unblocked
+  instruments. Activation at 0.5 / 0.75 / 1.0 R against the live fixed
+  stop. A stop touched after arming books a scratch at entry minus costs.
+- **Result (pooled over strategies):**
+
+  | activation | n | E[R] | win % | loss % | scratch % | timeout % | diff vs live | t |
+  |---:|---:|---:|---:|---:|---:|---:|---:|---:|
+  | **none (live)** | 5,827 | +0.0063 | 24.3 | 36.9 | 0.0 | 38.8 | — | — |
+  | 0.5 R | 6,333 | +0.0110 | 17.4 | 25.2 | 30.0 | 27.4 | +0.0046 | +0.28 |
+  | 0.75 R | 6,062 | +0.0048 | 20.1 | 30.2 | 17.4 | 32.2 | -0.0015 | -0.09 |
+  | 1.0 R | 5,931 | +0.0010 | 21.9 | 33.5 | 9.6 | 35.1 | -0.0054 | -0.30 |
+
+  The move converts a third of the full stops into scratches and the
+  same share of full targets into scratches; the two cancel to within
+  0.005 R at every level and in every strategy (largest single reading
+  keltner 0.5 R at t = +0.71). Full-loss frequency drops, expectancy
+  does not.
+- **Decision:** not built in — dead. No code change, no restart.
