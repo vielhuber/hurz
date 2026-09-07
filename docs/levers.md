@@ -145,3 +145,33 @@ the section numbers below point there.
   near significance. Live implementation would in addition need working
   orders at the venue, which this measurement did not have to model.
 - **Decision:** not built in — dead. No code change, no restart.
+
+## 2026-09-07 (fifth run) — failed-breakout reversal
+
+- **Lever:** new signal source — when a close returns inside the broken
+  level within K bars of a breakout signal, enter *against* the breakout
+  at that close (the "fade the failed breakout" idea). Measured against
+  count-matched random entries through the identical simulator, as the
+  random benchmark sections 30 / 45 require, and against the live
+  breakout entry.
+- **Measurement:** `scripts/failed_breakout.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 365 days, 3 segments, hold 24,
+  RR 1.5, stop 1.0 ATR, three live trend strategies as the breakout
+  source, the same 10 unblocked instruments, K = 3 / 6, five random
+  draws per segment for the control.
+- **Result (pooled over strategies):**
+
+  | K | n | E[R] | t vs 0 | E[R] random | diff vs random | t | diff vs live breakout | t |
+  |---:|---:|---:|---:|---:|---:|---:|---:|---:|
+  | 3 | 3,904 | **-0.0632** | **-4.14** | -0.0230 | -0.0402 | **-2.38** | -0.0695 | **-3.45** |
+  | 6 | 4,584 | -0.0473 | -3.30 | -0.0277 | -0.0196 | -1.24 | -0.0536 | -2.76 |
+
+  Negative in every strategy at every K (keltner K = 3: -0.081, t =
+  -3.13). This is the first signal in the project that is significantly
+  *worse* than random, which is the mean-reversion payoff shape retired
+  in July (2, 49e) showing up again from a different trigger.
+- **Decision:** not built in — dead. The mirror image (re-entering with
+  the breakout after the first close back inside) is not a free lever:
+  reversing direction flips the gross leg but doubles the cost leg and
+  breaks the 1.5:1 asymmetry, and it would be post hoc. No code change,
+  no restart.

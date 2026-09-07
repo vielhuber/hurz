@@ -2319,3 +2319,29 @@ stop. Per strategy the sign is not even stable (turtle negative at every
 K, keltner positive at every K, donchian both). Consistent with random
 entries (30, 45): shifting the entry price by a fraction of an ATR on a
 signal that carries no information shifts nothing. Not adopted.
+
+## 54. Fading a failed breakout loses, significantly
+
+Second candidate from the different-signal-source list: when the close
+returns inside the level a breakout had crossed, within K bars, trade
+against the breakout at that close (`scripts/failed_breakout.py`; 365
+days, ten instruments, three live trend strategies as the trigger, hold
+24, costs charged, count-matched random entries as the control).
+
+| K | n | E[R] | t vs 0 | vs random | t | vs live breakout | t |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 3 | 3,904 | **-0.0632** | **-4.14** | -0.0402 | **-2.38** | -0.0695 | **-3.45** |
+| 6 | 4,584 | -0.0473 | -3.30 | -0.0196 | -1.24 | -0.0536 | -2.76 |
+
+Every strategy, every K, negative — and at K = 3 the signal is
+significantly worse than random through the same simulator. That is
+new: every earlier signal measured here was *indistinguishable* from
+random. The shape is the one section 2 retired live and section 49e
+found again among the router's suppressed signals: frequent small wins
+against rare large losses. Not adopted.
+
+The obvious next thought — trade *with* the breakout on that same
+close, since its fade loses — is not implied by this table. Reversing a
+trade negates the gross leg but pays the cost leg twice and inverts the
+1.5:1 payoff, so the continuation version is a separate, post-hoc
+hypothesis that would need its own preregistered run.
