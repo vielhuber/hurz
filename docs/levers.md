@@ -396,3 +396,24 @@ the section numbers below point there.
   between samples. The cost column barely moves, so nothing here is
   mechanical.
 - **Decision:** not built in — 24 stays. No code change, no restart.
+
+## 2026-09-07 (fourteenth run) — turtle channel length
+
+- **Lever:** strategy parameter — the 55-bar channel of
+  `turtle_breakout`, measured at the configuration now live (2-ATR
+  stop). Periods 20 / 110 against 55, two-sample criterion.
+- **Measurement:** `scripts/turtle_period_sweep.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, the 10 unblocked instruments, run sequentially per sample.
+- **Result (pooled over instruments, diff vs live 55):**
+
+  | period | last 365 d: n / E[R] / diff / t | prior 730 d: n / E[R] / diff / t |
+  |---:|---|---|
+  | 20 | 2,105 / +0.0329 / +0.0238 / +0.72 | 4,303 / -0.0236 / -0.0048 / -0.21 |
+  | **55 (live)** | 1,363 / +0.0091 / — | 2,816 / -0.0188 / — |
+  | 110 | 928 / +0.0296 / +0.0206 / +0.51 | 2,001 / +0.0064 / +0.0251 / +0.93 |
+
+  20 flips sign between samples (and is donchian's channel anyway).
+  110 is positive on both but at t < 1 with a third fewer trades, and
+  it carries no cost component that would make part of it arithmetic.
+- **Decision:** not built in — 55 stays. No code change, no restart.

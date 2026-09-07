@@ -2501,3 +2501,19 @@ both samples):
 Same answer as the first sweep (50): the live leash is the best value
 on the recent year, and the only alternative that looks better on the
 older sample is the one that looks worst on the recent one. 24 stays.
+
+## 63. The turtle channel length is flat too
+
+Companion to 58 for the slow channel, measured at the 2-ATR stop
+(`scripts/turtle_period_sweep.py`, both samples):
+
+| period | last 365 d diff vs 55 | t | prior 730 d diff vs 55 | t |
+|---:|---:|---:|---:|---:|
+| 20 | +0.0238 | +0.72 | -0.0048 | -0.21 |
+| 110 | +0.0206 | +0.51 | +0.0251 | +0.93 |
+
+The longer channel points the same way twice, which by now is the
+minimum and not the bar: at t = 0.5 and 0.9 with 30 % fewer trades and
+no arithmetic component it is noise with a consistent sign, not a
+lever. 55 stays. All three live channel parameters (58, 59, 63) are
+now measured on their own axis.
