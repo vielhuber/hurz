@@ -529,7 +529,44 @@ _CORRELATION_CLUSTERS = {
 _CLUSTER_DIR_CAP = int(os.getenv("HURZ_CLUSTER_DIRECTION_CAP", "3"))
 
 
+async def _usd_per_quote_of(platform: Platform, pair: str,
+                            reference_price: float) -> Optional[float]:
+    """USD value of the instrument's quote currency, 1.0 for venues that do not report one."""
+    prepare = getattr(platform, "prepare_order", None)
+    if prepare is None:
+        return 1.0
+    try:
+        prepared = await prepare(
+            asset=pair, direction=1, reference_price=reference_price,
+            stop_loss=None, take_profit=None,
+        )
+    except Exception:
+        return None
+    rate = getattr(prepared, "usd_per_quote", 1.0)
+    return rate if rate is not None and rate > 0 else None
+
+
 async def _resolve_closed_trade(
+    platform: Platform, journal_row: Dict,
+) -> Optional[Dict]:
+    """Resolve the closure and book its realised PnL in USD.
+
+    The bar-walk prices the trade in the instrument's quote currency;
+    the risk budget and the journal are USD (EDGE_FINDINGS 77, 79). An
+    unknown rate leaves the PnL unknown rather than booking HKD as USD."""
+    payload = await _resolve_closed_trade_in_quote(platform, journal_row)
+    if payload is None or payload.get("realized_pnl") is None:
+        return payload
+    rate = await _usd_per_quote_of(
+        platform, journal_row["pair"], float(payload["exit_price"]),
+    )
+    payload["realized_pnl"] = (
+        payload["realized_pnl"] * rate if rate is not None else None
+    )
+    return payload
+
+
+async def _resolve_closed_trade_in_quote(
     platform: Platform, journal_row: Dict,
 ) -> Optional[Dict]:
     """For a position that's no longer in the broker's open list, consult

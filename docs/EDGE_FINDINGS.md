@@ -2778,3 +2778,16 @@ per 120 days, on par with the rest. The ranking file the selector
 reads is therefore the first place where yen and Hong Kong instruments
 will be judged on expectancy at all; section 70 says that expectancy
 is random, and the selector's gates now get to see it.
+
+## 79. Realised PnL was quote-currency arithmetic
+
+The closure resolver prices (exit - fill) × size in the instrument's
+quote currency, and the journal stored that as USD. Full stop-outs
+show |PnL| / fill risk of 1.00–1.03, so it was never the broker's
+EUR-account figure either. With sizing in USD (77) a HK50 stop would
+have booked 21 HKD as -21 USD. The resolver now applies the venue
+rate at close; USD instruments are unchanged, the European indices
+and the yen and Hong Kong instruments are booked in dollars for the
+first time, and an unknown rate books nothing rather than something
+wrong. Nineteenth defect; the dashboard's "USD" was a mixed-currency
+sum for roughly a tenth of the trades.

@@ -856,3 +856,22 @@ the section numbers below point there.
   indices in dollars. Whether they *should* be ranked is section 70's
   question, which their expectancy (random, 70) will now answer through
   the selector's own gates rather than through a sizing accident.
+
+## 2026-09-08 (ninth run) — realised PnL booked in USD — BUILT IN
+
+- **Lever:** accounting behind every gain figure — with risk now sized
+  in USD (run 7), the journal's realised PnL was still the bar-walk's
+  quote-currency figure: a full HK50 stop would have booked 21 HKD as
+  -21 USD against 2.7 USD of risk. Measured on the journal: for full
+  stop-outs |realised PnL| / fill risk = 1.00–1.03 on every instrument
+  (n = 8 with a fill-risk column), which proves the PnL is the bot's own
+  quote-unit arithmetic, not a broker figure in account currency (the
+  account is EUR). For USD instruments the journal was therefore right;
+  for EUR/GBP/HKD/JPY instruments it summed foreign currency as dollars.
+- **Decision:** built in. `_resolve_closed_trade` now converts the
+  quote-currency PnL with the venue rate at close; venues without rates
+  book one-to-one; an unknown rate leaves the PnL unknown rather than
+  wrong. Tests cover the three cases. Hurz restarted with the HK50
+  position open (reconcile adopts it). Expected gain effect: none in
+  expectation — it makes the number the goal is measured by true for
+  the non-USD half of the book.
