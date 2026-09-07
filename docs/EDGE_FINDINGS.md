@@ -2224,3 +2224,27 @@ per-strategy effect can reach significance in any reasonable time — the
 constraint is not analysis quality, it is that a flat book cannot be
 tuned into a 50 EUR/day book by adjusting exit levels on the strategies
 it already runs.
+
+## 50. The holding leash is not the lever either
+
+Section 47 left one exit-side hint standing: time-based exits looked
+better than stop/target exits after the risk floor. The leash length was
+the one exit parameter never measured on the cost-charging simulator
+(49c), so it was swept: 6 / 12 / 24 / 48 / 96 bars, 1h, 365 days, 3
+segments, 10 unblocked instruments, the three live trend strategies
+(`scripts/max_hold_sweep.py`).
+
+| hold | n | E[R] | timeout % | diff vs 24 | t |
+|---:|---:|---:|---:|---:|---:|
+| 6 | 8,336 | -0.0143 | 72 | -0.0195 | -1.27 |
+| 12 | 7,062 | -0.0067 | 57 | -0.0119 | -0.72 |
+| **24 (live)** | 5,832 | **+0.0052** | 38 | — | — |
+| 48 | 5,001 | -0.0105 | 20 | -0.0157 | -0.77 |
+| 96 | 4,533 | -0.0241 | 9 | -0.0293 | -1.34 |
+
+**The live setting is the maximum**, in the pooled reading and in each
+strategy on its own. Shorter leashes lose because the trade is cut before
+either barrier is reached and the round-trip cost is paid on a random
+close; longer ones lose because the timeout leg drifts negative once the
+breakout has failed. Nothing is significant, nothing is better. The
+leash stays at 24 bars. Full run log in `docs/levers.md`.
