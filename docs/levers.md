@@ -596,3 +596,46 @@ the section numbers below point there.
   random-walk residual plus the spread already paid, which is the same
   arithmetic that killed the break-even stop (52).
 - **Decision:** not built in — dead. No code change, no restart.
+
+## 2026-09-07 (twenty-first run) — the remaining active instruments — AU200 BLOCKED
+
+- **Lever:** pair selection — the 17 instruments in the active list that
+  no measurement of this session had covered (FR40, UK100, EU50, US100,
+  USDCHF, AUDNZD, EURAUD, HK50, SILVER, AU200, GBPUSD, NZDUSD, J225,
+  COPPER, GBPCAD, AUDJPY, CHFJPY), each against count-matched random
+  entries and, as live trades them, on the router-passed subset. Both
+  disjoint samples, 2-ATR stop, three live trend strategies.
+  Preregistered block rule: significantly negative on both samples.
+- **Measurement:** `scripts/other_instruments.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, live `regime.gate` for the passed subset, run
+  sequentially per sample.
+- **Result:**
+
+  | | last 365 d | prior 730 d |
+  |---|---|---|
+  | group, all signals | n 7,861 / **-0.0272 R** / t **-3.19** | n 15,596 / **-0.0290 R** / t **-4.91** |
+  | group vs random | -0.0185 / t -1.88 | -0.0103 / t -1.52 |
+  | group, router-passed (live path) | n 2,977 / **-0.0885 R** / t **-6.43** | n 5,896 / -0.0074 R / t -0.75 |
+  | core ten, router-passed (run 18) | -0.0037 R | +0.0095 R |
+  | **AU200, router-passed** | n 146 / **-0.301 R** / t **-5.48** | n 263 / **-0.114 R** / t **-2.58** |
+  | AU200, random entries | -0.079 | -0.041 |
+  | SILVER, router-passed | -0.133 / t -1.84 | -0.141 / t -2.83 |
+
+  The group as a whole loses on both samples before the router and on
+  the live path loses heavily on the recent year but reads flat on the
+  older one, so a group block does not meet the two-sample bar. One
+  instrument does: **AU200** is significantly negative on the live path
+  on both samples, its random control loses too (the instrument, not
+  the signal — 98 % of its stops sit on the venue floor), and all five
+  live trades since July lost (-4.25 USD). SILVER misses the bar on the
+  recent year (t = -1.84) and is recorded as a watch, not blocked.
+  Per-instrument "worse than random at t < -2 on both" is met by none.
+- **Decision:** AU200 blocked for entries via a new
+  `EXPECTANCY_BLOCKED_PAIRS` in `trading_blocks.py`, kept apart from
+  the cost audit's list; `BLOCKED_PAIRS` is their union and is what the
+  selector and both entry guards consult. Existing AU200 pins fall out
+  of the active file at the next selector run and are refused at entry
+  immediately. Tests cover both lists and both guards. Hurz restarted.
+  Expected effect is small (AU200 was 5 of 266 live trades) and
+  one-directional: it removes a component that loses in every reading.

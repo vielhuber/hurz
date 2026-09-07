@@ -92,6 +92,7 @@ _RES_MINUTES = {
 }
 
 from app.spot_trading.trading_blocks import (
+    BLOCKED_PAIRS as _BLOCKED_PAIRS,
     COST_BLOCKED_PAIRS as _COST_BLOCKED_PAIRS,
     DISABLED_LIVE_STRATEGIES as _DISABLED_LIVE_STRATEGIES,
 )
@@ -337,7 +338,7 @@ async def evaluate_pair(
     (ATR ~0.0007 vs 1% minimum = 0.01)."""
     if strategy_name in _DISABLED_LIVE_STRATEGIES:
         return None
-    if pair in _COST_BLOCKED_PAIRS:
+    if pair in _BLOCKED_PAIRS:
         return None
     strategy = get_strategy(strategy_name)
     bars = await _fetch_recent_bars(platform, pair, resolution, lookback_bars)
@@ -433,11 +434,12 @@ async def execute_intent(
 ) -> OrderResult:
     """Hand the intent to the platform. Errors are returned in the
     OrderResult — the loop should not crash on a single bad order."""
-    if intent.pair in _COST_BLOCKED_PAIRS:
+    if intent.pair in _BLOCKED_PAIRS:
+        kind = "cost" if intent.pair in _COST_BLOCKED_PAIRS else "expectancy"
         return OrderResult(
             accepted=False, asset=intent.pair, direction=intent.direction,
             size=size,
-            error=f"cost-blocked instrument: {intent.pair}",
+            error=f"{kind}-blocked instrument: {intent.pair}",
         )
     if intent.strategy in _DISABLED_LIVE_STRATEGIES:
         return OrderResult(

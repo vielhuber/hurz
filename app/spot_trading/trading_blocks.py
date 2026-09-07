@@ -26,6 +26,17 @@ COST_BLOCKED_PAIRS = {
 }
 
 
+# Instruments blocked on measured expectancy rather than cost. AU200 lost
+# on the router-passed path in both disjoint samples of the walk-forward
+# (-0.30 R at t = -5.5 over the last year, -0.11 R at t = -2.6 over the two
+# years before) and on all five live trades; random entries lose there
+# too, so this is the instrument, not the signal — see EDGE_FINDINGS 70.
+EXPECTANCY_BLOCKED_PAIRS = {"AU200"}
+
+# What the selector and the entry guards actually consult.
+BLOCKED_PAIRS = COST_BLOCKED_PAIRS | EXPECTANCY_BLOCKED_PAIRS
+
+
 # Strategies blocked for entries. Open positions keep their exit path,
 # including the ATR trail — the guards sit in evaluate_pair and
 # execute_intent only, and positions to manage come from the broker

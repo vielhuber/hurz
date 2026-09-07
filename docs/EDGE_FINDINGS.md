@@ -2635,3 +2635,28 @@ later, after the barriers had their chance. The exit side has now been
 measured on hold (50, 62), trail (27), break-even (52), target (49d,
 61) and regime (this); none beats the fixed stop, target and 24-bar
 leash the live loop runs.
+
+## 70. The instruments nobody measured, and one that loses everywhere
+
+The active list carries 17 instruments outside the ten every sweep in
+this document used. Measured the same way (`scripts/other_instruments.py`;
+both samples, random control, and the router-passed subset that live
+actually trades):
+
+| | last 365 d | prior 730 d |
+|---|---:|---:|
+| group, all signals, E[R] / t | -0.0272 / -3.19 | -0.0290 / -4.91 |
+| group, router-passed, E[R] / t | -0.0885 / -6.43 | -0.0074 / -0.75 |
+| AU200, router-passed, E[R] / t | -0.301 / -5.48 | -0.114 / -2.58 |
+| AU200, random entries | -0.079 | -0.041 |
+
+The group is a cost sink before the router on both samples and, on the
+live path, a heavy loser on the recent year that flattens on the older
+one — the by-now familiar shape, and not enough for a group block. AU200
+is different: significantly negative on the live path on both samples,
+negative for random entries too, and 5 of 5 live trades lost. That is
+the instrument rather than the signal. **AU200 is blocked for entries**,
+on a separate expectancy list so the cost audit's criterion stays
+clean. SILVER (t = -1.84 / -2.83) is a watch. This is the second lever
+in the session to hold on two samples, and like the first (60) it is a
+removal of a measured loss, not the discovery of an edge.
