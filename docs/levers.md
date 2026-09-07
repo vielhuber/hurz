@@ -750,3 +750,34 @@ the section numbers below point there.
   change, no restart. Follow-up recorded: the sizing replay script
   should convert quote currencies before its JPY/HKD rows are read as
   live behaviour.
+
+## 2026-09-08 (fifth run) — Friday-afternoon entries and weekend gaps
+
+- **Lever:** regime filter with a cost mechanism — entries on Friday
+  from 12:00 UTC are held across the weekend and exposed to gap risk
+  the simulator had never charged (a stop hit by a gap booked exactly
+  -1 R). The simulator now books the open when a bar opens beyond the
+  stop; Friday-afternoon entries against the rest, three live trend
+  strategies, ten instruments, 2-ATR stop, two disjoint samples.
+  Preregistered: block Friday-afternoon entries if worse than the rest
+  at t < -2.0 on both samples.
+- **Measurement:** `scripts/weekend_entries.py` — cost-charging,
+  gap-aware walk-forward simulator, capital_com, 1h, 3 segments, hold
+  24, RR 1.5, run sequentially per sample.
+- **Result (pooled):**
+
+  | sample | n Friday | E[R] Friday | gapped | n rest | E[R] rest | diff | t | gapped stop mean R |
+  |---|---:|---:|---:|---:|---:|---:|---:|---:|
+  | last 365 d | 505 | +0.0067 | 4.8 % | 4,922 | +0.0254 | -0.0187 | -0.41 | -1.75 |
+  | prior 730 d | 1,107 | -0.0479 | 1.9 % | 10,063 | -0.0111 | -0.0369 | -1.28 | -1.78 |
+
+  Same sign twice, far from threshold. A gapped stop really costs
+  1.75 R rather than 1, but only one Friday trade in twenty to fifty
+  gaps, so the mechanism is real and small. The oils are the
+  consistent losers on Fridays (-0.30 / -0.22 R against the rest, t =
+  -1.5 / -1.2) — recorded as a watch, not acted on.
+- **Decision:** not built in — dead. No code change, no restart. The
+  gap-aware booking is kept in this script only; the shared simulator
+  in `spot_backtest.py` still books a clean -1 R on gaps, which the
+  figures above show understates losses by about 0.75 R on 0.1–0.2 %
+  of all trades.

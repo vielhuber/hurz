@@ -2724,3 +2724,20 @@ HK50 measured -0.0625 and -0.0353 R on the two samples (70) and its
 random control was positive, so the guard is removing an instrument
 that lost. Nothing to change; the sizing guard remains fail-closed and
 the stop stays at 2 ATR.
+
+## 75. Weekend gaps are real, rare, and not a lever
+
+Friday-afternoon entries against the rest, with a simulator that books
+the open when a bar gaps through the stop (`scripts/weekend_entries.py`,
+both samples):
+
+| sample | E[R] Friday | E[R] rest | diff | t | gapped stops, mean R |
+|---|---:|---:|---:|---:|---:|
+| last 365 d | +0.0067 | +0.0254 | -0.0187 | -0.41 | -1.75 |
+| prior 730 d | -0.0479 | -0.0111 | -0.0369 | -1.28 | -1.78 |
+
+A gap through the stop costs 1.75 R, not 1 — the shared simulator
+understates that — but it happens on 0.1–0.2 % of trades, and Friday
+entries as a class sit inside the noise on both samples. The oils are
+the one consistent Friday loser (t = -1.5, -1.2) and stay on watch.
+Nothing changes.
