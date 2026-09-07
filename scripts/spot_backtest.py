@@ -424,6 +424,14 @@ def _simulate_trades(asset: str, df: pd.DataFrame, signals, *,
                         sl = max(sl, min(trailed, best_excursion), entry)
                     else:
                         sl = min(sl, max(trailed, best_excursion), entry)
+            # A bar that opens beyond the stop fills at the open, not at
+            # the stop: weekend and overnight gaps cost about 1.75 R on
+            # the oils instead of 1 (EDGE_FINDINGS 75).
+            opened = float(f["open"])
+            gapped = opened <= sl if sig.direction == +1 else opened >= sl
+            if gapped:
+                out_t = f["timestamp"]; out_p = opened
+                outcome_type = "loss"; bars_held = j; break
             if sig.direction == +1:
                 hit_sl = low <= sl
                 hit_tp = high >= tp

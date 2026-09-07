@@ -781,3 +781,23 @@ the section numbers below point there.
   in `spot_backtest.py` still books a clean -1 R on gaps, which the
   figures above show understates losses by about 0.75 R on 0.1–0.2 %
   of all trades.
+
+## 2026-09-08 (sixth run) — gap-aware stop booking in the shared simulator — BUILT IN
+
+- **Lever:** cost side of the ranking — the shared backtest simulator
+  (`scripts/spot_backtest.py`), from which the nightly selector ranks
+  and persists every combo, booked a stop hit by a gap as a fill at the
+  stop. Run 5 measured the real fill at 1.75 R on average, on 10–15 %
+  of Friday oil trades and 0.1–0.2 % of all trades.
+- **Measurement:** `scripts/weekend_entries.py` (run 5): gapped stops
+  book -1.75 / -1.78 R on the two samples against the -1 R minus cost
+  the shared simulator recorded; the pooled effect is about -0.005 R on
+  the recent year and -0.002 R on the older one, concentrated on
+  OIL_CRUDE (9.8 % of Friday entries gapped) and OIL_BRENT (15.2 %).
+- **Decision:** built in. `_simulate_trades` now books the open when a
+  bar opens beyond the stop, matching a stop order's actual fill; a
+  test covers the gapped and the in-bar case. This changes no live
+  behaviour, so Hurz was not restarted; the nightly selector run
+  inherits it and will rank the oils on their real stop cost. It is a
+  removal of a flattering measurement, the same class as 9, 20, 27 and
+  49c, not a profit lever.

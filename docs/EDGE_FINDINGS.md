@@ -2741,3 +2741,12 @@ understates that — but it happens on 0.1–0.2 % of trades, and Friday
 entries as a class sit inside the noise on both samples. The oils are
 the one consistent Friday loser (t = -1.5, -1.2) and stay on watch.
 Nothing changes.
+
+## 76. The simulator now pays for gaps
+
+Follow-up to 75: `_simulate_trades` books the open when a bar opens
+beyond the stop. Weekend gaps cost the oils 1.75 R a stop rather than
+1, on one Friday entry in seven to ten; across all trades the
+correction is 0.002–0.005 R, so no ranking moves on it except where it
+should — the two oils. Seventeenth measurement defect corrected in
+this document, and like the others it read in the flattering direction.
