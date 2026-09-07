@@ -31,6 +31,7 @@ from app.utils.singletons import settings
 settings.load_env()
 from app.platforms import get_platform, Bar
 from app.platforms.registry import clear_cache
+from app.spot_trading.strategy_parameters import DEFAULT_STOP_ATR
 from app.strategies import get_strategy, available_strategies, add_indicators
 from scripts.spot_backtest import _fee_for, _venue_min_distance
 
@@ -192,7 +193,8 @@ def _parse() -> argparse.Namespace:
     p.add_argument("--resolution", default="1h")
     p.add_argument("--segments", type=int, default=3)
     p.add_argument("--rr", type=float, default=1.5)
-    p.add_argument("--stop-atr", dest="stop_atr", type=float, default=1.0)
+    p.add_argument("--stop-atr", dest="stop_atr", type=float,
+                   default=DEFAULT_STOP_ATR)
     p.add_argument("--max-hold", dest="max_hold", type=int, default=24)
     return p.parse_args()
 

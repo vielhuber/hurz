@@ -4,6 +4,13 @@ from __future__ import annotations
 
 DEFAULT_RISK_REWARD = 1.5
 
+# Stop distance in ATR(14) multiples. Widened from 1.0 on 2026-09-07: the
+# round-trip spread is charged on price but measured against the stop, so
+# a wider stop lowers the cost per unit of risk arithmetically, and the
+# gross expectancy did not get worse on either sample (EDGE_FINDINGS 60).
+# Risk per trade is unchanged; sizing shrinks the position instead.
+DEFAULT_STOP_ATR = 2.0
+
 # The donchian aliases share their entry logic but deliberately use fixed,
 # wider targets. The v3 value originated from a 2026-07-08 BTCUSD backtest
 # and is not evidence of an advantage on other instruments.

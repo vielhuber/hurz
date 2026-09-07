@@ -295,3 +295,52 @@ the section numbers below point there.
   wider band is worse on the recent year and negligibly better on the
   older one. The live 2.0 stays.
 - **Decision:** not built in — dead. No code change, no restart.
+
+## 2026-09-07 (eleventh run) — stop width (stop_atr) — BUILT IN
+
+- **Lever:** exit logic / cost — the stop distance in ATR multiples.
+  Section 25's sweep had run through the faulty pre-28 path, so the
+  live 1.0 had never been measured on the corrected, cost-charging
+  simulator. Multiples 1.5 / 2.0 / 3.0 against 1.0, three live trend
+  strategies pooled, two disjoint samples, with the net result split
+  into its gross and cost components.
+- **Measurement:** `scripts/stop_width_sweep.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  the 10 unblocked instruments, run sequentially per sample.
+- **Result (pooled, diff vs live 1.0):**
+
+  | stop_atr | sample | n | E[R] net | cost R | gross | net diff | t | gross diff | timeout % |
+  |---:|---|---:|---:|---:|---:|---:|---:|---:|---:|
+  | 1.0 | last 365 d | 5,831 | +0.0061 | 0.0301 | +0.0362 | — | — | — | 38.8 |
+  | 1.5 | last 365 d | 5,664 | +0.0086 | 0.0266 | +0.0352 | +0.0025 | +0.13 | -0.0011 | 41.5 |
+  | **2.0** | last 365 d | 5,428 | +0.0284 | 0.0228 | +0.0512 | **+0.0223** | +1.21 | +0.0150 | 47.0 |
+  | 3.0 | last 365 d | 5,098 | +0.0289 | 0.0174 | +0.0463 | +0.0228 | +1.29 | +0.0101 | 60.6 |
+  | 1.0 | prior 730 d | 11,792 | -0.0203 | 0.0316 | +0.0113 | — | — | — | 43.1 |
+  | 1.5 | prior 730 d | 11,508 | -0.0166 | 0.0287 | +0.0120 | +0.0037 | +0.29 | +0.0008 | 45.1 |
+  | **2.0** | prior 730 d | 11,158 | -0.0121 | 0.0253 | +0.0131 | **+0.0082** | +0.66 | +0.0019 | 49.1 |
+  | 3.0 | prior 730 d | 10,516 | -0.0083 | 0.0195 | +0.0112 | +0.0121 | +0.99 | -0.0000 | 60.7 |
+
+  Same sign on both samples and monotonic across four levels on both —
+  the first lever in this log to do either. The gain decomposes: the
+  cost term falls arithmetically (0.030 → 0.023 R at 2.0, because the
+  spread is charged on price but measured against the stop), and the
+  gross term is not worse on either sample (+0.015, +0.002). The
+  statistical part of the claim is only "gross does not get worse"; the
+  cost part is an identity, not a hypothesis. The live journal points
+  the same way independently: trades whose stop sat on the venue floor
+  (wider than 1 ATR) returned +0.19 R against -0.43 R for ATR-set stops
+  (49d, n = 108 / 53, not significant).
+- **Decision:** built in at **2.0**, not 3.0 — 3.0 leaves three trades
+  in five to the 24-bar timeout, which turns the strategy into a
+  barrier-less hold, while 2.0 keeps a working stop and takes most of
+  the cost saving. Risk per trade is unchanged: sizing divides the same
+  3 USD by a wider stop, so positions halve, and the fail-closed
+  minimum-size guard skips rather than enlarges any trade the halved
+  size cannot fill. Expected effect is small and honest — about
+  +0.007 R per trade from cost alone, +0.02 R if the recent-year gross
+  reading holds — but it is the only lever measured here whose sign the
+  second sample did not overturn. `DEFAULT_STOP_ATR` in
+  `strategy_parameters.py` is now read by the live loop, both backtest
+  CLIs and the walk-forward function; `tests/test_stop_atr_parity.py`
+  pins them together. Nightly backtest results persisted at 1.0 will be
+  replaced by the next selector run. Hurz restarted.

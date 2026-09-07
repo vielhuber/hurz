@@ -46,6 +46,7 @@ from app.spot_trading.holding_period import (
 )
 from app.spot_trading.strategy_parameters import (
     DEFAULT_RISK_REWARD,
+    DEFAULT_STOP_ATR,
     risk_reward_for,
 )
 from app.spot_trading.position_sizing import (
@@ -673,7 +674,7 @@ async def run_loop(
     platform_name: str,
     strategy_name: str,
     resolution: str = "1h",
-    stop_atr: float = 1.0,
+    stop_atr: float = DEFAULT_STOP_ATR,
     rr: float = DEFAULT_RISK_REWARD,
     poll_seconds: int = 60,
     size: float = 1.0,

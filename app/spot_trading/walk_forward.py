@@ -66,6 +66,7 @@ from app.spot_trading.position_sizing import (
     calculate_position_size,
 )
 from app.spot_trading.regime import adx_at, decide
+from app.spot_trading.strategy_parameters import DEFAULT_STOP_ATR
 
 
 @dataclass(frozen=True)
@@ -225,7 +226,7 @@ def _simulate_segment_expectancy(
 
 def compute_segment_stability(
     df: pd.DataFrame, strategy_fn: Callable,
-    *, segments: int = 3, rr: float = 1.5, stop_atr: float = 1.0,
+    *, segments: int = 3, rr: float = 1.5, stop_atr: float = DEFAULT_STOP_ATR,
     max_hold: int = 24, min_segment_bars: int = 60,
     strategy_name: Optional[str] = None,
     target_risk: float = DEFAULT_TARGET_RISK_USD,

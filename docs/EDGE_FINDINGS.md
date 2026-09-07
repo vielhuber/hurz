@@ -2431,3 +2431,40 @@ samples, ten instruments, costs charged):
 Tightening the band buys more trades of the same nothing, widening it
 changes sign between samples. Both live channel parameters (58, 59)
 now measured on their own axis; neither is the lever.
+
+## 60. The stop width — the first lever whose sign survived the second sample
+
+Section 25 swept `stop_atr` through the path section 28 retracted, so
+the live 1.0 had never been measured on the cost-charging simulator.
+Rerun at 1.5 / 2.0 / 3.0 on both samples, three live trend strategies
+pooled, net result split into gross and cost (`scripts/stop_width_sweep.py`):
+
+| stop_atr | last 365 d net diff | t | gross diff | prior 730 d net diff | t | gross diff |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1.5 | +0.0025 | +0.13 | -0.0011 | +0.0037 | +0.29 | +0.0008 |
+| **2.0** | **+0.0223** | +1.21 | +0.0150 | **+0.0082** | +0.66 | +0.0019 |
+| 3.0 | +0.0228 | +1.29 | +0.0101 | +0.0121 | +0.99 | -0.0000 |
+
+Neither t clears 2.0, and by the rule this document has applied to
+every signal claim that would end the matter. It does not, because the
+effect is not a signal claim. The round-trip spread is charged on the
+entry price and R is measured against the stop (49c), so the cost in R
+falls as 1/stop: 0.030 R at 1.0, 0.023 R at 2.0, 0.017 R at 3.0, on
+both samples, to the third decimal. That part is arithmetic. What
+needed measuring was whether a wider stop *loses* gross expectancy —
+fewer stop-outs but smaller moves per R — and it does not: +0.015 and
++0.002 R on the two samples, both non-negative, neither significant.
+
+**Built in at 2.0.** Not 3.0: at 3.0 the target sits 4.5 ATR away and
+61 % of trades run to the 24-bar timeout, which is no longer a
+stop-and-target strategy. At 2.0 the stop still resolves half the
+trades. Risk per trade is unchanged — the 3 USD is divided by a wider
+distance, positions halve, and the minimum-size guard skips rather than
+enlarges. The expected gain is modest: +0.007 R per trade from cost
+alone, about +0.08 USD per day at the current rate, +0.02 R if the
+recent year's gross reading holds. It is the first lever in sixty
+sections to point the same way on two independent samples, and it does
+so because most of it was never a bet.
+
+What this does *not* say: that the entries have an edge. Gross stays
+where 30, 45 and every section since left it.

@@ -46,6 +46,7 @@ from app.spot_trading.regime import (
 )
 from app.spot_trading.strategy_parameters import (
     DEFAULT_RISK_REWARD,
+    DEFAULT_STOP_ATR,
     risk_reward_for,
 )
 from app.spot_trading.position_sizing import (
@@ -102,7 +103,7 @@ _DEFAULT_RESOLUTION = "1h"
 _DEFAULT_DAYS = 365
 _FETCH_ATTEMPTS = 3
 _FETCH_RETRY_SECONDS = 2.0
-_DEFAULT_STOP_ATR = 1.0
+_DEFAULT_STOP_ATR = DEFAULT_STOP_ATR
 from app.spot_trading.holding_period import (
     _DEFAULT_MAX_HOLD_BARS, max_hold_bars_for, trail_config_for,
 )
