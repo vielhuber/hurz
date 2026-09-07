@@ -2561,3 +2561,22 @@ with live disagreeing. It is therefore not acted on here but
 preregistered: per strategy, router applied, both samples, t > 2.0
 against random per strategy, before GOLD is pinned to the other two
 trend strategies.
+
+## 66. GOLD, per strategy and after the router — consistent, not significant
+
+The preregistered follow-up to 65 (`scripts/gold_strategies.py`; router
+applied, control drawn from router-passing bars, both samples):
+
+| strategy | last 365 d vs random | t | prior 730 d vs random | t |
+|---|---:|---:|---:|---:|
+| donchian_breakout | +0.101 | +0.75 | +0.108 | +1.49 |
+| turtle_breakout | +0.228 | +1.55 | +0.095 | +1.24 |
+| keltner_breakout | +0.148 | +1.02 | +0.073 | +0.95 |
+| momentum | -0.099 | -0.25 | -0.039 | -0.15 |
+
+Six positive cells out of six for the trend strategies, none above
+t = 1.6. The pooled t of section 65 was those three added together
+before the router took six signals in ten. This is the most consistent
+instrument in the book and still not a lever by the rule; it is exactly
+what section 40 predicted — an effect of this size cannot be validated
+at this trade count. GOLD keeps its two ranked slots and gets no third.

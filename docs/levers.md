@@ -479,3 +479,32 @@ the section numbers below point there.
   samples; acceptance for pinning GOLD to the other two trend strategies
   is t > 2.0 against random per strategy on both samples after the
   router.
+
+## 2026-09-07 (seventeenth run) — GOLD per strategy, router applied
+
+- **Lever:** pair selection — the preregistered follow-up to run 16:
+  pin GOLD to the trend strategies that do not rank it (keltner_breakout
+  is the only one; donchian and turtle already carry GOLD in the active
+  list) if each strategy beats count-matched random entries at t > 2.0
+  on both samples *after* the live ADX router.
+- **Measurement:** `scripts/gold_strategies.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, GOLD only, four strategies, router applied to the
+  signals and the control drawn from router-passing bars, five draws.
+- **Result (router applied, vs router-passing random):**
+
+  | strategy | last 365 d: n / E[R] / vs random / t | prior 730 d: n / E[R] / vs random / t |
+  |---|---|---|
+  | donchian_breakout | 79 / +0.086 / +0.101 / +0.75 | 143 / +0.097 / +0.108 / +1.49 |
+  | turtle_breakout | 66 / +0.184 / +0.228 / +1.55 | 129 / +0.080 / +0.095 / +1.24 |
+  | keltner_breakout | 62 / +0.176 / +0.148 / +1.02 | 132 / +0.038 / +0.073 / +0.95 |
+  | momentum | 10 / -0.109 / -0.099 / -0.25 | 17 / -0.078 / -0.039 / -0.15 |
+
+  Every trend strategy is positive against its control on both samples
+  and none is significant on either; the section-65 pooled t = 2.7 / 3.2
+  was three strategies added together, and the router removes six
+  signals in ten. Pre-router, turtle reaches t = 2.66 on the older
+  sample and t = 1.00 on the recent one — the familiar shape.
+- **Decision:** not built in — the preregistered bar was not met. GOLD
+  stays active for donchian and turtle as ranked; no pin for keltner. No
+  code change, no restart.
