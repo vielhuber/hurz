@@ -272,3 +272,26 @@ the section numbers below point there.
   far from threshold and halves the trade count, 10 adds trades at
   lower expectancy. The live 20 stays.
 - **Decision:** not built in — dead. No code change, no restart.
+
+## 2026-09-07 (tenth run) — keltner band width
+
+- **Lever:** strategy parameter — the 2.0 × ATR band of
+  `keltner_breakout`, never swept before. Multiples 1.0 / 1.5 / 3.0
+  against the live 2.0, two-sample criterion.
+- **Measurement:** `scripts/keltner_width_sweep.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 1.0 ATR, the 10 unblocked instruments, last 365 days and the
+  disjoint two years before, run sequentially.
+- **Result (pooled over instruments, diff vs live 2.0):**
+
+  | atr_mult | last 365 d: n / E[R] / diff / t | prior 730 d: n / E[R] / diff / t |
+  |---:|---|---|
+  | 1.0 | 2,761 / -0.0025 / -0.0110 / -0.38 | 5,275 / -0.0315 / -0.0301 / -1.50 |
+  | 1.5 | 2,469 / +0.0080 / -0.0005 / -0.02 | 4,919 / -0.0191 / -0.0177 / -0.87 |
+  | **2.0 (live)** | 2,109 / +0.0085 / — | 4,264 / -0.0014 / — |
+  | 3.0 | 1,213 / -0.0191 / -0.0276 / -0.77 | 2,633 / +0.0067 / +0.0082 / +0.34 |
+
+  Narrower bands add trades at lower expectancy on both samples; the
+  wider band is worse on the recent year and negligibly better on the
+  older one. The live 2.0 stays.
+- **Decision:** not built in — dead. No code change, no restart.

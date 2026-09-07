@@ -2415,3 +2415,19 @@ Nothing reaches threshold on either sample, 40 changes sign between
 them, and the only consistent direction (80) buys 0.01–0.03 R with half
 the trades. The lookback is not the lever; the grid's conclusion holds
 on its missing axis as well.
+
+## 59. The Keltner band width is flat as well
+
+Companion to 58 for the other live channel: band multiples 1.0 / 1.5 /
+3.0 against the live 2.0 (`scripts/keltner_width_sweep.py`, both
+samples, ten instruments, costs charged):
+
+| atr_mult | last 365 d diff vs 2.0 | t | prior 730 d diff vs 2.0 | t |
+|---:|---:|---:|---:|---:|
+| 1.0 | -0.0110 | -0.38 | -0.0301 | -1.50 |
+| 1.5 | -0.0005 | -0.02 | -0.0177 | -0.87 |
+| 3.0 | -0.0276 | -0.77 | +0.0082 | +0.34 |
+
+Tightening the band buys more trades of the same nothing, widening it
+changes sign between samples. Both live channel parameters (58, 59)
+now measured on their own axis; neither is the lever.
