@@ -875,3 +875,28 @@ the section numbers below point there.
   position open (reconcile adopts it). Expected gain effect: none in
   expectation — it makes the number the goal is measured by true for
   the non-USD half of the book.
+
+## 2026-09-08 (tenth run) — the legacy journal's currency mix
+
+- **Lever:** accounting behind the gain figures — how much of the
+  historical PnL sums the dashboard shows is foreign currency booked as
+  USD (runs 7–9 fixed the path forward; this measures the past).
+  Closed trades before the fix, split by the instrument's quote
+  currency and converted at today's venue rates.
+- **Measurement (read-only, journal):**
+
+  | window | closed trades | booked "USD" | foreign rows | corrected USD | delta |
+  |---|---:|---:|---:|---:|---:|
+  | all-time | 523 | -241.66 | 62 | -250.82 | -9.17 |
+  | since 2026-07-10 | 268 | -81.95 | 35 | -86.60 | -4.65 |
+  | forward since 2026-08-24 | 29 | -8.11 | 6 | -10.24 | -2.13 |
+
+  The foreign rows are 12 % of trades; their booked +11.36 in the
+  active window is +6.71 USD in truth (HKD 2.97 → 0.38, NZD 3.78 →
+  2.22, EUR 2.39 → 2.78). Direction as always: the flattering one.
+- **Decision:** no change. Production data are read-only by project
+  rule and a dashboard-side correction would need historical rates the
+  journal never stored; the distortion is under 4 % of every total and
+  stops accruing with run 9. The figures above are the reference for
+  reading pre-2026-09-08 sums. Reported daily-gain tables from here on
+  use the booked journal values and carry this footnote.

@@ -2791,3 +2791,13 @@ and the yen and Hong Kong instruments are booked in dollars for the
 first time, and an unknown rate books nothing rather than something
 wrong. Nineteenth defect; the dashboard's "USD" was a mixed-currency
 sum for roughly a tenth of the trades.
+
+## 80. What the currency mix did to the historical sums
+
+Sixty-two of 523 closed trades were on instruments quoted in EUR, GBP,
+HKD, JPY, CAD, NZD, CHF or AUD and booked in those units as dollars.
+At today's rates the all-time total moves from -241.66 to -250.82 USD,
+the forward test since 24 August from -8.11 to -10.24. Small, and in
+the flattering direction like every other defect here. The journal is
+not rewritten; new closures are booked in USD (79), and these deltas
+are the footnote for the older sums.
