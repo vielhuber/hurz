@@ -2836,3 +2836,15 @@ break. Nothing to change — but the per-strategy backtests in this
 document each carry their own open-trade state, so their trade counts
 add up to roughly six times what live can open. Expectancies stand;
 throughput figures across strategies do not sum.
+
+## 84. The daily-loss limit, and a trap in book-level replays
+
+Replaying the 6 R daily limit on the pooled three-strategy backtest
+book said that trades after a -3 R day lose 0.05–0.08 R at t of 2 to
+5 on both samples. Replaying it on the merged one-position-per-
+instrument timeline — what live can actually open — says +0.008 and
+-0.032 R, a sign flip, and at 6 R the guard touches nine to thirteen
+days a year for nothing (`scripts/daily_loss_replay.py`). The stacked
+book counted the same instrument's loss three times on the same day,
+so its bad days predicted themselves. The limit stays at 6 R, and any
+future measurement of anything day-shaped uses the merged timeline.

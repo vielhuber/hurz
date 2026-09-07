@@ -986,3 +986,34 @@ the section numbers below point there.
   is unaffected, throughput comparisons are not additive.
 - **Decision:** not changed — the guard is in place and doing the
   work. No code change, no restart.
+
+## 2026-09-08 (fourteenth run) — the daily-loss limit
+
+- **Lever:** risk guard — the 6 R daily-loss limit (entries stop for
+  the rest of the UTC day once closed R reaches -6). Replayed at 3 / 6 /
+  9 R on both samples, first on the pooled three-strategy book and then,
+  because run 13 showed that book is six times live throughput, with
+  one position per instrument as live trades; live journal since July
+  as the forward reading.
+- **Measurement:** `scripts/daily_loss_replay.py`.
+
+  | book | limit | last 365 d: blocked n / E[R] blocked / delta | prior 730 d: blocked n / E[R] blocked / delta |
+  |---|---:|---|---|
+  | three strategies stacked | 3 R | 1,813 / -0.050 / +90 R | 3,771 / -0.077 / +290 R |
+  | three strategies stacked | 6 R | 952 / -0.014 / +14 R | 1,844 / -0.083 / +153 R |
+  | **one position per instrument** | 3 R | 364 / -0.032 / +12 R | 723 / **+0.008** / -6 R |
+  | **one position per instrument** | **6 R (live)** | 53 / +0.007 / -0.4 R | 63 / -0.034 / +2 R |
+  | one position per instrument | 9 R | 18 / +0.656 / -12 R | 14 / -0.095 / +1 R |
+  | live journal since 2026-07-10 | 3 R | 30 trades after the limit, -0.011 R | — |
+  | live journal since 2026-07-10 | 6 R | 9 trades after the limit, -0.252 R (one day) | — |
+
+  On the stacked book a bad day predicted a worse rest-of-day at t ≈ 2
+  to 5 on both samples — and that was three strategies booking the same
+  instrument's loss three times, so the "day" was correlated with itself.
+  At live throughput the 3 R reading flips sign between samples and the
+  6 R limit touches nine to thirteen days a year at zero expectancy.
+- **Decision:** not changed — 6 R stays; it is a tail guard, not a
+  lever, and tightening it would act on an artefact. No code change, no
+  restart. Lesson recorded: any book-level (as opposed to per-trade)
+  measurement in this log must use the merged one-position-per-
+  instrument timeline, or it will manufacture day-level autocorrelation.
