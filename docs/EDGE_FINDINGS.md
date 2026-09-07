@@ -2468,3 +2468,20 @@ so because most of it was never a bet.
 
 What this does *not* say: that the entries have an edge. Gross stays
 where 30, 45 and every section since left it.
+
+## 61. Reward:risk at the 2-ATR stop — still 1.5
+
+With the stop widened (60), the target was re-swept at the live
+configuration (`scripts/rr_at_stop_sweep.py`, both samples, gross and
+cost split):
+
+| rr | last 365 d net diff | t | prior 730 d net diff | t | timeout % |
+|---:|---:|---:|---:|---:|---:|
+| 1.0 | -0.0185 | -1.09 | +0.0001 | +0.01 | 35 / 38 |
+| 2.0 | +0.0095 | +0.50 | +0.0009 | +0.07 | 54 / 55 |
+| 3.0 | +0.0157 | +0.78 | +0.0125 | +0.92 | 61 / 62 |
+
+The cost column does not move with rr, so this is entirely a gross
+claim, and it does not reach t = 1 on either sample. The wider targets
+buy their 0.01 R by never being hit: at 3.0 the trade is a 24-bar hold
+with a decorative target. 1.5 stays, as 15 and 49d concluded.

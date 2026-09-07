@@ -344,3 +344,30 @@ the section numbers below point there.
   CLIs and the walk-forward function; `tests/test_stop_atr_parity.py`
   pins them together. Nightly backtest results persisted at 1.0 will be
   replaced by the next selector run. Hurz restarted.
+
+## 2026-09-07 (twelfth run) — reward:risk at the new 2-ATR stop
+
+- **Lever:** exit logic — the 1.5 target, re-measured against the
+  configuration now live. 49d had swept it at the 1-ATR stop over 60
+  days; the wider stop changes the cost-per-R balance, so the question
+  was open for the current state. RR 1.0 / 2.0 / 3.0 against 1.5,
+  stop fixed at 2.0 ATR, three live trend strategies pooled, two
+  disjoint samples, gross and cost split.
+- **Measurement:** `scripts/rr_at_stop_sweep.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, the 10
+  unblocked instruments, run sequentially per sample.
+- **Result (pooled, diff vs live 1.5):**
+
+  | rr | last 365 d: net diff / t / gross diff / timeout % | prior 730 d: net diff / t / gross diff / timeout % |
+  |---:|---|---|
+  | 1.0 | -0.0185 / -1.09 / -0.0181 / 35 | +0.0001 / +0.01 / +0.0006 / 38 |
+  | **1.5 (live)** | — / — / — / 47 | — / — / — / 49 |
+  | 2.0 | +0.0095 / +0.50 / +0.0094 / 54 | +0.0009 / +0.07 / +0.0007 / 55 |
+  | 3.0 | +0.0157 / +0.78 / +0.0155 / 61 | +0.0125 / +0.92 / +0.0120 / 62 |
+
+  Unlike the stop width there is no arithmetic component here — the
+  cost term is flat across rr — so the whole difference is a gross
+  claim, and it sits at t < 1 on both samples while pushing three
+  trades in five to the timeout. Same sign twice is necessary, not
+  sufficient.
+- **Decision:** not built in — 1.5 stays. No code change, no restart.
