@@ -2248,3 +2248,30 @@ either barrier is reached and the round-trip cost is paid on a random
 close; longer ones lose because the timeout leg drifts negative once the
 breakout has failed. Nothing is significant, nothing is better. The
 leash stays at 24 bars. Full run log in `docs/levers.md`.
+
+## 51. Time of day, opened once, and it dissolved on the second sample
+
+Section 7 refused to open time/session/weekday variants because a free
+search over window boundaries is an overfit machine. One window was
+opened here under preregistration: signal bar inside [07:00, 20:00) UTC
+against the rest, hold 24, costs charged, three live trend strategies,
+ten unblocked instruments (`scripts/session_split.py`). Acceptance
+required t > 2.0 for the session side.
+
+| sample | E[R] in session | E[R] outside | difference | t |
+|---|---:|---:|---:|---:|
+| last 365 days (n = 5,829) | -0.0130 | **+0.0498** | -0.0628 | **-2.17** |
+| prior 730 days (n = 11,786) | -0.0101 | **-0.0487** | +0.0386 | **+1.89** |
+
+The preregistered direction failed. The opposite reading on the recent
+year cleared |t| = 2 — and had it been taken at face value the bot would
+now trade only overnight. On the two years before, disjoint by
+construction, the overnight side is the *worse* one by nearly the same
+margin. The 3-hour buckets reverse individually as well: 00–09 UTC reads
++0.07 to +0.11 on the recent year and -0.02 to -0.05 on the prior two.
+
+Fifth dissolving near-threshold value (19, 32, 33, 46b, now this).
+Nothing changes, and the reason section 7 gave for not opening this
+family stands: a single preregistered window produced a |t| > 2 artefact
+on its first try, which is what a free search would have produced by the
+dozen.

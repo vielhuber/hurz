@@ -56,3 +56,33 @@ the section numbers below point there.
   value is significant against zero.
 - **Decision:** not built in — the lever is dead. `max_hold` stays at 24
   bars. Nothing was changed in the trading code; no restart.
+
+## 2026-09-07 (second run) — session-window filter (time-of-day regime)
+
+- **Lever:** regime filter — take signals only inside the European/US
+  session. Section 7 had deliberately never opened time-of-day variants
+  because a free search over windows overfits; this run opened exactly
+  one, preregistered before the data were seen: signal bar in
+  [07:00, 20:00) UTC vs the rest, acceptance at t > 2.0 on the difference.
+- **Measurement:** `scripts/session_split.py` — the cost-charging
+  walk-forward simulator, capital_com, 1h, hold 24, RR 1.5, stop 1.0 ATR,
+  the three live 1h trend strategies, the same 10 unblocked instruments as
+  the max-hold sweep. Two disjoint samples: the last 365 days, then the
+  two years before them (days 366–1,095) as the independent check.
+- **Result (pooled over strategies, E[R] net of costs):**
+
+  | sample | n in | E[R] in | n out | E[R] out | in − out | t |
+  |---|---:|---:|---:|---:|---:|---:|
+  | last 365 d | 4,065 | -0.0130 | 1,764 | **+0.0498** | -0.0628 | **-2.17** |
+  | prior 730 d | 8,614 | -0.0101 | 3,172 | **-0.0487** | +0.0386 | **+1.89** |
+
+  The preregistered direction (session better) fails on the recent
+  sample and the reverse reading, which would have passed a naive t
+  threshold, flips sign on the independent one. Per asset class the
+  older sample shows index +0.0002 (t = 0.00) and only FX at t = +2.13,
+  which is one of four classes and post hoc. The 3-hour buckets
+  disagree between the samples bucket by bucket (00–09 UTC: +0.07 to
+  +0.11 recent, -0.02 to -0.05 prior).
+- **Decision:** not built in — dead in both directions. Fifth time a
+  |t| ≈ 2 reading dissolved on an independent sample. Nothing changed in
+  the trading code; no restart.
