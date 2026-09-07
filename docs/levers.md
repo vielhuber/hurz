@@ -1078,3 +1078,31 @@ the section numbers below point there.
   removes about one entry in eight on this book at -0.08 R; expected
   effect +0.06 to +0.14 R on those entries, zero on the rest. Hurz
   restarted.
+
+## 2026-09-08 (seventeenth run) — the rolling-24h entry cap
+
+- **Lever:** risk guard — the circuit breaker of 100 entries per
+  rolling 24 h, replayed at 4 / 6 / 8 / 12 / 20 on the merged
+  one-position-per-instrument timeline, ten core instruments, three
+  live trend strategies, 2-ATR stop, both samples.
+- **Measurement:** `scripts/entry_cap_replay.py`.
+
+  | cap / 24 h | last 365 d: blocked / E[R] blocked / E[R] kept / delta | prior 730 d: blocked / E[R] blocked / E[R] kept / delta |
+  |---:|---|---|
+  | 4 | 54 % / -0.001 / +0.077 / +1.0 R | 54 % / -0.021 / -0.001 / +52.7 R |
+  | 6 | 37 % / -0.030 / +0.073 / +25.7 R | 36 % / -0.017 / -0.008 / +29.3 R |
+  | 8 | 22 % / -0.025 / +0.052 / +12.7 R | 21 % / -0.005 / -0.013 / +4.5 R |
+  | 12 | 3 % / -0.005 / +0.036 / +0.4 R | 2 % / -0.031 / -0.011 / +3.4 R |
+  | 20 and **100 (live)** | 0 % | 0 % |
+
+  The live value never binds — the book never issues twenty entries in
+  a day, let alone a hundred — so it is a circuit breaker, which is
+  what it was written as. Tighter caps read positive on both samples,
+  but the refused entries are not significantly worse than zero (t of
+  -1.0 and -0.8 at 6) and the gap to the kept ones collapses on the
+  older sample; on the live 27-instrument book any such cap would also
+  bind at a different point than on these ten.
+- **Decision:** not changed — 100 stays. No code change, no restart.
+  All eight entry-side guards (cluster, duplicate, daily loss,
+  concurrent, notional, minimum size, cooldown, entry cap) are now
+  measured at the live configuration.

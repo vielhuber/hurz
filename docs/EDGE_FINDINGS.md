@@ -2870,3 +2870,13 @@ rules already call for, and both samples say it costs nothing to have.
 Built in at six hours, reading the journal's last stop-out per
 instrument, fail-closed. One entry in eight on the core book falls
 under it.
+
+## 87. The entry cap is a circuit breaker and never fires
+
+The 100-per-24h cap never binds on the merged timeline — peak issuance
+is under twenty — and tighter caps (`scripts/entry_cap_replay.py`)
+refuse entries that are not significantly worse than zero on either
+sample. It stays, as the breaker it was written to be. With this every
+entry-side guard has been measured at the live configuration: none of
+them is a lever, and none of them is costing the book anything it
+would want back.
