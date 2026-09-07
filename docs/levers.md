@@ -199,3 +199,29 @@ the section numbers below point there.
   mirror does not win: the difference between the two is the doubled
   cost leg and the inverted payoff, exactly as section 54 said.
 - **Decision:** not built in — dead. No code change, no restart.
+
+## 2026-09-07 (seventh run) — opening-range breakout on the indices
+
+- **Lever:** new signal source, structurally outside the channel family
+  — the cash-open hour bar (DE40 07:00 UTC, US500 / US30 / US100 13:00
+  UTC) is the range; the first close beyond it within six bars of the
+  same day enters in that direction, one trade per day. Preregistered:
+  accepted only if better than count-matched random entries at t > 2.0
+  on the last year *and* on the disjoint two years before.
+- **Measurement:** `scripts/orb_breakout.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 1.0 ATR, random control with five draws per segment, live
+  donchian_breakout on the same bars as the second comparison.
+- **Result (pooled over the four indices):**
+
+  | sample | n | E[R] | t vs 0 | vs random | t | vs donchian | t |
+  |---|---:|---:|---:|---:|---:|---:|---:|
+  | last 365 d | 609 | **+0.0843** | **+2.46** | +0.0792 | **+2.09** | +0.0925 | +2.03 |
+  | prior 730 d | 1,166 | +0.0096 | +0.41 | +0.0111 | +0.43 | -0.0198 | -0.63 |
+
+  The recent year clears every threshold at once — and the two years
+  before, with twice the trades, read zero. Per index the sign is not
+  stable either: DE40 +0.115 then -0.002, US30 negative in both. Sixth
+  near-threshold value in this project to dissolve on an independent
+  sample.
+- **Decision:** not built in — dead. No code change, no restart.

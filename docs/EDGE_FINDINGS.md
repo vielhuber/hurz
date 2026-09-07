@@ -2361,3 +2361,24 @@ breakout):
 Random. The fade lost 0.063 R, the continuation loses 0.008 R, and the
 gap between them is the cost paid twice plus the inverted 1.5:1 payoff.
 Both retest variants are closed.
+
+## 56. The opening-range breakout: a textbook dissolve
+
+First trigger outside the channel family: the cash-open hour of the
+four indices as the range, first close beyond it the same day as the
+entry (`scripts/orb_breakout.py`; hold 24, costs charged, random
+control, acceptance preregistered at t > 2.0 vs random on both a recent
+and a disjoint older sample).
+
+| sample | n | E[R] | t vs 0 | vs random | t |
+|---|---:|---:|---:|---:|---:|
+| last 365 days | 609 | **+0.0843** | **+2.46** | +0.0792 | **+2.09** |
+| prior 730 days | 1,166 | +0.0096 | +0.41 | +0.0111 | +0.43 |
+
+Had the recent year been the only sample, this would have been the
+first accepted signal in the document: positive, significant against
+zero, significant against random, above the live entry. The disjoint
+two years, with twice the trades, return zero on every column. That is
+the sixth time (19, 32, 33, 46b, 51, now this), and it is the strongest
+case yet for the rule that nothing is accepted on one sample — the
+recent-year reading was not near the threshold, it was clearly past it.
