@@ -1186,3 +1186,36 @@ the section numbers below point there.
   simulate entry at the next bar's open (what live approximates), a
   limit at the signal close valid for one bar, and for three bars,
   against the close entry, on the merged timeline and both samples.
+
+## 2026-09-08 (twenty-first run) — entry timing
+
+- **Lever:** cost side of the entry — run 20 measured the live fill
+  0.128 R behind the signal close the simulator enters at. Tested on
+  the merged one-position-per-instrument timeline, ten core
+  instruments, three live trend strategies, 2-ATR stop, both samples:
+  entry at the signal close (simulator), at the next bar's open (the
+  live market order, one hour later at worst), a limit at the signal
+  close valid one bar, and valid three bars.
+- **Measurement:** `scripts/entry_timing.py`.
+
+  | entry | last 365 d: fill / E[R] / vs close / t | prior 730 d: fill / E[R] / vs close / t |
+  |---|---|---|
+  | close (simulator) | 100 % / +0.0338 / — | 100 % / -0.0119 / — |
+  | next open (≈ live market) | 98.3 % / +0.0192 / -0.0147 / -0.52 | 98.1 % / -0.0211 / -0.0092 / -0.47 |
+  | limit at close, 1 bar | 97.7 % / +0.0129 / -0.0209 / -0.74 | 97.4 % / -0.0224 / -0.0105 / -0.54 |
+  | limit at close, 3 bars | 97.8 % / +0.0154 / -0.0185 / -0.65 | 97.6 % / -0.0212 / -0.0093 / -0.48 |
+
+  Two things follow. The hourly-bar move between close and next open
+  costs 0.009–0.015 R, so the simulator's close entry flatters live by
+  that much and the rest of the measured 0.128 R lives below the bar —
+  spread and latency at the moment of the order, which an hourly
+  history cannot see. And a limit at the close does not recover it: it
+  fills 97 % of the time (hourly bars almost always revisit the prior
+  close) and the fills are no better than a market order, because the
+  entries that come back to the limit are the ones that had already
+  stopped running.
+- **Decision:** not changed — market entry stays. The 0.128 R live gap
+  is real and is now the largest unmodelled cost in the book; the only
+  measurable handle on it is sub-bar execution (order latency, quote
+  timing), which needs tick data the venue does not serve. Recorded as
+  the open cost item, not as a lever. No code change, no restart.

@@ -2914,3 +2914,15 @@ charge; the other half is the price moving on in the breakout's
 direction between the close and the order, which no section here has
 modelled. Section 3 measured the same thing in dollars. Next: entry at
 the next open versus a limit at the close, both samples.
+
+## 91. Entry timing: the gap is below the bar
+
+Entering at the next bar's open instead of the signal close costs
+0.009–0.015 R on both samples (`scripts/entry_timing.py`); the live
+fill gap is 0.128 R. So roughly a tenth of it is the hour the
+simulator skips and the rest is spread and latency at the moment of
+the order. A limit at the signal close fills 97 % of the time and
+earns nothing back — the fills that come to the limit are the moves
+that already ended. Market entry stays; the gap is recorded as the
+book's largest unmodelled cost, and one that hourly data cannot
+measure further.
