@@ -15,8 +15,10 @@ class CorrelationClusterMapTest(unittest.TestCase):
     def test_measured_members_are_mapped(self):
         self.assertEqual("indices", _CORRELATION_CLUSTERS["EU50"])
         self.assertEqual("metals", _CORRELATION_CLUSTERS["COPPER"])
-        self.assertEqual("jpy_crosses", _CORRELATION_CLUSTERS["AUDJPY"])
-        self.assertEqual("jpy_crosses", _CORRELATION_CLUSTERS["CHFJPY"])
+        for pair in ("AUDJPY", "CHFJPY", "EURJPY", "GBPJPY", "CADJPY"):
+            with self.subTest(pair=pair):
+                self.assertEqual("jpy_crosses", _CORRELATION_CLUSTERS[pair])
+        self.assertEqual("usd_fx", _CORRELATION_CLUSTERS["USDJPY"])
 
     def test_measured_singletons_stay_uncapped(self):
         for pair in ("EURAUD", "AUDNZD", "GBPCAD"):

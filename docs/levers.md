@@ -1321,3 +1321,31 @@ the section numbers below point there.
   as a consequence of run 8 and not as a discovered edge. The guards
   that apply to them (jpy_crosses cluster, USD sizing, cooldown) are all
   in place from this session.
+
+## 2026-09-08 (twenty-fifth run) — the remaining yen crosses in the cluster cap — BUILT IN
+
+- **Lever:** risk guard — run 24 showed the corrected ranking pushes
+  EURJPY, GBPJPY and CADJPY into the top ten for the first time, and
+  none of them was in a correlation cluster, so the same-direction cap
+  of 3 would not have counted them against AUDJPY and CHFJPY. Same
+  preregistered criterion as run 12: median |corr| ≥ 0.5 with a
+  cluster's members on a year of hourly log returns.
+- **Measurement:** `scripts/yen_cluster_correlations.py`.
+
+  | instrument | jpy_crosses | usd_fx | indices | vs USDJPY |
+  |---|---:|---:|---:|---:|
+  | EURJPY | **0.77** | 0.14 | 0.14 | 0.68 |
+  | GBPJPY | **0.72** | 0.19 | 0.21 | 0.60 |
+  | CADJPY | **0.67** | 0.19 | 0.07 | 0.82 |
+  | USDJPY | 0.50 | 0.46 | 0.10 | — |
+
+  The yen crosses are one bet: pairwise 0.67–0.84 among themselves and
+  below 0.25 with everything that is not yen. USDJPY sits exactly on
+  the threshold with the crosses and is the USD leg the `usd_fx`
+  cluster already counts; an instrument belongs to one cluster, and it
+  keeps the one it has.
+- **Decision:** built in — EURJPY, GBPJPY and CADJPY join
+  `jpy_crosses`; the test now asserts all five crosses and USDJPY's
+  cluster. Hurz restarted. Effect on gain: none by construction; it
+  keeps the cap true for the instruments the next active list will
+  carry.

@@ -2967,3 +2967,13 @@ arriving in the selector, not an edge — AUDJPY and CHFJPY measured
 random in 70 and the others are unmeasured. The nightly run will do
 the same for the other strategies; the next active list should be read
 with that in mind.
+
+## 95. The yen crosses are one cluster
+
+EURJPY, GBPJPY and CADJPY correlate 0.67–0.84 with each other and with
+AUDJPY and CHFJPY on a year of hourly returns and below 0.25 with
+anything else (`scripts/yen_cluster_correlations.py`); they join the
+`jpy_crosses` cluster before the corrected ranking (94) puts them in
+the active list. USDJPY reads 0.50 with the crosses and 0.46 with the
+USD majors and stays where it is. A guard kept true ahead of the
+instruments it will need to count.

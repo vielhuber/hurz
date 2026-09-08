@@ -552,6 +552,10 @@ _CORRELATION_CLUSTERS = {
     "COPPER": "metals",
     "OIL_BRENT": "energy", "OIL_CRUDE": "energy",
     "AUDJPY": "jpy_crosses", "CHFJPY": "jpy_crosses",
+    # EURJPY 0.77, GBPJPY 0.72, CADJPY 0.67 median |corr| with the yen
+    # crosses on a year of hourly returns (EDGE_FINDINGS 95). USDJPY sits
+    # at 0.50 with them and stays the USD leg it already is.
+    "EURJPY": "jpy_crosses", "GBPJPY": "jpy_crosses", "CADJPY": "jpy_crosses",
 }
 _CLUSTER_DIR_CAP = int(os.getenv("HURZ_CLUSTER_DIRECTION_CAP", "3"))
 
