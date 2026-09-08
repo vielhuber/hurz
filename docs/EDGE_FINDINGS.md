@@ -3232,3 +3232,50 @@ the recent year that the independent sample does not carry — and the
 preregistered bar is missed on both counts there. No filter is built
 in; the signal bar's own features are now measured on both counts
 (extension, range) and neither is a lever.
+
+## 112. A fading ADX at the signal bar is worse than the rest, twice — and still not a block
+
+Sections 110 and 111 measured the signal bar's price features; the
+router's own input had never been read as a direction. The router
+requires ADX(14) >= 30 at the signal, which says how strong the trend
+is, not whether it is building or fading. `scripts/adx_slope_filter.py`
+replays the three live 1h trend strategies on the router-passed path at
+the 2-ATR stop, venue minimum, live widening rule, gap-aware stop
+booking and the commodity short block over all 26 tradeable
+instruments, and buckets every trade by the change of ADX over the
+three bars before the signal. Quartile edges were fixed on the recent
+year (+0.22 / +2.58 / +4.43 ADX points) and applied unchanged to the
+two years before. Preregistered rule as in sections 110 and 111: a
+bucket is blocked only if it is significantly negative at t < -2 on
+both disjoint samples and its difference to the rest holds at |t| > 2
+with the same sign on both.
+
+| ADX change over 3 bars | last 365 d: n / E[R] / t / diff vs rest / t | prior 730 d: same |
+|---|---|---|
+| below +0.22 (fading) | 1,126 / **-0.081** / **-3.34** / -0.065 / **-2.33** | 2,519 / -0.017 / -1.07 / -0.042 / **-2.19** |
+| +0.22 to +2.58 | 1,125 / -0.004 / -0.17 / +0.037 / +1.31 | 2,432 / **+0.035** / **+2.13** / +0.030 / +1.55 |
+| +2.58 to +4.43 | 1,126 / -0.037 / -1.54 / -0.007 / -0.25 | 2,057 / +0.009 / +0.51 / -0.005 / -0.25 |
+| above +4.43 | 1,127 / -0.006 / -0.23 / +0.035 / +1.24 | 2,093 / +0.028 / +1.55 / +0.020 / +0.95 |
+| falling (< 0) vs rising | 1,038 / -0.068 / -2.68 / -0.047 / -1.62 | 2,345 / -0.017 / -1.02 / -0.041 / -2.08 |
+
+Three quarters of router-passed signals fire while ADX is still rising;
+the quarter that fires as it flattens or turns is the worst bucket on
+both samples, and its gap to the rest holds at t = -2.33 and t = -2.19
+with the same sign. That is the first signal-bar feature in this log
+whose difference survived the independent sample. What it does not do
+is lose on its own there: -0.017 R at t = -1.07 against the required
+t < -2, so the first half of the preregistered rule is missed. Per
+strategy the shape is the same everywhere and significant nowhere on
+the older sample; on the recent year it is carried by turtle_breakout
+(-0.155 R, t = -2.63 in the fading quarter, n = 174). The binary split
+(falling vs rising) reads t = -1.62 then -2.08 for the difference and
+misses on the recent year.
+
+Read as a filter, the arithmetic is one-directional on both samples —
+dropping the fading quarter lifts the remaining book from -0.032 to
+-0.016 R on the recent year and from +0.013 to +0.025 R on the older
+one — but the older sample's gain comes from removing trades that lose
+0.017 R each, not significantly different from zero, and the rule was
+written before the data were seen. No filter is built in. ADX at entry
+is already journalled (`entry_adx`), so a slope reading can be added to
+the forward test without changing what trades.

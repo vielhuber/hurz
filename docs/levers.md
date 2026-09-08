@@ -1859,3 +1859,47 @@ the section numbers below point there.
 - **Decision:** not built in — the recent-year reading is a bull-year
   artefact of the same kind as run 39's index shorts, not a stable
   feature. No code change, no restart. Section 111.
+
+## 2026-09-08 (forty-second run) — ADX slope at the signal bar
+
+- **Lever:** regime filter — the router gates on the ADX *level*
+  (>= 30, settled in runs 18 and 22); the *direction* of ADX at the
+  signal had never been read. Hypothesis: a breakout that fires while
+  ADX is still rising is a trend building, one that fires as ADX flattens
+  or turns is a trend fading into the stop. Feature: ADX(14) change over
+  the three bars before the signal. Preregistered rule as in runs 40 and
+  41: a quartile bucket is blocked only if significantly negative
+  (t < -2) on both disjoint samples and its difference to the rest holds
+  at |t| > 2 with the same sign on both; edges fixed on the recent year
+  and applied unchanged to the older.
+- **Measurement:** `scripts/adx_slope_filter.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware stop
+  booking, router-passed path, commodity short block, three live trend
+  strategies, all 26 tradeable instruments, paced 35-day history pages.
+  Last 365 days, then days 366–1,095 as the independent check.
+- **Result (E[R] net of costs):**
+
+  | ADX change over 3 bars | last 365 d: n / E[R] / t / t_diff | prior 730 d: n / E[R] / t / t_diff |
+  |---|---|---|
+  | below +0.22 (fading) | 1,126 / **-0.081** / **-3.34** / **-2.33** | 2,519 / -0.017 / -1.07 / **-2.19** |
+  | +0.22 to +2.58 | 1,125 / -0.004 / -0.17 / +1.31 | 2,432 / +0.035 / +2.13 / +1.55 |
+  | +2.58 to +4.43 | 1,126 / -0.037 / -1.54 / -0.25 | 2,057 / +0.009 / +0.51 / -0.25 |
+  | above +4.43 | 1,127 / -0.006 / -0.23 / +1.24 | 2,093 / +0.028 / +1.55 / +0.95 |
+
+  The fading quarter is the worst bucket on both samples and its gap to
+  the rest holds at |t| > 2 with the same sign twice — the first
+  signal-bar feature to do that (runs 40 and 41 both dissolved). But on
+  the older sample the bucket itself reads -0.017 R at t = -1.07, not
+  the t < -2 the rule requires, so the first half of the bar is missed.
+  Same shape in all three strategies, significant nowhere on the older
+  sample; the recent-year reading is carried by turtle_breakout.
+- **Decision:** not built in — the preregistered bar was not met. No
+  code change, no restart. Section 112. The feature is the strongest
+  candidate this log has recorded and is left to the forward test:
+  `entry_adx` is already journalled, so the slope can be read live
+  without changing what trades.
+- **Operational note:** a second Charly session reset the worktree
+  (`git reset --hard`, clean) at 18:04 CEST during this run and removed
+  the uncommitted replay script once; it was recreated and committed
+  before the second sample ran.
