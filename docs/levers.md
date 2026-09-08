@@ -1551,3 +1551,38 @@ the section numbers below point there.
 - **Decision:** not changed — letting the scheduler run through
   holidays would be correct in principle and worth nothing in
   expectancy, so it is recorded, not built. No code change, no restart.
+
+## 2026-09-08 (thirty-third run) — the cluster cap and the other refusals in practice
+
+- **Lever:** risk guards as they actually fired — the journal's refused
+  intents since 2026-07-10, by reason, to see which guards do work in
+  the live book and what the refused signals would have returned. The
+  counterfactual replay of refused signals exists for the router (49e);
+  for the other guards the question was first whether there is
+  anything to replay.
+- **Measurement (journal, read-only, 2026-07-10 to today):**
+
+  | refusal | count | note |
+  |---|---:|---|
+  | ADX regime router | 202 | replayed in 49e and 67: flat |
+  | broker order rejected (HTTP 400) | 20 | 18 stop-level errors on APTUSD, AAVEUSD, ARBUSD in July — all cost-blocked since; 2 OIL_CRUDE "market closed" in the 21:00–22:00 UTC break |
+  | duplicate signal for the bar | 15 | dedup, by design |
+  | order deleted by broker | 12 | all July, blocked crypto |
+  | stop below the 1 % floor | 3 | |
+  | concurrent cap (8) | 2 | |
+  | **correlation-cluster cap** | **0** | never fired |
+  | daily-loss limit | 0 | never fired |
+  | stop-out cooldown | 0 | new today |
+
+  The cluster cap has not refused a single signal since July: with one
+  position per instrument, the router taking two signals in three and
+  a book of three to eight positions, three same-direction positions in
+  one cluster has simply not occurred — including yesterday's three
+  yen-and-HK50 shorts, which spanned two clusters. There is nothing to
+  replay. Of the broker rejections only the oil break survives the
+  blocklists, two in two months, and the dedup then drops that bar's
+  signal; a signal every month is not worth a session calendar.
+- **Decision:** not changed. The guards that bind are the router and
+  the one-position rule; the rest are backstops that have not been
+  needed, which is the state a backstop should be in. No code change,
+  no restart.

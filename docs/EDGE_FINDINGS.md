@@ -3051,3 +3051,13 @@ Labor Day the holiday guard idled the loop. The ranking is stale only
 when the bot is, plus holidays, where the guard also idles a backtest
 that needs no market. Given 97, a two-day-old list costs nothing
 measurable; noted, not changed.
+
+## 103. Which guards actually fire
+
+Since July the journal refused 202 signals for the router, 20 for
+broker errors (18 of them on crypto now cost-blocked, 2 OIL_CRUDE
+orders in its daily break), 15 duplicates, 3 below the stop floor,
+2 for the concurrent cap — and none for the cluster cap, the daily
+loss limit or, being new, the cooldown. The book is throttled by the
+router and the one-position rule; everything else is a backstop that
+has not been reached. Nothing to replay, nothing to change.
