@@ -3077,3 +3077,11 @@ shared 1.05 % minimum before the floor, which makes live GOLD the
 instrument the measurements describe — the one instrument in the book
 that beats random on both samples (66). Twenty-first defect, and the
 one with the clearest expected effect on the daily figure.
+
+## 105. The minimum-distance cache carries no information
+
+All 35 instruments checked against the broker's dealing rules carry a
+1 % venue minimum — 1.05 % with the buffer, the backtest's default —
+except GOLD at 0.1 %, which section 104 widened live to the same
+1.05 %. The 14 cached entries all say 1 %. Live and backtest now place
+the same minimum stop everywhere; the cache is redundant and harmless.

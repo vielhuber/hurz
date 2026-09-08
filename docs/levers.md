@@ -1623,3 +1623,29 @@ the section numbers below point there.
   position). Hurz restarted. This is the first lever in the session
   that is significant on both samples *and* on an instrument that beats
   random on both.
+
+## 2026-09-08 (thirty-fifth run) — the backtest's minimum-distance cache
+
+- **Lever:** cost filter, backtest basis — run 34 found GOLD missing
+  from `data/capital_min_distances.json`, so the question was for which
+  other instruments the backtest's 1.05 % default disagrees with the
+  venue's actual rule. Compared the 14 cached entries and the default
+  against the broker's dealing rules for all 27 active instruments and
+  the cache's own names (35 in total).
+- **Measurement (broker API, read-only):**
+
+  | | count |
+  |---|---:|
+  | instruments checked | 35 |
+  | venue minimum 1 % (effective 1.05 %) | 34 |
+  | venue minimum 0.1 % | 1 (GOLD) |
+  | backtest ≠ venue-effective minimum | 1 (GOLD, now widened live to the same 1.05 %) |
+  | cached entries, all 1 % | 14 |
+
+  Every cached entry and every uncached default lands on the same
+  1.05 % the venue enforces, so the cache carries no information the
+  default does not; the one instrument whose venue rule differs is the
+  one run 34 aligned by widening. Live and backtest now place the same
+  minimum stop on every instrument in the book.
+- **Decision:** not changed — nothing to add to the cache and nothing
+  to correct in the default. No code change, no restart.
