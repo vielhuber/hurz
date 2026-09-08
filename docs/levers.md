@@ -2076,3 +2076,40 @@ the section numbers below point there.
   sharpest in this log. No code change, no restart. Section 116.
   Cross-sectional information has now been read three ways (relative
   strength, BTC lead, class breadth) and none carries.
+
+## 2026-09-09 — passive limit entry at the signal close (entry half-spread saved)
+
+- **Lever:** cost filter, entry side — runs 4 and 21 measured limit
+  entries with the full round-trip spread charged on the passive fill
+  and the fill counted on a mid-price touch; the half-spread a resting
+  order saves (0.02–0.05 R here, the size of the book's expectancy) had
+  never been modelled. Hypothesis: the saving outweighs the signals
+  that never fill. Preregistered rule: built in only if the same
+  validity (1 or 3 bars) beats the market entry on both disjoint
+  samples in E[R] per trade at t > 2 and in total R per sample.
+- **Measurement:** `scripts/passive_limit_entry.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24 from the
+  fill bar, RR 1.5, stop 2.0 ATR, venue minimum, live widening rule,
+  gap-aware stop booking, router-passed path, commodity short block,
+  three live trend strategies, all 26 tradeable instruments. Fill only
+  when the ask/bid reaches the limit (mid moves a half-spread beyond
+  the close), gap-through fills at the open's ask/bid, cost = one
+  half-spread, a stop hit inside the fill bar booked as a loss. Last
+  365 days.
+- **Result (E[R] net of costs):**
+
+  | entry | signals | filled | fill % | E[R] | Σ R | R / signal | vs market / t |
+  |---|---|---|---|---|---|---|---|
+  | market at close | 4,560 | 4,499 | 98.7 | -0.033 | -148.9 | -0.033 | — |
+  | limit, 1 bar | 4,688 | 4,353 | 92.9 | -0.039 | -169.0 | -0.036 | -0.006 / -0.33 |
+  | limit, 3 bars | 4,635 | 4,411 | 95.2 | -0.039 | -173.7 | -0.038 | -0.006 / -0.36 |
+
+  Behind on every count in all three strategies; the saving is paid for
+  by the one signal in fourteen that runs without coming back and by
+  the filled trade starting a bar later, half a spread nearer its stop.
+- **Decision:** not built in — the conjunctive rule fails on the first
+  sample by a wide margin, so the older sample was not run (the market
+  entry's figures there are on record from runs 44 to 46). No code
+  change, no restart. Section 117. The entry-cost side is closed as far
+  as hourly bars can see it; the live fill gap of run 20 stays the open
+  cost item.

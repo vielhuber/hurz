@@ -3490,3 +3490,52 @@ No filter is built in. Peer confirmation joins the entry features as
 measured and dead; the cross-sectional information in this book has now
 been read as relative strength (sections 31, 33), as BTC leadership
 (section 7) and as class breadth, and none of the three carries.
+
+## 117. A passive limit at the signal close does not recover its half-spread
+
+Runs 4 and 21 (sections 53 and the entry-timing note) measured limit
+entries and found nothing, but both charged the full round-trip spread
+on the passive fill and counted a fill when the mid price touched the
+limit. A resting buy order at price P fills when the *ask* reaches P,
+i.e. once the mid has moved a half-spread below the close, and the
+position then pays the spread once, on the exit. That saving — half
+the round trip, 0.02–0.05 R on this book — had never been modelled, and
+it is the size of effect the book's expectancy turns on.
+`scripts/passive_limit_entry.py` replays the three live 1h trend
+strategies on the router-passed path at the 2-ATR stop, venue minimum,
+live widening rule, gap-aware stop booking and the commodity short
+block over all 26 tradeable instruments, and compares the market entry
+at the signal close (cost 2h) with a limit at the signal close valid
+one or three bars: the fill requires the mid to reach close − h (long)
+or close + h (short), a gap through the limit fills at the open's ask
+or bid, the cost is h, the 24-bar hold counts from the fill bar, and a
+stop hit inside the fill bar is booked as a loss because the order of
+events inside the bar is unknown — the limit is measured
+pessimistically on that point and optimistically on none. Preregistered
+rule: the limit is built in only if the same validity beats the market
+entry on both disjoint samples in E[R] per trade at t > 2 and in total
+R per sample, which charges it for the signals it never fills.
+
+| entry, last 365 d | signals | filled | fill % | E[R] | t | Σ R | R per signal | vs market / t |
+|---|---|---|---|---|---|---|---|---|
+| market at close | 4,560 | 4,499 | 98.7 | -0.033 | -2.71 | -148.9 | -0.033 | — |
+| limit, 1 bar | 4,688 | 4,353 | 92.9 | -0.039 | -3.16 | -169.0 | -0.036 | -0.006 / -0.33 |
+| limit, 3 bars | 4,635 | 4,411 | 95.2 | -0.039 | -3.22 | -173.7 | -0.038 | -0.006 / -0.36 |
+
+The limit fills nine times in ten and still comes out behind on every
+count, in all three strategies alike (differences of -0.004 to -0.009
+R, |t| < 0.35). The saving is real and it is paid twice over: the one
+signal in fourteen that never comes back to its close is the one that
+ran, and the filled trade starts a bar later and half a spread closer to
+its stop. Per instrument the sign is mixed, eleven better and fifteen
+worse, with nothing outside noise. The rule is conjunctive and the
+first sample fails it by a wide margin, so the older sample was not
+run; the market entry's figures there are on record in sections 114
+to 116 (+0.015 R over 9,065 trades) and the limit could not have
+passed on one sample alone.
+
+No change. This closes the entry-cost side as far as hourly bars can
+see it: market at the confirmed close is the entry, the 0.128 R live
+fill gap of section 100 remains the open item, and it lives below the
+bar where a limit order cannot reach it either. A limit at a better
+price than the close is section 53's pullback entry, already dead.
