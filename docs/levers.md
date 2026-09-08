@@ -2267,3 +2267,28 @@ the section numbers below point there.
   not evidence; total R on the older sample is equal at 17 % fewer
   trades. No code change, no restart. Section 123. The stop-width lever
   is exhausted: the venue floor sets the cost of this book.
+
+## 2026-09-09 (eighth run) — reward:risk by stop status (pinned vs ATR-bound)
+
+- **Lever:** strategy parameter — after run 51 showed the stop on the
+  venue floor on most trades, the RR was read separately for pinned
+  trades (stop widened to 1.05 % of price) and ATR-bound trades.
+  Preregistered: a different RR for pinned trades only if better than
+  1.5 at t > 2 on both samples.
+- **Measurement:** `scripts/rr_by_pin_status.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, stop
+  2.0 ATR, venue minimum, live widening rule, gap-aware booking,
+  router-passed path, commodity short block, three live trend
+  strategies, 26 instruments, RR 1.0 / 1.5 / 2.0 / 2.5. Last 365 days.
+
+  | group | share | mean stop | E[R] at RR 1.0 / 1.5 / 2.0 / 2.5 | best vs 1.5, t |
+  |---|---|---|---|---|
+  | pinned | 78 % | 6.5 ATR | -0.023 / -0.035 / -0.030 / -0.027 | +0.012, t 0.70 |
+  | ATR-bound | 22 % | 2.0 ATR | -0.001 / -0.026 / -0.019 / -0.010 | +0.024, t 0.54 |
+
+  No ordering in either group, nothing near the bar; the older sample
+  was not run. Finding to keep: 78 % of trades are pinned at a mean
+  stop of 6.5 ATR — the book trades a 1.05 % stop with a 1.6 % target
+  on hourly bars, which is why 61 % of trades time out.
+- **Decision:** not built in — 1.5 stays. No code change, no restart.
+  Section 124.

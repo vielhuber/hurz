@@ -3725,3 +3725,41 @@ and the stop-width lever was exhausted by the move to 2 ATR. The
 timeout share of 61–64 % on the live path says the same thing from the
 other side: at a 1.05 % stop and a 1.6 % target, most hourly breakouts
 reach neither in a day.
+
+## 124. The target has no ordering on the pinned trades either — and 78 % of trades are pinned
+
+Section 123 showed the stop sitting on the venue's 1.05 % minimum on
+most trades. On such a trade the 1.5 R target is far further away in
+volatility units than the 2-ATR design assumed, so the reward:risk
+setting might want to differ there. `scripts/rr_by_pin_status.py`
+replays the three live 1h trend strategies on the router-passed path,
+venue minimum, live widening rule, gap-aware stop booking and the
+commodity short block over all 26 tradeable instruments at RR 1.0 /
+1.5 / 2.0 / 2.5, separately for trades whose stop was widened to the
+floor and for trades whose 2-ATR stop stood. Preregistered: a
+different RR for the pinned trades only is built in if better than 1.5
+at t > 2 on both disjoint samples.
+
+| last 365 d | share | mean stop | RR 1.0 | RR 1.5 (live) | RR 2.0 | RR 2.5 |
+|---|---|---|---|---|---|---|
+| pinned to the floor | 78 % | 6.5 ATR | -0.023 (+0.012, t +0.70) | -0.035 | -0.030 (+0.005, t +0.28) | -0.027 (+0.008, t +0.44) |
+| ATR-bound | 22 % | 2.0 ATR | -0.001 (+0.024, t +0.54) | -0.026 | -0.019 (+0.007, t +0.13) | -0.010 (+0.016, t +0.29) |
+
+No ordering: on the pinned trades 1.5 is the worst of four and 1.0 and
+2.5 are both "better" by a hundredth of an R at t < 0.7, a U-shape that
+is noise; the ATR-bound quarter reads the same. Nothing approaches the
+bar on the first sample, so the second was not run. Section 63's
+conclusion — the target is not the lever — holds on both halves of the
+book separately.
+
+The number to keep is the share. Seventy-eight per cent of
+router-passed trades have their stop widened to the venue floor, and
+on those the mean stop is 6.5 ATR(14): every FX trade, most index and
+metal trades. The "2-ATR stop" of the design is what one trade in five
+actually gets. The book as traded is a 1.05 %-of-price stop with a
+1.6 % target on hourly bars, held a day; on a major FX pair that is
+six and nine hours of typical range, which is why three trades in five
+reach neither level (section 123). The venue floor is not a cost
+detail of this book, it is its execution model, and the levers this
+document has swept — stop multiple, target, leash, signal features —
+were all swept on top of it.
