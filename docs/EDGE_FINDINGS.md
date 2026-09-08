@@ -3684,3 +3684,44 @@ way — that is the profile of noise with a lucky sign, not of a
 mechanism. No cooldown is built in; the exit-kind dimension (stop,
 timeout, target) is now measured in full, and only the stop-out
 cooldown of section 86 stands.
+
+## 123. A 3-ATR stop with a 48-bar leash: slightly better, weakly, and the stop is not the lever
+
+Section 60 chose the 2-ATR stop over 3 ATR because at the 24-bar leash
+three trades in five timed out, and section 89 found no better leash at
+2 ATR. The combination had not been read: a wider stop cuts the cost per
+unit of risk and a longer leash gives it the time it needs.
+`scripts/stop_hold_combo.py` replays the three live 1h trend strategies
+on the router-passed path, venue minimum, live widening rule, gap-aware
+stop booking and the commodity short block over all 26 tradeable
+instruments for the live 2.0 / 24 and for 3.0 / 48, 3.0 / 36 and
+2.5 / 36. Preregistered: 3.0 / 48 is built in if its net E[R] beats the
+live setting on both disjoint samples, its gross E[R] is not worse on
+either, and its timeout share is under 50 %.
+
+| stop / hold | last 365 d: n / net / cost / gross / timeout % / Σ R / vs live, t | prior 730 d: same |
+|---|---|---|
+| 2.0 / 24 (live) | 4,505 / -0.033 / 0.017 / -0.016 / 61.1 / -147.3 / — | 9,139 / +0.016 / 0.018 / +0.034 / 64.1 / +142.9 / — |
+| **3.0 / 48** | 3,800 / -0.024 / 0.014 / -0.009 / **51.1** / -89.2 / +0.009, t +0.48 | 7,597 / +0.019 / 0.016 / +0.035 / **50.5** / +145.7 / +0.004, t +0.26 |
+| 3.0 / 36 | 4,017 / -0.031 / 0.014 / -0.017 / 58.2 / -124.1 / +0.002, t +0.10 | 8,031 / +0.014 / 0.015 / +0.030 / 59.7 / +115.2 / -0.001, t -0.10 |
+| 2.5 / 36 | 4,096 / -0.043 / 0.016 / -0.028 / 54.3 / -177.5 / -0.011, t -0.58 | 8,147 / +0.018 / 0.017 / +0.035 / 56.1 / +144.8 / +0.002, t +0.17 |
+
+Two of the three clauses hold, weakly: 3.0 / 48 is better net on both
+samples by 0.009 and 0.004 R at t = 0.5 and 0.3, and not worse gross.
+The third misses by a point on each sample, 51.1 % and 50.5 % timeouts
+against the 50 % written down — a clause that, it turns out, the live
+setting itself fails by a wider margin (61 % and 64 %), so it guarded
+against a state the book is already in. The result is not built in; it
+is not evidence of anything at those t-values, and the total R of the
+older sample is the same to within two R at 17 % fewer trades.
+
+The more useful reading is in the cost and stop-width columns. Tripling
+the ATR multiple from 1 to 3 should cut the cost per R to a third; here
+the cost falls only from 0.017 to 0.014 R, because the stop sits at the
+venue's 1.05 % minimum on most trades whatever the multiple — the mean
+stop is 1.2 % of price at 2 ATR and 1.4 % at 3 ATR. The venue floor,
+not the ATR multiple, sets the cost of this book (section 23's vise),
+and the stop-width lever was exhausted by the move to 2 ATR. The
+timeout share of 61–64 % on the live path says the same thing from the
+other side: at a 1.05 % stop and a 1.6 % target, most hourly breakouts
+reach neither in a day.

@@ -2238,3 +2238,32 @@ the section numbers below point there.
 - **Decision:** not built in — the first preregistered condition fails.
   No code change, no restart. Section 122. The exit-kind dimension is
   measured in full; only the stop-out cooldown stands.
+
+## 2026-09-09 (seventh run) — 3-ATR stop with a 48-bar leash
+
+- **Lever:** strategy parameters, cost mechanism — run 11 rejected the
+  3-ATR stop at the 24-bar leash for its timeout share and run 13 found
+  no better leash at 2 ATR; the combination 3.0 / 48 (a third less cost
+  per R, time for the wider stop) was unmeasured. Preregistered: built
+  in if net E[R] beats the live 2.0 / 24 on both samples, gross is not
+  worse on either, and the timeout share is under 50 %.
+- **Measurement:** `scripts/stop_hold_combo.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, RR 1.5, venue
+  minimum, live widening rule, gap-aware booking, router-passed path,
+  commodity short block, three live trend strategies, 26 instruments;
+  combos 3.0 / 48, 3.0 / 36, 2.5 / 36 against 2.0 / 24.
+
+  | stop / hold | last 365 d: net / gross / timeout % / Σ R / vs live, t | prior 730 d: same |
+  |---|---|---|
+  | 2.0 / 24 (live) | -0.033 / -0.016 / 61.1 / -147.3 / — | +0.016 / +0.034 / 64.1 / +142.9 / — |
+  | 3.0 / 48 | -0.024 / -0.009 / 51.1 / -89.2 / +0.009, t 0.48 | +0.019 / +0.035 / 50.5 / +145.7 / +0.004, t 0.26 |
+
+  Better net on both samples at t = 0.5 and 0.3, not worse gross,
+  timeouts 51.1 % and 50.5 % against the 50 % clause — missed by a
+  point on each sample, on a clause the live setting itself fails at
+  61–64 %. Cost falls only 0.017 → 0.014 R because most stops sit on
+  the venue's 1.05 % minimum regardless of the ATR multiple.
+- **Decision:** not built in — third clause failed, and t ≈ 0.3–0.5 is
+  not evidence; total R on the older sample is equal at 17 % fewer
+  trades. No code change, no restart. Section 123. The stop-width lever
+  is exhausted: the venue floor sets the cost of this book.
