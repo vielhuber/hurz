@@ -3539,3 +3539,62 @@ see it: market at the confirmed close is the entry, the 0.128 R live
 fill gap of section 100 remains the open item, and it lives below the
 bar where a limit order cannot reach it either. A limit at a better
 price than the close is section 53's pullback entry, already dead.
+
+## 118. The live fill gap is gone: entry slippage is one half-spread
+
+Section 100 measured live fills 0.128 R behind the signal close, and
+run 22 traced most of it to orders leaving on the forming bar. Whether
+the gap survived that fix had not been read. From the journal
+(read-only): fill price against the journalled signal price, in units
+of the trade's stop distance, positive when the fill is worse for the
+trade, for every accepted Capital.com entry since the filters went live
+on 2026-08-24.
+
+| entries | n | mean slip | median | sd | s.e. |
+|---|---|---|---|---|---|
+| 2026-08-24 to the forming-bar fix (2026-09-08 04:00 UTC) | 28 | +0.017 R | +0.011 R | 0.038 | 0.007 |
+| after the fix | 5 | +0.004 R | -0.001 R | 0.045 | 0.020 |
+
+The orders now leave two to forty seconds after the bar closes and the
+slippage that remains is the half-spread the simulator already charges
+on entry, +0.017 R before the fix and within noise of zero after it.
+The 0.128 R of section 100 was the provisional close, not execution.
+Slippage is nearly deterministic per trade, so 33 entries settle it
+to ±0.007 R; the entry-cost side is closed on the live book as well as
+in the simulator (section 117).
+
+## 119. A timed-out instrument re-breaks as well as any other
+
+Run 16 built in a cooldown after a stop-out; the other exit that leaves
+an instrument's regime in doubt is the timeout, a break that went
+nowhere in 24 bars. `scripts/reentry_after_timeout.py` replays the
+merged one-position-per-instrument timeline of the three live 1h trend
+strategies, router-passed, commodity short block, 2-ATR stop, venue
+minimum, live widening rule, gap-aware stop booking and the live 6-hour
+stop-out cooldown, over all 26 tradeable instruments, and classes every
+entry by the previous exit on the instrument and the hours since it.
+Preregistered: a re-entry within 6 or 24 hours of a timeout is blocked
+only if negative at t < -2 on both disjoint samples and worse than the
+rest at |t| > 2 on both.
+
+| previous exit, window | last 365 d: n / E[R] / t / diff vs rest / t | prior 730 d: same |
+|---|---|---|
+| timeout, <= 6 h | 214 / +0.019 / +0.38 / +0.056 / +1.06 | 503 / +0.007 / +0.25 / +0.008 / +0.25 |
+| timeout, <= 24 h | 448 / +0.014 / +0.41 / +0.059 / +1.45 | 941 / +0.020 / +0.92 / +0.026 / +0.98 |
+| target, <= 6 h | 115 / -0.164 / -1.68 / -0.141 / -1.43 | 207 / -0.116 / -1.57 / -0.123 / -1.64 |
+| target, <= 24 h | 184 / -0.144 / -1.89 / -0.126 / -1.60 | 353 / -0.086 / -1.53 / -0.095 / -1.65 |
+| stop, <= 24 h (after the 6 h cooldown) | 122 / +0.085 / +0.97 / +0.124 / +1.38 | 227 / -0.004 / -0.06 / -0.005 / -0.07 |
+| no exit in the prior 24 h | 1,140 / -0.043 / -1.78 / -0.029 / -0.75 | 2,259 / +0.006 / +0.35 / +0.014 / +0.52 |
+
+Re-entries after a timeout are, if anything, slightly better than the
+rest on both samples, never significantly: the hypothesis is dead. Six
+in ten entries on this book follow a timeout, so a cooldown there would
+also have removed the majority of the trades for nothing. The one row
+with the same sign twice is not the one preregistered: a re-entry
+within a day of a *target* exit reads -0.144 R and -0.086 R, below the
+rest by 0.13 and 0.09 R at t = -1.6 on each sample — the instrument
+that just paid out re-breaks into the pullback. It is 7–10 % of entries
+and it misses the bar on both clauses on both samples; recorded, not
+acted on, and not to be re-run on the same data. The stop-out row is
+the book after the live cooldown and shows nothing left to remove
+there.

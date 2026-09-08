@@ -2113,3 +2113,51 @@ the section numbers below point there.
   change, no restart. Section 117. The entry-cost side is closed as far
   as hourly bars can see it; the live fill gap of run 20 stays the open
   cost item.
+
+## 2026-09-09 (second run) — live entry slippage after the forming-bar fix
+
+- **Lever:** cost side, live — run 20 measured 0.128 R between signal
+  and fill and run 22 removed the forming-bar cause; whether a gap
+  remains had not been read. Slippage is near-deterministic per trade,
+  so the entries since 2026-08-24 suffice.
+- **Measurement (journal, read-only):** fill against journalled signal
+  price in stop-distance units, positive = worse for the trade.
+
+  | entries | n | mean | median | s.e. |
+  |---|---:|---:|---:|---:|
+  | before the fix (08-24 to 09-08 04:00 UTC) | 28 | +0.017 R | +0.011 R | 0.007 |
+  | after the fix | 5 | +0.004 R | -0.001 R | 0.020 |
+
+  Orders leave 2–40 s after the close; what remains is the half-spread
+  the simulator already charges. The open cost item of run 21 is closed.
+- **Decision:** nothing to change. No code change, no restart. Section 118.
+
+## 2026-09-09 (third run) — re-entry after a timeout exit
+
+- **Lever:** regime filter after an exit — run 16 built in the stop-out
+  cooldown; the timeout (24 bars, neither level reached) is the other
+  exit that leaves the instrument's regime in doubt. Hypothesis: a
+  re-entry within 6 or 24 h of a timeout re-breaks into the same chop.
+  Preregistered rule: blocked only if negative at t < -2 and worse than
+  the rest at |t| > 2 on both disjoint samples.
+- **Measurement:** `scripts/reentry_after_timeout.py` — merged
+  one-position-per-instrument timeline, cost-charging walk-forward
+  simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5, stop 2.0 ATR,
+  venue minimum, live widening rule, gap-aware stop booking,
+  router-passed path, commodity short block, live 6-h stop-out cooldown,
+  three live trend strategies, all 26 tradeable instruments. Last 365
+  days, then days 366–1,095.
+- **Result (E[R] net of costs):**
+
+  | previous exit, window | last 365 d: n / E[R] / t / t_diff | prior 730 d: n / E[R] / t / t_diff |
+  |---|---|---|
+  | timeout, <= 6 h | 214 / +0.019 / +0.38 / +1.06 | 503 / +0.007 / +0.25 / +0.25 |
+  | timeout, <= 24 h | 448 / +0.014 / +0.41 / +1.45 | 941 / +0.020 / +0.92 / +0.98 |
+  | target, <= 24 h (not preregistered) | 184 / -0.144 / -1.89 / -1.60 | 353 / -0.086 / -1.53 / -1.65 |
+
+  Re-entries after a timeout are not worse on either sample — dead, and
+  six entries in ten follow a timeout, so the cooldown would have
+  removed most of the book for nothing. The re-entry within a day of a
+  target exit is negative on both samples but misses both clauses of
+  the bar twice; recorded, not to be re-run on the same data.
+- **Decision:** not built in. No code change, no restart. Section 119.
