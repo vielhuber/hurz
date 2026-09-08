@@ -3033,3 +3033,12 @@ in seven signals and which is ranked first on the indices on 10–21
 trades. Those rows have traded twice since July. Raising the floor
 would delete them without changing the book; the floor stays, and the
 momentum ranks are read as section 40 says samples that size must be.
+
+## 101. The wall-clock leash is a small, conservative divergence
+
+Live holds 24 hours, the backtests 24 bars; where sessions break the
+live leash is the shorter one. Simulated (`scripts/wallclock_leash.py`)
+the wall-clock leash trades 5 % more often, times out 15 % more often
+and gives back 0.002–0.008 R per trade on the two samples, t of -0.2
+and -0.4. Same sign twice, inside the noise, conservative. Left as is;
+the calendar machinery to align them is not worth 0.005 R.

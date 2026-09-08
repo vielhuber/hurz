@@ -1502,3 +1502,26 @@ the section numbers below point there.
   further would rank on even less; neither is a gain lever. Recorded:
   the momentum ranks in the active list rest on samples section 40
   says cannot be validated. No code change, no restart.
+
+## 2026-09-08 (thirty-first run) — the stale exit by wall clock
+
+- **Lever:** exit logic — live closes a stale position 24 wall-clock
+  hours after entry, the backtests after 24 bars. For instruments with
+  session breaks (indices, commodities, every weekend) 24 hours hold
+  fewer bars, so the live leash is shorter than the measured one.
+  Simulated both leashes on ten core instruments, three live trend
+  strategies, 2-ATR stop, both samples.
+- **Measurement:** `scripts/wallclock_leash.py`.
+
+  | leash | last 365 d: n / E[R] / timeouts | prior 730 d: n / E[R] / timeouts | diff / t |
+  |---|---|---|---|
+  | 24 bars (backtest) | 5,415 / +0.0276 / 2,539 | 11,170 / -0.0134 / 5,474 | — |
+  | 24 wall-clock hours (live) | 5,700 / +0.0200 / 2,944 | 11,811 / -0.0153 / 6,277 | -0.0075 / -0.43 and -0.0019 / -0.16 |
+
+  The live leash frees the instrument a little earlier (5 % more
+  trades, 15 % more timeouts) and gives back 0.002–0.008 R for it, same
+  sign on both samples and well inside the noise. A live/backtest
+  divergence, but a small one, and in the conservative direction.
+- **Decision:** not changed — the wall-clock leash stays; converting it
+  to a bar count would need session calendars per instrument for a
+  difference this size. No code change, no restart.
