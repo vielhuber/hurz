@@ -34,13 +34,19 @@ sys.path.insert(0, _ROOT)
 from app.utils.singletons import settings
 settings.load_env()
 
-# Realised result recomputed from exit and fill price. Rows closed
-# before 2026-08-21 booked `realized_pnl` against the SIGNAL price,
-# understating the loss by entry slippage — about 216 USD across 360
-# trades. Reading the column would show a rosier account than the one
-# that actually traded. Kept on one line so it can be substituted into
-# any expression position. Falls back where exit or fill is missing.
-_PNL = ("(CASE WHEN exit_price IS NOT NULL AND fill_price IS NOT NULL "
+# Realised result. Rows closed before 2026-08-21 booked `realized_pnl`
+# against the SIGNAL price, understating the loss by entry slippage —
+# about 216 USD across 360 trades — so for the legacy rows the result is
+# recomputed from exit and fill price. That recomputation is in the
+# instrument's quote currency: since the bot books `realized_pnl` in USD
+# (2026-09-07 23:01 UTC, EDGE_FINDINGS 98), a yen trade recomputed here
+# read 154 times its dollar result, and one evening of stale exits showed
+# +193.59 USD for +1.20. Rows closed after the switch read the column.
+# Kept on one line so it can be substituted into any expression position.
+_USD_BOOKING_FROM = "2026-09-07 23:05:00"
+_PNL = ("(CASE WHEN exit_time >= '" + _USD_BOOKING_FROM + "' "
+        "AND realized_pnl IS NOT NULL THEN realized_pnl "
+        "WHEN exit_price IS NOT NULL AND fill_price IS NOT NULL "
         "THEN (exit_price - fill_price) * direction * size "
         "ELSE realized_pnl END)")
 
