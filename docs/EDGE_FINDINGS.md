@@ -2956,3 +2956,14 @@ the noise on both samples and the scheduler's reason for excluding it,
 that it would take entries from instruments the book already holds,
 is exactly what run 13 measured. Its persisted backtest is from July
 and stale.
+
+## 94. The corrected simulator reorders the ranking without moving the mean
+
+Re-persisting `donchian_breakout` on the corrected simulator leaves
+the pooled expectancy at -0.0399 to four decimals and replaces six of
+the ten top instruments: the yen crosses, J225 and WHEAT size for the
+first time and five yen crosses enter the top ten. That is section 78
+arriving in the selector, not an edge — AUDJPY and CHFJPY measured
+random in 70 and the others are unmeasured. The nightly run will do
+the same for the other strategies; the next active list should be read
+with that in mind.

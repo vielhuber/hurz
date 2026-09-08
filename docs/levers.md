@@ -1287,3 +1287,37 @@ the section numbers below point there.
   unpinned. Its persisted backtest (2026-07-10, 30 days) is stale and
   should be refreshed by the next manual backtest run so the record
   matches the close-confirmed figures above. No code change, no restart.
+
+## 2026-09-08 (twenty-fourth run) — the ranking on the corrected simulator
+
+- **Lever:** pair selection — the persisted `donchian_breakout` ranking
+  the selector reads dated from 2026-09-06 and was computed at the
+  1-ATR stop, before gap booking (76) and quote-currency sizing (78).
+  Refreshed it with `scripts/spot_backtest.py --persist` exactly as the
+  nightly job does (55 default instruments, 365 days) and measured how
+  far the ranking moved.
+- **Measurement (persisted file, before vs after):**
+
+  | | 2026-09-06 (1 ATR) | 2026-09-08 (2 ATR, gaps, currency) |
+  |---|---|---|
+  | trades | 2,078 | 2,574 |
+  | pooled E[R] | -0.0399 | -0.0399 |
+  | total USD | -170.2 | -230.1 |
+  | top-10 by E[R] | GOLD, OIL_BRENT, AUDNZD, ETHUSD, BTCUSD, USDCHF, DE40, FR40, EURUSD, NZDUSD | NATURALGAS, BTCUSD, GBPJPY, GOLD, EURJPY, AUDNZD, CHFJPY, AUDJPY, USDCHF, USDJPY |
+  | top-10 overlap | 4 of 10 | |
+  | newly sizeable (n < 5 → ≥ 20) | — | AUDJPY, CADJPY, CHFJPY, EURJPY, GBPJPY, J225, USDJPY, WHEAT |
+  | sign flips among pairs with n ≥ 20 on both | 2 | |
+
+  The pooled expectancy is identical to four decimals — the corrections
+  moved the dollars, not the R — but the order changed because eight
+  instruments that used to size to nothing now trade. Five of the new
+  top ten are yen crosses; AUDJPY and CHFJPY measured random in run 21
+  and the other three have no measurement here yet. NATURALGAS tops the
+  list and is cost-blocked, which the selector's guard handles.
+- **Decision:** nothing to build — the file is the selector's input, not
+  the book, and it is not versioned; the nightly run at 05:49 UTC will
+  recompute all three strategies the same way. Recorded so the next
+  active list, which will carry yen crosses for the first time, is read
+  as a consequence of run 8 and not as a discovered edge. The guards
+  that apply to them (jpy_crosses cluster, USD sizing, cooldown) are all
+  in place from this session.
