@@ -3108,3 +3108,11 @@ indices and takes their expectancy from -0.048 / -0.039 R to -0.057 /
 refuses; the backtest that ranks them does not. The correction needs a
 spread-by-hour table the project does not have yet; recorded as the
 open cost item, alongside 91's sub-bar execution.
+
+## 108. Collecting the spread-by-hour table
+
+The heartbeat now writes the venue's bid and offer for every active
+instrument once an hour to `data/spread_samples.jsonl`, from the
+session the loop already holds. In a week that is the table section
+107 lacked; until then the simulator keeps charging the daytime spread
+and the live cost filter keeps charging the real one.

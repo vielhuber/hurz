@@ -1714,3 +1714,25 @@ the section numbers below point there.
   router-passed path for any of the five. Recorded as the one cost
   correction still open: sample the venue's spreads by hour for a week,
   then charge them in the simulator. No code change, no restart.
+
+## 2026-09-08 (thirty-eighth run) — spread sampler on the heartbeat — BUILT IN
+
+- **Lever:** cost filter, data foundation — run 37 showed the audited
+  spread table is a daytime table and that half of all index signals
+  fire into off-hours spreads up to thirteen times wider, which the
+  backtest that ranks the instruments cannot see. The correction needs
+  a spread-by-hour table, which the project did not have; this run
+  builds the collector.
+- **Measurement:** run 37's figures (FR40 13×, HK50 6×, UK100 3×,
+  DE40 2.7× the table at 04:36 UTC; -0.01 R further on the five
+  European and Asian indices when charged). The sampler itself is
+  measured by its first output after restart.
+- **Decision:** built in. On every heartbeat (hourly) the live loop
+  now appends one bid/offer line per active instrument to
+  `data/spread_samples.jsonl` from the session it already holds, with
+  the half-spread in percent; venues without dealing rules contribute
+  nothing, and a failing sample never touches the trading loop. Two
+  tests cover the line format and the no-rules case. No trading
+  behaviour changes; the file is git-ignored. After a week the table
+  exists and the simulator can charge the hour's spread instead of the
+  day's. Hurz restarted.

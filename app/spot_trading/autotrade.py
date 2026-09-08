@@ -26,6 +26,7 @@ Safety:
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import subprocess
 import sys
@@ -488,6 +489,44 @@ async def execute_intent(
             accepted=False, asset=intent.pair, direction=intent.direction,
             size=size, error=str(exc),
         )
+
+
+# The audited spread table is a daytime table; before the European open
+# the venue quotes FR40 at thirteen times it (EDGE_FINDINGS 107). One
+# sample per instrument per heartbeat builds the spread-by-hour table the
+# cost model needs, from the session the loop already holds.
+_SPREAD_SAMPLES_PATH = "data/spread_samples.jsonl"
+
+
+async def _sample_spreads(platform: Platform, pairs, now: datetime,
+                          path: str = _SPREAD_SAMPLES_PATH) -> int:
+    """Append one bid/offer line per instrument; venues without dealing rules contribute nothing."""
+    rules_for = getattr(platform, "_get_dealing_rules", None)
+    if rules_for is None:
+        return 0
+    lines = []
+    for pair in sorted(set(pairs)):
+        try:
+            rules = await rules_for(pair)
+            bid, offer = rules.get("bid"), rules.get("offer")
+            if bid is None or offer is None:
+                continue
+            bid, offer = float(bid), float(offer)
+            mid = (bid + offer) / 2.0
+            if mid <= 0:
+                continue
+            lines.append(json.dumps({
+                "ts": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "pair": pair,
+                "bid": bid, "offer": offer,
+                "half_spread_pct": round((offer - bid) / mid / 2.0 * 100.0, 6),
+            }))
+        except Exception:
+            continue
+    if lines:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "a", encoding="utf-8") as handle:
+            handle.write("\n".join(lines) + "\n")
+    return len(lines)
 
 
 def _has_open_position(positions: List[Position], pair: str) -> bool:
@@ -1888,6 +1927,15 @@ async def run_loop(
                     f"{signals_24h} signals in last 24h"
                 )
                 last_heartbeat_at = now_utc
+                try:
+                    sampled = await _sample_spreads(
+                        platform, [p.get("pair") for p in active if p.get("pair")],
+                        now_utc,
+                    )
+                    if sampled:
+                        _safe_log(f"spread sample: {sampled} instruments")
+                except Exception as exc:
+                    _safe_log(f"⚠ spread sample failed: {exc}")
                 # Refresh the static dashboard on each heartbeat so it
                 # stays current whenever hurz runs — fire-and-forget, and
                 # never let a dashboard hiccup disturb the trading loop.
