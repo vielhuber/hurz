@@ -3598,3 +3598,30 @@ and it misses the bar on both clauses on both samples; recorded, not
 acted on, and not to be re-run on the same data. The stop-out row is
 the book after the live cooldown and shows nothing left to remove
 there.
+
+## 120. The dashboard was still summing quote currency as dollars
+
+Section 98 moved the journal's realised PnL to USD on 2026-09-07 23:01
+UTC. The dashboard never read that column for closed trades: since
+2026-08-21 it recomputes the result from exit and fill price, to correct
+the legacy rows booked against the signal price, and that recomputation
+is in the instrument's quote currency. The first evening with yen and
+HK50 stale exits after the switch showed it — three closes worth
+-0.06, +0.66 and +0.60 USD in the journal rendered as +193.59 USD
+"today" and turned the all-time figure positive:
+
+| trade | journal (USD) | dashboard recomputation | ratio |
+|---|---|---|---|
+| HK50 short, 0.07 | -0.059 | -0.462 HKD | 7.8 |
+| CHFJPY short, 200 | +0.662 | +101.80 JPY | 153.7 |
+| AUDJPY short, 300 | +0.600 | +92.25 JPY | 153.6 |
+
+Every USD-quoted close since the switch matches the column exactly. The
+dashboard now reads `realized_pnl` for rows closed from 2026-09-07
+23:05 UTC and keeps the price recomputation for the legacy rows, whose
+residual currency distortion is the under-4 % footnote of section 99.
+Today's line reads +1.20 USD and all-time -96.72 USD after the fix. A
+test pins both branches and the fallback. The lesson for the gain
+figure this whole document is measured by: a dashboard that computes
+its own result from prices has to convert currency too, or read the
+book that does.

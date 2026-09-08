@@ -2161,3 +2161,27 @@ the section numbers below point there.
   target exit is negative on both samples but misses both clauses of
   the bar twice; recorded, not to be re-run on the same data.
 - **Decision:** not built in. No code change, no restart. Section 119.
+
+## 2026-09-09 (fourth run) — dashboard PnL summed quote currency as dollars — FIXED
+
+- **Lever:** accounting behind the gain figure — the dashboard showed
+  +193.59 USD for the day after three stale exits the journal booked at
+  +1.20 USD. Its closed-trade result is recomputed from exit and fill
+  price (to correct legacy rows booked against the signal price) in the
+  instrument's quote currency, so the yen trades counted 154× and HK50
+  8× their dollar result. Run 9 had fixed the journal, not this path.
+- **Measurement (journal, read-only):** journal `realized_pnl` against
+  the dashboard expression for every close since 2026-09-07: USD
+  instruments identical, HK50 ×7.8, CHFJPY ×153.7, AUDJPY ×153.6.
+- **Decision:** fixed. `_PNL` in `generate_dashboard.py` reads
+  `realized_pnl` for rows closed from 2026-09-07 23:05 UTC (the USD
+  booking's live time) and keeps the price recomputation only for the
+  legacy rows. Test `test_dashboard_pnl_currency.py` pins both branches
+  and the fallback; the dashboard tests pass. Three failures in
+  `test_runtime_guard_wiring.py` are pre-existing and unrelated: the
+  wired stop-out cooldown reads the live journal, which holds today's
+  COPPER stop-out, and the tests pass with the cooldown disabled and
+  fail identically on the previous commit. Dashboard regenerated: today
+  +1.20 USD, all-time -96.72 USD; the test URL serves the corrected
+  page. No trading change, no restart (the dashboard loop picks the
+  script up on its next 30-second pass). Section 120.
