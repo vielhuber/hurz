@@ -3443,3 +3443,50 @@ sample in time (sections 110 to 114) has been necessary but not
 sufficient — a candidate that survives it has to be read on
 instruments and on trades that were not part of the selection before
 it is believed.
+
+## 116. Peer confirmation flips sign between the samples
+
+The entry features of a single instrument are measured out (sections
+110 to 115); the first cross-instrument reading asks whether a breakout
+that is part of a move across its class carries further than a lone
+break. `scripts/peer_breakout_breadth.py` replays the three live 1h
+trend strategies on the router-passed path at the 2-ATR stop, venue
+minimum, live widening rule, gap-aware stop booking and the commodity
+short block over all 26 tradeable instruments, and buckets every trade
+by the number of *other* instruments of the same class (fx / index /
+crypto / commodity) that produced a router-passed signal of any live
+strategy in the same direction during the 24 bars up to the signal,
+counted whether or not the simulator could take them. The buckets were
+fixed a priori at 0, 1, 2 and >= 3 peers, so no edge was fitted on the
+recent year. Preregistered rule as in sections 110 to 114: a bucket is
+blocked only if significantly negative at t < -2 on both disjoint
+samples and its difference to the rest holds at |t| > 2 with the same
+sign on both.
+
+| same-direction peers in 24 bars | last 365 d: n / E[R] / t / diff vs rest / t | prior 730 d: same |
+|---|---|---|
+| 0 (lone break) | 922 / +0.022 / +0.77 / +0.069 / +2.19 | 1,974 / +0.034 / +1.71 / +0.025 / +1.12 |
+| 1 | 1,210 / +0.027 / +1.04 / +0.082 / +2.80 | 2,503 / -0.002 / -0.10 / -0.023 / -1.14 |
+| 2 | 743 / **-0.073** / **-2.64** / -0.048 / -1.55 | 1,553 / **-0.055** / **-3.04** / -0.084 / **-4.11** |
+| >= 3 (crowded) | 1,619 / **-0.091** / **-4.78** / -0.090 / **-3.65** | 3,105 / **+0.051** / **+3.74** / +0.054 / **+3.12** |
+
+On the recent year the reading is the reverse of the hypothesis and
+strong: the crowded quarter loses 0.091 R at t = -4.78 and the lone and
+single-peer breaks are the only positive buckets, in all three
+strategies. On the older sample the same bucket is the *best* one,
++0.051 R at t = +3.74, and the difference to the rest holds at
+t = +3.12 with the opposite sign. This is a clean sign flip on a bucket
+that qualified under the rule on the first sample, the sharpest yet in
+this log, and the class tables say why: the crowded bucket is 60 %
+index trades, and a class-wide index breakout in the recent year was
+mostly a short into a bull-market dip (section 109's index shorts,
+-0.199 R), while in the two years before it was a long in a rising
+market. Peer confirmation is reading the index regime of the sample,
+not the signal. The two-peer bucket is negative on both samples, but a
+feature that is bad at two peers and good at three is not a mechanism,
+and it was not preregistered as a split.
+
+No filter is built in. Peer confirmation joins the entry features as
+measured and dead; the cross-sectional information in this book has now
+been read as relative strength (sections 31, 33), as BTC leadership
+(section 7) and as class breadth, and none of the three carries.

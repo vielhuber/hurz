@@ -2033,3 +2033,46 @@ the section numbers below point there.
   for the log: a candidate that survives the independent time sample
   is read on the excluded instruments and on the journal before it is
   believed.
+
+## 2026-09-08 (forty-sixth run) — peer confirmation (same-class breakouts in the same direction)
+
+- **Lever:** regime filter, new signal source — the first
+  cross-instrument reading after the single-instrument entry features
+  were measured out in runs 40 to 45. Hypothesis: a breakout that is
+  part of a class-wide move (other fx pairs, indices, commodities
+  breaking the same way within 24 bars) carries further than a lone
+  break, so a confirmation filter would raise E[R]. Feature: number of
+  other instruments of the same class with a router-passed signal of
+  any live strategy in the same direction in the 24 bars up to the
+  signal; buckets fixed a priori at 0 / 1 / 2 / >= 3. Preregistered
+  rule as in runs 40 to 44 (t < -2 for the bucket and |t| > 2 for the
+  difference to the rest, same sign, on both disjoint samples).
+- **Measurement:** `scripts/peer_breakout_breadth.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware stop
+  booking, router-passed path, commodity short block, three live trend
+  strategies, all 26 tradeable instruments, paced history pages (three
+  429s on the bot during the two fetches, none on the fetches). Last
+  365 days, then days 366–1,095 as the independent check.
+- **Result (E[R] net of costs):**
+
+  | same-direction peers | last 365 d: n / E[R] / t / t_diff | prior 730 d: n / E[R] / t / t_diff |
+  |---|---|---|
+  | 0 (lone break) | 922 / +0.022 / +0.77 / +2.19 | 1,974 / +0.034 / +1.71 / +1.12 |
+  | 1 | 1,210 / +0.027 / +1.04 / +2.80 | 2,503 / -0.002 / -0.10 / -1.14 |
+  | 2 | 743 / **-0.073** / **-2.64** / -1.55 | 1,553 / **-0.055** / **-3.04** / **-4.11** |
+  | >= 3 (crowded) | 1,619 / **-0.091** / **-4.78** / **-3.65** | 3,105 / **+0.051** / **+3.74** / **+3.12** |
+
+  The hypothesis is reversed on the recent year (crowded breakouts are
+  the worst bucket at t = -4.78) and the bucket qualifies under the
+  rule there — then flips sign on the older sample, where it is the
+  best bucket at t = +3.74. The crowded bucket is 60 % index trades: a
+  class-wide index breakout was a short into a bull-market dip in the
+  recent year and a long in a rising market before, so the feature
+  reads the index regime of the sample (run 39's index shorts). The
+  two-peer bucket is negative on both samples but a two-bad, three-good
+  shape is not a mechanism and was not a preregistered split.
+- **Decision:** not built in — sign flip on the qualifying bucket, the
+  sharpest in this log. No code change, no restart. Section 116.
+  Cross-sectional information has now been read three ways (relative
+  strength, BTC lead, class breadth) and none carries.
