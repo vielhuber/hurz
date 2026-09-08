@@ -1817,3 +1817,45 @@ the section numbers below point there.
   that did.
 - **Decision:** not built in — dead in both directions. No code change,
   no restart. Section 110.
+
+## 2026-09-08 (forty-first run) — breakout-bar strength (signal bar range in ATR)
+
+- **Lever:** regime filter, entry quality — after run 40 measured the
+  close's extension from its mean, the one remaining unmeasured feature
+  of the signal bar is the bar itself: its high-low range in ATR(14).
+  Hypothesis: a wide-range breakout bar is a momentum bar that carries
+  through, a narrow one is the marginal break that reverses, so a
+  minimum-range filter would raise E[R]. Preregistered rule as in run
+  40: a quartile bucket is blocked only if significantly negative
+  (t < -2) on both disjoint samples and its difference to the rest holds
+  at |t| > 2 with the same sign on both; edges fixed on the recent year
+  and applied unchanged to the older.
+- **Measurement:** `scripts/breakout_bar_range.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware stop
+  booking, router-passed path, commodity short block, three live trend
+  strategies, all 26 tradeable instruments. Last 365 days, then days
+  366–1,095 as the independent check. History fetched in paced 35-day
+  pages so the replay stays off the live loop's request budget (one 429
+  on the bot during the run against 21 during run 40's fetch).
+- **Result (E[R] net of costs):**
+
+  | signal bar range | last 365 d: n / E[R] / t / t_diff | prior 730 d: n / E[R] / t / t_diff |
+  |---|---|---|
+  | below 1.00 ATR | 1,126 / -0.054 / -2.39 / -1.05 | 2,089 / -0.005 / -0.31 / -1.38 |
+  | 1.00–1.45 | 1,125 / -0.059 / -2.45 / -1.23 | 2,237 / -0.004 / -0.23 / -1.31 |
+  | 1.45–2.09 | 1,125 / -0.061 / -2.51 / -1.32 | 2,438 / **+0.034** / **+2.09** / +1.35 |
+  | above 2.09 ATR (wide) | 1,127 / **+0.042** / +1.58 / **+3.36** | 2,351 / +0.032 / +1.81 / +1.12 |
+
+  On the recent year the wide quarter is the only positive bucket and
+  beats the rest by +0.100 R at t = +3.36, while the three narrower
+  quarters each read about -0.06 R at t ≈ -2.4 — the shape the
+  hypothesis predicts, in all three strategies. On the older sample the
+  sign of the wide quarter persists (+0.032 R) but at t = 1.81 and a
+  difference of only t = +1.12, none of the narrower buckets is
+  negative, and the 1.45–2.09 bucket a filter would remove is the best
+  of the four there at +0.034 R, t = +2.09. Neither half of the
+  preregistered bar is met on the older sample.
+- **Decision:** not built in — the recent-year reading is a bull-year
+  artefact of the same kind as run 39's index shorts, not a stable
+  feature. No code change, no restart. Section 111.

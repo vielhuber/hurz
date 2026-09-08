@@ -3197,3 +3197,38 @@ anywhere on the older sample. This is the buffered-breakout idea of
 `donchian_atr` (rejected 2026-07-08) measured as a feature of the live
 signals rather than as a new strategy, and it lands where that did.
 No filter is built in.
+
+## 111. Wide breakout bars win on the recent year only
+
+Section 110 measured the close's extension from its mean; the other
+feature of the signal bar is the bar itself, its high-low range in
+ATR(14). `scripts/breakout_bar_range.py` replays the three live 1h
+trend strategies on the router-passed path at the 2-ATR stop, venue
+minimum, live widening rule, gap-aware stop booking and the commodity
+short block over all 26 tradeable instruments, and buckets every trade
+by that range. Quartile edges were fixed on the recent year (1.00 /
+1.45 / 2.09 ATR) and applied unchanged to the two years before.
+Preregistered rule as in section 110: a bucket is blocked only if it is
+significantly negative at t < -2 on both disjoint samples and its
+difference to the rest holds at |t| > 2 with the same sign on both.
+
+| signal bar range | last 365 d: n / E[R] / t / diff vs rest / t | prior 730 d: same |
+|---|---|---|
+| below 1.00 ATR | 1,126 / -0.054 / -2.39 / -0.028 / -1.05 | 2,089 / -0.005 / -0.31 / -0.027 / -1.38 |
+| 1.00–1.45 | 1,125 / -0.059 / -2.45 / -0.034 / -1.23 | 2,237 / -0.004 / -0.23 / -0.026 / -1.31 |
+| 1.45–2.09 | 1,125 / -0.061 / -2.51 / -0.037 / -1.32 | 2,438 / **+0.034** / **+2.09** / +0.026 / +1.35 |
+| above 2.09 ATR | 1,127 / **+0.042** / +1.58 / **+0.100** / **+3.36** | 2,351 / +0.032 / +1.81 / +0.023 / +1.12 |
+
+The recent year reads exactly as the momentum-bar hypothesis predicts:
+the widest quarter of signal bars is the only positive bucket, beats
+the rest by 0.100 R at t = +3.36, and every narrower quarter loses
+about 0.06 R at t ≈ -2.4, in all three strategies alike. The older
+sample keeps the sign of the wide quarter (+0.032 R) but not the size
+(t = 1.81, difference t = +1.12), no narrower bucket is negative there,
+and the 1.45–2.09 quarter that any minimum-range filter would remove is
+the best of the four on that sample at +0.034 R, t = +2.09. This is the
+pattern of section 109's index shorts — a strong reading confined to
+the recent year that the independent sample does not carry — and the
+preregistered bar is missed on both counts there. No filter is built
+in; the signal bar's own features are now measured on both counts
+(extension, range) and neither is a lever.
