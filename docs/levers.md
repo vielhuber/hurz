@@ -1525,3 +1525,29 @@ the section numbers below point there.
 - **Decision:** not changed — the wall-clock leash stays; converting it
   to a bar count would need session calendars per instrument for a
   difference this size. No code change, no restart.
+
+## 2026-09-08 (thirty-second run) — nightly selector reliability
+
+- **Lever:** pair selection, operational — how often the nightly
+  ranking refresh has actually run since July and how stale the active
+  list the bot trades has been. Read from the application log's nightly
+  markers (one per day when the scheduler fired) and the active list's
+  own timestamp.
+- **Measurement (logs, read-only):**
+
+  | period | nightly markers | missing days | cause |
+  |---|---:|---|---|
+  | 2026-07-08 – 2026-08-26 | 49 of 50 days | 08-01 | one gap, unexplained |
+  | 2026-08-27 – 2026-09-04 | 0 of 9 days | all | the reboot outage of section 49 (bot down) |
+  | 2026-09-05 – 2026-09-06 | 2 of 2 | — | |
+  | 2026-09-07 | 0 of 1 | 09-07 | bank-holiday guard suspends the whole loop, scheduler included |
+  | active list today | generated 2026-09-06 05:49 UTC | two days old | today's run is due 05:49 UTC |
+
+  When the bot runs, the scheduler runs; the ranking goes stale only
+  when the bot is down or idled by the holiday guard, which also idles
+  the backtest that needs no open market. Two days of staleness on a
+  ranking that section 97 shows carries no forecast is not a cost the
+  book can measure.
+- **Decision:** not changed — letting the scheduler run through
+  holidays would be correct in principle and worth nothing in
+  expectancy, so it is recorded, not built. No code change, no restart.

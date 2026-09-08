@@ -3042,3 +3042,12 @@ the wall-clock leash trades 5 % more often, times out 15 % more often
 and gives back 0.002–0.008 R per trade on the two samples, t of -0.2
 and -0.4. Same sign twice, inside the noise, conservative. Left as is;
 the calendar machinery to align them is not worth 0.005 R.
+
+## 102. The nightly refresh runs whenever the bot does
+
+Log markers show the selector fired on 49 of 50 days from 8 July to
+26 August, on none of the nine reboot-outage days (49) and not on the
+Labor Day the holiday guard idled the loop. The ranking is stale only
+when the bot is, plus holidays, where the guard also idles a backtest
+that needs no market. Given 97, a two-day-old list costs nothing
+measurable; noted, not changed.
