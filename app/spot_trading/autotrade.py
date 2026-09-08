@@ -207,6 +207,27 @@ def _bars_to_df(bars: List[Bar]) -> pd.DataFrame:
     } for b in bars])
 
 
+def _completed_bars(bars: List[Bar], resolution: str,
+                    now: Optional[datetime] = None) -> List[Bar]:
+    """Drop the forming candle the venue serves as the last row.
+
+    Orders were going out a median 31 minutes before the signal bar
+    closed, on a breakout the close then often took back; intrabar
+    entries measured -0.052 R and -0.023 R against close-confirmed ones
+    on the two walk-forward samples (EDGE_FINDINGS 92). Every backtest
+    enters on the close, so the live loop now waits for it too."""
+    minutes = _RES_MINUTES.get(resolution, 60)
+    now = now or datetime.now(timezone.utc)
+    while bars:
+        opened = bars[-1].timestamp
+        if opened.tzinfo is None:
+            opened = opened.replace(tzinfo=timezone.utc)
+        if opened + timedelta(minutes=minutes) <= now:
+            break
+        bars = bars[:-1]
+    return bars
+
+
 async def _fetch_recent_bars(platform: Platform, pair: str,
                              resolution: str, lookback_bars: int) -> List[Bar]:
     """Pull just enough bars to evaluate the strategy on the latest
@@ -215,9 +236,10 @@ async def _fetch_recent_bars(platform: Platform, pair: str,
     minutes = _RES_MINUTES.get(resolution, 60)
     end = datetime.now(timezone.utc)
     start = end - timedelta(minutes=minutes * lookback_bars)
-    return await platform.fetch_history(
+    bars = await platform.fetch_history(
         pair, from_ts=start, to_ts=end, resolution=resolution,
     )
+    return _completed_bars(list(bars), resolution, end)
 
 
 def _derive_stop_target(entry: float, direction: int, atr: float,

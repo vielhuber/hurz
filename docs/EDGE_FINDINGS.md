@@ -2926,3 +2926,22 @@ earns nothing back — the fills that come to the limit are the moves
 that already ended. Market entry stays; the gap is recorded as the
 book's largest unmodelled cost, and one that hourly data cannot
 measure further.
+
+## 92. Live was trading the forming bar
+
+Orders left a median 31 minutes before the signal bar closed. The
+venue's history ends with the current candle, and the loop treated it
+as the just-closed bar, so live entered on intrabar crossings of the
+channel while every backtest here enters on the confirmed close.
+Measured on both samples (`scripts/intrabar_vs_close.py`), the intrabar
+entry is worse by -0.052 R (t = -2.98) and -0.023 R (t = -1.88), with
+yearly sums of -164 R against +149 R and -478 R against -148 R — the
+extra fifth of entries are the breakouts the close takes back.
+
+This is the largest live/backtest divergence in the document, larger
+than the leash (17) or the trail (27), and it ran in the direction
+that made live worse than measured rather than better. The loop now
+discards the forming bar (`_completed_bars`) and enters on the close
+the backtests price. Twentieth defect; the first whose correction
+should raise live expectancy toward the measured figure rather than
+lower the measured figure toward live.

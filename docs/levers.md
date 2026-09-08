@@ -1219,3 +1219,37 @@ the section numbers below point there.
   measurable handle on it is sub-bar execution (order latency, quote
   timing), which needs tick data the venue does not serve. Recorded as
   the open cost item, not as a lever. No code change, no restart.
+
+## 2026-09-08 (twenty-second run) — entries on the forming bar — BUILT IN
+
+- **Lever:** signal timing, the largest live/backtest divergence found
+  in this log. Run 20's latency check showed orders leaving a median
+  31 minutes *before* the signal bar closed: the venue serves the
+  current, still-forming candle as the last row and `evaluate_pair`
+  treated it as "the just-closed bar", so live entered on intrabar
+  channel crossings while every backtest in this document enters on the
+  confirmed close. Measured the two entries on ten core instruments,
+  three live trend strategies, 2-ATR stop, both samples.
+- **Measurement:** `scripts/intrabar_vs_close.py`.
+
+  | strategy | last 365 d: n close / E[R] close / n intrabar / E[R] intrabar / diff / t | prior 730 d: same |
+  |---|---|---|
+  | donchian_breakout | 2,106 / +0.033 / 2,576 / -0.006 / -0.038 / -1.35 | 4,308 / -0.025 / 5,130 / -0.013 / +0.012 / +0.63 |
+  | turtle_breakout | 1,363 / +0.009 / 1,824 / -0.065 / -0.073 / -2.15 | 2,819 / -0.021 / 3,608 / -0.062 / -0.041 / -1.75 |
+  | keltner_breakout | 1,957 / +0.035 / 2,295 / -0.014 / -0.049 / -1.66 | 4,042 / +0.005 / 4,637 / -0.041 / -0.046 / -2.26 |
+  | **pooled** | 5,426 / +0.028 / 6,695 / **-0.025** / **-0.052** / **-2.98** | 11,169 / -0.013 / 13,375 / **-0.036** / **-0.023** / **-1.88** |
+  | Σ R per sample | close +149 / intrabar **-164** | close -148 / intrabar **-478** |
+
+  The forming bar produces a fifth more entries, and the extra ones are
+  the crossings the close takes back: -0.052 R and -0.023 R against
+  the confirmed entry, same sign on both samples, five of six strategy
+  cells negative. It also explains most of run 20's 0.128 R fill gap —
+  the "signal price" in the journal was a provisional close.
+- **Decision:** built in. `_fetch_recent_bars` now drops trailing bars
+  whose period has not ended (`_completed_bars`), so the loop sees the
+  confirmed close within its next poll and enters on what the backtests
+  measure. Four tests cover the drop, the keep, naive timestamps and 4h
+  bars. Consequences named: about a fifth fewer entries; orders now
+  leave up to a minute after the close instead of half an hour before
+  it; the journal's `bar_time` from here on is the closed bar. Risk
+  limits are untouched. Hurz restarted.
