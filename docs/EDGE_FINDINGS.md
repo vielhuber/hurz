@@ -3655,3 +3655,32 @@ point — the class signs are noise on 26 instruments over three years
 and noise on 238 live trades, and they disagree. No tilt is built in;
 the class dimension joins the instrument ranking (section 27's
 successor, run 27) as measured and unpredictive.
+
+## 122. The target re-entry does not travel either
+
+Section 119 left one unpreregistered reading with the same sign on both
+walk-forward samples: a re-entry within a day of a target exit on the
+same instrument, -0.144 and -0.086 R, below the rest at t = -1.6 on
+each. Following section 115's rule — a candidate that survives the time
+sample is read on the excluded instruments and on the journal before it
+is believed — `scripts/target_reentry_second_look.py` reads the same
+split, preregistered before either ran: a 24-hour target-exit cooldown
+would be built in only if the bucket were below the rest at t < -2 on
+the excluded instruments and the journal agreed in sign.
+
+| sample | n after target ≤ 24 h | E[R] | rest E[R] | diff | t |
+|---|---|---|---|---|---|
+| section 119, last 365 d (26 live instruments) | 184 | -0.144 | -0.019 | -0.126 | -1.60 |
+| section 119, prior 730 d | 353 | -0.086 | +0.009 | -0.095 | -1.65 |
+| (B) live journal, 238 closed trades | 41 | -0.139 | +0.003 | -0.142 | -0.73 |
+| (A) excluded instruments, 3 years, merged timeline | 469 | -0.066 | -0.130 | **+0.063** | **+1.30** |
+
+The journal agrees in sign, as weakly as its 41 trades allow. The
+excluded instruments do not: there the re-entry after a target is the
+*better* trade by 0.063 R, in a sample of 3,836 with the same router,
+stop and cooldown. Three readings against one, none of the four
+significant, and the one independent instrument set points the other
+way — that is the profile of noise with a lucky sign, not of a
+mechanism. No cooldown is built in; the exit-kind dimension (stop,
+timeout, target) is now measured in full, and only the stop-out
+cooldown of section 86 stands.

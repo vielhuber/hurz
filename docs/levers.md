@@ -2211,3 +2211,30 @@ the section numbers below point there.
 - **Decision:** not built in. No code change, no restart. Section 121.
   The class dimension is measured and unpredictive, like the instrument
   ranking (run 27).
+
+## 2026-09-09 (sixth run) — re-entry after a target exit, on unselected samples
+
+- **Lever:** regime filter after an exit — run 47's unpreregistered
+  reading (re-entry within 24 h of a target exit -0.144 / -0.086 R on
+  the two walk-forward samples, t_diff -1.6 each). Preregistered before
+  running: a 24-h target-exit cooldown is built in only if the bucket is
+  below the rest at t < -2 on the excluded instruments and the live
+  journal agrees in sign.
+- **Measurement:** `scripts/target_reentry_second_look.py` — (A) the 13
+  excluded instruments with history, three years, merged one-position
+  timeline, router-passed, 2-ATR stop, venue minimum, live widening
+  rule, gap-aware booking, live 6-h stop-out cooldown, costs charged
+  without the ceiling skip; (B) the live journal, 238 closed 1h-trend
+  trades, flagged when the instrument had a target exit in the 24 h
+  before the signal bar.
+
+  | sample | n flagged | E[R] flagged | rest | diff / t |
+  |---|---|---|---|---|
+  | journal | 41 | -0.139 | +0.003 | -0.142 / -0.73 |
+  | excluded instruments | 469 | -0.066 | -0.130 | **+0.063 / +1.30** |
+
+  The journal agrees in sign, weakly; the excluded instruments point
+  the other way. None of the four readings is significant.
+- **Decision:** not built in — the first preregistered condition fails.
+  No code change, no restart. Section 122. The exit-kind dimension is
+  measured in full; only the stop-out cooldown stands.
