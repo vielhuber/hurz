@@ -1205,6 +1205,10 @@ def main() -> int:
     tmp_path = f"{_OUT_PATH}.{os.getpid()}.tmp"
     with open(tmp_path, "w", encoding="utf-8") as f:
         f.write(html)
+    # The rename creates a fresh inode under the writer's umask. The bot's
+    # heartbeat hook inherits umask 077 when the session was started from
+    # an agent run, so Apache answered 403 until the loop rewrote the file.
+    os.chmod(tmp_path, 0o644)
     os.replace(tmp_path, _OUT_PATH)
     window = "all-time" if days is None else f"{days}d window"
     print(f"✓ dashboard written to {_OUT_PATH} "
