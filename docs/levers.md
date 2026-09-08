@@ -1469,3 +1469,36 @@ the section numbers below point there.
   keltner entry should be re-read once close-confirmed trades exist —
   moot while the strategy is out of the rotation by decision (run 23).
   No code change, no restart.
+
+## 2026-09-08 (thirtieth run) — the selector's minimum trade count
+
+- **Lever:** pair selection — the sample-size floor below which a
+  (strategy, pair) combo is not ranked. The CLI default is 30; the
+  nightly job passes 10 (lowered 2026-06-29 because the router-gated
+  backtest left the list empty at 15). Measured per combo on the
+  router-passed path, 26 instruments × three trend strategies, whether
+  the ranking year's trade count predicts anything about the next
+  year, and where the floor actually binds.
+- **Measurement:** `scripts/combo_counts.py` (ranking year = days
+  730–365, next year = last 365).
+
+  | reading | value |
+  |---|---|
+  | router-passed combos, trend strategies | 78, median 59 trades in the ranking year, none below 30 |
+  | next-year E[R] of those combos | -0.0525 (combo mean), -0.0457 trade-weighted |
+  | Spearman (ranking-year E → next-year E) | +0.24 (p = 0.04) |
+  | persisted ranking, donchian: pairs with n < 30 | 14, all cost-blocked crypto plus PLATINUM / PALLADIUM |
+  | persisted ranking, turtle: pairs with n = 0 | 21 |
+  | persisted ranking, momentum: median n | 1; the eight ranked momentum combos sit on 10–21 trades |
+
+  For the three trend strategies the floor never binds — every combo
+  clears 30 on its own. It binds on momentum, which passes the router
+  one time in seven (run 23) and is ranked first on the indices on
+  10–21 trades; those combos have produced two live trades since July,
+  so the noise they carry into the list has cost nothing so far. The
+  weak rank persistence (+0.24) is the run-27 result again.
+- **Decision:** not changed. Raising the floor to 30 would empty the
+  momentum rows without touching the trend book, and lowering it
+  further would rank on even less; neither is a gain lever. Recorded:
+  the momentum ranks in the active list rest on samples section 40
+  says cannot be validated. No code change, no restart.

@@ -3022,3 +3022,14 @@ process visits -0.10 as a matter of course, so the rule decides when
 the book stops, not which strategy is bad. Live it has never touched a
 rotation strategy and its keltner entry is forming-bar-era evidence.
 It stays, as a retire-only backstop, and is not read as a finding.
+
+## 100. The trade-count floor binds only on momentum
+
+Every trend-strategy combo on the measured instruments clears the
+selector's floor on its own — 59 router-passed trades a year at the
+median, none under 30 (`scripts/combo_counts.py`) — so the nightly
+floor of 10 exists for momentum, which the router lets through once
+in seven signals and which is ranked first on the indices on 10–21
+trades. Those rows have traded twice since July. Raising the floor
+would delete them without changing the book; the floor stays, and the
+momentum ranks are read as section 40 says samples that size must be.
