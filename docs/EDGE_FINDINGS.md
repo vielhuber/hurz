@@ -3388,3 +3388,58 @@ log from its own bull-year readings was written before the data and it
 says not yet. The 4h ADX at entry can be reconstructed for every
 journalled trade from its `bar_time` and the 1h history, so the
 forward test needs no change to what trades or what is journalled.
+
+## 115. The 4h-ADX split does not travel: flat on the excluded instruments, reversed in the journal
+
+Section 114 left the median split of the 4h ADX (>= 25.5 at the 1h
+signal) as the strongest candidate on record: the same sign on both
+walk-forward samples at t = -3.23 and -4.21 for the difference, the
+block bar missed only on the upper half's own significance. A split
+found on 26 instruments and then re-read on the same 26 is still a
+selection, so `scripts/htf_adx_second_look.py` reads it, fixed at
+25.532, on two samples no earlier run touched. (A) The instruments the
+live book excludes — the eleven cost-blocked crypto and metal
+instruments, CORN, NATURALGAS and AU200; APTUSD returns no history, so
+thirteen — over three years, router-passed, 2-ATR stop, venue minimum
+and live widening rule, costs charged at their actual spread but
+without the 10 % ceiling skip so that trades exist. (B) The live
+journal of the 1h trend strategies, 231 closed Capital.com trades from
+May to September 2026 with realised R at the actual fill, the 4h ADX at
+each signal bar reconstructed from the 1h history. Preregistered before
+either ran: the ceiling would be built in only if the upper half were
+worse than the lower on (A) at t < -2 and the journal agreed in sign.
+
+| sample | n | lower half E[R] | upper half E[R] | upper − lower | t |
+|---|---|---|---|---|---|
+| (A) excluded instruments, net | 9,257 | -0.131 | -0.125 | +0.006 | +0.33 |
+| (A) excluded instruments, gross of cost | 9,257 | +0.010 | +0.002 | -0.008 | -0.42 |
+| (B) journal, all closed | 231 | -0.083 | +0.013 | +0.096 | +0.72 |
+| (B) journal, since 2026-08-24 | 27 | -0.138 | +0.073 | +0.211 | +0.52 |
+| for reference, section 114: last 365 d | 4,426 | +0.012 | -0.068 | -0.080 | -3.23 |
+| for reference, section 114: prior 730 d | 9,065 | +0.053 | -0.019 | -0.072 | -4.21 |
+
+Nothing of section 114 survives the move. On the excluded instruments
+the two halves are the same to within 0.006 R over nine thousand
+trades, net and gross, in all three strategies. In the journal the
+sign is reversed: the trades taken while the 4h chart was trending are
+the better half, +0.013 R against -0.083 R, in donchian, turtle and
+keltner alike and in the forward window since the filters went live —
+the journal is too small for the t to mean much (0.72), but a real
+effect of the size section 114 measured would have read the other way
+with better than even odds, and it reads the other way in every slice.
+The excluded set is mostly altcoins and thin commodities, structurally
+unlike the live book, and the journal was traded at the 1-ATR stop
+until 2026-09-07 rather than the 2-ATR stop of the replay; both are
+reasons the readings could differ, neither is a reason to believe the
+replay over them. A feature that holds on the instruments it was found
+on, at two time windows, and on nothing else is the signature of a
+property of those instruments over those years, not of the signal.
+
+No filter is built in. The 4h ADX is struck from the forward-test
+list; the ADX slope of section 112 stays as the only candidate there,
+and it shares the same weakness (never read outside the 26). The
+methodological point is worth keeping: for this book the independent
+sample in time (sections 110 to 114) has been necessary but not
+sufficient — a candidate that survives it has to be read on
+instruments and on trades that were not part of the selection before
+it is believed.

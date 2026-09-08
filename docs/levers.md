@@ -1994,3 +1994,42 @@ the section numbers below point there.
   needed to read it forward. A cleaner second look would fix the split
   at the median once and test it on a sample neither run has seen,
   which the history endpoint does not currently offer.
+
+## 2026-09-08 (forty-fifth run) — the 4h-ADX split on data no run had selected on
+
+- **Lever:** regime filter, second look — run 44 left the 4h-ADX median
+  split (block 1h trend entries when 4h ADX >= 25.5) as the strongest
+  candidate on record, with the difference to the rest holding on both
+  walk-forward samples but the block bar missed. Both samples were the
+  same 26 instruments. Preregistered: the ceiling is built in only if,
+  on the instruments excluded from the live book, the upper half is
+  worse than the lower at t < -2, and the live journal agrees in sign.
+- **Measurement:** `scripts/htf_adx_second_look.py`. (A) The thirteen
+  excluded instruments with history (cost blocklist, CORN, NATURALGAS,
+  AU200; APTUSD has none), three years, cost-charging walk-forward
+  simulator, router-passed path, 2-ATR stop, venue minimum, live
+  widening rule, costs charged without the ceiling skip, three live
+  trend strategies. (B) The live journal: 231 closed Capital.com trades
+  of the 1h trend strategies, realised R at the actual fill, 4h ADX at
+  the signal bar reconstructed from the 1h history. Split fixed at
+  25.532 from run 44.
+- **Result:**
+
+  | sample | n | lower half E[R] | upper half E[R] | upper − lower / t |
+  |---|---|---|---|---|
+  | (A) excluded instruments, net of cost | 9,257 | -0.131 | -0.125 | +0.006 / +0.33 |
+  | (A) excluded instruments, gross | 9,257 | +0.010 | +0.002 | -0.008 / -0.42 |
+  | (B) journal, all closed | 231 | -0.083 | +0.013 | +0.096 / +0.72 |
+  | (B) journal, forward since 2026-08-24 | 27 | -0.138 | +0.073 | +0.211 / +0.52 |
+
+  Flat on the excluded instruments in all three strategies, net and
+  gross; reversed in sign in the journal in every slice. Run 44's
+  reading (t_diff -3.23 and -4.21) does not exist outside the 26
+  instruments it was found on.
+- **Decision:** not built in — both preregistered conditions failed.
+  No code change, no restart. Section 115. The 4h ADX is struck from
+  the forward-test list; the ADX slope (run 42) remains there with the
+  caveat that it, too, has only ever been read on the 26. Rule added
+  for the log: a candidate that survives the independent time sample
+  is read on the excluded instruments and on the journal before it is
+  believed.
