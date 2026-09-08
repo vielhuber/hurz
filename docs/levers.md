@@ -1944,3 +1944,53 @@ the section numbers below point there.
   no restart. Section 113. The signal bar (extension, range, ADX slope)
   and the level it breaks (age) are now all measured; none is a lever,
   the ADX slope of run 42 remains the only one worth a forward read.
+
+## 2026-09-08 (forty-fourth run) — 4h trend strength as a second regime gate
+
+- **Lever:** regime filter — the router gates 1h trend entries on the
+  1h ADX only. Hypothesis: a breakout with the 4h chart already
+  trending has the higher timeframe behind it, so a 4h-ADX floor would
+  raise E[R]. Feature: ADX(14) of the 4h bars resampled from the same
+  history, read at the last 4h bar completed before the signal.
+  Preregistered rule as in runs 40 to 43 (quartile bucket blocked only
+  if t < -2 on both disjoint samples and |t| > 2 for the difference to
+  the rest with the same sign on both; edges fixed on the recent year).
+  After the recent year and before the older sample: the median split
+  (4h ADX >= 25.5) preregistered as a second candidate, same bar.
+- **Measurement:** `scripts/htf_adx_gate.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware stop
+  booking, router-passed path, commodity short block, three live trend
+  strategies, all 26 tradeable instruments, paced 35-day history pages
+  (no 429 on either fetch or on the bot). Last 365 days, then days
+  366–1,095 as the independent check.
+- **Result (E[R] net of costs):**
+
+  | 4h ADX at the 1h signal | last 365 d: n / E[R] / t / t_diff | prior 730 d: n / E[R] / t / t_diff |
+  |---|---|---|
+  | below 19.8 | 1,106 / +0.019 / +0.80 / +2.22 | 2,140 / +0.051 / +2.94 / +2.37 |
+  | 19.8–25.5 | 1,107 / +0.005 / +0.20 / +1.54 | 2,112 / +0.055 / +3.11 / +2.60 |
+  | 25.5–33.2 | 1,105 / **-0.073** / **-3.01** / **-2.15** | 2,176 / +0.031 / +1.78 / +1.05 |
+  | above 33.2 | 1,108 / **-0.062** / **-2.43** / -1.56 | 2,637 / **-0.060** / **-3.73** / **-5.57** |
+  | upper half (>= 25.5) | 2,213 / **-0.068** / **-3.83** / **-3.23** | 4,813 / -0.019 / -1.60 / **-4.21** |
+
+  The hypothesis is reversed: 1h breakouts that fire while the 4h chart
+  is *not* yet trending are the profitable side on both samples, and
+  the lower-versus-upper difference holds at t = -3.23 and -4.21 — the
+  first filter whose gain has the same sign on both samples (book
+  -0.028 → +0.012 R and +0.015 → +0.053 R, at half the entries). The
+  bar is still missed: the recent year's qualifying quartile turns
+  positive on the older sample, and the upper half is not significantly
+  negative on its own there (t = -1.60 against t < -2) — the same
+  clause the ADX slope of run 42 failed, and the two features are
+  related. The top quarter (above 33.2) passes the first clause on both
+  samples and fails the difference on the recent year (t = -1.56); it
+  was not preregistered.
+- **Decision:** not built in — the preregistered bar was not met on
+  either candidate. No code change, no restart. Section 114. This
+  replaces the ADX slope as the strongest candidate for the forward
+  test; the 4h ADX at entry is reconstructable from each journalled
+  trade's `bar_time` and the 1h history, so no journal change is
+  needed to read it forward. A cleaner second look would fix the split
+  at the median once and test it on a sample neither run has seen,
+  which the history endpoint does not currently offer.

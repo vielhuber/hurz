@@ -3324,3 +3324,67 @@ first half of the preregistered rule is missed already on the recent
 year, so the independent sample could not have rescued it. No filter is
 built in; the level's age joins extension, range and ADX slope as a
 measured non-feature of the entry.
+
+## 114. A trending 4h chart is where the 1h breakouts lose — twice in sign, once in size
+
+The router reads trend strength from the 1h bars only. Whether the
+4h chart is trending at the moment a 1h breakout fires had never been
+read; the hypothesis going in was the usual one, that a breakout with
+the higher timeframe already trending has the wind behind it.
+`scripts/htf_adx_gate.py` replays the three live 1h trend strategies on
+the router-passed path at the 2-ATR stop, venue minimum, live widening
+rule, gap-aware stop booking and the commodity short block over all 26
+tradeable instruments, and buckets every trade by ADX(14) of the 4h
+bars (resampled from the same 1h history, read at the last 4h bar
+completed before the signal, so nothing after the signal is seen).
+Quartile edges were fixed on the recent year (19.8 / 25.5 / 33.2) and
+applied unchanged to the two years before. Preregistered rule as in
+sections 110 to 113: a bucket is blocked only if significantly negative
+at t < -2 on both disjoint samples and its difference to the rest holds
+at |t| > 2 with the same sign on both. After the recent year had been
+seen and before the older sample ran, the median split (4h ADX >= 25.5)
+was preregistered as a second candidate under the same bar.
+
+| 4h ADX at the 1h signal | last 365 d: n / E[R] / t / diff vs rest / t | prior 730 d: same |
+|---|---|---|
+| below 19.8 | 1,106 / +0.019 / +0.80 / +0.063 / +2.22 | 2,140 / +0.051 / +2.94 / +0.047 / +2.37 |
+| 19.8–25.5 | 1,107 / +0.005 / +0.20 / +0.043 / +1.54 | 2,112 / +0.055 / +3.11 / +0.053 / +2.60 |
+| 25.5–33.2 | 1,105 / **-0.073** / **-3.01** / -0.061 / **-2.15** | 2,176 / +0.031 / +1.78 / +0.021 / +1.05 |
+| above 33.2 | 1,108 / **-0.062** / **-2.43** / -0.046 / -1.56 | 2,637 / **-0.060** / **-3.73** / -0.105 / **-5.57** |
+| upper half (>= 25.5) | 2,213 / **-0.068** / **-3.83** / -0.080 / **-3.23** | 4,813 / -0.019 / -1.60 / -0.072 / **-4.21** |
+| book without the upper half | 2,213 / +0.012 | 4,252 / +0.053 |
+
+The hypothesis is reversed and the reversal is the most consistent
+reading this log has recorded. On both samples the lower half — 1h
+breakouts that fire while the 4h chart is not yet trending — is the
+profitable side, and the difference to the upper half holds at
+t = -3.23 and t = -4.21. The widest quarter (4h ADX above 33) is
+significantly negative on both samples on its own, -0.062 R and
+-0.060 R, and it is the worst bucket in all three strategies on the
+older sample. Read as an early-trend entry: the 1h channel breaks
+before the 4h ADX has built, and by the time the 4h chart reads as a
+strong trend the 1h breakouts are late.
+
+The preregistered bar is still missed, twice, and by the same clause
+each time. The quartile that qualified on the recent year (25.5–33.2)
+turns positive on the older sample, +0.031 R at t = +1.78 — the losing
+band moved up a quarter between the samples. The median split holds its
+difference on both samples but the upper half is not significantly
+negative on its own on the older one: -0.019 R at t = -1.60 against the
+required t < -2. The top quarter would pass the first clause on both
+samples and fails the second on the recent year, where its difference
+to the rest is t = -1.56; it was not preregistered. Section 112's ADX
+slope failed on exactly the same clause, and the two features are
+related (a high 4h ADX is a trend that has been building for a day or
+more), so this is probably the same thing seen from a second angle
+rather than an independent confirmation.
+
+No filter is built in. Measured as if it were: dropping the upper half
+lifts the book from -0.028 to +0.012 R on the recent year and from
++0.015 to +0.053 R on the older one, at half the entries. That is the
+size of effect the target requires and the first time both samples
+agree on the sign of a filter's gain, but the rule that protects this
+log from its own bull-year readings was written before the data and it
+says not yet. The 4h ADX at entry can be reconstructed for every
+journalled trade from its `bar_time` and the 1h history, so the
+forward test needs no change to what trades or what is journalled.
