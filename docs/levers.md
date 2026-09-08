@@ -2292,3 +2292,27 @@ the section numbers below point there.
   on hourly bars, which is why 61 % of trades time out.
 - **Decision:** not built in — 1.5 stays. No code change, no restart.
   Section 124.
+
+## 2026-09-09 (ninth run) — holding leash by stop status (pinned vs ATR-bound)
+
+- **Lever:** exit logic — after run 52 (78 % pinned at 6.5 ATR), the
+  leash was read separately for pinned and ATR-bound trades.
+  Preregistered: 48 bars for pinned trades only if better than 24 on
+  that subset at t > 2 on both samples.
+- **Measurement:** `scripts/hold_by_pin_status.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, RR 1.5, stop
+  2.0 ATR, venue minimum, live widening rule, gap-aware booking,
+  router-passed path, commodity short block, three live trend
+  strategies, 26 instruments, holds 24 / 48 / 72 / 96. Last 365 days.
+
+  | group | E[R] at 24 / 48 / 72 / 96 | timeout % at 24 → 96 | best vs 24, t |
+  |---|---|---|---|
+  | pinned (78 %) | -0.035 / -0.031 / -0.031 / -0.027 | 72 → 36 | +0.008, t 0.33 |
+  | ATR-bound (22 %) | -0.026 / -0.072 / -0.073 / -0.069 | 23 → 1 | -0.043, t -0.83 |
+
+  More time changes the pinned trades by a hundredth of an R and makes
+  the ATR-bound trades worse; nothing near the bar, the older sample
+  was not run.
+- **Decision:** not built in — 24 stays. No code change, no restart.
+  Section 125. The pinned trades need a volatility-scaled stop the
+  venue does not offer, not more time.

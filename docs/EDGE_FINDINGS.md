@@ -3763,3 +3763,32 @@ reach neither level (section 123). The venue floor is not a cost
 detail of this book, it is its execution model, and the levers this
 document has swept — stop multiple, target, leash, signal features —
 were all swept on top of it.
+
+## 125. More time does not help the pinned trades
+
+Section 124 left the obvious follow-up: a stop of 6.5 ATR needs more
+than 24 hourly bars to resolve, a 2-ATR stop does not, so the holding
+leash might want to differ by stop status. `scripts/hold_by_pin_status.py`
+replays the three live 1h trend strategies on the router-passed path,
+venue minimum, live widening rule, gap-aware stop booking and the
+commodity short block over all 26 tradeable instruments at holds 24 /
+48 / 72 / 96, separately for pinned and ATR-bound trades. Preregistered:
+a 48-bar leash for pinned trades only is built in if better than 24 on
+that subset at t > 2 on both disjoint samples.
+
+| last 365 d | hold 24 (live) | 48 | 72 | 96 |
+|---|---|---|---|---|
+| pinned (78 %, 6.5 ATR): E[R] / timeout % / vs 24, t | -0.035 / 72 / — | -0.031 / 55 / +0.004, t +0.21 | -0.031 / 45 / +0.004, t +0.17 | -0.027 / 36 / +0.008, t +0.33 |
+| ATR-bound (22 %, 2.0 ATR): same | -0.026 / 23 / — | -0.072 / 10 / -0.046, t -0.90 | -0.073 / 4 / -0.047, t -0.91 | -0.069 / 1 / -0.043, t -0.83 |
+
+The pinned trades time out seven times in ten at 24 bars and still
+four times in ten at 72; giving them up to four days moves their
+expectancy by less than a hundredth of an R at t ≈ 0.3. The ATR-bound
+quarter, where the stop is where the design put it, gets worse with
+every extension — its breakouts that have not paid in a day do not pay
+in four, and holding them turns timeouts into stops. Nothing meets the
+bar on the first sample; the second was not run. The leash was already
+measured out pooled (sections 62 and 89); split by stop status it is
+measured out too. What the pinned trades need is not time but a stop
+scaled to their volatility, which the venue does not sell below 1.05 %
+of price — the vise of section 23, now measured from the exit side.
