@@ -1678,3 +1678,39 @@ the section numbers below point there.
   deviation is recorded as the figure to check on the first
   close-confirmed GOLD trades, and if it holds, GOLD's cost input
   should be raised to it. No code change, no restart.
+
+## 2026-09-08 (thirty-seventh run) — off-hours spreads on the indices
+
+- **Lever:** cost filter — the audited spread table holds daytime
+  spreads; at 04:36 UTC the live quotes ran 13× the table on FR40,
+  6× on HK50, 3× on UK100, 2.7× on DE40 and AUDJPY, with FR40 and HK50
+  above the 10 % cost ceiling at the 1.05 % stop. Half of all index
+  signals fire outside cash hours (FR40 46 %, UK100 46 %, DE40 50 %,
+  EU50 49 %, HK50 47 %, US500 47 %). Live charges the quote at the
+  moment of the order (and widens or refuses); the backtest charges the
+  table at every hour. Simulated the five European and Asian indices
+  with hour-dependent costs — the measured off-hours half-spread
+  outside cash hours, the table inside — against the table alone,
+  three live trend strategies, 2-ATR stop, both samples.
+- **Measurement:** `scripts/index_offhours_costs.py` (off-hours
+  spreads from a single 04:36 UTC snapshot).
+
+  | costs | last 365 d: n / E[R] / t / cost R / Σ R | prior 730 d: same |
+  |---|---|---|
+  | audited table (backtest) | 2,292 / -0.048 / -2.76 / 0.013 / -109 | 4,624 / -0.039 / -3.20 / 0.013 / -179 |
+  | hour-dependent | 2,243 / -0.057 / -3.30 / 0.029 / -127 | 4,526 / -0.052 / -4.33 / 0.028 / -236 |
+  | of which off-hours trades | 961 at -0.054 R | 1,851 at -0.066 R |
+
+  The five indices are significantly negative on both samples with
+  either cost model, and the true costs make them a further
+  0.01–0.013 R worse: the cost per R doubles because half the trades
+  are opened into an off-hours spread the table does not know. The
+  live cost filter sees that spread and widens or refuses, so live is
+  protected where the backtest is not — the ranking that puts these
+  instruments in the book is the thing that is wrong.
+- **Decision:** not built in — an hour-dependent cost model needs a
+  spread-by-hour table, and one 04:36 snapshot is not that table. The
+  per-instrument block criterion (run 21) is still not met on the
+  router-passed path for any of the five. Recorded as the one cost
+  correction still open: sample the venue's spreads by hour for a week,
+  then charge them in the simulator. No code change, no restart.

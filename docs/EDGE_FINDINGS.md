@@ -3095,3 +3095,16 @@ they were sized on — five half-spreads, about 5 % of R at the widened
 stop, all from the forming-bar era. Execution, not the table. The
 first close-confirmed GOLD trades will show whether that cost survives
 entering on a closed bar; until then the table stands.
+
+## 107. The spread table is a daytime table
+
+Before the European open the venue quotes FR40 at thirteen times its
+audited spread, HK50 at six, UK100 at three, DE40 at nearly three; half
+of every index strategy's signals fire in those hours. Charging the
+off-hours spread where it applies (`scripts/index_offhours_costs.py`,
+one snapshot) doubles the cost per R on the five European and Asian
+indices and takes their expectancy from -0.048 / -0.039 R to -0.057 /
+-0.052 R on the two samples. Live sees the real quote and widens or
+refuses; the backtest that ranks them does not. The correction needs a
+spread-by-hour table the project does not have yet; recorded as the
+open cost item, alongside 91's sub-bar execution.
