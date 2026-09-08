@@ -2986,3 +2986,16 @@ as a group, -0.014 and -0.023 R after the router, no instrument
 significantly negative twice. Random, like the rest of the book, and
 now counted by the cluster cap (95) and sized in dollars (77) before
 the selector puts them in play. Nothing to block, nothing to promote.
+
+## 97. Instrument rankings do not persist year to year
+
+Across three disjoint yearly windows the rank correlation of
+instrument expectancy is +0.02, +0.10 and +0.32 on all signals — the
+first transition puts last year's winners below its losers — and
++0.51, +0.32, +0.62 on the router-passed path with a few hundred
+trades per instrument (`scripts/all_instruments_check.py`). The
+selector ranks by backtest as if the ranking meant something; on the
+whole-signal basis it does not, and on the router path it is the size
+of effect this document has already watched dissolve. Nothing is
+added. The names that keep landing at the bottom (UK100, FR40, AU200)
+are the structural cases of section 70.

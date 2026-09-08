@@ -1377,3 +1377,34 @@ the section numbers below point there.
   cooldown, one position per instrument).
 - **Decision:** not changed — nothing blocked, nothing pinned. No code
   change, no restart.
+
+## 2026-09-08 (twenty-seventh run) — does the instrument ranking persist?
+
+- **Lever:** pair selection — whether an instrument's expectancy in one
+  period predicts the next, which is what ranking by backtest assumes.
+  Tested on three disjoint yearly windows of the three-year history for
+  the 31 measured instruments (21 with router-passed figures in every
+  window), pooled over the three live trend strategies, 2-ATR stop:
+  Spearman rank correlation of instrument E[R] across consecutive
+  windows, and the next-period E[R] of the prior period's top and
+  bottom ten.
+- **Measurement:** `scripts/all_instruments_check.py` for the two
+  older windows, this session's runs 16, 21 and 26 for the recent one.
+
+  | transition | Spearman, all signals | Spearman, router-passed | next-period E[R]: prior top-10 / bottom-10 / all |
+  |---|---:|---:|---|
+  | year 3 → year 2 | +0.02 (p = 0.92) | +0.51 (p = 0.02) | -0.064 / -0.057 / -0.060 |
+  | year 2 → year 1 | +0.10 (p = 0.67) | +0.32 (p = 0.16) | -0.015 / -0.032 / -0.021 |
+  | year 3 → year 1 | +0.32 (p = 0.15) | +0.62 (p = 0.00) | -0.002 / -0.044 / -0.021 |
+
+  On all signals there is no persistence: the first transition ranks
+  the previous winners *below* the previous losers. On the
+  router-passed path something persists, on 21 instruments with a few
+  hundred trades each — the same size of effect this document has
+  watched dissolve five times, and it is not stable across transitions
+  either. The recurring names at the bottom (UK100, FR40, AU200) are
+  the structural losers run 21 already examined; AU200 is blocked, and
+  FR40 and UK100 fail the live-path criterion.
+- **Decision:** not changed — no ranking rule is added, and the
+  selector's existing ranking is read as what it is: a list of
+  instruments that trade, not a forecast. No code change, no restart.
