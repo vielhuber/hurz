@@ -3279,3 +3279,48 @@ one — but the older sample's gain comes from removing trades that lose
 written before the data were seen. No filter is built in. ADX at entry
 is already journalled (`entry_adx`), so a slope reading can be added to
 the forward test without changing what trades.
+
+## 113. How old the broken level is does not matter
+
+Sections 110 to 112 read the signal bar itself; the level it clears had
+never been read. A donchian or turtle entry breaks the extreme of its
+channel window, and that extreme was either printed a bar or two ago
+(a trend already running, the channel rising under the price) or near
+the far end of the window (a base the breakout resolves). The classic
+claim is that the second kind carries further. `scripts/breakout_base_age.py`
+replays the three live 1h trend strategies on the router-passed path at
+the 2-ATR stop, venue minimum, live widening rule, gap-aware stop
+booking and the commodity short block over all 26 tradeable
+instruments, and buckets every trade by the age of the channel extreme
+it broke (argmax of the highs or argmin of the lows over the strategy's
+own window: 20 bars for donchian and keltner, 55 for turtle), expressed
+as a fraction of that window. Quartile edges were fixed on the recent
+year (0.050 / 0.145 / 0.350) and applied unchanged to the two years
+before. Preregistered rule as in sections 110 to 112: a bucket is
+blocked only if significantly negative at t < -2 on both disjoint
+samples and its difference to the rest holds at |t| > 2 with the same
+sign on both.
+
+| age of the broken level / window | last 365 d: n / E[R] / t / diff vs rest / t | prior 730 d: same |
+|---|---|---|
+| below 0.05 (fresh) | 606 / -0.041 / -1.22 / -0.011 / -0.30 | 1,178 / +0.011 / +0.47 / -0.006 / -0.22 |
+| 0.05–0.145 | 1,618 / -0.028 / -1.41 / +0.005 / +0.21 | 3,234 / +0.010 / +0.73 / -0.008 / -0.48 |
+| 0.145–0.35 | 1,145 / -0.024 / -0.98 / +0.011 / +0.38 | 2,301 / +0.031 / +1.78 / +0.020 / +1.01 |
+| above 0.35 (base) | 1,125 / -0.040 / -1.57 / -0.011 / -0.37 | 2,416 / +0.011 / +0.65 / -0.006 / -0.32 |
+| age > 0.5 (deep base) | 718 / -0.044 / -1.41 / -0.015 / -0.44 | 1,589 / +0.017 / +0.79 / +0.001 / +0.04 |
+
+Nothing moves. On the recent year every bucket sits within 0.011 R of
+the rest and no difference reaches |t| = 0.6; on the older sample the
+widest gap is the third quarter at +0.020 R, t = +1.01. The half of the
+signals that break a level set in the last 15 % of the window and the
+quarter that break a base older than half the window read the same as
+everything else on both samples. Per strategy the shape is noise as
+well: turtle's second bucket is +0.073 R at t = +2.55 on the older
+sample and -0.025 R on the recent year, the sign flip of a chance
+reading. The median age is 0.15 of the window, three bars for the 20-bar
+channel: most router-passed breakouts clear a level printed within the
+previous few bars, which is what an ADX >= 30 gate selects for. The
+first half of the preregistered rule is missed already on the recent
+year, so the independent sample could not have rescued it. No filter is
+built in; the level's age joins extension, range and ADX slope as a
+measured non-feature of the entry.

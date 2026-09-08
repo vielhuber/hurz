@@ -1903,3 +1903,44 @@ the section numbers below point there.
   (`git reset --hard`, clean) at 18:04 CEST during this run and removed
   the uncommitted replay script once; it was recreated and committed
   before the second sample ran.
+
+## 2026-09-08 (forty-third run) — age of the broken level (base versus running trend)
+
+- **Lever:** regime filter, entry quality — runs 40 to 42 measured the
+  signal bar; the level it clears had not been read. Hypothesis: a
+  breakout that resolves a base (channel extreme printed long ago) has
+  more room than one that extends a trend already running (extreme
+  printed a bar or two ago), so filtering out fresh-level breaks would
+  raise E[R]. Feature: bars since the broken channel extreme, over the
+  strategy's own window (20 donchian / keltner, 55 turtle), as a
+  fraction of the window. Preregistered rule as in runs 40 to 42: a
+  quartile bucket is blocked only if significantly negative (t < -2) on
+  both disjoint samples and its difference to the rest holds at |t| > 2
+  with the same sign on both; edges fixed on the recent year and
+  applied unchanged to the older.
+- **Measurement:** `scripts/breakout_base_age.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware stop
+  booking, router-passed path, commodity short block, three live trend
+  strategies, all 26 tradeable instruments, paced 35-day history pages
+  (one 429 on the replay's fetch, none on the bot). Last 365 days, then
+  days 366–1,095 as the independent check.
+- **Result (E[R] net of costs):**
+
+  | age of broken level / window | last 365 d: n / E[R] / t / t_diff | prior 730 d: n / E[R] / t / t_diff |
+  |---|---|---|
+  | below 0.05 (fresh) | 606 / -0.041 / -1.22 / -0.30 | 1,178 / +0.011 / +0.47 / -0.22 |
+  | 0.05–0.145 | 1,618 / -0.028 / -1.41 / +0.21 | 3,234 / +0.010 / +0.73 / -0.48 |
+  | 0.145–0.35 | 1,145 / -0.024 / -0.98 / +0.38 | 2,301 / +0.031 / +1.78 / +1.01 |
+  | above 0.35 (base) | 1,125 / -0.040 / -1.57 / -0.37 | 2,416 / +0.011 / +0.65 / -0.32 |
+
+  Flat on both samples: no bucket is significantly negative anywhere and
+  no difference to the rest exceeds |t| = 1.01. The deep-base split
+  (age > 0.5, a quarter of the trades) reads the same as the rest on
+  both samples too. Per strategy only noise, with a turtle bucket
+  flipping sign between the samples. The rule is missed already on the
+  recent year.
+- **Decision:** not built in — dead on both samples. No code change,
+  no restart. Section 113. The signal bar (extension, range, ADX slope)
+  and the level it breaks (age) are now all measured; none is a lever,
+  the ADX slope of run 42 remains the only one worth a forward read.
