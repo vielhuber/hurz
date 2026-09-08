@@ -1253,3 +1253,37 @@ the section numbers below point there.
   leave up to a minute after the close instead of half an hour before
   it; the journal's `bar_time` from here on is the closed bar. Risk
   limits are untouched. Hurz restarted.
+
+## 2026-09-08 (twenty-third run) — keltner_breakout in the nightly rotation
+
+- **Lever:** strategy / pair selection — `keltner_breakout` is kept out
+  of the nightly allow-list by operator decision (scheduler comment,
+  2026-07-10: it would land on the donchian book's pairs and take
+  entries through the one-position-per-instrument guard); it traded via
+  pins in July and August (33 trades, -12.79 USD, all in the
+  forming-bar era) and has no pins today. On the close-confirmed
+  simulator it is the best of the three trend strategies on both
+  samples, so the question was whether that earns it a place.
+  Preregistered: add it if it beats its random control at t > 2.0 on
+  both samples (runs 18 and 22 already hold the figures).
+- **Measurement (from this session's runs, 2-ATR stop, ten core
+  instruments):**
+
+  | reading | last 365 d | prior 730 d |
+  |---|---:|---:|
+  | keltner E[R], close-confirmed | +0.035 (n 1,957) | +0.005 (n 4,042) |
+  | donchian E[R], close-confirmed | +0.033 | -0.025 |
+  | turtle E[R], close-confirmed | +0.009 | -0.021 |
+  | keltner vs random, all signals | +0.046, t = 1.87 | +0.020, t = 1.17 |
+  | keltner vs random, router-passed | +0.003, t = 0.08 | +0.013, t = 0.51 |
+  | live, pins, forming-bar era | 33 trades, -12.79 USD | — |
+
+  Best of three by a small margin on both samples, and not different
+  from random at threshold on either; after the router the difference
+  vanishes. "Best of three randoms" is not a lever, and the guard
+  concern in the scheduler comment is real: on this book five signals
+  in six already arrive on an occupied instrument (run 13).
+- **Decision:** not changed — keltner stays out of the nightly list and
+  unpinned. Its persisted backtest (2026-07-10, 30 days) is stale and
+  should be refreshed by the next manual backtest run so the record
+  matches the close-confirmed figures above. No code change, no restart.

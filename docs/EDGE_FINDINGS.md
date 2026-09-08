@@ -2945,3 +2945,14 @@ discards the forming bar (`_completed_bars`) and enters on the close
 the backtests price. Twentieth defect; the first whose correction
 should raise live expectancy toward the measured figure rather than
 lower the measured figure toward live.
+
+## 93. Keltner is the best of three randoms
+
+On the close-confirmed simulator `keltner_breakout` edges the other
+two trend strategies on both samples (+0.035 and +0.005 R) and beats
+its random control at t = 1.87 and 1.17 — after the router at 0.08
+and 0.51. It stays out of the nightly rotation: the margin is inside
+the noise on both samples and the scheduler's reason for excluding it,
+that it would take entries from instruments the book already holds,
+is exactly what run 13 measured. Its persisted backtest is from July
+and stale.
