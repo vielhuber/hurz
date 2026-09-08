@@ -1780,3 +1780,40 @@ the section numbers below point there.
   instruments stay active; no risk limit is touched. Three tests cover
   the list, the refusal and the untouched long side; full suite green
   (266 tests). Hurz restarted. Open positions keep their exit path.
+
+## 2026-09-08 (fortieth run) — late-breakout filter (extension from EMA20)
+
+- **Lever:** regime filter, entry quality — the breakout bar's features
+  had never been measured; every signal was taken as fired. Hypothesis:
+  a signal close already far from its 20-bar EMA (in ATR) is a late
+  entry that reverts into the stop, so a maximum-extension filter would
+  raise E[R]. Preregistered rule: a quartile bucket is blocked only if
+  significantly negative (t < -2) on both disjoint samples and its
+  difference to the rest holds at |t| > 2 with the same sign on both;
+  edges fixed on the recent year and applied unchanged to the older.
+- **Measurement:** `scripts/late_breakout_filter.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware stop
+  booking, router-passed path, commodity short block, three live trend
+  strategies, all 26 tradeable instruments. Last 365 days, then days
+  366–1,095 as the independent check.
+- **Result (E[R] net of costs):**
+
+  | extension bucket | last 365 d: n / E[R] / t / t_diff | prior 730 d: n / E[R] / t / t_diff |
+  |---|---|---|
+  | below 1.97 ATR (weak) | 1,126 / **-0.080** / **-3.44** / **-2.28** | 2,237 / -0.009 / -0.54 / -1.70 |
+  | 1.97–2.35 | 1,125 / -0.002 / -0.06 / +1.52 | 2,316 / -0.003 / -0.16 / -1.27 |
+  | 2.35–2.92 | 1,126 / -0.029 / -1.19 / +0.20 | 2,273 / +0.046 / +2.68 / +2.05 |
+  | above 2.92 ATR (late) | 1,126 / -0.022 / -0.86 / +0.49 | 2,287 / +0.028 / +1.56 / +0.80 |
+
+  Late breakouts are not worse on either sample — the hypothesis is
+  dead. The recent year instead flags the weak end (closes within two
+  ATR of the mean: -0.080 R, t -3.44, the marginal break that reverses),
+  and that bucket is the worst of the four on the older sample too, but
+  at -0.009 R, t -0.54 and t_diff -1.70 it misses the bar on both
+  counts. Same shape per strategy, significant nowhere on the older
+  sample. This is `donchian_atr`'s buffered breakout (rejected
+  2026-07-08) measured as a feature of the live signals; it lands where
+  that did.
+- **Decision:** not built in — dead in both directions. No code change,
+  no restart. Section 110.

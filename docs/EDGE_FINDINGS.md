@@ -3159,3 +3159,41 @@ The short side of the five commodities is refused for entries in the
 live loop, the shared simulator and the walk-forward stability check;
 the long side and the instruments stay active. Section 4's live reading
 was not wrong, it was pooled: the skew lives in one class.
+
+## 110. Late breakouts are not worse; weak ones are, but not reliably
+
+The entry features of the breakout bar had never been measured: every
+signal was taken as it fired. The one preregistered feature here is
+the extension of the signal close from the 20-bar EMA in ATR(14)
+units, signed by direction, on the idea that a close already far from
+its mean is a late entry that mean-reverts into the stop.
+`scripts/late_breakout_filter.py` replays the three live 1h trend
+strategies on the router-passed path at the 2-ATR stop, venue minimum,
+live widening rule, gap-aware stop booking and the commodity short
+block over all 26 tradeable instruments, and buckets every trade by
+that extension. The quartile edges were fixed on the recent year
+(1.97 / 2.35 / 2.92 ATR) and applied unchanged to the two years
+before. Preregistered rule: a bucket is blocked only if it is
+significantly negative at t < -2 on both disjoint samples and its
+difference to the rest holds at |t| > 2 with the same sign on both.
+
+| extension bucket | last 365 d: n / E[R] / t / diff vs rest / t | prior 730 d: same |
+|---|---|---|
+| below 1.97 ATR (weak) | 1,126 / **-0.080** / **-3.44** / -0.062 / **-2.28** | 2,237 / -0.009 / -0.54 / -0.033 / -1.70 |
+| 1.97–2.35 | 1,125 / -0.002 / -0.06 / +0.042 / +1.52 | 2,316 / -0.003 / -0.16 / -0.025 / -1.27 |
+| 2.35–2.92 | 1,126 / -0.029 / -1.19 / +0.006 / +0.20 | 2,273 / +0.046 / +2.68 / +0.041 / +2.05 |
+| above 2.92 ATR (late) | 1,126 / -0.022 / -0.86 / +0.014 / +0.49 | 2,287 / +0.028 / +1.56 / +0.016 / +0.80 |
+
+The late quarter is not worse on either sample: the hypothesis is
+dead as stated. What the recent year shows instead is the opposite
+end — closes that clear the channel while still within two ATR of
+their mean read -0.080 R at t = -3.44, the familiar marginal break
+that reverses into the stop, and the same bucket is the worst of the
+four on the older sample too. But there it is -0.009 R at t = -0.54
+and the difference to the rest is t = -1.70: the sign persists, the
+size does not, and the preregistered bar is missed on both counts.
+Per strategy the shape repeats without reaching significance
+anywhere on the older sample. This is the buffered-breakout idea of
+`donchian_atr` (rejected 2026-07-08) measured as a feature of the live
+signals rather than as a new strategy, and it lands where that did.
+No filter is built in.
