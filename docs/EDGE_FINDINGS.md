@@ -2999,3 +2999,14 @@ whole-signal basis it does not, and on the router path it is the size
 of effect this document has already watched dissolve. Nothing is
 added. The names that keep landing at the bottom (UK100, FR40, AU200)
 are the structural cases of section 70.
+
+## 98. The live-expectancy veto is a coin toss on eight trades
+
+Replaying the selector's retire rule (mean R ≤ -0.15 over ≥ 8 trades)
+per combo on both samples (`scripts/veto_replay.py`): the retired
+combos go on to return +0.061 R on the recent year (t = +2.87) and
+-0.034 R on the two years before (t = -2.82). Two significant readings
+in opposite directions from the same rule is section 34's finding in
+its purest form — eight trades of a zero-expectancy process rank
+noise. The rule stays as written, because a retire-only rule cannot
+promote a loser, but it should not be read as finding anything.

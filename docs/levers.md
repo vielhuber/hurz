@@ -1408,3 +1408,33 @@ the section numbers below point there.
 - **Decision:** not changed — no ranking rule is added, and the
   selector's existing ranking is read as what it is: a list of
   instruments that trade, not a forecast. No code change, no restart.
+
+## 2026-09-08 (twenty-eighth run) — the live-expectancy veto
+
+- **Lever:** pair selection — the selector retires a (strategy, pair)
+  combo once its live mean R over at least 8 closed trades is at or
+  below -0.15 (six combos retired today, among them donchian/OIL_CRUDE
+  at -0.25). Replayed the rule and three variants per combo on the
+  per-strategy backtest timeline, ten core instruments, 2-ATR stop,
+  both samples: what would the retired combos have returned afterwards?
+- **Measurement:** `scripts/veto_replay.py`.
+
+  | rule | last 365 d: retired / blocked n / E[R] blocked / t / delta | prior 730 d: same |
+  |---|---|---|
+  | **≥ 8 trades, mean ≤ -0.15 (live)** | 12 / 2,271 / **+0.061** / +2.87 / -138.8 R | 17 / 7,088 / **-0.034** / -2.82 / +242.6 R |
+  | ≥ 8, ≤ -0.30 | 8 / 1,600 / +0.080 / +3.08 / -128.0 R | 6 / 2,565 / -0.013 / -0.61 / +33.1 R |
+  | ≥ 16, ≤ -0.15 | 6 / 1,155 / +0.063 / +2.09 / -72.2 R | 13 / 4,888 / -0.019 / -1.32 / +91.6 R |
+  | ≥ 30, ≤ -0.10 | 5 / 754 / +0.043 / +1.09 / -32.2 R | 13 / 4,927 / -0.042 / -2.77 / +207.9 R |
+
+  On the recent year the veto retires combos that then go on to be the
+  book's best (+0.061 R); on the two years before it retires the
+  structural losers (-0.034 R). Both readings are "significant" and
+  they point opposite ways, which is what a rule keyed to eight trades
+  of a zero-expectancy process has to do (34, 40). No variant is
+  consistent either.
+- **Decision:** not changed — the veto stays as the fail-closed retire
+  rule it was written as; neither tightening nor removing it is
+  supported. The one live signal that would matter — a combo that is
+  worse than random on both samples — is the per-instrument test of
+  runs 21 and 26, and AU200 is the only one that met it. No code
+  change, no restart.
