@@ -3116,3 +3116,46 @@ instrument once an hour to `data/spread_samples.jsonl`, from the
 session the loop already holds. In a week that is the table section
 107 lacked; until then the simulator keeps charging the daytime spread
 and the live cost filter keeps charging the real one.
+
+## 109. Shorts on the commodities lose on both samples; index shorts only on the bull year
+
+Section 4 read direction off the early live journal (long -0.074 R,
+short -0.163 R) and called it no skew. It was never measured on the
+simulator at the current configuration. `scripts/direction_split.py`
+replays the three live 1h trend strategies on the router-passed path at
+the 2-ATR stop, venue minimum, live widening rule and gap-aware stop
+booking over all 26 tradeable instruments, and splits every trade by
+direction within its asset class. Preregistered rule: a class's short
+(or long) side is blocked only if it is significantly negative at
+t < -2 on both disjoint samples and the long-short difference holds at
+|t| > 2 with the same sign on both.
+
+| class, side | last 365 d: n / E[R] / t | prior 730 d: n / E[R] / t |
+|---|---|---|
+| all longs | 2,511 / -0.0005 / -0.03 | 5,212 / +0.0124 / +1.10 |
+| all shorts | 2,467 / **-0.0910** / **-5.10** | 4,865 / -0.0063 / -0.51 |
+| index longs | 810 / -0.0298 / -1.08 | 1,773 / +0.0633 / +3.48 |
+| index shorts | 852 / **-0.1992** / **-6.26** | 1,632 / +0.0174 / +0.77 |
+| commodity longs | 559 / +0.0348 / +0.76 | 1,022 / +0.0104 / +0.33 |
+| **commodity shorts** | 491 / **-0.1604** / **-3.32** | 1,004 / **-0.1015** / **-3.17** |
+| commodity long − short | +0.195 / t +2.92 | +0.112 / t +2.49 |
+| fx shorts | 784 / -0.0271 / -1.58 | 1,639 / +0.0026 / +0.21 |
+| crypto shorts | 340 / +0.1332 / +2.19 | 590 / +0.0654 / +1.36 |
+
+Index shorts are the largest single reading in this log on the recent
+year and dissolve entirely on the two years before it: that was the
+bull market, not a lever. Commodity shorts are the first split that
+holds on both samples under the preregistered rule. Per instrument,
+SILVER shorts carry most of it (-0.33 R at t = -3.5, -0.26 R at
+t = -3.9) with SILVER longs flat (+0.10, -0.02); the oils' shorts are
+significantly negative on the recent year (t = -2.0, -2.2) and mildly
+so on the older one; GOLD and COPPER shorts are flat. The live journal
+reads the same way: 29 commodity shorts returned -20.04 USD, 58 longs
+-6.86 USD. Removing the class's shorts would have added about 79 R over
+the last year and 51 R a year over the two before on the simulator,
+before the one-position rule and the caps merge signals.
+
+The short side of the five commodities is refused for entries in the
+live loop, the shared simulator and the walk-forward stability check;
+the long side and the instruments stay active. Section 4's live reading
+was not wrong, it was pooled: the skew lives in one class.

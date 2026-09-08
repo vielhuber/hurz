@@ -66,6 +66,7 @@ from app.spot_trading.position_sizing import (
     calculate_position_size,
 )
 from app.spot_trading.regime import adx_at, decide
+from app.spot_trading.trading_blocks import direction_blocked
 from app.spot_trading.strategy_parameters import DEFAULT_STOP_ATR
 
 
@@ -128,6 +129,7 @@ def _simulate_segment_expectancy(
     constraints: Optional[OrderConstraints] = None,
     cost_fraction: float = 0.0,
     venue_min_fraction: float = 0.0,
+    pair: Optional[str] = None,
 ) -> Tuple[Optional[float], int, float]:
     """Run the signal list against `df` and return the per-trade mean
     expectancy in R-units, the number of size-rejected signals and the
@@ -159,6 +161,8 @@ def _simulate_segment_expectancy(
         if i <= in_until or i >= len(df):
             continue
         if strategy_name and decide(strategy_name, adx_at(df, i)).blocked:
+            continue
+        if pair and direction_blocked(pair, sig.direction):
             continue
         atr = df.iloc[i].get("atr_14")
         if atr is None or not np.isfinite(atr) or atr <= 0:
@@ -234,6 +238,7 @@ def compute_segment_stability(
     constraints: Optional[OrderConstraints] = None,
     cost_fraction: float = 0.0,
     venue_min_fraction: float = 0.0,
+    pair: Optional[str] = None,
 ) -> Optional[StabilityResult]:
     """Run `strategy_fn` independently on N consecutive slices of `df`
     and report how many produced a positive per-trade expectancy.
@@ -291,6 +296,7 @@ def compute_segment_stability(
             constraints=constraints,
             cost_fraction=cost_fraction,
             venue_min_fraction=venue_min_fraction,
+            pair=pair,
         )
         skipped_total += skipped
         pnl_total += pnl_usd

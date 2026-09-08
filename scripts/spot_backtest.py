@@ -44,6 +44,7 @@ from app.spot_trading.regime import (
     style_of as _regime_style,
     trend_floor as _regime_trend_floor,
 )
+from app.spot_trading.trading_blocks import direction_blocked
 from app.spot_trading.strategy_parameters import (
     DEFAULT_RISK_REWARD,
     DEFAULT_STOP_ATR,
@@ -355,6 +356,8 @@ def _simulate_trades(asset: str, df: pd.DataFrame, signals, *,
         if strategy_name:
             if _regime_decide(strategy_name, _regime_adx(df, i)).blocked:
                 continue
+        if direction_blocked(asset, sig.direction):
+            continue
         row = df.iloc[i]
         atr = row.get("atr_14")
         if atr is None or not np.isfinite(atr) or atr <= 0:
@@ -703,6 +706,7 @@ async def main(args) -> None:
                 segments=3, rr=args.rr, stop_atr=args.stop_atr,
                 max_hold=args.max_hold,
                 strategy_name=args.strategy,
+                pair=pair,
                 # Without these the stability gate certifies combos the
                 # cost filter then refuses to trade — which is how the
                 # expensive instruments got waved through in the first

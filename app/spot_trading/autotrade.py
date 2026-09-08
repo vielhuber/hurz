@@ -96,6 +96,7 @@ _RES_MINUTES = {
 from app.spot_trading.trading_blocks import (
     BLOCKED_PAIRS as _BLOCKED_PAIRS,
     COST_BLOCKED_PAIRS as _COST_BLOCKED_PAIRS,
+    direction_blocked as _direction_blocked,
     DISABLED_LIVE_STRATEGIES as _DISABLED_LIVE_STRATEGIES,
 )
 
@@ -429,6 +430,11 @@ async def evaluate_pair(
                 f"skipped: regime filter: {decision.reason}",
             )
         return None
+    if _direction_blocked(pair, sig.direction):
+        _safe_log(f"⛓ short-blocked {pair} {strategy_name}")
+        if on_rejected_intent is not None:
+            on_rejected_intent(intent, "skipped: short-blocked instrument")
+        return None
     # Volume floor. The original justification — narrow stops lose more
     # because spread eats a bigger share of a small risk budget — does not
     # survive booking against actual fills. Over 435 closed trades:
@@ -468,6 +474,12 @@ async def execute_intent(
             accepted=False, asset=intent.pair, direction=intent.direction,
             size=size,
             error=f"{kind}-blocked instrument: {intent.pair}",
+        )
+    if _direction_blocked(intent.pair, intent.direction):
+        return OrderResult(
+            accepted=False, asset=intent.pair, direction=intent.direction,
+            size=size,
+            error=f"short-blocked instrument: {intent.pair}",
         )
     if intent.strategy in _DISABLED_LIVE_STRATEGIES:
         return OrderResult(

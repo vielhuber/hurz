@@ -37,6 +37,22 @@ EXPECTANCY_BLOCKED_PAIRS = {"AU200"}
 BLOCKED_PAIRS = COST_BLOCKED_PAIRS | EXPECTANCY_BLOCKED_PAIRS
 
 
+# Instruments whose short signals are refused on measured expectancy.
+# Shorts on the commodity class lost on the router-passed path in both
+# disjoint walk-forward samples (-0.16 R at t = -3.3 over the last year,
+# -0.10 R at t = -3.2 over the two years before) while the longs did not,
+# and the long-short difference held on both (t = +2.9, +2.5); the live
+# journal reads the same way (-20.04 USD on 29 shorts, -6.86 on 58
+# longs). Index shorts looked worse on the recent year and dissolved on
+# the older one, so they are not listed — see EDGE_FINDINGS 109.
+SHORT_BLOCKED_PAIRS = {"OIL_CRUDE", "OIL_BRENT", "GOLD", "SILVER", "COPPER"}
+
+
+def direction_blocked(pair: str, direction: int) -> bool:
+    """Whether a signal's direction is refused for entries on this instrument."""
+    return direction < 0 and pair in SHORT_BLOCKED_PAIRS
+
+
 # Strategies blocked for entries. Open positions keep their exit path,
 # including the ATR trail — the guards sit in evaluate_pair and
 # execute_intent only, and positions to manage come from the broker

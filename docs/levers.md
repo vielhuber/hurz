@@ -1736,3 +1736,47 @@ the section numbers below point there.
   behaviour changes; the file is git-ignored. After a week the table
   exists and the simulator can charge the hour's spread instead of the
   day's. Hurz restarted.
+
+## 2026-09-08 (thirty-ninth run) — long versus short by asset class — COMMODITY SHORTS BLOCKED
+
+- **Lever:** regime filter, direction — section 4 had read direction
+  off the early live journal only (long -0.074 R, short -0.163 R,
+  pooled over everything). Never measured on the simulator at the
+  current configuration. Preregistered rule: a class's short (or long)
+  side is blocked only if significantly negative (t < -2) on both
+  disjoint samples and the long-short difference holds at |t| > 2 with
+  the same sign on both.
+- **Measurement:** `scripts/direction_split.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware stop
+  booking, router-passed path, three live trend strategies, all 26
+  tradeable instruments in four classes. Last 365 days, then days
+  366–1,095 as the independent check.
+- **Result (E[R] net of costs):**
+
+  | class, side | last 365 d: n / E[R] / t | prior 730 d: n / E[R] / t |
+  |---|---|---|
+  | index shorts | 852 / **-0.199** / **-6.26** | 1,632 / +0.017 / +0.77 |
+  | **commodity shorts** | 491 / **-0.160** / **-3.32** | 1,004 / **-0.102** / **-3.17** |
+  | commodity longs | 559 / +0.035 / +0.76 | 1,022 / +0.010 / +0.33 |
+  | commodity long − short | +0.195 / t +2.92 | +0.112 / t +2.49 |
+  | fx shorts | 784 / -0.027 / -1.58 | 1,639 / +0.003 / +0.21 |
+  | crypto shorts | 340 / +0.133 / +2.19 | 590 / +0.065 / +1.36 |
+
+  Index shorts, the largest reading of the recent year, dissolve on the
+  older sample — the bull year, not a lever. Commodity shorts meet the
+  preregistered bar on both samples; SILVER carries most of it (shorts
+  -0.33 / -0.26 R at t -3.5 / -3.9, longs flat), the oils' shorts are
+  negative on both and significant on the recent year, GOLD and COPPER
+  shorts flat. Live journal agrees in sign: 29 commodity shorts
+  -20.04 USD, 58 longs -6.86 USD. Simulator gain from removing the
+  class's shorts: about 79 R over the last year, 51 R a year before
+  that, before the one-position rule and the caps merge signals.
+- **Decision:** built in. `SHORT_BLOCKED_PAIRS` (the five commodities)
+  and `direction_blocked()` in `trading_blocks.py`; `evaluate_pair`
+  journals a short signal there as a rejected intent, `execute_intent`
+  refuses it, `_simulate_trades` and the walk-forward stability check
+  skip it so the nightly ranking sees the same book. Longs and the
+  instruments stay active; no risk limit is touched. Three tests cover
+  the list, the refusal and the untouched long side; full suite green
+  (266 tests). Hurz restarted. Open positions keep their exit path.
