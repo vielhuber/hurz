@@ -3061,3 +3061,19 @@ orders in its daily break), 15 duplicates, 3 below the stop floor,
 loss limit or, being new, the cooldown. The book is throttled by the
 router and the one-position rule; everything else is a backstop that
 has not been reached. Nothing to replay, nothing to change.
+
+## 104. The stop floor was a GOLD block
+
+GOLD's venue minimum is 0.1 % of price, every other instrument's 1 %.
+The live loop widened stops only to what the venue demanded, so GOLD's
+2-ATR stop (about 0.9 %) reached the 1 % cost floor of 2026-08-24 and
+was refused — three refusals since, thirteen accepted trades before at
+0.3–0.5 % stops, none after. The backtests, with GOLD missing from
+the minimum-distance cache, widened it to 1.05 % and measured it there:
++0.130 R (t = 2.64) and +0.073 R (t = 2.70) on the two samples
+(`scripts/gold_stop_treatment.py`), against +0.056 and -0.060 R for
+what the floor let through. The loop now widens every stop to the
+shared 1.05 % minimum before the floor, which makes live GOLD the
+instrument the measurements describe — the one instrument in the book
+that beats random on both samples (66). Twenty-first defect, and the
+one with the clearest expected effect on the daily figure.

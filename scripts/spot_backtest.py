@@ -47,6 +47,7 @@ from app.spot_trading.regime import (
 from app.spot_trading.strategy_parameters import (
     DEFAULT_RISK_REWARD,
     DEFAULT_STOP_ATR,
+    VENUE_MIN_STOP_FRACTION,
     risk_reward_for,
 )
 from app.spot_trading.position_sizing import (
@@ -163,7 +164,7 @@ def _load_min_dist_cache() -> dict:
 
 # Capital.com's percentage rule including the 5% runtime buffer,
 # matching pair_selector._DEFAULT_VENUE_MIN_PERCENT.
-_DEFAULT_VENUE_MIN_PERCENT = 1.05
+_DEFAULT_VENUE_MIN_PERCENT = VENUE_MIN_STOP_FRACTION * 100.0
 
 
 def _venue_min_distance(platform: str, pair: str, ref_price: float) -> float:

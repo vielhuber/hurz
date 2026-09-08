@@ -1586,3 +1586,40 @@ the section numbers below point there.
   the one-position rule; the rest are backstops that have not been
   needed, which is the state a backstop should be in. No code change,
   no restart.
+
+## 2026-09-08 (thirty-fourth run) — GOLD under the stop floor — BUILT IN
+
+- **Lever:** cost filter / stop placement — the 1.00 % stop floor
+  (commit 167ec40, 2026-08-24) refused three GOLD signals and nothing
+  else since July. Reason: GOLD is the only active instrument whose
+  venue minimum is 0.1 % of price instead of 1 %, so the live loop
+  never widened its 2-ATR stop (about 0.9 %) and the floor refused it,
+  while every backtest — GOLD absent from the minimum-distance cache —
+  widened it to the 1.05 % default and measured it there. Live accepted
+  13 GOLD trades before the floor at 0.32–0.52 % stops and 0 after.
+  Simulated GOLD's three treatments on both samples, three live trend
+  strategies.
+- **Measurement:** `scripts/gold_stop_treatment.py`.
+
+  | treatment | last 365 d: n / E[R] / t / Σ R | prior 730 d: n / E[R] / t / Σ R |
+  |---|---|---|
+  | raw 2-ATR stop (venue min 0.1 %) | 558 / +0.090 / +1.81 / +50.2 | 1,213 / +0.009 / +0.27 / +11.1 |
+  | **widened to 1.05 % (backtest)** | 499 / **+0.130** / **+2.64** / +64.9 | 918 / **+0.073** / **+2.70** / +66.8 |
+  | refused under 1.00 % (live floor) | 182 / +0.056 / +0.66 / +10.2 | 67 / -0.060 / -0.47 / -4.0 |
+
+  The widened treatment is positive and significant on both samples,
+  beats its random control on both (run 16: +0.152 R, t = 2.71;
+  +0.100 R, t = 3.24), and is what the book's other 26 instruments get
+  by venue rule. The floor kept 6–33 % of GOLD's signals — the ones
+  fired in high-volatility hours — and those read worse. Mechanism as
+  in run 11: the wider stop lowers the cost per R (0.0099 against
+  0.0139) and the gross does not get worse.
+- **Decision:** built in. The live loop now widens every stop to at
+  least `VENUE_MIN_STOP_FRACTION` (1.05 % of price, shared with the
+  backtest's default) before the floor is checked, so GOLD is treated
+  as the measurements assumed and the floor stays as the backstop it
+  is for the venue-less path. Two tests cover the widening and the
+  preserved reward ratio. Risk per trade unchanged (sizing shrinks the
+  position). Hurz restarted. This is the first lever in the session
+  that is significant on both samples *and* on an instrument that beats
+  random on both.

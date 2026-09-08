@@ -47,6 +47,7 @@ from app.spot_trading.holding_period import (
 from app.spot_trading.strategy_parameters import (
     DEFAULT_RISK_REWARD,
     DEFAULT_STOP_ATR,
+    VENUE_MIN_STOP_FRACTION,
     risk_reward_for,
 )
 from app.spot_trading.position_sizing import (
@@ -394,6 +395,10 @@ async def evaluate_pair(
             )
         except Exception:
             venue_min = 0.0
+        # The backtests widen every instrument to at least 1.05 % of
+        # price; live did so only where the venue demanded it, so GOLD
+        # (venue minimum 0.1 %) fell under the cost floor below instead.
+        venue_min = max(venue_min, VENUE_MIN_STOP_FRACTION * entry_price)
         stop_dist = abs(entry_price - sl)
         if venue_min > 0 and stop_dist < venue_min:
             new_stop_dist = venue_min

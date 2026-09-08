@@ -11,6 +11,13 @@ DEFAULT_RISK_REWARD = 1.5
 # Risk per trade is unchanged; sizing shrinks the position instead.
 DEFAULT_STOP_ATR = 2.0
 
+# Smallest stop the live loop and the backtests will place, as a fraction
+# of price: the venue's 1 % minimum plus its 5 % buffer, which every
+# instrument but GOLD (venue minimum 0.1 %) already enforces. Widening
+# GOLD to it instead of refusing it under the 1 % floor measured +0.130 R
+# and +0.073 R on the two walk-forward samples (EDGE_FINDINGS 104).
+VENUE_MIN_STOP_FRACTION = 0.0105
+
 # The donchian aliases share their entry logic but deliberately use fixed,
 # wider targets. The v3 value originated from a 2026-07-08 BTCUSD backtest
 # and is not evidence of an advantage on other instruments.
