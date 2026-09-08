@@ -3625,3 +3625,33 @@ test pins both branches and the fallback. The lesson for the gain
 figure this whole document is measured by: a dashboard that computes
 its own result from prices has to convert currency too, or read the
 book that does.
+
+## 121. A class-level risk tilt has no support in the journal
+
+Sections 114 to 116 printed the book by asset class on both walk-forward
+samples, and two classes kept their sign on both: crypto +0.094 and
++0.032 R, commodities +0.033 and +0.011 R, while FX read -0.021 and
+-0.018 R (indices flipped, -0.115 then +0.041). The obvious sizing
+lever is a tilt — halve the FX risk, leave the rest — which loosens no
+limit and would raise the dollar result if the class signs are a
+property of the book rather than of the samples. Preregistered before
+the journal was read: the tilt is built in only if FX is negative in
+the live journal as well and below the rest at t < -2 on both
+walk-forward samples. The journal, 238 closed 1h-trend trades with
+realised R at the fill:
+
+| class | n | E[R] | t | vs rest, t | forward since 2026-08-24: n / E[R] |
+|---|---|---|---|---|---|
+| fx | 26 | **+0.085** | +0.90 | +1.01 | 8 / +0.437 |
+| crypto | 86 | +0.032 | +0.27 | +0.59 | 4 / -0.410 |
+| index | 26 | -0.019 | -0.15 | +0.02 | 6 / +0.077 |
+| commodity | 100 | **-0.096** | -0.87 | -0.94 | 12 / -0.205 |
+
+The journal ranks the classes the other way round: FX is its best class
+and the commodities its worst, in the whole sample and in the forward
+window alike. Nothing here is significant on either side (the FX
+readings on the walk-forward were t ≈ -1 to begin with), which is the
+point — the class signs are noise on 26 instruments over three years
+and noise on 238 live trades, and they disagree. No tilt is built in;
+the class dimension joins the instrument ranking (section 27's
+successor, run 27) as measured and unpredictive.

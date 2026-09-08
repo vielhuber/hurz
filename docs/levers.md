@@ -2185,3 +2185,29 @@ the section numbers below point there.
   +1.20 USD, all-time -96.72 USD; the test URL serves the corrected
   page. No trading change, no restart (the dashboard loop picks the
   script up on its next 30-second pass). Section 120.
+
+## 2026-09-09 (fifth run) — class-level risk tilt (halve FX risk)
+
+- **Lever:** position sizing — the class tables of runs 44 to 46 read
+  FX negative and crypto and commodities positive on both walk-forward
+  samples. Candidate: halve the FX risk per trade, no limit loosened.
+  Preregistered before reading the journal: built in only if FX is
+  negative in the live journal too and below the rest at t < -2 on both
+  walk-forward samples.
+- **Measurement (journal, read-only):** 238 closed 1h-trend trades,
+  realised R at the fill, by class.
+
+  | class | walk-forward E[R] (365 d / prior 730 d) | journal n / E[R] / t_diff vs rest |
+  |---|---|---|
+  | fx | -0.021 / -0.018 | 26 / **+0.085** / +1.01 |
+  | crypto | +0.094 / +0.032 | 86 / +0.032 / +0.59 |
+  | index | -0.115 / +0.041 | 26 / -0.019 / +0.02 |
+  | commodity | +0.033 / +0.011 | 100 / **-0.096** / -0.94 |
+
+  The journal ranks the classes the other way round — FX best,
+  commodities worst — in the whole sample and in the forward window;
+  nothing is significant on either side. The first preregistered
+  condition fails, so the walk-forward t-test was not run.
+- **Decision:** not built in. No code change, no restart. Section 121.
+  The class dimension is measured and unpredictive, like the instrument
+  ranking (run 27).
