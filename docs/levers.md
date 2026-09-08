@@ -1349,3 +1349,31 @@ the section numbers below point there.
   cluster. Hurz restarted. Effect on gain: none by construction; it
   keeps the cap true for the instruments the next active list will
   carry.
+
+## 2026-09-08 (twenty-sixth run) — the newly sizeable yen instruments
+
+- **Lever:** pair selection — EURJPY, GBPJPY, CADJPY, J225 and USDJPY
+  size for the first time since run 7 and enter the corrected ranking's
+  top ten (run 24), unmeasured. Measured each against count-matched
+  random entries and on the router-passed path, 2-ATR stop, three live
+  trend strategies, both samples; block rule as in run 21 (significantly
+  negative on both samples).
+- **Measurement:** `scripts/yen_instruments.py`.
+
+  | instrument | last 365 d: E[R] / vs random / t / router-passed E[R] | prior 730 d: same |
+  |---|---|---|
+  | EURJPY | +0.009 / +0.013 / +0.60 / +0.040 | -0.005 / +0.018 / +0.89 / +0.010 |
+  | GBPJPY | -0.014 / -0.019 / -0.75 / +0.038 | +0.001 / +0.016 / +0.74 / -0.027 |
+  | CADJPY | +0.029 / +0.030 / +1.29 / +0.000 | -0.008 / +0.019 / +0.88 / -0.039 |
+  | J225 | +0.030 / +0.021 / +0.39 / -0.150 | +0.006 / -0.004 / -0.10 / +0.015 |
+  | USDJPY | +0.015 / +0.009 / +0.34 / +0.001 | -0.005 / +0.013 / +0.54 / -0.070 |
+  | **group** | +0.015 / +0.012 / +0.73 / -0.014 | -0.002 / +0.012 / +1.06 / -0.023 |
+
+  Random on both samples, before and after the router; no instrument
+  is significantly negative twice (USDJPY's -0.070 after the router on
+  the older sample, t = -2.26, reads +0.001 on the recent one). They
+  join the book on the same footing as everything else in it: zero
+  expectancy, guards in place (jpy_crosses cluster, USD sizing,
+  cooldown, one position per instrument).
+- **Decision:** not changed — nothing blocked, nothing pinned. No code
+  change, no restart.

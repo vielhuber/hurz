@@ -2977,3 +2977,12 @@ anything else (`scripts/yen_cluster_correlations.py`); they join the
 the active list. USDJPY reads 0.50 with the crosses and 0.46 with the
 USD majors and stays where it is. A guard kept true ahead of the
 instruments it will need to count.
+
+## 96. The yen instruments, measured before they trade
+
+EURJPY, GBPJPY, CADJPY, J225 and USDJPY against random on both
+samples (`scripts/yen_instruments.py`): +0.012 R at t = 0.73 and 1.06
+as a group, -0.014 and -0.023 R after the router, no instrument
+significantly negative twice. Random, like the rest of the book, and
+now counted by the cluster cap (95) and sized in dollars (77) before
+the selector puts them in play. Nothing to block, nothing to promote.
