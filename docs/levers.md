@@ -1649,3 +1649,32 @@ the section numbers below point there.
   minimum stop on every instrument in the book.
 - **Decision:** not changed — nothing to add to the cache and nothing
   to correct in the default. No code change, no restart.
+
+## 2026-09-08 (thirty-sixth run) — GOLD's cost assumption
+
+- **Lever:** cost filter — with GOLD now tradeable at the widened stop
+  (run 34) and measured as the book's one consistently positive
+  instrument, its cost input had to be right. Compared the audited
+  spread the simulator charges with the venue's live quote and with the
+  twelve live GOLD fills in the journal.
+- **Measurement (broker quote and journal, read-only):**
+
+  | reading | value |
+  |---|---|
+  | audited spread per side | 0.0056 % → 0.0112 % round trip, 1.1 % of R at the 1.05 % stop |
+  | live quote now, half spread | 0.0056 % (SILVER 0.0373 vs 0.0374 audited, BTCUSD 0.0317 vs 0.0308, US500 0.0039 vs 0.0039) |
+  | live fills, fill vs sizing mid, median | **0.0282 %** — five times the half spread |
+  | live fills, fill vs signal close, mean | +0.0199 % (forming-bar era) |
+
+  The spread table is exact for GOLD and for the three controls. What
+  the twelve fills show is execution beyond the spread — the order
+  reached the book 0.028 % of price away from the quote it was sized
+  on, worth about 5 % of R at the widened stop, or four times the
+  spread cost the simulator charges. Every one of those fills is from
+  the forming-bar era, when orders went out mid-bar on a moving price;
+  whether it persists with close-confirmed entries is unknown until
+  the first such GOLD trades exist.
+- **Decision:** not changed — the audited cost stays; the fill
+  deviation is recorded as the figure to check on the first
+  close-confirmed GOLD trades, and if it holds, GOLD's cost input
+  should be raised to it. No code change, no restart.

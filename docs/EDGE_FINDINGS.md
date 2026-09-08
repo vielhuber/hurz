@@ -3085,3 +3085,13 @@ All 35 instruments checked against the broker's dealing rules carry a
 except GOLD at 0.1 %, which section 104 widened live to the same
 1.05 %. The 14 cached entries all say 1 %. Live and backtest now place
 the same minimum stop everywhere; the cache is redundant and harmless.
+
+## 106. GOLD's spread is right; its fills were not
+
+The audited spread for GOLD (0.0056 % a side) matches the venue's
+quote to the fourth decimal, as it does for SILVER, BTCUSD and US500.
+The twelve live GOLD fills, however, sit a median 0.028 % from the mid
+they were sized on — five half-spreads, about 5 % of R at the widened
+stop, all from the forming-bar era. Execution, not the table. The
+first close-confirmed GOLD trades will show whether that cost survives
+entering on a closed bar; until then the table stands.
