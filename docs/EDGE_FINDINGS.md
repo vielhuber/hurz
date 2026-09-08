@@ -3010,3 +3010,15 @@ in opposite directions from the same rule is section 34's finding in
 its purest form — eight trades of a zero-expectancy process rank
 noise. The rule stays as written, because a retire-only rule cannot
 promote a loser, but it should not be read as finding anything.
+
+## 99. The strategy veto would have switched the book off on any sample
+
+Replayed per strategy (`scripts/strategy_veto_replay.py`), the rule
+that retires a strategy at mean R ≤ -0.10 over 25 trades retires all
+three trend strategies on both samples inside their first 25–140
+trades: -160 R forgone on the recent year, +131 R saved on the two
+before. A running mean over a few dozen trades of a zero-expectancy
+process visits -0.10 as a matter of course, so the rule decides when
+the book stops, not which strategy is bad. Live it has never touched a
+rotation strategy and its keltner entry is forming-bar-era evidence.
+It stays, as a retire-only backstop, and is not read as a finding.

@@ -1438,3 +1438,34 @@ the section numbers below point there.
   worse than random on both samples — is the per-instrument test of
   runs 21 and 26, and AU200 is the only one that met it. No code
   change, no restart.
+
+## 2026-09-08 (twenty-ninth run) — the strategy-level veto
+
+- **Lever:** pair selection one level up — the selector retires a whole
+  strategy once its live mean R over ≥ 25 closed trades is ≤ -0.10.
+  Live it retires the mean-reversion family and `donchian_breakout_v3`
+  (all already retired by decision) and `keltner_breakout` at -0.25 R
+  over 33 trades — every one of them a forming-bar-era trade, and the
+  strategy is out of the rotation regardless. Replayed the rule and two
+  variants per strategy on both backtest samples.
+- **Measurement:** `scripts/strategy_veto_replay.py`.
+
+  | rule | last 365 d: retired / E[R] of what it blocks / t / delta | prior 730 d: same |
+  |---|---|---|
+  | **≥ 25, ≤ -0.10 (live)** | all three trend strategies / +0.030 / +2.31 / -160.3 R | all three / -0.012 / -1.34 / +130.5 R |
+  | ≥ 50, ≤ -0.10 | donchian, keltner / +0.039 / +2.60 / -156.0 R | all three / -0.011 / -1.27 / +123.5 R |
+  | ≥ 100, ≤ -0.05 | donchian / +0.038 / +1.76 / -75.4 R | all three / -0.011 / -1.25 / +121.0 R |
+
+  A running mean over the first few dozen trades of a zero-expectancy
+  process crosses -0.10 by chance, so the rule retires every trend
+  strategy on every sample within its first 25–140 trades — forfeiting
+  the recent year's positive book and avoiding the older years'
+  negative one. It is not selecting strategies; it is timing when the
+  book stops. The live rule has never retired a rotation strategy
+  (donchian +60 USD, turtle +1.6 USD over 127 and 67 trades), so it has
+  cost nothing so far.
+- **Decision:** not changed. Noted for the record: the strategy veto's
+  live evidence is entirely from the forming-bar era (run 22), so the
+  keltner entry should be re-read once close-confirmed trades exist —
+  moot while the strategy is out of the rotation by decision (run 23).
+  No code change, no restart.
