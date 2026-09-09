@@ -2581,3 +2581,16 @@ the section numbers below point there.
   the value both samples accept.
 - **Decision:** not built in — the floor stays at 1.05 %. No code
   change, no restart. Section 136.
+
+## 2026-09-09 (twenty-first run) — the stop floor by asset class
+
+- **Lever:** stop logic by class — run 64's floor sweep split by asset
+  class from its dumps (no venue load). Preregistered: a class floor
+  built in only if better net on both samples and t > 2 pooled.
+- **Result:** the recent-year gain is the indices (3 %: +0.054 R,
+  t 2.32) and reverses there on the older sample (-0.030 R, t -1.89),
+  pooled t -0.21 — the index bull-year artefact of runs 39 and 46 once
+  more. FX alone keeps the sign on both (+0.013 / +0.010 R at 3 %),
+  pooled t 1.52; crypto and commodities are noise.
+- **Decision:** not built in; the stop dimension is closed in every
+  direction. No code change, no restart. Section 137.

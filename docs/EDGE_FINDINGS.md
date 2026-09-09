@@ -4184,3 +4184,30 @@ sits at a value both samples accept — narrower loses twice, wider loses
 once — which is as much as this book can say about its stop. Position
 sizing is untouched; the wider floors would also have cut sizes by a
 third to two thirds and multiplied the minimum-size skips.
+
+## 137. The floor's recent-year gain was the indices — the same artefact again
+
+Section 136's sweep, split by asset class from its dumps (no new
+history), with the same rule per class: a class-specific floor is built
+in only if better net on both samples and t > 2 pooled.
+
+| class, floor vs 1.05 % | last 365 d: diff / t | prior 730 d: diff / t | pooled t |
+|---|---|---|---|
+| index, 3 % | **+0.054 / +2.32** | **-0.030 / -1.89** | -0.21 |
+| index, 1.5 % | +0.032 / +1.17 | -0.017 / -0.91 | -0.05 |
+| fx, 3 % | +0.013 / +1.12 | +0.010 / +1.09 | +1.52 |
+| fx, 2 % | +0.009 / +0.73 | +0.004 / +0.44 | +0.76 |
+| crypto, 1.5–3 % | +0.02 to +0.04 / ≤ 0.61 | -0.02 to +0.01 / ≤ 0.51 | ≤ 0.47 |
+| commodity, 1.5–3 % | +0.01 to +0.05 / ≤ 0.90 | -0.02 to -0.03 / ≤ -0.93 | ≤ -0.07 |
+
+The recent year's monotonic gain from a wider floor is the indices,
++0.054 R at t = 2.3 for the 3 % floor, and on the two years before the
+same class loses 0.030 R with it at t = -1.9 — section 109's index
+shorts and section 116's crowded breakouts in a third disguise: a wide
+stop on an index short in a bull year is a stop that is not hit before
+the dip reverses. FX is the one class where a wider floor reads the
+same sign on both samples, +0.013 and +0.010 R at 3 %, and it pools to
+t = 1.5; crypto and commodities are noise. Nothing qualifies and no
+class-specific floor is built in. The stop dimension is now measured in
+every direction the book allows — multiple, floor, class, leash, time
+stop — and closed.
