@@ -5053,3 +5053,55 @@ barriers, so the partial looked better there — the same "this year"
 reading the exit series has produced before. The rule fails the bar
 by a sign flip; neither variant is built in. The exit stays
 all-or-nothing at 1.5 R. Nothing changes.
+
+## 175. The weekday, opened once: every day that stands out in one year stands out the other way in the next
+
+Section 7 refused to open time, session and weekday variants because a
+free search over calendar buckets overfits, and section 51 opened the
+session window exactly once, preregistered, and watched it dissolve on
+the second sample. The weekday was the remaining calendar axis and
+`scripts/weekday_split.py` opens it the same way, once: the three live
+1h trend strategies on the router-passed path at the 2-ATR stop, venue
+minimum, live widening rule, gap-aware stop booking and the commodity
+short block over all 26 tradeable instruments, every trade bucketed
+by the UTC weekday of its signal bar. Saturday and Sunday exist only
+on the two crypto pairs. The rule was fixed before the data were seen:
+a weekday is blocked only if its E[R] is significantly negative at
+t < -2 on both disjoint samples and its difference to the rest holds
+at |t| > 2 with the same sign on both.
+
+| weekday of the 1h signal (UTC) | last 365 d: n / E[R] / t / diff vs rest / t | prior 730 d: same |
+|---|---|---|
+| Monday | 710 / -0.008 / -0.27 / +0.027 / +0.80 | 1,555 / -0.033 / -1.58 / -0.058 / **-2.51** |
+| Tuesday | 832 / **+0.060** / **+2.12** / +0.111 / **+3.54** | 1,740 / +0.009 / +0.51 / -0.007 / -0.33 |
+| Wednesday | 985 / **-0.066** / **-2.50** / -0.046 / -1.53 | 1,939 / -0.007 / -0.40 / -0.028 / -1.37 |
+| Thursday | 918 / **-0.063** / **-2.52** / -0.041 / -1.43 | 1,823 / **+0.090** / **+4.58** / +0.093 / **+4.30** |
+| Friday | 793 / +0.007 / +0.22 / +0.045 / +1.39 | 1,747 / -0.010 / -0.50 / -0.030 / -1.42 |
+| Saturday (crypto) | 51 / -0.123 / -0.80 / -0.094 / -0.61 | 91 / **+0.334** / **+2.94** / +0.322 / **+2.83** |
+| Sunday (crypto) | 214 / **-0.268** / **-4.46** / -0.249 / **-4.06** | 265 / +0.030 / +0.44 / +0.015 / +0.22 |
+| weekend (crypto) | 265 / **-0.240** / **-4.23** / -0.222 / **-3.83** | 356 / +0.107 / +1.84 / +0.096 / +1.63 |
+| book, whole | 4,503 / -0.031 / -2.29 | 9,160 / +0.015 / +1.72 |
+
+The recent year, read alone, would have been persuasive: Sunday
+signals on the crypto pairs lost 0.27 R per trade at t = -4.46, their
+gap to the rest held at t = -4.06, and all three strategies agreed
+(donchian_breakout -0.31 R at t = -3.15, turtle_breakout -0.31 R at
+t = -2.90). Tuesday was the only profitable day at +0.060 R and
+t_diff = +3.54; Wednesday and Thursday were both significantly
+negative on their own. On the two years before, none of it holds:
+Sunday is +0.030 R, Saturday the best bucket of the whole table at
++0.334 R and t = +2.94, Thursday the one significantly good day at
++0.090 R and t = +4.58 with all three strategies agreeing, Tuesday
+flat, and Monday now the worst day at t_diff = -2.51. Every day that
+stands out on one sample stands out the other way, or not at all, on
+the next. No bucket passes the first clause on both samples; the
+nearest, Wednesday, reads -0.066 R then -0.007 R.
+
+The weekend reading deserves one more word because it had a story
+ready — thin crypto liquidity, wider effective spreads, the bot's own
+audit table being a weekday table (section 107). The older sample
+refuses the story: the same thin Sunday book was profitable for two
+years. With 51 and 91 Saturday trades the sign is not even stable
+within a sample. This is section 51's dissolve on the last calendar
+axis; the weekday is a non-lever, section 7's refusal stands as the
+rule, and no calendar filter is built in. Nothing changes.

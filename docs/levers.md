@@ -3020,3 +3020,30 @@ the section numbers below point there.
 - **Decision:** not built in — fails the bar on the older sample. The
   exit stays all-or-nothing at 1.5 R. No code change, no restart.
   Section 174.
+
+## 2026-09-09 (sixtieth run) — the weekday of the signal (calendar split)
+
+- **Lever:** regime filter — the weekday of the 1h signal bar, the one
+  calendar axis section 7 had refused to open and section 51 had not
+  covered (session window). Opened exactly once, preregistered: a
+  weekday is blocked only if t < -2 on both disjoint samples and
+  |t| > 2 for the difference to the rest with the same sign on both.
+- **Measurement:** `scripts/weekday_split.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware stop
+  booking, router-passed path, commodity short block, three live trend
+  strategies, all 26 tradeable instruments, paced 35-day history
+  pages. Last 365 days (n = 4,503), then days 366–1,095 (n = 9,160) as
+  the independent check. Weekend buckets are the crypto pairs only.
+- **Result (E[R] net of costs):** recent year — Sunday -0.268 R
+  (t = -4.46, t_diff = -4.06, all three strategies), weekend -0.240 R
+  (t = -4.23), Wednesday -0.066 R (t = -2.50), Thursday -0.063 R
+  (t = -2.52), Tuesday +0.060 R (t_diff = +3.54). Older sample —
+  Sunday +0.030 R (t = +0.44), Saturday +0.334 R (t = +2.94), Thursday
+  +0.090 R (t = +4.58, all three strategies), Wednesday -0.007 R
+  (t = -0.40), Monday the worst day (t_diff = -2.51). Every standout
+  day flips or vanishes between the samples; no bucket passes the
+  first clause on both.
+- **Decision:** not built in — the calendar axis dissolves like the
+  session window did. No code change, no restart. Section 175.
+  Section 7's refusal to search calendar buckets stands as the rule.
