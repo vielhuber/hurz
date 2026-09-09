@@ -2694,3 +2694,12 @@ the section numbers below point there.
   -0.42 R at t up to -2.9 carry the historical loss.
 - **Decision:** nothing changed; no live strategy is significantly
   negative. No code change, no restart. Section 146.
+
+## 2026-09-09 (thirty-first run) — direction by class in the live journal
+
+- **Lever:** direction filter, forward read of runs 39 and 55 — 238 live
+  1h-trend trades by side and class, R from prices (read-only).
+- **Result:** commodity shorts -0.188 R (n 34, blocked since run 39),
+  index shorts -0.193 R (n 15), nothing significant; book long-short
+  difference t 0.09.
+- **Decision:** nothing changed. No code change, no restart. Section 147.

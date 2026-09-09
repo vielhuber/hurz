@@ -4443,3 +4443,26 @@ each other, live as in the simulator; the retired and disabled names
 carry the loss the dashboard's "Gesamt inkl. stillgelegt" line shows.
 Nothing in the live rotation is significantly negative and nothing
 follows for the veto.
+
+## 147. Direction in the live journal: the same signs, none significant
+
+Section 109 blocked the commodity shorts on the simulator (both samples,
+t -3.3 and -3.2) with the journal agreeing in sign; section 129 found
+the index shorts flipping between the samples. The live journal's 238
+1h-trend trades by side and class, R from prices:
+
+| class | long: n / E[R] / t | short: n / E[R] / t | long − short, t |
+|---|---|---|---|
+| fx | 13 / +0.070 / +0.46 | 13 / +0.134 / +1.16 | -0.33 |
+| index | 11 / +0.212 / +0.98 | 15 / -0.193 / -1.21 | +1.51 |
+| crypto | 49 / -0.079 / -0.52 | 37 / +0.012 / +0.07 | -0.38 |
+| commodity | 66 / -0.116 / -0.84 | 34 / -0.188 / -1.01 | +0.31 |
+| all | 139 / -0.060 / -0.68 | 99 / -0.072 / -0.73 | +0.09 |
+
+Live, the commodity shorts are the worst side (-0.188 R, 34 trades, now
+blocked) and the index shorts the next (-0.193 R, 15 trades), the two
+readings of sections 109 and 129 in sign; nothing reaches significance
+on 238 trades and the long-short difference is t = 0.09 over the book.
+Nothing follows: the block already stands where the evidence met the
+bar, and the index side did not meet it on the simulator's second
+sample.
