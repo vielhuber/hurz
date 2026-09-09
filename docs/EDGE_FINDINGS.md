@@ -4380,3 +4380,23 @@ targets, a third stops, and the book reads +0.012 R over 30 trades.
 Section 139 has already shown that the drift is that of the survivors
 and is zero unconditionally; the journal adds that live execution does
 not change the shape.
+
+## 144. Why live targets paid 1.27 R: the levels are anchored to the signal, the fill was not
+
+Section 143's live wins average +1.27 R against the +1.47 R the simulator
+books. On the 52 journalled wins with complete prices the broker is not
+the reason — 88 % closed within 0.02 R of the target, mean exit minus
+target +0.007 R — and the design is not either: target over stop,
+both measured from the signal close, is 1.499. The gap is the fill.
+Stop and target are derived from the signal close and sent with the
+order; the fill lands past the signal by the entry slippage, so measured
+from the fill the stop is wider and the target nearer: on these wins the
+slippage was +0.10 R (the forming-bar era of section 100) and the
+target stood 1.25 R from the fill, 1.15 R on the wins with the 1 %-plus
+stop. Losses show the mirror image, exiting 0.045 R beyond the stop.
+Since section 101 fixed the forming-bar entry the slippage is +0.004 to
++0.017 R (section 118), so the same anchoring now costs a hundredth of an
+R on a win and gains it back on a loss; re-anchoring the levels to the
+fill would need a second order call per trade for that. Not changed;
+the 1.27 R is a legacy figure, and the forward wins since 2026-08-24
+average +1.44 R.

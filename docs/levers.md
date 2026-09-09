@@ -2662,3 +2662,15 @@ the section numbers below point there.
   stale exits carry — the simulator's shape. Forward since 2026-08-24:
   half the closes stale at +0.22 R, book +0.012 R over 30.
 - **Decision:** nothing changed. No code change, no restart. Section 143.
+
+## 2026-09-09 (twenty-eighth run) — target realisation on the journal's wins
+
+- **Lever:** exit execution — live wins paid +1.27 R against the
+  designed +1.5 R; measured on 52 journalled wins with full prices.
+- **Result:** the broker closes at the target (88 % within 0.02 R); the
+  gap is the entry slippage of the forming-bar era (+0.10 R on these
+  wins), which puts the fill past the signal-anchored levels. Since the
+  fix slippage is ≤ 0.017 R and forward wins average +1.44 R.
+- **Decision:** nothing changed (re-anchoring levels to the fill would
+  cost an order call per trade for a hundredth of an R). No code change,
+  no restart. Section 144.
