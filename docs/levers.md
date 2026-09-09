@@ -2524,3 +2524,35 @@ the section numbers below point there.
   +0.176 R, all |t| ≤ 1.4, different shape from run 2's first sample.
 - **Decision:** nothing changed; the session dimension is closed on
   three samples. No code change, no restart. Section 134.
+
+## 2026-09-09 (nineteenth run) — the venue floor re-read: 0.01 %, not 1 %
+
+- **Lever:** stop logic / cost — the dealing rules' minStopOrProfitDistance
+  is 0.01 in plain percent (max reads 100, guaranteed-stop minimum
+  0.25); the code reads it as a fraction, so the 1.05 % floor that pins
+  78 % of trades at 6.5 ATR is the project's own, and the journal holds
+  broker-honoured stops at 0.18 % and 0.31 %. Preregistered: the venue's
+  true floor with the designed 2-ATR stop is built in only if not worse
+  than live on both samples.
+- **Measurement:** `scripts/venue_floor_correction.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  live widening rule, gap-aware booking, router-passed path, commodity
+  short block, three live trend strategies, 26 instruments; live floor
+  vs true floor at 1 / 2 / 3 ATR, both samples.
+
+  | floor / stop | last 365 d: net / cost / stop % / vs live, t | prior 730 d: same |
+  |---|---|---|
+  | 1.05 % / 2 ATR (live) | -0.033 / 0.017 / 26 / — | +0.016 / 0.018 / 22 / — |
+  | 0.0105 % / 2 ATR | -0.065 / 0.034 / 51 / -0.033, t -1.64 | -0.018 / 0.036 / 51 / -0.034, t -2.45 |
+  | 0.0105 % / 1 ATR | -0.072 / 0.059 / 60 / t -1.99 | -0.065 / 0.061 / 60 / t -5.92 |
+  | 0.0105 % / 3 ATR | -0.031 / 0.023 / 36 / t +0.07 | +0.006 / 0.025 / 36 / t -0.78 |
+
+  The accidental 1.05 % floor beats the designed stop on both samples:
+  cost per R doubles and the positive timeout drift shrinks from 61 % of
+  trades to 18 % when the stop is tightened to 2 ATR.
+- **Decision:** the stop floor stays, now documented as the project's
+  wide-stop setting rather than the venue's rule (docstrings in
+  `strategy_parameters.py`, `capital_com.min_stop_distance`,
+  `spot_backtest._venue_min_distance`); no behaviour change, tests
+  unchanged and green. No restart. Section 135 corrects sections 19,
+  23, 28, 123 and 124 on the cause.

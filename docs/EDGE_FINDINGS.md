@@ -4103,3 +4103,50 @@ Nothing above |t| = 1.4, and the two ends of the day that read largest
 here (Asia worst, late US best) are not the ones section 51's first
 sample flagged. Three samples, three different shapes: the session is
 not a lever, on the simulator or live.
+
+## 135. The "venue floor" is the project's own — and it beats the designed stop
+
+Every stop measurement in this document rests on a floor of 1.05 % of
+price described as the venue's minimum. It is not. The dealing rules
+give `minStopOrProfitDistance` as `{unit: PERCENTAGE, value: 0.01}` next
+to `maxStopOrProfitDistance` `{PERCENTAGE, 100}` and
+`minGuaranteedStopDistance` `{PERCENTAGE, 0.25}`: the unit is plain
+percent, the minimum is 0.01 % of price (GOLD 0.001 %), and the code
+reads the value as a fraction, so 0.01 became 1 % and, with the 5 %
+buffer, 1.05 % — a hundred times the venue's requirement. The journal
+confirms it: the broker accepted and honoured stops at 0.176 % (AUDUSD),
+0.310 % (ETHUSD) and 0.53–0.88 % on a dozen other instruments, each
+loss exit landing exactly at the journalled stop; the `stoploss`
+rejections on record (ARBUSD, APTUSD, July) carried stops of 1.05–2.3 %
+and were not minimum-distance rejects. Sections 23, 28, 123 and 124
+therefore describe a vise the project built for itself.
+
+Whether to remove it is a measurement, not a correction, and it was
+preregistered as one: the true floor with the designed 2-ATR stop is
+built in only if not worse than the live setting on both samples.
+`scripts/venue_floor_correction.py`, router-passed path, live widening
+rule, gap-aware booking, commodity short block, 26 instruments:
+
+| floor / stop | last 365 d: n / net E[R] / cost R / stop % / target % / timeout % / mean stop / vs live, t | prior 730 d: same |
+|---|---|---|
+| **1.05 % / 2 ATR (live)** | 4,502 / -0.033 / 0.017 / 26 / 13 / 61 / 1.22 % / — | 9,137 / +0.016 / 0.018 / 22 / 14 / 64 / 1.18 % / — |
+| 0.0105 % / 2 ATR | 5,210 / -0.065 / 0.034 / 51 / 31 / 18 / 0.70 % / -0.033, t -1.64 | 10,634 / -0.018 / 0.036 / 51 / 33 / 16 / 0.64 % / **-0.034, t -2.45** |
+| 0.0105 % / 1 ATR | 6,354 / -0.072 / 0.059 / 60 / 39 / 1 / 0.37 % / -0.039, t -1.99 | 12,981 / -0.065 / 0.061 / 60 / 40 / 1 / 0.34 % / -0.081, t -5.92 |
+| 0.0105 % / 3 ATR | 4,644 / -0.031 / 0.023 / 36 / 20 / 44 / 1.05 % / +0.001, t +0.07 | 9,476 / +0.006 / 0.025 / 36 / 22 / 42 / 0.94 % / -0.010, t -0.78 |
+
+The designed stop loses to the accidental one on both samples, by
+0.033 R and 0.034 R, significantly on the older. At 2 ATR the stop is
+0.7 % of price instead of 1.2 %, the cost per R doubles from 0.017 to
+0.035 R, half the trades stop out instead of a quarter, and the timeout
+drift that section 131 identified as the book's only positive component
+is cut from three trades in five to one in six. At 1 ATR it is worse
+again; at 3 ATR the mean stop lands at 1.0 % and the result at the live
+figure — which is the finding of section 60 (2 ATR over 1 ATR) and of
+section 123 (3 ATR no better than the floor) seen from the other side:
+on this book the stop wants to be about 1 % of price, whatever the
+volatility, because the barrier costs more than it saves and the drift
+needs room. The floor stays, now as what it is: the project's wide-stop
+setting, not the venue's rule. The three docstrings that called it the
+venue's minimum now say so; no behaviour changed and no test moved.
+Sections 19 and 23 remain correct about the numbers and wrong about the
+cause, and this section is their correction.
