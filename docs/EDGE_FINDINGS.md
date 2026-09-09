@@ -4400,3 +4400,25 @@ R on a win and gains it back on a loss; re-anchoring the levels to the
 fill would need a second order call per trade for that. Not changed;
 the 1.27 R is a legacy figure, and the forward wins since 2026-08-24
 average +1.44 R.
+
+## 145. Stop-exit slippage: at the stop, with a fat tail that is already blocked
+
+Section 144's losses exited 0.045 R beyond the stop on average, which at
+a 37 % stop share would be a cost the size of the spread. On the 83
+journalled stop exits with full prices:
+
+| stop exits | n | mean beyond stop | median | share beyond 0.10 R |
+|---|---|---|---|---|
+| all | 83 | +0.045 R (s.e. 0.022) | +0.004 R | 5 % |
+| stop under 1 % (1-ATR era) | 12 | +0.030 | +0.000 | 17 % |
+| stop at the floor or wider | 71 | +0.048 | +0.005 | 3 % |
+| since the 2-ATR stop (2026-09-07) | 2 | +0.028 | | 0 % |
+
+The median stop exit is at the stop: +0.004 R, half a hundredth of the
+distance. The mean is two trades — ATOMUSD, a gap of 1.77 R, and
+PALLADIUM, 0.54 R — both on instruments the cost blocklist has since
+removed; without them the mean is +0.02 R, and the two Monday-morning
+exits that could carry a weekend gap read +0.04 R. Stop execution is
+not a cost of this book; the gap risk that remains is the one section
+75 priced (a gapped stop costs 1.75 R, one Friday trade in twenty to
+fifty), and it lives in instruments no longer traded. Nothing changes.

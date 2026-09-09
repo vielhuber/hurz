@@ -2674,3 +2674,13 @@ the section numbers below point there.
 - **Decision:** nothing changed (re-anchoring levels to the fill would
   cost an order call per trade for a hundredth of an R). No code change,
   no restart. Section 144.
+
+## 2026-09-09 (twenty-ninth run) — stop-exit slippage on the journal
+
+- **Lever:** exit execution cost — 83 journalled stop exits, exit versus
+  stop level in stop units.
+- **Result:** median +0.004 R (at the stop); the +0.045 R mean is two
+  gaps on ATOMUSD (1.77 R) and PALLADIUM (0.54 R), both instruments
+  since blocked; without them +0.02 R. Two stop exits since the 2-ATR
+  stop: +0.028 R.
+- **Decision:** nothing changed. No code change, no restart. Section 145.
