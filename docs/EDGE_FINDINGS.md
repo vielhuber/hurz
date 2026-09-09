@@ -4758,3 +4758,17 @@ No month is distinguishable from zero and no month from another; the
 dollar column is the sizing of the time (larger positions in May and
 June) more than the expectancy. The keepalive lock was touched at
 08:05:07, the cron entries are in place.
+
+## 163. From intent to trade since the filters went live
+
+Of the 310 intents the strategies raised since 2026-08-24, the router
+refused 251; of the 59 that passed, 33 became trades (56 %). The other
+26 fell to the guards behind the router: 19 to the duplicate-instrument
+guard (a second strategy firing on a bar already taken — by design one
+entry per instrument and bar), 3 to the stop floor, 2 to the concurrent
+cap and 2 to the broker's minimum size. Nothing is refused for a reason
+that a change could recover without touching a limit: the duplicates
+are the same trade twice, and the four size and floor refusals are
+instruments the sizing cannot reach at the 1.05 % stop. The frequency
+of the live book is the router's, as section 152 says, and behind it
+the guards take four passed signals in ten, most of them duplicates.

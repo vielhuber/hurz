@@ -2847,3 +2847,11 @@ the section numbers below point there.
   to September: +0.134 / +0.029 / -0.098 / -0.088 / -0.029 R, all
   |t| ≤ 1.04 (read-only). Keepalive and cron verified.
 - **Decision:** nothing changed. No code change, no restart. Section 162.
+
+## 2026-09-09 (forty-seventh run) — intent to trade conversion
+
+- **Lever:** risk guards, in practice — since 2026-08-24: 310 intents,
+  251 router-refused, 59 passed, 33 traded (56 %); the rest: 19
+  duplicates, 3 stop floor, 2 concurrent cap, 2 minimum size (read-only).
+- **Decision:** nothing changed — nothing refused is recoverable without
+  touching a limit. No code change, no restart. Section 163.
