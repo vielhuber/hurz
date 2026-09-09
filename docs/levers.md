@@ -2863,3 +2863,11 @@ the section numbers below point there.
   before run 34's widening, two marginal minimum-size refusals (CHFJPY,
   HK50) that traded again since. No instrument is unreachable.
 - **Decision:** nothing changed. No code change, no restart. Section 164.
+
+## 2026-09-09 (forty-ninth run) — the daily figure's distribution
+
+- **Lever:** the objective's metric itself — 62 calendar days since
+  2026-07-10: -1.32 USD a day, sd 6.99, 32 % positive days, 95 % band
+  ±13.7 USD; the 58.5 USD target is 8.6 daily standard deviations out
+  (read-only).
+- **Decision:** nothing changed. No code change, no restart. Section 165.

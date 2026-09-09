@@ -4786,3 +4786,25 @@ notional cap. Both instruments traded again within days. No instrument
 in the list is structurally unreachable at the floor; the refusals are
 the fail-closed sizing doing what section 82 built it to do at the
 margin, on two signals in sixteen days.
+
+## 165. The daily figure's own distribution
+
+The objective is measured on calendar days, so the days are worth a
+table. Active book, closes since 2026-07-10, 62 calendar days:
+
+| | |
+|---|---|
+| mean per day | -1.32 USD |
+| standard deviation of a day | 6.99 USD |
+| positive / zero / negative days | 32 % / 18 % / 50 % |
+| best / worst day | +32.21 / -24.84 USD |
+| 95 % band of one day | ±13.7 USD |
+| target 58.5 USD a day | 8.6 daily standard deviations above the mean |
+
+A single day's figure is noise of ±14 USD around a mean a dollar
+below zero; the target sits nine standard deviations out. Whether the
+daily gain "rose" on any one day is therefore not readable from that
+day — today's +1.91 USD is inside the band of every day this summer —
+and the only figures that can move are the mean, which every section
+of this document has failed to move at t > 2, and the sizing, which
+multiplies the mean and the band alike (section 148).
