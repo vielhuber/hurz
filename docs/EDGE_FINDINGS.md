@@ -4693,3 +4693,15 @@ after BTCUSD (GOLD and OIL_BRENT turtle) read flat or negative live.
 The list's order carries about as much as sections 130 and 155 found
 for instruments — a weak positive rank correlation that is not
 distinguishable from none. Nothing changes.
+
+## 159. The leash live: US30 closed at 24.0 h, +0.31 R
+
+The stale-exit path read as it ran: the US30 short opened 2026-09-08
+06:00 UTC triggered at 06:00:27 the next day ("closed after 24.0h"),
+was confirmed closed 74 seconds later at 52,820.2 against a 52,994.1
+fill, +0.71 USD, +0.31 R against the 1.05 % stop. The dashboard picked
+it up on its next pass: four trades today, +1.91 USD, all-time
+-96.01 USD. Section 154's latency (71–74 s) and section 131's shape
+(a timeout carrying a small positive drift) both as measured. Nothing
+to change; the day's figure moved because a trade closed, which is the
+book working, not a lever.

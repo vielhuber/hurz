@@ -2817,3 +2817,10 @@ the section numbers below point there.
   with ≥ 5 closed trades (read-only): Spearman +0.39 (p 0.21); BTCUSD
   agrees, GOLD and OIL_BRENT turtle reverse.
 - **Decision:** nothing changed. No code change, no restart. Section 158.
+
+## 2026-09-09 (forty-third run) — the leash on the live US30 close
+
+- **Lever:** exit logic, live verification — US30 stale exit at 24.0 h,
+  74 s to confirmation, +0.31 R (+0.71 USD); dashboard updated to
+  +1.91 USD for the day, all-time -96.01 USD.
+- **Decision:** nothing changed. No code change, no restart. Section 159.
