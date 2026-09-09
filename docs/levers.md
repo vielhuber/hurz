@@ -2855,3 +2855,11 @@ the section numbers below point there.
   duplicates, 3 stop floor, 2 concurrent cap, 2 minimum size (read-only).
 - **Decision:** nothing changed — nothing refused is recoverable without
   touching a limit. No code change, no restart. Section 163.
+
+## 2026-09-09 (forty-eighth run) — the structural refusals
+
+- **Lever:** pair selection — the five non-duplicate refusals behind
+  the router since 2026-08-24: three GOLD stop-floor refusals from
+  before run 34's widening, two marginal minimum-size refusals (CHFJPY,
+  HK50) that traded again since. No instrument is unreachable.
+- **Decision:** nothing changed. No code change, no restart. Section 164.

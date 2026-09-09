@@ -4772,3 +4772,17 @@ are the same trade twice, and the four size and floor refusals are
 instruments the sizing cannot reach at the 1.05 % stop. The frequency
 of the live book is the router's, as section 152 says, and behind it
 the guards take four passed signals in ten, most of them duplicates.
+
+## 164. The five structural refusals, resolved or marginal
+
+Section 163's five refusals behind the router that were not duplicates:
+three GOLD signals refused under the 1 % floor on 2026-08-25 and
+2026-09-04 with 0.44–0.45 % stops — the case section 104 closed by
+widening GOLD to the shared floor on 2026-09-08 — and two size refusals,
+CHFJPY on 2026-09-04 and HK50 on 2026-09-07, where the size the 3 USD
+risk allowed fell a hair under the broker's minimum (1.30 against 100
+units, 0.0099 against 0.01) and raising it would have breached the
+notional cap. Both instruments traded again within days. No instrument
+in the list is structurally unreachable at the floor; the refusals are
+the fail-closed sizing doing what section 82 built it to do at the
+margin, on two signals in sixteen days.
