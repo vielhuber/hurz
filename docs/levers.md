@@ -2494,3 +2494,21 @@ the section numbers below point there.
   stopped to spare the venue.
 - **Decision:** not built in. No code change, no restart. Section 132.
   The exit side is swept in every form the book allows.
+
+## 2026-09-09 (seventeenth run) — the gain figure against the broker
+
+- **Lever:** accounting behind the gain figure — the journal's realised
+  PnL reconciled per trade with the account's TRADE transactions (last
+  30 days, matched by instrument and time; read-only).
+- **Measurement:** `scripts/broker_reconciliation.py`.
+
+  | | journal | broker | gap |
+  |---|---|---|---|
+  | 24 matched closes | -2.31 USD | -4.98 USD | +2.67 USD |
+  | of which 4 pre-fix foreign-currency closes (AUDNZD, GBPAUD, GBPCAD, AU200) | | | +2.25 USD |
+  | 20 other closes, incl. all since the USD booking fix | | | within ±0.04 USD each |
+
+  The metric is right since 2026-09-07 23:01 UTC; the legacy currency
+  rows (run 10) now have a broker-verified size; the overnight fee (run
+  58) remains the one cost outside the journal.
+- **Decision:** nothing changed in data or code; recorded. Section 133.

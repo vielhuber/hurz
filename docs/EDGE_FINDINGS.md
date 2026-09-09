@@ -4045,3 +4045,42 @@ swept in every form this book allows — target, stop width, leash,
 break-even, trailing, regime, time-of-day, time stop — and the result is
 the same each time: the barriers cost what they cost, and the drift is
 what it is.
+
+## 133. The gain figure reconciled against the broker: right since the fix, the legacy rows as known
+
+Every daily-gain figure comes from the journal's price arithmetic; the
+account's transaction history is the broker's own statement of each
+close. `scripts/broker_reconciliation.py` matches the last 30 days of
+journal closes to the account's TRADE transactions by instrument and
+time (the broker's dealId is the position's, not the journalled opening
+reference, so ids do not match) and compares them at 1.1699 USD per EUR.
+
+| | |
+|---|---|
+| matched closes | 24 of 25 (one predates the transaction window) |
+| journal | -2.31 USD |
+| broker | -4.26 EUR = -4.98 USD |
+| journal minus broker | +2.67 USD, +0.11 USD per trade |
+
+The gap is not spread across the book. Twenty closes agree to within
+±0.04 USD — every USD-quoted instrument and every close since the USD
+booking of section 98 went live (HK50, CHFJPY, AUDJPY on 2026-09-08 at
++0.12, -0.04 and -0.01 USD). Four closes carry it: AUDNZD +1.56 USD,
+GBPAUD +0.52, GBPCAD +0.51 and AU200 -0.34, all quoted in NZD, AUD or
+CAD and all closed on 2026-09-02 and 2026-09-04, before the fix, when
+the journal summed quote currency as dollars; the ratios of journal to
+broker (1.70, 1.40, 1.37, 1.35) are the currency rates. That is section
+99's legacy distortion measured on the broker's numbers instead of
+estimated: +2.25 USD of the +2.67. The remaining +0.20 USD sits on two
+crypto stale exits (ETHUSD +0.12, BTCUSD +0.08, 0.03–0.05 % of
+notional) and is the size of the mid-versus-bid difference on a close
+booked at the bar price, as section 118 measured on the entry side.
+
+So the metric is sound going forward: since 2026-09-07 23:01 UTC the
+journal and the broker agree to the cent on the trade result, and the
+two known understatements are the overnight fee (section 126, about
+0.003 R a trade, never in the journal) and the legacy currency rows,
+which now have a broker-verified size. Neither is corrected in the
+data — production rows are read-only by rule — and the dashboard's
+all-time figure therefore reads about 2 USD better than the account on
+the last month's closes, and section 99's estimate on the older ones.
