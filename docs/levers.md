@@ -2957,3 +2957,37 @@ the section numbers below point there.
   Volatility level joins the signal-bar features as a non-lever; the
   recent year's "quiet before the break" reading is the same regime
   signature as run 44's low 4h ADX, not an independent signal.
+
+## 2026-09-09 (fifty-eighth run) — trend alignment at the signal (close vs EMA200)
+
+- **Lever:** regime filter — the router gates on ADX strength, which
+  is direction-free; whether the 1h breakout points the same way as
+  the instrument's longer trend had never been read. Feature: signed
+  distance of the signal close to the causal EMA(200) of 1h closes in
+  ATR(14) units, in the signal's direction (negative = counter-trend).
+  Preregistered before the data were seen: primary split aligned
+  (>= 0) against counter-trend (< 0), quartile edges fixed on the
+  recent year; a bucket is blocked only if t < -2 on both disjoint
+  samples and |t| > 2 for the difference to the rest with the same
+  sign on both (the bar of runs 40 to 44 and 57).
+- **Measurement:** `scripts/htf_trend_alignment.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware stop
+  booking, router-passed path, commodity short block, three live trend
+  strategies, all 26 tradeable instruments, paced 35-day history pages.
+  Last 365 days (n = 4,378), then days 366–1,095 (n = 9,008) as the
+  independent check; edges 2.47 / 5.12 / 7.54 ATR.
+- **Result (E[R] net of costs):** counter-trend (11–12 % of trades)
+  -0.048 R (t = -1.37, t_diff = -0.57) on the recent year and -0.029 R
+  (t = -1.17, t_diff = -2.00) on the older sample; deep counter-trend
+  (< -1 ATR) -0.065 R (t = -1.54) then -0.055 R (t = -1.91,
+  t_diff = -2.63); lowest quartile -0.015 R (t_diff = +0.65) then
+  -0.032 R (t_diff = -3.36), a sign flip. Extended breakouts (>= 3 ATR)
+  -0.041 R (t = -2.67) on the recent year and +0.032 R (t = +3.10) on
+  the older one — the early-versus-late regime signature of runs 44
+  and 57 again. The candidate fails the first clause on both samples;
+  no bucket qualifies.
+- **Decision:** not built in. No code change, no restart. Section 173.
+  Trend alignment joins the signal-bar features as a non-lever; the
+  consistent small loss of the counter-trend trades (one in nine) is
+  recorded for a later read on the live journal.

@@ -4947,3 +4947,60 @@ that fired before anything had built — 4h ADX still low, ATR still
 low — and the two years before did not. That is one regime's
 signature, not a filter. No filter is built in; the feature is
 recorded as a non-lever. Nothing changes.
+
+## 173. Trend alignment at the signal: counter-trend breakouts lose a little, everywhere, never enough
+
+Whether a 1h breakout fires with or against the instrument's longer
+trend had never been read on the live book; the router gates on ADX
+strength, which is direction-free. `scripts/htf_trend_alignment.py`
+replays the three live 1h trend strategies on the router-passed path at
+the 2-ATR stop, venue minimum, live widening rule, gap-aware stop
+booking and the commodity short block over all 26 tradeable
+instruments, and tags every trade with the signed distance of the
+signal close to the causal EMA(200) of 1h closes (about eight trading
+days), in ATR(14) units and in the signal's direction — negative means
+the breakout fires against the longer trend. Quartile edges were fixed
+on the recent year (2.47 / 5.12 / 7.54 ATR) and applied unchanged to
+the two years before. Preregistered before the data were seen: the
+primary split is aligned (>= 0) against counter-trend (< 0), and a
+bucket is blocked only if significantly negative at t < -2 on both
+disjoint samples and its difference to the rest holds at |t| > 2 with
+the same sign on both (the bar of sections 110 to 114 and 172).
+
+| close − EMA200 at the 1h signal | last 365 d: n / E[R] / t / diff vs rest / t | prior 730 d: same |
+|---|---|---|
+| counter-trend (< 0) | 501 / -0.048 / -1.37 / -0.021 / -0.57 | 1,056 / -0.029 / -1.17 / -0.053 / -2.00 |
+| deep counter-trend (< -1 ATR) | 351 / -0.065 / -1.54 / -0.040 / -0.89 | 780 / -0.055 / -1.91 / -0.079 / **-2.63** |
+| below 2.47 ATR | 1,094 / -0.015 / -0.63 / +0.018 / +0.65 | 2,233 / -0.032 / -1.89 / -0.066 / **-3.36** |
+| 2.47–5.12 | 1,095 / -0.023 / -0.94 / +0.007 / +0.25 | 1,991 / **+0.050** / **+2.76** / +0.042 / **+2.04** |
+| 5.12–7.54 | 1,093 / -0.027 / -1.05 / +0.002 / +0.06 | 2,082 / +0.020 / +1.08 / +0.003 / +0.14 |
+| above 7.54 ATR | 1,096 / -0.049 / -1.91 / -0.027 / -0.92 | 2,702 / **+0.033** / **+2.09** / +0.022 / +1.15 |
+| extended (>= 3 ATR) | 3,061 / **-0.041** / **-2.67** / -0.040 / -1.50 | 6,410 / **+0.032** / **+3.10** / +0.050 / **+2.64** |
+| book, whole | 4,378 / -0.029 / -2.11 | 9,008 / +0.018 / +1.90 |
+
+The breakouts fire, as they must, mostly with the trend: the median
+signal sits five ATR beyond its EMA(200) and only 11–12 % of trades
+are counter-trend on either sample. Those counter-trend trades lose on
+both samples — -0.048 R and -0.029 R, the deep ones -0.065 R and
+-0.055 R — with the same sign on all three strategies except
+keltner_breakout on the older sample. That consistency is the most a
+signal-bar feature has shown in this series, and it is still short of
+the bar on every count: no bucket reaches t < -2 on either sample
+(the closest is the deep counter-trend at -1.91 on the older one), the
+difference to the rest holds at |t| > 2 on the older sample only, and
+the lowest quartile's difference flips sign between the samples (+0.65
+then -3.36).
+
+The rest of the table is the regime signature of sections 114 and 172
+once more: on the recent year the extended breakouts (three ATR or
+more beyond the EMA) were the losers, -0.041 R at t = -2.67, and on
+the two years before they were the winners, +0.032 R at t = +3.10 —
+the same "early versus late" reading as the low 4h ADX and the quiet
+ATR quarter, with the sign flipping between the samples.
+
+Even had the counter-trend block passed, it would touch one trade in
+nine and move the book by about 0.005 R per trade. No filter is built
+in; trend alignment joins the signal-bar features as a non-lever. The
+consistent small loss of the counter-trend trades is recorded for a
+later read on the live journal once it holds enough of them. Nothing
+changes.
