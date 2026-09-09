@@ -2871,3 +2871,12 @@ the section numbers below point there.
   ±13.7 USD; the 58.5 USD target is 8.6 daily standard deviations out
   (read-only).
 - **Decision:** nothing changed. No code change, no restart. Section 165.
+
+## 2026-09-09 (fiftieth run) — the notional cap on the forward window
+
+- **Lever:** position sizing — fill risk 2.45 USD against 3.00, cap
+  binding on 90 % of the 31 forward closes; rescaled to a uniform 3.00
+  USD the window reads +2.02 USD instead of -1.96 (per-trade R +0.022,
+  t ≈ 0.1); day sd would rise from 3.2 to 3.9 USD (read-only).
+- **Decision:** cap stays — a limit is not loosened on thirty trades.
+  No code change, no restart. Section 166.

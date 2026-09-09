@@ -4808,3 +4808,20 @@ day — today's +1.91 USD is inside the band of every day this summer —
 and the only figures that can move are the mean, which every section
 of this document has failed to move at t > 2, and the sizing, which
 multiplies the mean and the band alike (section 148).
+
+## 166. Sizing on the forward window: the cap binds on nine trades in ten
+
+Since 2026-08-24 the fill risk averaged 2.45 USD against the 3.00 USD
+budget, and on 90 % of the 31 closed trades it sat under 2.90 USD — the
+250 USD notional cap binds whenever the stop is the 1.05 % floor
+(3.00 / 0.0105 = 286 USD of notional needed). The cap therefore sizes
+the pinned trades (FX, indices) down and the ATR-bound ones (crypto,
+commodities) up to the full budget, which is a tilt nothing intended.
+Rescaled to a uniform 3.00 USD of risk the window reads +2.02 USD
+instead of the realised -1.96, and +4.04 at 6.00 USD; the per-trade R
+of +0.022 behind those figures is t ≈ 0.1 on 31 trades, so the sign is
+noise and the tilt has moved four dollars in sixteen days. Section 78
+kept the cap as an exposure limit; the day's standard deviation would
+go from 3.2 to 3.9 USD at the full budget and to 7.7 at double. Nothing
+changes: the cap is a limit, and a limit is not loosened on a sign that
+thirty trades cannot establish.
