@@ -4522,3 +4522,21 @@ none carried beyond the 26 instruments and three years they were found
 on. The rule that every candidate surviving the time split must also
 survive the instrument split and the journal has now retired all three
 that reached it, which is what the rule was for.
+
+## 150. GOLD, the one two-sample instrument, read on the journal
+
+Section 130 left GOLD as the only instrument positive on both
+walk-forward samples on the live path (+0.177 R over 108 and +0.138 R
+over 260 router-passed trades), section 66 had pooled it to t = 2.7 and
+3.2 across strategies, and section 67 measured it per strategy as
+positive against random on both samples and significant on neither.
+GOLD is active for donchian, turtle and momentum. The journal is the
+independent read: 15 closed GOLD trades since July, R from prices —
+donchian 2 at +0.43 R together, turtle 13 at -1.66 R together, -0.08 R
+a trade over all 15 against the simulator's +0.14 to +0.18. Fifteen
+trades settle nothing (t about -0.3), but they do not confirm the
+instrument either, and the same widening of a shared prior — a
+positive reading on the instruments and years it was found on, flat or
+reversed on the trades that followed — is what every other candidate of
+this document has shown. Nothing changes: GOLD stays where the ranking
+puts it, and the next read is the journal at 50 GOLD trades.

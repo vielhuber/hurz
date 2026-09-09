@@ -2732,3 +2732,12 @@ the section numbers below point there.
   Reversed on the excluded set; the first condition fails.
 - **Decision:** not built in; the forward-test list is empty. No code
   change, no restart. Section 149.
+
+## 2026-09-09 (thirty-fourth run) — GOLD on the journal
+
+- **Lever:** pair selection — the one instrument positive on both
+  walk-forward samples (runs 17 and 62), read on its 15 live trades.
+- **Result:** -0.08 R a trade (donchian 2 at +0.43 R, turtle 13 at
+  -1.66 R together) against +0.14 to +0.18 R simulated; t ≈ -0.3.
+- **Decision:** nothing changed; GOLD stays as ranked, re-read at 50
+  live trades. No code change, no restart. Section 150.
