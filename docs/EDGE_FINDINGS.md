@@ -3871,3 +3871,37 @@ test the rule asked for; the rule is not triggered and nothing changes.
 The remaining guards, for the record, barely act: since 2026-08-24 the
 concurrent cap refused 2 entries, the size floor 2, the stop floor 3,
 the duplicate-instrument guard 19.
+
+## 128. Strategy agreement on the signal bar carries nothing
+
+Section 5 noted, on 44 live trades, that entries raised by two strategies
+on the same bar returned +0.108 R against -0.161 R for lone signals
+(t = 1.65), and the live loop's duplicate guard makes exactly that
+distinction every hour: when donchian, turtle and keltner fire together
+it takes one entry and drops the rest. `scripts/strategy_agreement.py`
+replays the merged one-position-per-instrument timeline on the
+router-passed path, live 2-ATR stop, venue minimum, live widening rule,
+gap-aware stop booking, commodity short block and the live 6-hour
+stop-out cooldown over all 26 tradeable instruments, and buckets every
+entry by the number of live strategies that fired on its bar in its
+direction. Preregistered: the lone bucket is blocked only if
+significantly negative at t < -2 on both disjoint samples and below the
+rest at |t| > 2 on both.
+
+| strategies on the bar, last 365 d | share | n | E[R] | t | vs rest | t |
+|---|---|---|---|---|---|---|
+| 1 (lone) | 42 % | 795 | -0.035 | -1.24 | -0.010 | -0.26 |
+| 2 | 37 % | 708 | -0.043 | -1.37 | -0.022 | -0.56 |
+| 3 (all three) | 21 % | 393 | +0.007 | +0.17 | +0.046 | +1.00 |
+| >= 2 (confirmed) | 58 % | 1,101 | -0.025 | -1.01 | +0.010 | +0.26 |
+
+Nothing: a lone signal reads the same as a confirmed one to within a
+hundredth of an R, and the three-way agreement's +0.046 R over the rest
+is t = 1.0 on 393 trades. The 44-trade reading of section 5 was the
+noise it looked like. The first sample misses the bar, so the second was
+not run. Three breakout definitions on one price series agree most of
+the time by construction — the channel high, the 55-bar high and the
+Keltner band are crossed within the same few bars in any trend — so
+their agreement is not a second opinion, it is the same opinion three
+times. The duplicate guard is right to keep one entry; which of the
+three it keeps does not matter.

@@ -2373,3 +2373,32 @@ the section numbers below point there.
   stays on; first forward reading with the right sign, on one bad
   fortnight, no power on the accepted side.
 - **Decision:** nothing changed. No code change, no restart. Section 127.
+
+## 2026-09-09 (twelfth run) — strategy agreement on the signal bar
+
+- **Lever:** regime filter / entry quality — whether an entry confirmed
+  by a second live strategy on the same bar carries more than a lone
+  signal (section 5 read +0.108 vs -0.161 R on 44 live trades). The
+  live duplicate guard already keeps one entry per instrument and bar.
+  Preregistered: lone signals blocked only if t < -2 and |t_diff| > 2
+  on both samples.
+- **Measurement:** `scripts/strategy_agreement.py` — merged one-position
+  timeline, cost-charging walk-forward simulator, capital_com, 1h, 3
+  segments, hold 24, RR 1.5, stop 2.0 ATR, venue minimum, live widening
+  rule, gap-aware booking, router-passed path, commodity short block,
+  live stop-out cooldown, 26 instruments. Last 365 days.
+
+  | strategies on the bar | share | E[R] | vs rest / t |
+  |---|---|---|---|
+  | 1 (lone) | 42 % | -0.035 | -0.010 / -0.26 |
+  | 2 | 37 % | -0.043 | -0.022 / -0.56 |
+  | 3 | 21 % | +0.007 | +0.046 / +1.00 |
+
+  Flat; the first sample misses the bar and the second was not run.
+  Three breakout definitions on one series agree by construction.
+- **Decision:** not built in. No code change to trading, no restart.
+  Section 128.
+- **Operational:** the three failures in `test_runtime_guard_wiring.py`
+  noted in the fourth run are fixed — the tests now patch the stop-out
+  cooldown like the daily-loss guard instead of reading the live
+  journal; full suite green (269 tests).
