@@ -2512,3 +2512,15 @@ the section numbers below point there.
   rows (run 10) now have a broker-verified size; the overnight fee (run
   58) remains the one cost outside the journal.
 - **Decision:** nothing changed in data or code; recorded. Section 133.
+
+## 2026-09-09 (eighteenth run) — session of entry, third sample (journal)
+
+- **Lever:** regime filter, time of day — run 2 dissolved on the second
+  simulator sample; the live journal (238 trades) read as a third.
+  Preregistered: a window blocked only at t < -2 here with the same
+  sign on both simulator samples, which run 2 had already ruled out.
+- **Measurement (journal, read-only):** realised R by UTC hour of the
+  signal bar in four six-hour windows: -0.186 / -0.037 / -0.009 /
+  +0.176 R, all |t| ≤ 1.4, different shape from run 2's first sample.
+- **Decision:** nothing changed; the session dimension is closed on
+  three samples. No code change, no restart. Section 134.

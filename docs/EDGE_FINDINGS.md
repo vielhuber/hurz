@@ -4084,3 +4084,22 @@ which now have a broker-verified size. Neither is corrected in the
 data — production rows are read-only by rule — and the dashboard's
 all-time figure therefore reads about 2 USD better than the account on
 the last month's closes, and section 99's estimate on the older ones.
+
+## 134. Session of entry in the journal: the third sample is flat too
+
+Section 51 opened the time-of-day filter and saw it dissolve on the
+second simulator sample. The live journal is a third sample on
+different trades: 238 closed 1h-trend trades since May, realised R at
+the fill, by the UTC hour of the signal bar.
+
+| entry window (UTC) | n | E[R] | t | rest | t_diff |
+|---|---|---|---|---|---|
+| 00–06 | 49 | -0.186 | -1.21 | +0.021 | -1.22 |
+| 06–12 | 75 | -0.037 | -0.32 | -0.015 | -0.16 |
+| 12–18 | 72 | -0.009 | -0.08 | -0.027 | +0.13 |
+| 18–24 | 42 | +0.176 | +1.10 | -0.064 | +1.37 |
+
+Nothing above |t| = 1.4, and the two ends of the day that read largest
+here (Asia worst, late US best) are not the ones section 51's first
+sample flagged. Three samples, three different shapes: the session is
+not a lever, on the simulator or live.
