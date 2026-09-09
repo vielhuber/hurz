@@ -4540,3 +4540,17 @@ positive reading on the instruments and years it was found on, flat or
 reversed on the trades that followed — is what every other candidate of
 this document has shown. Nothing changes: GOLD stays where the ranking
 puts it, and the next read is the journal at 50 GOLD trades.
+
+## 151. Rollovers crossed per trade: none from the 21:00 entry, all from the outages
+
+Section 126 priced the overnight fee; the one way a 24-bar trade could
+pay it twice is an entry in the hour before 21:00 UTC that is still open
+at the next day's charge. From the journal, the 30 closes since
+2026-08-24: 14 crossed no rollover, 9 crossed one, none crossed two by
+that mechanism — no entry fell on the 21:00 bar. The seven that crossed
+four to ten were held 81–235 hours: the three US indices through the
+2026-09-04 holiday pause (section 39's guard) and four FX positions
+through the five days the bot was down after the 2026-08-30 reboot,
+which the boot script and keepalive now prevent. Nothing follows for the
+entry rule; the fee is one night per timeout on this book, as section
+126 assumed.

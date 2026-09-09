@@ -2741,3 +2741,13 @@ the section numbers below point there.
   -1.66 R together) against +0.14 to +0.18 R simulated; t ≈ -0.3.
 - **Decision:** nothing changed; GOLD stays as ranked, re-read at 50
   live trades. No code change, no restart. Section 150.
+
+## 2026-09-09 (thirty-fifth run) — rollovers crossed per trade
+
+- **Lever:** cost mechanism from run 58 — trades entered on the 21:00 UTC
+  bar would pay two overnight fees in a 24-bar hold. Journal since
+  2026-08-24, read-only.
+- **Result:** 30 closes: 14 crossed no rollover, 9 one, none two by that
+  mechanism (no entry on the 21:00 bar); seven crossed four to ten during
+  the holiday pause and the 2026-08-30 outage, both since guarded.
+- **Decision:** nothing changed. No code change, no restart. Section 151.
