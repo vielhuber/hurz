@@ -2402,3 +2402,24 @@ the section numbers below point there.
   noted in the fourth run are fixed — the tests now patch the stop-out
   cooldown like the daily-loss guard instead of reading the live
   journal; full suite green (269 tests).
+
+## 2026-09-09 (thirteenth run) — direction by instrument
+
+- **Lever:** pair selection by side — the instrument-level cut of run
+  39's class-level direction block, the only filter of the series that
+  passed. Preregistered: block a side only with >= 100 trades on each
+  sample, t < -2 on both, and long-short |t| > 2 same sign on both.
+- **Measurement:** `scripts/direction_by_instrument.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware booking,
+  router-passed path, commodity short block, three live trend
+  strategies, 26 instruments, 52 instrument-sides, both samples
+  (4,502 and 9,138 trades).
+- **Result:** no cell qualifies. UK100 shorts are the only side negative
+  at t < -2 on both samples (-0.298 / -0.165 R) but have 70 recent
+  trades and a long-short difference of t = 1.31 there. The recent
+  year's index shorts, EURAUD, AUDJPY and BTCUSD all flip between the
+  samples with |t| > 2 on at least one side.
+- **Decision:** nothing blocked; UK100 shorts recorded as a watch. No
+  code change, no restart. Section 129. Direction is measured at class
+  and instrument level.

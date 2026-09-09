@@ -3905,3 +3905,38 @@ Keltner band are crossed within the same few bars in any trend — so
 their agreement is not a second opinion, it is the same opinion three
 times. The duplicate guard is right to keep one entry; which of the
 three it keeps does not matter.
+
+## 129. Direction by instrument: no cell qualifies, UK100 shorts recorded
+
+Section 109 read direction by asset class and blocked the commodity
+shorts, the one filter of this series that passed on both samples and
+off-sample. The instrument level was the remaining cut.
+`scripts/direction_by_instrument.py` replays the three live 1h trend
+strategies on the router-passed path, live 2-ATR stop, venue minimum,
+live widening rule, gap-aware stop booking and the commodity short block
+over all 26 tradeable instruments on both disjoint samples and dumps
+every trade with its instrument and direction; 52 instrument-sides
+(the five commodities have no short side). Preregistered, with a size
+floor added for the number of cells: a side is blocked only if it has
+at least 100 trades on each sample, is negative at t < -2 on both, and
+the long-short difference holds at |t| > 2 with the same sign on both.
+
+No cell qualifies. The one side negative at t < -2 on both samples:
+
+| instrument, side | last 365 d: n / E[R] / t | prior 730 d: n / E[R] / t | long − short, t (recent / prior) |
+|---|---|---|---|
+| UK100 short | 70 / -0.298 / -3.28 | 149 / -0.165 / -2.76 | +1.31 / +2.97 |
+
+UK100's shorts miss on two counts — 70 trades on the recent year and a
+long-short difference of t = 1.31 there — and UK100 has been at the
+bottom of every instrument ranking (sections 70 and run 27) without its
+longs being significantly better. Everything else in the table is the
+by-now familiar sign flip: the recent year's index shorts (US500
+-0.332 at t -4.26, US30 -0.235, EU50 -0.338, J225 -0.275, US100
+-0.202) all read flat or positive on the two years before; EURAUD and
+AUDJPY flip side between the samples with t beyond 3 on each; the
+recent year's standout BTCUSD (+0.23 R both sides, t 2.6 and 2.4) is
++0.01 on the older sample. With 52 cells, one at t < -2 on both samples
+is at the level chance produces. Nothing is blocked; UK100 shorts are
+recorded as a watch, as SILVER was before section 109, and the
+direction dimension is now measured at class and instrument level.
