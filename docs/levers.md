@@ -2446,3 +2446,26 @@ the section numbers below point there.
 - **Decision:** nothing dropped, no code change, no restart. Section
   130. The selector's ranking is confirmed as non-predictive; it stays
   as the list of instruments that trade.
+
+## 2026-09-09 (fifteenth run) — the expectancy by exit kind
+
+- **Lever:** exit logic, diagnostic — where the book's E[R] comes from,
+  split by target / stop / timeout on the live path, both samples
+  (run 47's merged-timeline dumps; no venue load).
+- **Measurement:**
+
+  | exit | last 365 d: share / mean R / contribution | prior 730 d: same |
+  |---|---|---|
+  | target | 13.6 % / +1.47 / +0.200 | 13.1 % / +1.47 / +0.193 |
+  | stop | 25.8 % / -1.03 / -0.264 | 23.0 % / -1.03 / -0.237 |
+  | timeout | 60.7 % / **+0.055** (t 4.4) / +0.034 | 63.8 % / **+0.068** (t 7.6) / +0.044 |
+
+  The barriers lose (-0.06 / -0.04 R per trade; the stop is hit twice
+  as often as the target), the timeout drift wins on both samples at
+  t > 4. The target (RR 1.0–3.0) and the stop (floor-pinned; 3 ATR
+  flat) are already swept, so no parameter follows.
+- **Decision:** nothing changed; recorded as the one structural
+  statement that holds on both samples. No code change, no restart.
+  Section 131. Live active list for the record: 69 combos on 30
+  instruments (turtle 29, donchian 27, momentum 8, 4h variants 5),
+  generated 2026-09-08 05:51 UTC.

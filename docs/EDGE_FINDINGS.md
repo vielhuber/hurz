@@ -3971,3 +3971,43 @@ follows is not a new filter but a reading of the selector: its ranking
 by past expectancy is, as run 27 put it, a list of instruments that
 trade, not a forecast — and a list of all tradeable instruments would
 have done the same.
+
+## 131. Where the expectancy goes: the barriers lose, the drift wins
+
+Section 119's merged-timeline dumps carry every trade's result on both
+samples, which allows the book's expectancy to be split by how each
+trade ended — target, stop, or the 24-bar timeout — on the live path
+(router, 2-ATR stop widened to the venue floor, RR 1.5, commodity short
+block, stop-out cooldown), all 26 tradeable instruments.
+
+| exit | last 365 d: share / mean R / contribution to E[R] | prior 730 d: same |
+|---|---|---|
+| target (+1.5 R less cost) | 13.6 % / +1.471 / +0.200 | 13.1 % / +1.470 / +0.193 |
+| stop (-1 R less cost, gaps included) | 25.8 % / -1.025 / -0.264 | 23.0 % / -1.028 / -0.237 |
+| timeout (24-bar drift less cost) | 60.7 % / **+0.055** (t +4.37) / +0.034 | 63.8 % / **+0.068** (t +7.64) / +0.044 |
+| book | -0.031 | | +0.000 |
+
+The shape is the same on both samples and it is not what the design
+assumes. The barrier pair loses: at a 1.5 R target the stop is hit
+nearly twice as often as the target on both samples (26 % against 14 %,
+23 % against 13 %), so the two barriers together book -0.06 R and
+-0.04 R per trade. The timeout, which the design treats as the failure
+mode, is the only component in the black: the three trades in five that
+reach neither level drift the right way by 0.055 and 0.068 R net of
+costs, significantly on both samples (t = 4.4 and 7.6), with 52–53 %
+of them positive. Read against the structure of sections 123 and 124:
+on a stop pinned at 1.05 % of price, a 1.6 % target is reached by one
+trade in seven and the stop by one in four within a day, while the
+median trade just carries a small positive drift to the leash.
+
+What this does and does not open. It does not reopen the target: RR
+1.0 to 3.0 was flat pooled (sections 63 and 124), so letting the
+target-hitters run yields no more than their 1.47 R on average. It does
+not reopen the stop: the stop is the venue's floor on 78 % of trades and
+cannot be moved down, and moving it up (3 ATR) changed nothing
+(section 123). It does say that the book's small positive drift after a
+router-passed breakout is real and repeatable, and that every barrier
+placed on it has so far cost more than it caught — the one structural
+statement of this series that holds on both samples with t above 4.
+Recorded; no parameter follows from it that the log has not already
+swept.
