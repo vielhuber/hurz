@@ -2316,3 +2316,29 @@ the section numbers below point there.
 - **Decision:** not built in — 24 stays. No code change, no restart.
   Section 125. The pinned trades need a volatility-scaled stop the
   venue does not offer, not more time.
+
+## 2026-09-09 (tenth run) — the overnight fee
+
+- **Lever:** cost filter — the venue's overnight financing, charged
+  21:00 UTC on open positions, had never been read; the journal and
+  simulator are price-based and blind to it. With 61 % of trades timing
+  out at 24 bars nearly every trade crosses one rollover.
+- **Measurement (read-only):** `scripts/overnight_fee_audit.py` — the
+  account's transaction history (last 30 days) and the per-instrument
+  overnight rates.
+
+  | | |
+  |---|---|
+  | SWAP entries / sum | 70 position-nights / -0.51 EUR (0.007 EUR ≈ 0.003 R a night) |
+  | TRADE closes / sum, same window | 24 / -4.26 EUR |
+  | crypto long / index long / metal long, R per night at 250 USD notional | 0.051 / 0.014–0.018 / 0.013 |
+  | crypto and metal shorts | credited (BTC, ETH shorts +0.03 EUR a night) |
+
+  Twelve per cent of the month's realised result, 0.003 R a trade on
+  the current FX-and-short-heavy book; material only for crypto longs
+  (three spreads per night), which read about +0.01 / -0.03 R after
+  financing on the two samples — not a block. A financing-aware cost
+  ceiling would refuse nothing.
+- **Decision:** not built in; recorded as the second known
+  understatement of the gain figure (after run 10's currency mix). No
+  code change, no restart. Section 126.

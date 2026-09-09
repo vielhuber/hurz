@@ -3792,3 +3792,45 @@ measured out pooled (sections 62 and 89); split by stop status it is
 measured out too. What the pinned trades need is not time but a stop
 scaled to their volatility, which the venue does not sell below 1.05 %
 of price — the vise of section 23, now measured from the exit side.
+
+## 126. The overnight fee: real, invisible to the journal, and small on this book
+
+Every gain figure in this document comes from the bot's own price
+arithmetic. The venue charges an overnight fee on each open position at
+21:00 UTC, and nothing in the journal, the dashboard or the simulator
+has ever seen it. `scripts/overnight_fee_audit.py` reads the account's
+transaction history and the current per-instrument rates (read-only).
+
+Last 30 days of the demo account (the endpoint returned exactly 100
+entries, so the list may be capped; the earliest is 2026-08-25):
+
+| type | entries | sum |
+|---|---|---|
+| TRADE (closes) | 24 | -4.26 EUR |
+| SWAP (overnight fee) | 70 position-nights | -0.51 EUR |
+| CORPORATE_ACTION | 6 | +0.01 EUR |
+
+The fee ran at 12 % of the realised trade result over the month, a
+mean of 0.007 EUR per position-night — 0.003 R at the 3 USD risk —
+because the book held mostly FX and short index positions, whose rates
+are tiny or even positive: crypto and metal shorts *receive* (BTCUSD
+and ETHUSD shorts +0.03 EUR a night). The rates say where it would
+matter: at the 250 USD notional a crypto long pays 0.051 R a night,
+an index long 0.014–0.018 R, a metal long 0.013 R, while shorts on
+those pay 0.0005–0.011 R or are credited. For comparison the round-trip
+spread costs 0.017 R per trade (section 123), so a crypto long that
+times out has paid three spreads in financing, and an index long one.
+
+Measured as a lever: only the crypto longs are material. Read off
+section 109's direction table, crypto longs run about +0.05 R and
+0.00 R on the two samples before financing and about +0.01 and -0.03 R
+after one night of it — negative on one sample, not significantly on
+either, so no block follows; a financing-aware cost ceiling would
+refuse nothing, since even the crypto long's spread plus one night
+stays under 10 % of risk. What does follow is accounting: the book's
+true result is about 0.003 R per trade below every figure here, and
+the dashboard's daily gain omits roughly half a euro a month. Not
+corrected — the journal is price-based by design and the account is
+topped up (section 38), so the fee would have to be pulled from the
+transaction history per position; recorded as the second known
+understatement after section 99's currency mix.
