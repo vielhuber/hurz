@@ -4211,3 +4211,50 @@ t = 1.5; crypto and commodities are noise. Nothing qualifies and no
 class-specific floor is built in. The stop dimension is now measured in
 every direction the book allows — multiple, floor, class, leash, time
 stop — and closed.
+
+## 138. The night of 2026-09-08/09 in one table
+
+Twenty-five levers were measured between sections 113 and 137, with the
+two disjoint walk-forward samples as the bar and, where a candidate
+survived them, the excluded instruments and the live journal as the
+off-sample read. The pooled clause of section 136 closes the last one:
+floors of 1.5, 2 and 3 % pool to +0.0006, +0.0009 and +0.0009 R against
+the live floor over 13,000 trades, t = 0.07 to 0.11.
+
+| lever | recent year | prior two years | off-sample | verdict |
+|---|---|---|---|---|
+| broken level's age (113) | flat | flat | — | dead |
+| 4h ADX at the signal (114, 115) | upper half -0.068, t_diff -3.2 | -0.019, t_diff -4.2 | excluded flat, journal reversed | dead |
+| peer confirmation (116) | crowded -0.091, t -4.8 | +0.051, t +3.7 | — | sign flip |
+| passive limit entry (117) | worse on every count | not run | — | dead |
+| live slippage (118) | +0.004 R after the fix | — | — | closed |
+| timeout re-entry (119) | flat | flat | — | dead |
+| target re-entry (119, 122) | -0.144, t -1.9 | -0.086, t -1.5 | journal agrees, excluded reversed | dead |
+| dashboard quote-currency sum (120) | +193.59 shown for +1.20 | — | — | fixed |
+| class risk tilt (121) | fx negative | fx negative | journal: fx best class | dead |
+| 3 ATR / 48 bars (123) | +0.009, t 0.5 | +0.004, t 0.3 | — | flat, floor-bound |
+| RR by stop status (124) | no ordering | not run | — | dead |
+| leash by stop status (125) | flat / worse | not run | — | dead |
+| overnight fee (126) | 0.003 R a night on this book | — | broker statement | recorded |
+| router forward test (127) | rejected -0.177 (n 197) vs passed -0.115 (n 30) | — | — | router stays |
+| strategy agreement (128) | flat | not run | — | dead |
+| direction by instrument (129) | index shorts -0.33, t -4.3 | flat / positive | — | sign flip |
+| instrument transfer (130) | rho -0.22 | — | — | none |
+| expectancy by exit (131) | barriers -0.06, drift +0.055 (t 4.4) | barriers -0.04, drift +0.068 (t 7.6) | — | structural |
+| time stop for losers (132) | flat / worse | stopped | — | dead |
+| broker reconciliation (133) | journal = broker ± 0.04 since the fix | — | legacy rows +2.25 | metric sound |
+| session (134) | — | — | journal flat | dead on 3 samples |
+| venue floor re-read (135) | true floor -0.033, t -1.6 | -0.034, t -2.5 | — | floor kept, cause corrected |
+| floor as a parameter (136, 137) | 3 %: +0.032, t 2.3 (indices) | -0.015, t -1.5 | pooled t 0.1 | sign flip |
+
+What holds on both samples: the router-passed book carries a small
+positive 24-bar drift (sections 131) that the barriers cost more than
+they catch; the stop wants to be about 1 % of price, narrower loses
+twice and wider loses once (135, 136); the commodity shorts lose (109);
+nothing about the signal bar, the level it breaks, its peers, its
+session, its class or its instrument predicts the next trade; and every
+reading that was strong on the recent year alone was the bull-year
+index regime. What follows for the objective is section 37's
+arithmetic, unchanged: at 3 USD of risk and an expectancy of zero
+within ±0.03 R, the daily gain is noise around zero, and no lever this
+book allows has moved it.

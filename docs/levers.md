@@ -2594,3 +2594,12 @@ the section numbers below point there.
   pooled t 1.52; crypto and commodities are noise.
 - **Decision:** not built in; the stop dimension is closed in every
   direction. No code change, no restart. Section 137.
+
+## 2026-09-09 (twenty-second run) — pooled test of the wider floors, and the night's table
+
+- **Lever:** stop floor, pooled clause of run 64 — floors 1.5 / 2 / 3 %
+  against 1.05 % over both samples together (13,000 trades, from the
+  sweep's dumps): +0.0006 / +0.0009 / +0.0009 R, t = 0.07 / 0.10 / 0.11.
+- **Decision:** not built in; the stop dimension is closed. No code
+  change, no restart. Section 138 tabulates the 25 levers of this night
+  and what holds on both samples.
