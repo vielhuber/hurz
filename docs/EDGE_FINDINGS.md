@@ -4011,3 +4011,37 @@ placed on it has so far cost more than it caught — the one structural
 statement of this series that holds on both samples with t above 4.
 Recorded; no parameter follows from it that the log has not already
 swept.
+
+## 132. A time stop for losers does not replace the late stop
+
+Section 131 found the stop, pinned six ATR away on most trades, hit
+twice as often as the target and costing 0.26 R a trade, while the
+24-bar drift was positive. A stop that far away protects late, so the
+natural variant leaves a trade that is below its entry at the close of
+bar K and books that close, keeping the hard stop and target otherwise.
+`scripts/time_stop_losers.py` replays the three live 1h trend
+strategies on the router-passed path, venue minimum, live widening rule,
+gap-aware stop booking and the commodity short block over all 26
+tradeable instruments for K = 6, 12 and 18 against the live setting.
+Preregistered: a variant is built in only if better than the live
+setting on both disjoint samples at t > 2.
+
+| last 365 d | n | net E[R] | gross | early exits | Σ R | vs live, t |
+|---|---|---|---|---|---|---|
+| none (live) | 4,502 | -0.033 | -0.016 | — | -147.3 | — |
+| K = 6 | 5,134 | -0.043 | -0.026 | 76.5 % | -219.2 | -0.010, t -0.64 |
+| K = 12 | 4,770 | -0.027 | -0.010 | 70.9 % | -130.2 | +0.005, t +0.33 |
+| K = 18 | 4,594 | -0.032 | -0.015 | 65.7 % | -145.4 | +0.001, t +0.06 |
+
+Nothing: leaving losers at six bars is worse (three trades in four are
+under water at some point in their first six hours and many of them
+recover), at twelve it is a hundredth of an R better at t = 0.3, at
+eighteen it is the live setting. The first sample misses the bar by a
+wide margin and the second was stopped to spare the venue. The stop
+losses of section 131 are not the slow bleed of trades that were losing
+from the start; they are trades that moved 1.05 % against within a day,
+and no earlier reading of the price warns of them. The exit side is now
+swept in every form this book allows — target, stop width, leash,
+break-even, trailing, regime, time-of-day, time stop — and the result is
+the same each time: the barriers cost what they cost, and the drift is
+what it is.

@@ -2469,3 +2469,28 @@ the section numbers below point there.
   Section 131. Live active list for the record: 69 combos on 30
   instruments (turtle 29, donchian 27, momentum 8, 4h variants 5),
   generated 2026-09-08 05:51 UTC.
+
+## 2026-09-09 (sixteenth run) — time stop for losers
+
+- **Lever:** exit logic — after run 59's split (stops cost 0.26 R a
+  trade, the drift is positive), leave a trade under water at the close
+  of bar K (6 / 12 / 18), keeping the hard stop and target.
+  Preregistered: built in only if better than live at t > 2 on both
+  samples.
+- **Measurement:** `scripts/time_stop_losers.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware booking,
+  router-passed path, commodity short block, three live trend
+  strategies, 26 instruments. Last 365 days.
+
+  | variant | net E[R] | Σ R | vs live, t |
+  |---|---|---|---|
+  | none (live) | -0.033 | -147.3 | — |
+  | K = 6 | -0.043 | -219.2 | -0.010 / -0.64 |
+  | K = 12 | -0.027 | -130.2 | +0.005 / +0.33 |
+  | K = 18 | -0.032 | -145.4 | +0.001 / +0.06 |
+
+  Flat to worse; the first sample misses the bar and the second run was
+  stopped to spare the venue.
+- **Decision:** not built in. No code change, no restart. Section 132.
+  The exit side is swept in every form the book allows.
