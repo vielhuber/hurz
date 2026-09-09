@@ -4628,3 +4628,22 @@ selection. The tile is labelled as an extrapolation and haircut, and it
 is not the daily-gain figure the objective is measured by, so it stays;
 it should be read as what the last period's winners would have made
 had they continued, which section 130 shows they do not.
+
+## 156. Book load at entry, on the journal
+
+Whether a trade opened into a full book fares worse than one opened
+into an empty one is the forward face of the concurrent cap (section
+91) and the cluster cap. On the 238 closed 1h-trend trades, R from
+prices, by positions already open at entry:
+
+| open at entry | n | E[R] | t | rest | t_diff |
+|---|---|---|---|---|---|
+| 0–1 | 114 | -0.046 | -0.49 | -0.082 | +0.27 |
+| 2–3 | 78 | +0.022 | +0.19 | -0.107 | +0.91 |
+| 4–5 | 40 | -0.299 | -2.01 | -0.018 | -1.70 |
+| 6–7 | 6 | +0.023 | +0.05 | -0.067 | +0.18 |
+
+The 4–5 band reads -0.30 R on 40 trades, the band above it +0.02 on
+six: no ordering, one journal sample, nothing at the bar. The cap of 8
+has refused two entries since 2026-08-24 (section 127) and the cluster
+cap none; neither is tightened on this.

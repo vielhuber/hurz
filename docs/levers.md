@@ -2791,3 +2791,11 @@ the section numbers below point there.
   a defect.
 - **Decision:** nothing changed; the tile stays labelled as an
   extrapolation. No code change, no restart. Section 155.
+
+## 2026-09-09 (fortieth run) — book load at entry
+
+- **Lever:** concurrent / cluster cap, forward face — R by positions
+  open at entry on the 238 journal trades (read-only): 0–1 -0.046,
+  2–3 +0.022, 4–5 -0.299 (t -2.0, t_diff -1.7, n 40), 6–7 +0.023.
+- **Decision:** nothing changed; no ordering, one sample. No code
+  change, no restart. Section 156.
