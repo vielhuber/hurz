@@ -4287,3 +4287,20 @@ preregistered test of a barrier-less drift book — positive at t > 2 on
 both samples — it fails on both, and with it the last mechanism this
 book had left: the signals do not drift, the barriers do not select,
 and the costs are what remains.
+
+## 140. The one two-sample "better" candidate, after financing
+
+Of the night's levers, only the 3-ATR stop with a 48-bar leash (section
+123) was better net on both samples: +0.009 and +0.004 R at t = 0.5 and
+0.3, with the preregistered timeout clause missed by a point. Section
+126 has since priced the overnight fee at about 0.003 R a position-night,
+and the longer leash crosses a second rollover on the trades that time
+out. Charging it — one night for a live timeout, two for a 48-bar one,
+half and one for barrier exits — the difference shrinks to +0.007 R on
+the recent year and +0.0015 R on the older. At the live book's two
+entries a day and 3 USD of risk that is four cents and one cent a day,
+before the 17 % fewer entries the longer leash allows; at the
+simulator's independent per-strategy count it would be a quarter of a
+dollar. Neither is distinguishable from zero, and neither justifies a
+change to the stop, the leash, the sizing and a restart. Not built in;
+the candidate is closed.

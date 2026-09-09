@@ -2615,3 +2615,14 @@ the section numbers below point there.
   flip; crypto +0.108 then +0.011 R. Section 131's timeout drift was
   survivorship.
 - **Decision:** nothing changed. No code change, no restart. Section 139.
+
+## 2026-09-09 (twenty-fourth run) — 3 ATR / 48 bars after the overnight fee
+
+- **Lever:** the only candidate better net on both samples (run 51),
+  re-read with run 58's financing (0.003 R a night; the 48-bar leash
+  crosses a second rollover on timeouts).
+- **Result:** difference after financing +0.007 R (recent) and
+  +0.0015 R (prior), t 0.5 / 0.3 before financing; at the live book's
+  two entries a day that is one to four cents a day.
+- **Decision:** not built in; candidate closed. No code change, no
+  restart. Section 140.
