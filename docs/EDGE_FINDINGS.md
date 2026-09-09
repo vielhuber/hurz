@@ -4554,3 +4554,29 @@ through the five days the bot was down after the 2026-08-30 reboot,
 which the boot script and keepalive now prevent. Nothing follows for the
 entry rule; the fee is one night per timeout on this book, as section
 126 assumed.
+
+## 152. What the forward programme can decide, and when
+
+The forward tests this document defers to — the router at 100 accepted
+trades, GOLD at 50, the ADX slope — have a power that follows from two
+numbers: the live book's R has a standard deviation of 0.96 (186 trend
+trades since 2026-07-10, R from prices) and the book accepts 2.05
+entries a day (section 148). For a difference to reach t = 2:
+
+| question | difference | trades needed | at 2.05 a day |
+|---|---|---|---|
+| router, passed − rejected (section 127) | +0.062 R | ≈ 970 | 1.3 years |
+| book expectancy against zero, if it were | +0.03 R | ≈ 4,100 | 5.5 years |
+| book expectancy against zero, if it were | +0.10 R | ≈ 370 | half a year |
+
+Thirty-three accepted trades exist since 2026-08-24. The forward
+programme can therefore settle the router in a little over a year and
+an expectancy of the size the walk-forward samples disagree about
+(±0.03 R) never, at this frequency; only an edge three times larger than
+anything measured on this book would show inside a year. This is the
+arithmetic behind section 148 seen from the evidence side: the live
+frequency is too low not only to reach the target but to learn whether
+the book has an edge at all, and the router that keeps seven signals in
+eight out is what sets that frequency. Nothing changes here; the
+100-trade and 50-trade thresholds stand as the points at which the
+forward reads are worth taking, not as points at which they decide.

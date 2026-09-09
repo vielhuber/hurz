@@ -2751,3 +2751,13 @@ the section numbers below point there.
   mechanism (no entry on the 21:00 bar); seven crossed four to ten during
   the holiday pause and the 2026-08-30 outage, both since guarded.
 - **Decision:** nothing changed. No code change, no restart. Section 151.
+
+## 2026-09-09 (thirty-sixth run) — the power of the forward programme
+
+- **Lever:** the forward tests the log defers to, sized — live R sd 0.96
+  over 186 trend trades, 2.05 accepted entries a day (read-only).
+- **Result:** t = 2 needs ≈ 970 trades for the router's +0.062 R (1.3
+  years), ≈ 4,100 for a +0.03 R book expectancy (5.5 years), ≈ 370 for
+  +0.10 R (half a year); 33 accepted trades exist since 2026-08-24.
+- **Decision:** nothing changed; the forward thresholds stand as read
+  points, not decision points. No code change, no restart. Section 152.
