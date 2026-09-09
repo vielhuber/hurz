@@ -2824,3 +2824,12 @@ the section numbers below point there.
   74 s to confirmation, +0.31 R (+0.71 USD); dashboard updated to
   +1.91 USD for the day, all-time -96.01 USD.
 - **Decision:** nothing changed. No code change, no restart. Section 159.
+
+## 2026-09-09 (forty-fourth run) — the pinned combinations
+
+- **Lever:** pair selection — 29 pins read against backtest and
+  journal: twenty negative in the backtest by design (cost-chosen
+  universe), two negative live as well at n 8 (AUDUSD donchian -0.040,
+  EURAUD turtle -0.131 R), none at the bar; the live veto already
+  retires pins on realised results.
+- **Decision:** nothing unpinned. No code change, no restart. Section 160.

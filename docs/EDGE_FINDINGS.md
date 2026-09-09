@@ -4705,3 +4705,19 @@ it up on its next pass: four trades today, +1.91 USD, all-time
 (a timeout carrying a small positive drift) both as measured. Nothing
 to change; the day's figure moved because a trade closed, which is the
 book working, not a lever.
+
+## 160. The pins: a cost-chosen universe, not a list of winners
+
+Twenty-nine of today's 68 combinations are operator pins that bypass
+the ranking. Read against the backtest and the journal: twenty carry a
+negative backtest expectancy (UK100 donchian -0.261, UK100 turtle
+-0.236, US100 turtle -0.162 and so on), which is by design — the pin
+file's own note chooses the universe on cost per unit of risk, because
+selecting pins by past results "filled this list with losers" and the
+backtest is not predictive either (sections 130, 158). Live, only two
+pinned combinations are negative on both counts with five or more
+trades, AUDUSD donchian (-0.040 R, n 8) and EURAUD turtle (-0.131 R,
+n 8), neither near the bar; the live-expectancy veto retires pins on
+realised results before the pins are appended, so the mechanism to
+drop a losing pin already exists and has its own bar. The five 4h pins
+have no backtest figure and 0–7 live trades. Nothing is unpinned.
