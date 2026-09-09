@@ -4666,3 +4666,30 @@ blocker, but it is the refresh's only measurable effect: a daily
 one-combination turnover bought with an hour of the bot's evaluations
 missing. Left as is; a paced fetch in the selector, as the replays use,
 would remove it.
+
+## 158. The selector's score against the live result, per combination
+
+Today's list carries the selector's backtest expectancy and score per
+combination; twelve of its combinations have five or more closed live
+trades (R from prices):
+
+| combination | backtest E[R] | live E[R] / n |
+|---|---|---|
+| BTCUSD / donchian | +0.206 | +0.080 / 42 |
+| BTCUSD / turtle | +0.197 | +0.163 / 12 |
+| GOLD / turtle | +0.186 | -0.128 / 13 |
+| OIL_BRENT / turtle | +0.115 | -0.003 / 19 |
+| OIL_CRUDE / turtle | +0.076 | +0.001 / 10 |
+| OIL_BRENT / donchian | +0.016 | +0.008 / 15 |
+| GBPCAD / donchian | -0.040 | +0.235 / 5 |
+| ETHUSD / donchian | -0.044 | -0.286 / 11 |
+| EURAUD / turtle | -0.083 | -0.131 / 8 |
+| AUDUSD / donchian | -0.120 | -0.040 / 8 |
+
+Spearman of backtest against live expectancy +0.39 (p = 0.21), of
+score against live +0.41 (p = 0.19): the right sign, twelve points,
+nothing at the bar, and the two combinations the backtest likes most
+after BTCUSD (GOLD and OIL_BRENT turtle) read flat or negative live.
+The list's order carries about as much as sections 130 and 155 found
+for instruments — a weak positive rank correlation that is not
+distinguishable from none. Nothing changes.

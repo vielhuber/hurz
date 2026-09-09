@@ -2809,3 +2809,11 @@ the section numbers below point there.
 - **Decision:** nothing changed; the refresh decides almost nothing and
   is not an operational blocker (one bar per hit at a quiet hour). A
   paced fetch in the selector is noted, not built. Section 157.
+
+## 2026-09-09 (forty-second run) — the selector's score against live results
+
+- **Lever:** pair selection — backtest expectancy per combination
+  (today's list) against realised live R for the twelve combinations
+  with ≥ 5 closed trades (read-only): Spearman +0.39 (p 0.21); BTCUSD
+  agrees, GOLD and OIL_BRENT turtle reverse.
+- **Decision:** nothing changed. No code change, no restart. Section 158.
