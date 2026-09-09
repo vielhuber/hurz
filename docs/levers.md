@@ -3047,3 +3047,38 @@ the section numbers below point there.
 - **Decision:** not built in — the calendar axis dissolves like the
   session window did. No code change, no restart. Section 175.
   Section 7's refusal to search calendar buckets stands as the rule.
+
+## 2026-09-10 — the variance ratio of the prior month (return autocorrelation regime)
+
+- **Lever:** regime filter — the router gates on ADX, a 14-bar
+  directional statistic; the month-scale autocorrelation of the
+  instrument's own returns had never been read. Feature: Lo-MacKinlay
+  variance ratio VR(24) of the 1h log returns over the 720 bars
+  before the signal (VR > 1 trending, VR < 1 mean-reverting).
+  Preregistered: primary split VR < 1 against VR >= 1, quartile edges
+  fixed on the recent year, block only at t < -2 on both disjoint
+  samples and |t| > 2 for the difference to the rest with the same
+  sign on both.
+- **Measurement:** `scripts/variance_ratio_gate.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware stop
+  booking, router-passed path, commodity short block, three live trend
+  strategies, all 26 tradeable instruments. Last 365 days
+  (n = 3,962), then days 366–1,095 (n = 8,618). Then, because the sign
+  held on both, a third sample: `scripts/variance_ratio_journal.py`,
+  the same VR reconstructed at the signal bar of the 236 closed live
+  trades of the three strategies, realised R at the actual fill.
+- **Result (E[R] net of costs):** history — signals after a
+  mean-reverting month better than the rest on both samples, the
+  first feature in the series with a stable sign: trending half
+  -0.054 R (t = -2.34, t_diff = -0.93) then -0.014 R (t = -0.94,
+  t_diff = -2.79); lowest quartile vs rest t_diff = +2.85 then +2.12.
+  Fails the bar on both samples by opposite clauses; the only cut that
+  clears the difference clause twice would drop three trades in four
+  and the dropped ones are profitable on the older sample (+53 R).
+  Live journal — the sign reverses: VR < 1 -0.129 R (154 trades),
+  VR >= 1 +0.177 R (82 trades), t_diff = -2.23 against the history's
+  direction; the 33 forward trades lean the same way.
+- **Decision:** not built in. No code change, no restart. Section 176.
+  Section 115's pattern again: two history samples agree, the live
+  book disagrees. The variance ratio joins the non-levers.

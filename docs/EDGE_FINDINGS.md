@@ -5105,3 +5105,89 @@ years. With 51 and 91 Saturday trades the sign is not even stable
 within a sample. This is section 51's dissolve on the last calendar
 axis; the weekday is a non-lever, section 7's refusal stands as the
 rule, and no calendar filter is built in. Nothing changes.
+
+## 176. The variance ratio of the month before: the first stable sign in the series, reversed on the live book
+
+The router gates on ADX, a 14-bar directional statistic; whether the
+instrument's own returns had been trending or mean-reverting on the
+month scale had never been read. `scripts/variance_ratio_gate.py`
+replays the three live 1h trend strategies on the router-passed path
+at the 2-ATR stop, venue minimum, live widening rule, gap-aware stop
+booking and the commodity short block over all 26 tradeable
+instruments and tags every trade with the Lo-MacKinlay variance ratio
+at q = 24 of the 1h log returns over the 720 bars before the signal
+bar: the variance of overlapping 24-bar return sums over 24 times the
+variance of 1-bar returns. VR above 1 means positively autocorrelated
+(trending) returns, below 1 mean-reverting ones; nothing after the
+signal is seen and the first month of each window carries no feature.
+Preregistered: the primary split is VR < 1 against VR >= 1, quartile
+edges fixed on the recent year (0.805 / 0.914 / 1.046) and applied
+unchanged to the two years before, and a bucket is blocked only if
+significantly negative at t < -2 on both disjoint samples and its
+difference to the rest holds at |t| > 2 with the same sign on both.
+
+| VR(24) of the prior month at the 1h signal | last 365 d: n / E[R] / t / diff vs rest / t | prior 730 d: same |
+|---|---|---|
+| mean-reverting (VR < 1) | 2,679 / -0.028 / -1.72 / +0.026 / +0.93 | 5,535 / **+0.038** / **+3.52** / +0.052 / **+2.79** |
+| trending (VR >= 1) | 1,283 / **-0.054** / **-2.34** / -0.026 / -0.93 | 3,083 / -0.014 / -0.94 / -0.052 / **-2.79** |
+| strongly mean-reverting (VR < 0.8) | 954 / +0.019 / +0.70 / +0.072 / **+2.35** | 2,193 / **+0.050** / **+3.04** / +0.041 / **+2.11** |
+| strongly trending (VR >= 1.2) | 301 / -0.078 / -1.80 / -0.046 / -1.00 | 1,036 / -0.040 / -1.57 / -0.067 / **-2.48** |
+| below 0.805 | 991 / +0.029 / +1.10 / +0.087 / **+2.85** | 2,282 / **+0.049** / **+3.06** / +0.041 / **+2.12** |
+| 0.805–0.914 | 989 / **-0.078** / **-2.91** / -0.056 / -1.81 | 1,885 / **+0.067** / **+3.54** / +0.061 / **+2.85** |
+| 0.914–1.046 | 991 / **-0.064** / **-2.48** / -0.037 / -1.23 | 1,974 / -0.019 / -1.01 / -0.050 / **-2.33** |
+| above 1.046 | 991 / -0.032 / -1.21 / +0.006 / +0.19 | 2,477 / -0.014 / -0.82 / -0.047 / **-2.33** |
+| upper half (VR >= 0.914) | 1,985 / **-0.048** / **-2.60** / -0.023 / -0.89 | 4,451 / -0.016 / -1.29 / -0.073 / **-4.16** |
+| book, whole | 3,962 / -0.036 / -2.74 | 8,618 / +0.019 / +2.16 |
+
+Two thirds of the signals fire after a mean-reverting month on either
+sample, and those signals do better than the rest on both: the
+difference has the same sign on both samples for every cut in the
+table — the primary split, the strong tails, the quartiles, the upper
+half — which no signal-bar feature in sections 110 to 116 and 172 to
+175 had managed. On the two years before, the mean-reverting half is
++0.038 R at t = +3.52 and the trending half loses 0.052 R more per
+trade at t = -2.79; on the recent year the same half of the book
+holds up at -0.028 R against -0.054 R for the trending one. In total
+R the trending half cost 69 R on the recent year and 44 R on the
+older sample; a block would have moved the book from -143 R to -74 R
+and from +165 R to +209 R.
+
+And it still fails the bar, on both samples, by opposite clauses. On
+the recent year the trending half is significantly negative on its
+own (t = -2.34) but so is the whole book, and its gap to the rest is
+0.9 standard errors; on the older sample the gap is clear (t = -2.79)
+but the bucket itself is only -0.014 R at t = -0.94. The upper half
+reads the same way (t = -2.60 then -1.29; t_diff = -0.89 then -4.16).
+The only cut that clears the difference clause on both samples, the
+lowest quartile against the rest (+2.85 and +2.12), asks to keep one
+trade in four and drop the other three, and the dropped three quarters
+are profitable on the older sample (+0.008 R, +53 R in total): the
+book would have gone from +165 R to +112 R there. The bar's first
+clause exists for that case.
+
+Because the sign was stable, the feature was read on a third,
+independent sample before it was put down: `scripts/variance_ratio_journal.py`
+reconstructs the same VR at the signal bar of every closed live trade
+of the three 1h trend strategies from the 1h history and takes the
+realised R at the actual fill against the booked stop, as section 115
+did for the 4h ADX.
+
+| VR(24) at the signal, live journal | n / E[R] / t / diff vs rest / t |
+|---|---|
+| mean-reverting (VR < 1) | 154 / **-0.129** / -1.65 / -0.306 / **-2.23** |
+| trending (VR >= 1) | 82 / **+0.177** / — / +0.306 / **+2.23** |
+| above 1.046 | 70 / +0.240 / +1.94 / +0.374 / **+2.59** |
+| since 2026-08-24 (forward) | 33 / +0.006; VR < 1: 16 / -0.098; VR >= 1: 17 / +0.104 |
+| all closed | 236 / -0.023 / -0.35 |
+
+The live book says the opposite. Its 154 signals after a
+mean-reverting month lost 0.13 R each and its 82 after a trending
+month made 0.18 R, a gap of 0.31 R at t = -2.23 against the history's
+direction, on donchian_breakout (t = -2.08) and turtle_breakout
+(t = -1.39) alike; the 33 forward trades since the router floor lean
+the same way. Three samples, two signs: the stable sign of the two
+history samples was the recent regime and its predecessor agreeing,
+not a property of the signal. This is section 115 once more — the
+4h-ADX split also travelled through two history samples and reversed
+in the journal. No filter is built in. The variance ratio joins the
+signal-bar features as a non-lever; nothing changes.
