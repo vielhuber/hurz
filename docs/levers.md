@@ -2761,3 +2761,15 @@ the section numbers below point there.
   +0.10 R (half a year); 33 accepted trades exist since 2026-08-24.
 - **Decision:** nothing changed; the forward thresholds stand as read
   points, not decision points. No code change, no restart. Section 152.
+
+## 2026-09-09 (thirty-seventh run) — the router floor on the forward window
+
+- **Lever:** regime filter — counterfactual floors 25 / 20 / none from
+  run 59's replayed intents (no venue load), sixteen days since
+  2026-08-24.
+- **Result:** live floor 30: 1.9 entries a day at -0.115 R (-0.22 R a
+  day); floor 25: 4.3 a day at -0.162 R (-0.70); floor 20: -1.18 R a
+  day; no router: -2.64 R a day. The 25–30 band alone read -0.199 R
+  over 39 intents.
+- **Decision:** nothing changed — the floor stays at 30. No code change,
+  no restart. Section 153.

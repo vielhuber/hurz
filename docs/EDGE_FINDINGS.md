@@ -4580,3 +4580,25 @@ the book has an edge at all, and the router that keeps seven signals in
 eight out is what sets that frequency. Nothing changes here; the
 100-trade and 50-trade thresholds stand as the points at which the
 forward reads are worth taking, not as points at which they decide.
+
+## 153. The router floor forward: every lower floor loses more per day
+
+Section 152 named the router as what sets the live frequency; section
+127 replayed the intents it refused. Combining the two into the
+counterfactual floors, on the sixteen days since 2026-08-24 (R net of
+the audited spread, rejected intents replayed with their journalled
+levels):
+
+| router floor | entries | E[R] | entries a day | R a day |
+|---|---|---|---|---|
+| 30 (live) | 30 | -0.115 | 1.9 | -0.22 |
+| 25 | 69 | -0.162 | 4.3 | -0.70 |
+| 20 | 117 | -0.161 | 7.3 | -1.18 |
+| none | 255 | -0.166 | 15.9 | -2.64 |
+
+Every lower floor buys frequency at a worse expectancy and loses more
+per day; the band the first step would add (ADX 25–30) read -0.199 R
+on 39 intents. On the simulator the floor was flat between 15 and 40
+(sections 46b and run 18), so this is one bad fortnight read forward,
+not a new setting — but it is the direction the fortnight points, and
+it is the same direction as section 127. The floor stays at 30.
