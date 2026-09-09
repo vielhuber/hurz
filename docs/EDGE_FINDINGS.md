@@ -4877,3 +4877,16 @@ next poll with the same closed bar. The replays' pacing and the loop's
 60-second poll kept the venue's budget clear at the one moment it
 matters. Nothing to change; the replays stay paced and the refresh's
 fetches remain unpaced, as section 157 noted.
+
+## 171. Momentum in the rotation: thirteen intents since May, none past the router since August
+
+The momentum strategy holds seven ranked combinations in today's list
+(US30, DE40, US100, EU50, UK100, ETHUSD, FR40) and two 4h pins. Its
+live record: 13 intents since May, 5 traded (2 since July, none since
+2026-08-24, when all 8 intents fell to the router at a median ADX of
+17.9). It is one of the three strategies the nightly refresh backtests
+over the whole universe, so it accounts for a third of the refresh's
+venue load (section 157) and, in the live book, for nothing. Section
+57 measured it positive against random on both samples at t ≤ 1.4 and
+kept it; that stands — a strategy is not dropped for trading rarely —
+and the load it adds is the refresh's, not the bot's. Nothing changes.

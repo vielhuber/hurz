@@ -2909,3 +2909,12 @@ the section numbers below point there.
   92 rate-limit hits, none in the five minutes after a bar close, 91
   mid-hour where the poll repeats (read-only).
 - **Decision:** nothing changed. No code change, no restart. Section 170.
+
+## 2026-09-09 (fifty-fifth run) — momentum's live contribution
+
+- **Lever:** strategy selection — momentum: 13 intents since May, 5
+  trades, none since 2026-08-24 (8 intents, all router-rejected at a
+  median ADX of 17.9); seven ranked combinations and two 4h pins in
+  the list; a third of the nightly refresh's load (read-only).
+- **Decision:** nothing changed — run 3 keeps it on expectancy, and
+  rarity is not a reason. No code change, no restart. Section 171.
