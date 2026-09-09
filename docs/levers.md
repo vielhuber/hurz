@@ -2840,3 +2840,10 @@ the section numbers below point there.
   (50 % within 3 h, 95 % within 12 h), targets at 4.5 h (94 % within
   12 h), on 97 barrier exits since 2026-07-10 (read-only).
 - **Decision:** nothing changed. No code change, no restart. Section 161.
+
+## 2026-09-09 (forty-sixth run) — the live book by month
+
+- **Lever:** stationarity check of the live book — E[R] per month May
+  to September: +0.134 / +0.029 / -0.098 / -0.088 / -0.029 R, all
+  |t| ≤ 1.04 (read-only). Keepalive and cron verified.
+- **Decision:** nothing changed. No code change, no restart. Section 162.

@@ -4739,3 +4739,22 @@ Both barriers are decided inside the first half-day; the 24-bar leash
 governs only the trades that reach neither, which is the drift book of
 section 131. Nothing to change; the timing says the same as the
 expectancy split, from the clock's side.
+
+## 162. The live book by month
+
+Whether the built-in changes moved the live book is a question the
+journal answers only coarsely, but it is worth one table (R from
+prices, trend strategies):
+
+| month | n | E[R] | t | win % | USD |
+|---|---|---|---|---|---|
+| 2026-05 | 15 | +0.134 | +0.41 | 47 | +45.19 |
+| 2026-06 | 24 | +0.029 | +0.13 | 50 | +80.06 |
+| 2026-07 | 105 | -0.098 | -1.04 | 37 | -15.10 |
+| 2026-08 | 81 | -0.088 | -0.77 | 43 | -15.73 |
+| 2026-09 (to the 9th) | 14 | -0.029 | -0.14 | 57 | -2.64 |
+
+No month is distinguishable from zero and no month from another; the
+dollar column is the sizing of the time (larger positions in May and
+June) more than the expectancy. The keepalive lock was touched at
+08:05:07, the cron entries are in place.
