@@ -2991,3 +2991,32 @@ the section numbers below point there.
   Trend alignment joins the signal-bar features as a non-lever; the
   consistent small loss of the counter-trend trades (one in nine) is
   recorded for a later read on the live journal.
+
+## 2026-09-09 (fifty-ninth run) — half out at +1 R (partial take-profit)
+
+- **Lever:** exit logic — the live exit is all-or-nothing at the 1.5 R
+  target; sections 131 and 143 (barriers lose, the drift wins) asked
+  whether banking half of the position at +1 R and letting the rest
+  run changes the expectancy. Two variants: A, remainder unchanged
+  (stop and 1.5 R target); B, remainder's target at 2.5 R. Acceptance
+  as in the exit series: better than the live rule at paired t > 2 on
+  both disjoint samples.
+- **Measurement:** `scripts/partial_exit.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware stop
+  booking, router-passed path, commodity short block, three live trend
+  strategies, all 26 tradeable instruments, paced 35-day history
+  pages. All three rules booked on the same bar path of every trade,
+  differences paired per trade. Last 365 days (n = 4,501), then days
+  366–1,095 (n = 9,153) as the independent check.
+- **Result (E[R] net of costs, diff vs live, paired t):** recent
+  year — A +0.0066 R (t = +2.24), B +0.0083 R (t = +2.03), uniform
+  across the strategies; older sample — A -0.0066 R (t = -3.77),
+  B -0.0058 R (t = -2.15), again on all three strategies. One trade in
+  four reaches +1 R on either sample; the win rate rises about one
+  point under either rule. A sign flip between the samples: the rule
+  moves money from the trades that reach 1.5 R to the ones that turn
+  back, and which group is larger depends on the year.
+- **Decision:** not built in — fails the bar on the older sample. The
+  exit stays all-or-nothing at 1.5 R. No code change, no restart.
+  Section 174.

@@ -5004,3 +5004,52 @@ in; trend alignment joins the signal-bar features as a non-lever. The
 consistent small loss of the counter-trend trades is recorded for a
 later read on the live journal once it holds enough of them. Nothing
 changes.
+
+## 174. Half out at +1 R: the recent year likes it, the two years before pay for it
+
+The live exit is all-or-nothing: the whole position runs to the 1.5 R
+target, the stop or the 24-bar leash. Sections 131 and 143 read that
+the barriers lose and the drift wins, which raised the question
+whether banking half of the position once it has travelled one stop
+distance in favour, and letting the rest run, changes the expectancy.
+`scripts/partial_exit.py` replays the three live 1h trend strategies
+on the router-passed path at the 2-ATR stop, venue minimum, live
+widening rule, gap-aware stop booking and the commodity short block
+over all 26 tradeable instruments and books, on the same bar path of
+every trade, three rules: the live rule; A, half out at +1 R with the
+remainder unchanged (stop and 1.5 R target as before); B, half out at
++1 R with the remainder's target moved to 2.5 R. The trade set is
+fixed by the live rule, so every difference is paired per trade and
+the paired t is the test. When the partial level and a barrier fall in
+the same bar, the stop is booked first and the partial is counted
+only if the target was not hit on that bar either — the conservative
+order. Acceptance was the bar of the exit series (sections 123, 125,
+132): better than the live rule at paired t > 2 on both disjoint
+samples.
+
+| rule | last 365 d (n = 4,501): E[R] / diff vs live / paired t / win % | prior 730 d (n = 9,153): same |
+|---|---|---|
+| live (all-or-nothing, 1.5 R) | -0.031 / — / — / 45.5 | +0.014 / — / — / 47.7 |
+| A: half out at +1 R, rest to 1.5 R | -0.025 / **+0.007** / **+2.24** / 46.9 | +0.007 / **-0.007** / **-3.77** / 48.9 |
+| B: half out at +1 R, rest to 2.5 R | -0.023 / **+0.008** / **+2.03** / 46.2 | +0.008 / -0.006 / **-2.15** / 48.0 |
+
+One trade in four reaches +1 R on either sample, so the rules differ
+on a quarter of the book. On the recent year both partial rules beat
+the live rule by 0.007–0.008 R per trade at paired t just above 2,
+uniformly across the three strategies (turtle_breakout the strongest,
++0.014 R under B). On the two years before, both lose by the same
+0.006–0.007 R per trade at paired t = -3.77 and -2.15, again on all
+three strategies, turtle_breakout the most (-0.008 R under A at
+t = -2.63). The win rate rises by about one point under either rule on
+both samples, as banking half at +1 R must; what the recent year gave
+back on the runners was less than the half taken, and the older sample
+gave back more.
+
+That is section 131 in a different guise: the rule takes money from
+the trades that would have reached 1.5 R and gives it to the trades
+that would have turned back, and which of those groups is larger
+depends on the year. The recent year has been the poorer one for the
+barriers, so the partial looked better there — the same "this year"
+reading the exit series has produced before. The rule fails the bar
+by a sign flip; neither variant is built in. The exit stays
+all-or-nothing at 1.5 R. Nothing changes.
