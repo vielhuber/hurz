@@ -4825,3 +4825,15 @@ kept the cap as an exposure limit; the day's standard deviation would
 go from 3.2 to 3.9 USD at the full budget and to 7.7 at double. Nothing
 changes: the cap is a limit, and a limit is not loosened on a sign that
 thirty trades cannot establish.
+
+## 167. The cap's tilt by class: fifteen per cent, not a class split
+
+Section 166's tilt, by class on the 33 forward entries: fill risk
+2.29 USD on FX (100 % capped), 2.37 on the indices (100 %), 2.52 on the
+commodities (75 %), 2.69 on crypto (100 % — a BTCUSD stop of 1.1 %
+needs 270 USD of notional, over the cap too). The cap binds almost
+everywhere, so the tilt between the smallest and largest average risk
+is 15 %, not a clean pinned-versus-unpinned split; the window's sign
+by class (FX +0.50 R on 8 closes, commodities -0.21 on 12, crypto -0.41
+on 4) is sample noise at those counts. Nothing changes; section 166's
+figures stand with the tilt narrower than stated there.

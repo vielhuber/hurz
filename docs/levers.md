@@ -2880,3 +2880,10 @@ the section numbers below point there.
   t ≈ 0.1); day sd would rise from 3.2 to 3.9 USD (read-only).
 - **Decision:** cap stays — a limit is not loosened on thirty trades.
   No code change, no restart. Section 166.
+
+## 2026-09-09 (fifty-first run) — the cap's tilt by class
+
+- **Lever:** position sizing — fill risk per class on the 33 forward
+  entries: FX 2.29, indices 2.37, commodities 2.52, crypto 2.69 USD; the
+  cap binds on 75–100 % in every class, tilt 15 % (read-only).
+- **Decision:** nothing changed. No code change, no restart. Section 167.
