@@ -4721,3 +4721,21 @@ n 8), neither near the bar; the live-expectancy veto retires pins on
 realised results before the pins are appended, so the mechanism to
 drop a losing pin already exists and has its own bar. The five 4h pins
 have no backtest figure and 0–7 live trades. Nothing is unpinned.
+
+## 161. Barriers resolve in hours: stops at a median of 3, targets at 4.5
+
+On the 97 live trend trades since 2026-07-10 that ended at a barrier,
+hours from entry to exit:
+
+| exit | n | median | mean | within 3 h | within 6 h | within 12 h | beyond 24 h |
+|---|---|---|---|---|---|---|---|
+| stop | 62 | 3.0 | 4.4 | 50 % | 73 % | 95 % | 2 % |
+| target | 35 | 4.5 | 9.5 | 40 % | 66 % | 94 % | 3 % |
+
+Half the stops are hit inside three hours of a signal that fired on a
+breakout — the immediate reversal that sections 132 and 119 could not
+anticipate from any earlier bar — and the targets are not much slower.
+Both barriers are decided inside the first half-day; the 24-bar leash
+governs only the trades that reach neither, which is the drift book of
+section 131. Nothing to change; the timing says the same as the
+expectancy split, from the clock's side.

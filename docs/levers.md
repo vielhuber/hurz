@@ -2833,3 +2833,10 @@ the section numbers below point there.
   EURAUD turtle -0.131 R), none at the bar; the live veto already
   retires pins on realised results.
 - **Decision:** nothing unpinned. No code change, no restart. Section 160.
+
+## 2026-09-09 (forty-fifth run) — hours to the barriers, live
+
+- **Lever:** exit logic, descriptive — stops hit at a median 3.0 h
+  (50 % within 3 h, 95 % within 12 h), targets at 4.5 h (94 % within
+  12 h), on 97 barrier exits since 2026-07-10 (read-only).
+- **Decision:** nothing changed. No code change, no restart. Section 161.
