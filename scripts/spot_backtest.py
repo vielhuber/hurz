@@ -169,11 +169,14 @@ _DEFAULT_VENUE_MIN_PERCENT = VENUE_MIN_STOP_FRACTION * 100.0
 
 
 def _venue_min_distance(platform: str, pair: str, ref_price: float) -> float:
-    """Compute the venue's minimum stop-distance for `pair` at `ref_price`.
+    """Compute the stop floor for `pair` at `ref_price`, as the live loop does.
 
-    For Capital.com the rule is a PERCENTAGE of mid-price (typically 1%);
-    we apply a 5% buffer matching the autotrader's runtime clamp. Returns
-    0 when no rule is known — caller treats that as "no expansion needed".
+    Capital's rule is a PERCENTAGE of mid-price whose value is plain
+    percent (0.01 = 0.01 %); read as a fraction with the 5 % buffer it
+    yields the 1.05 % floor the live loop applies. Kept identical to the
+    runtime clamp on purpose — the floor is the project's wide-stop
+    setting, not the venue's requirement (EDGE_FINDINGS 135). Returns 0
+    when no rule is known — caller treats that as "no expansion needed".
     """
     if platform != "capital_com":
         return 0.0

@@ -12,10 +12,15 @@ DEFAULT_RISK_REWARD = 1.5
 DEFAULT_STOP_ATR = 2.0
 
 # Smallest stop the live loop and the backtests will place, as a fraction
-# of price: the venue's 1 % minimum plus its 5 % buffer, which every
-# instrument but GOLD (venue minimum 0.1 %) already enforces. Widening
-# GOLD to it instead of refusing it under the 1 % floor measured +0.130 R
-# and +0.073 R on the two walk-forward samples (EDGE_FINDINGS 104).
+# of price. Despite the name this is the project's own floor, not the
+# venue's: the dealing rules' minStopOrProfitDistance is 0.01 in plain
+# percent (0.01 % of price, GOLD 0.001 %; the same field's maximum reads
+# 100), and the broker has honoured live stops at 0.18 %. Read as a
+# fraction it became 1.05 %, and that accident measures better than the
+# designed 2-ATR stop: at the venue's true floor the 2-ATR book reads
+# -0.065 R against -0.033 R with the cost per R doubled (EDGE_FINDINGS
+# 135), so the floor stays as a deliberate wide-stop setting. Widening
+# GOLD to it measured +0.130 R and +0.073 R (EDGE_FINDINGS 104).
 VENUE_MIN_STOP_FRACTION = 0.0105
 
 # The donchian aliases share their entry logic but deliberately use fixed,

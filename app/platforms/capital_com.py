@@ -431,7 +431,15 @@ class CapitalComPlatform(Platform):
 
         Uses the same cached dealingRules + 1.05× buffer as
         `place_order`'s clamp logic, so what we report here matches
-        what would actually happen at order time."""
+        what would actually happen at order time.
+
+        The rule's value is in plain percent (0.01 = 0.01 % of price;
+        its maximum reads 100), so treating it as a fraction here makes
+        this 100 times the venue's requirement. That is left as is on
+        purpose: the resulting 1.05 % floor is the project's stop floor
+        (`VENUE_MIN_STOP_FRACTION`), measured better than the designed
+        2-ATR stop (EDGE_FINDINGS 135); changing this reading alone
+        would silently tighten every live stop."""
         rules = await self._get_dealing_rules(asset)
         unit = rules.get("min_dist_unit")
         value = rules.get("min_dist_value")
