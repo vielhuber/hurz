@@ -2895,3 +2895,10 @@ the section numbers below point there.
   trades; router pass rate 0 % (USDCHF, J225, GBPUSD, DE40) to 53 %
   (COPPER) (read-only).
 - **Decision:** nothing changed. No code change, no restart. Section 168.
+
+## 2026-09-09 (fifty-third run) — ADX at the signal, all intents
+
+- **Lever:** regime filter, descriptive — 308 intents: median ADX 21.0,
+  45 % below 20, 19 % at or above 30; accepted median 36.4, rejected
+  20.0; momentum's eight intents all under 30 (read-only).
+- **Decision:** nothing changed. No code change, no restart. Section 169.

@@ -4849,3 +4849,18 @@ about a half (COPPER 53 %, GOLD 45 %, CHFJPY 36 %), with the crypto and
 index names at 10–17 %. No instrument carries the book and none is
 idle by construction: the frequency is spread across the universe and
 thinned uniformly by the router. Nothing changes.
+
+## 169. Where the signals fire on the ADX scale
+
+The journalled ADX at the signal bar for the 308 intents since
+2026-08-24: percentiles 10 / 25 / 50 / 75 / 90 at 13.7 / 16.8 / 21.0 /
+27.4 / 36.1; 45 % below 20, 16 % in the 25–30 band, 19 % at or above the
+router's 30. Accepted entries sit at a median ADX of 36.4, rejected at
+20.0; donchian's signals have a median of 20.4 and turtle's 22.6, the
+eight momentum intents 17.9 with none over 30. A breakout of a 20- or
+55-bar channel typically fires while the 1h ADX is still in its
+teens or low twenties — the trend has not registered on the indicator
+when the level breaks — so the router, by construction, keeps the
+first four fifths of every breakout out and admits the ones that come
+after ADX has built. That is the mechanism behind section 152's
+frequency and section 153's forward reading; it is not changed here.
