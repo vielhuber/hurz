@@ -4304,3 +4304,24 @@ simulator's independent per-strategy count it would be a quarter of a
 dollar. Neither is distinguishable from zero, and neither justifies a
 change to the stop, the leash, the sizing and a restart. Not built in;
 the candidate is closed.
+
+## 141. R in the forward report was mixing currencies since the USD booking
+
+The forward read of the trades opened since the 2-ATR stop went live
+showed the three yen and HK50 stale exits at R = 0.00 beside +0.66 and
++0.60 USD. The forward report divides `realized_pnl` — in USD since
+2026-09-07 23:01 UTC (section 98) — by the stop distance times size,
+which is in the instrument's quote currency, so a yen trade's R read
+150-fold too small; the dashboard's projection divided the same USD
+result by a quote-currency notional. The live-expectancy veto and the
+edge scaling were not affected: both recompute the result from prices
+and divide by a price-based risk, quote currency over quote currency.
+
+Both readers now cancel the currency with prices: R is exit against fill
+over the stop distance, the return fraction is the same over the fill
+price; rows without an exit price keep the old ratio, which for the
+legacy rows is quote over quote and consistent. A test pins the return
+expression on the CHFJPY close. Forward since 2026-08-24, corrected: 30
+closes, +0.012 R, -2.67 USD. The journal analyses of sections 115, 119,
+121, 122 and 134 used the old ratio; only the three post-switch
+non-USD closes were affected, three rows in 238, and no reading moves.

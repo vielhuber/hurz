@@ -2626,3 +2626,17 @@ the section numbers below point there.
   two entries a day that is one to four cents a day.
 - **Decision:** not built in; candidate closed. No code change, no
   restart. Section 140.
+
+## 2026-09-09 (twenty-fifth run) — forward read of the built-in changes, and a currency mix in R
+
+- **Lever:** forward reading of runs 11 (2-ATR stop) and 39 (commodity
+  short block) from the journal — 9 trades opened since 2026-09-07, 6
+  closed at -0.78 USD, no commodity short opened since the block; too
+  few to read.
+- **Found and fixed:** the forward report's R divided the USD-booked
+  result by a quote-currency stop distance (yen trades 150× too small);
+  the dashboard's projection return did the same over notional. Both
+  now use price ratios, free of currency; test added; full suite green
+  (270). Corrected forward expectancy since 2026-08-24: +0.012 R over 30
+  closes. Veto and edge scaling were consistent already. Section 141.
+- **Decision:** metric fix only; no trading change, no restart.
