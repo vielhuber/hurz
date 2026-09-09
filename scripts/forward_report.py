@@ -35,7 +35,7 @@ def _rows(cutoff: str) -> list:
     return database.select(
         """
         SELECT created_at, exit_time, realized_pnl, size, strategy, pair,
-               direction, bar_time,
+               direction, bar_time, exit_price,
                COALESCE(fill_price, entry_price) AS px, stop_loss
         FROM spot_trades
         WHERE accepted = 1 AND paper_mode = 0 AND platform = 'capital_com'
@@ -50,6 +50,19 @@ def _rows(cutoff: str) -> list:
         """,
         (cutoff,),
     )
+
+
+def _r_multiple(row) -> float:
+    """Result in units of the stop distance, free of currency.
+
+    `realized_pnl` is booked in USD since 2026-09-07 23:01 UTC while the
+    stop distance times size is in the instrument's quote currency, so
+    their ratio understates a yen trade 150-fold. Prices cancel the
+    currency: exit against fill over the stop distance."""
+    px = float(row["px"]); stop = float(row["stop_loss"])
+    if row.get("exit_price") is not None:
+        return (float(row["exit_price"]) - px) * float(row["direction"]) / abs(px - stop)
+    return float(row["realized_pnl"]) / (abs(px - stop) * float(row["size"]))
 
 
 def _retired_combos() -> set:
@@ -98,11 +111,7 @@ def main() -> None:
 
     days = len({r["exit_time"].date() for r in rows})
     pnl = sum(float(r["realized_pnl"]) for r in rows)
-    r_values = [
-        float(r["realized_pnl"])
-        / (abs(float(r["px"]) - float(r["stop_loss"])) * float(r["size"]))
-        for r in rows
-    ]
+    r_values = [_r_multiple(r) for r in rows]
     mean_r = sum(r_values) / len(r_values)
     wins = sum(1 for v in r_values if v > 0)
 
@@ -117,11 +126,7 @@ def main() -> None:
         print(f"\n{'of which retired':<24}{dropped} "
               f"(combo since retired by the live veto)")
         if live_rows:
-            live_r = [
-                float(r["realized_pnl"])
-                / (abs(float(r["px"]) - float(r["stop_loss"])) * float(r["size"]))
-                for r in live_rows
-            ]
+            live_r = [_r_multiple(r) for r in live_rows]
             print(f"{'still-live expectancy':<24}"
                   f"{sum(live_r) / len(live_r):+.4f} R over {len(live_r)}")
         else:

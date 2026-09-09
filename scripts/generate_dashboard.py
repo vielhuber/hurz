@@ -49,6 +49,12 @@ _PNL = ("(CASE WHEN exit_time >= '" + _USD_BOOKING_FROM + "' "
         "WHEN exit_price IS NOT NULL AND fill_price IS NOT NULL "
         "THEN (exit_price - fill_price) * direction * size "
         "ELSE realized_pnl END)")
+# Return on notional for the projection, free of currency: prices cancel
+# it, whereas the USD-booked result over a quote-currency notional would
+# understate a yen trade 150-fold.
+_RETURN = ("(CASE WHEN exit_price IS NOT NULL AND fill_price IS NOT NULL "
+           "THEN (exit_price - fill_price) * direction / fill_price "
+           "ELSE realized_pnl / NULLIF(ABS(COALESCE(fill_price, entry_price) * size), 0) END)")
 
 from app.spot_trading.holding_period import stale_exit_after_seconds
 
@@ -228,11 +234,7 @@ def _fetch(days) -> dict:
                    COUNT(*) AS trades,
                    SUM({_PNL} > 0) AS wins,
                    ROUND(SUM({_PNL}), 2) AS pnl,
-                   SUM(
-                       {_PNL} / NULLIF(
-                           ABS(COALESCE(fill_price, entry_price) * size), 0
-                       )
-                   ) AS return_sum
+                   SUM({_RETURN}) AS return_sum
             FROM spot_trades
             WHERE accepted=1 AND realized_pnl IS NOT NULL
               AND platform <> 'kraken_futures'

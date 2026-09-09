@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 import unittest
 
-from scripts.generate_dashboard import _PNL
+from scripts.generate_dashboard import _PNL, _RETURN
 
 
 class DashboardPnlCurrencyTest(unittest.TestCase):
@@ -18,10 +18,12 @@ class DashboardPnlCurrencyTest(unittest.TestCase):
         self.conn = sqlite3.connect(":memory:")
         self.conn.execute(
             "CREATE TABLE spot_trades (exit_time TEXT, exit_price REAL, "
-            "fill_price REAL, direction INTEGER, size REAL, realized_pnl REAL)"
+            "fill_price REAL, direction INTEGER, size REAL, realized_pnl REAL, "
+            "entry_price REAL)"
         )
         self.conn.executemany(
-            "INSERT INTO spot_trades VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO spot_trades (exit_time, exit_price, fill_price, direction, "
+            "size, realized_pnl) VALUES (?, ?, ?, ?, ?, ?)",
             [
                 # CHFJPY short closed after the switch: 101.8 JPY = 0.66 USD.
                 ("2026-09-08 23:00:00", 189.945, 190.454, -1, 200.0, 0.6624),
@@ -45,6 +47,14 @@ class DashboardPnlCurrencyTest(unittest.TestCase):
 
     def test_post_switch_row_without_booking_uses_prices(self):
         self.assertAlmostEqual(3.0, self._pnl("2026-09-09 01:00:00"))
+
+    def test_the_return_fraction_is_free_of_currency(self):
+        # 0.509 JPY on a 190.454 fill: 0.267 % whatever the currency.
+        value = self.conn.execute(
+            f"SELECT {_RETURN} FROM spot_trades WHERE exit_time = ?",
+            ("2026-09-08 23:00:00",),
+        ).fetchone()[0]
+        self.assertAlmostEqual((190.454 - 189.945) / 190.454, value, places=9)
 
 
 if __name__ == "__main__":
