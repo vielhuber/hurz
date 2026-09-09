@@ -2799,3 +2799,13 @@ the section numbers below point there.
   2–3 +0.022, 4–5 -0.299 (t -2.0, t_diff -1.7, n 40), 6–7 +0.023.
 - **Decision:** nothing changed; no ordering, one sample. No code
   change, no restart. Section 156.
+
+## 2026-09-09 (forty-first run) — the nightly list's turnover
+
+- **Lever:** pair selection — yesterday's active list against today's
+  (05:30 UTC refresh): 69 → 68 combinations, 68 kept, one removed
+  (GOLD / momentum), score Spearman 0.87 on the kept ones. The refresh
+  caused 58 rate-limit errors on the bot's evaluations in 20 minutes.
+- **Decision:** nothing changed; the refresh decides almost nothing and
+  is not an operational blocker (one bar per hit at a quiet hour). A
+  paced fetch in the selector is noted, not built. Section 157.

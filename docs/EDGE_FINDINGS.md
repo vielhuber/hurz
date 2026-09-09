@@ -4647,3 +4647,22 @@ The 4–5 band reads -0.30 R on 40 trades, the band above it +0.02 on
 six: no ordering, one journal sample, nothing at the bar. The cap of 8
 has refused two entries since 2026-08-24 (section 127) and the cluster
 cap none; neither is tightened on this.
+
+## 157. The nightly list turns over one combination a day, and costs the bot an hour of rate limits
+
+The nightly selector re-ranks the book at 05:30 UTC. Yesterday's list
+against today's: 69 combinations before, 68 after; 68 kept, none
+added, one removed (GOLD / momentum); the Spearman correlation of the
+kept combinations' scores is 0.87. The list is, as sections 130 and 155
+say, a list of what trades, and it barely moves from one day to the
+next — the daily re-ranking decides almost nothing. What it does do is
+run three backtests over the whole universe inside the venue's 10
+requests-a-second budget shared with the bot: the session log shows 58
+rate-limit errors on the bot's own evaluations between 05:30 and
+05:50 UTC while the refresh ran, against 34 in the preceding day from
+all of this night's replays together. A skipped evaluation costs one
+bar on one instrument at a quiet hour, so this is not an operational
+blocker, but it is the refresh's only measurable effect: a daily
+one-combination turnover bought with an hour of the bot's evaluations
+missing. Left as is; a paced fetch in the selector, as the replays use,
+would remove it.
