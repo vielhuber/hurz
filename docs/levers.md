@@ -2556,3 +2556,28 @@ the section numbers below point there.
   `spot_backtest._venue_min_distance`); no behaviour change, tests
   unchanged and green. No restart. Section 135 corrects sections 19,
   23, 28, 123 and 124 on the cause.
+
+## 2026-09-09 (twentieth run) — the stop floor as a parameter
+
+- **Lever:** stop logic — with the 1.05 % floor established as the
+  project's own setting (run 63), the floor itself swept for the first
+  time: 1.5 / 2 / 3 % of price at 2 ATR. Preregistered: a wider floor
+  built in only if better net on both samples, not worse gross on
+  either, and t > 2 pooled; smallest passing floor chosen.
+- **Measurement:** `scripts/stop_floor_sweep.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  live widening rule, gap-aware booking, router-passed path, commodity
+  short block, three live trend strategies, 26 instruments, both samples.
+
+  | floor | last 365 d: net / vs live, t | prior 730 d: net / vs live, t |
+  |---|---|---|
+  | 1.05 % (live) | -0.033 / — | +0.016 / — |
+  | 1.5 % | -0.013 / +0.020, t 1.25 | +0.007 / -0.009, t -0.81 |
+  | 2.0 % | -0.009 / +0.023, t 1.53 | +0.006 / -0.010, t -0.97 |
+  | 3.0 % | -0.001 / +0.032, t 2.27 | +0.002 / -0.015, t -1.48 |
+
+  Monotonic gain on the recent year, monotonic loss on the older; the
+  first clause fails. With run 63 (narrower loses on both), 1.05 % is
+  the value both samples accept.
+- **Decision:** not built in — the floor stays at 1.05 %. No code
+  change, no restart. Section 136.

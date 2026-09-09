@@ -4150,3 +4150,37 @@ setting, not the venue's rule. The three docstrings that called it the
 venue's minimum now say so; no behaviour changed and no test moved.
 Sections 19 and 23 remain correct about the numbers and wrong about the
 cause, and this section is their correction.
+
+## 136. The floor is a parameter — and 1.05 % is where both samples want it
+
+Section 135 made the 1.05 % stop floor the project's own setting, so it
+can be varied, and no sweep had ever varied it: every earlier stop sweep
+moved the ATR multiple above a fixed floor. `scripts/stop_floor_sweep.py`
+replays the three live 1h trend strategies on the router-passed path,
+live widening rule, gap-aware stop booking and the commodity short block
+over all 26 tradeable instruments at 2 ATR under floors of 1.05 % (live),
+1.5 %, 2 % and 3 % of price. Preregistered: a wider floor is built in
+only if better net on both disjoint samples, not worse gross on either,
+and better at t > 2 pooled; after the first sample and before the
+second, the choice among passing floors was fixed as the smallest.
+
+| floor | last 365 d: net E[R] / cost R / gross / stop % / timeout % / vs live, t | prior 730 d: same |
+|---|---|---|
+| **1.05 % (live)** | -0.033 / 0.017 / -0.016 / 26 / 61 / — | +0.016 / 0.018 / +0.034 / 22 / 64 / — |
+| 1.5 % | -0.013 / 0.013 / +0.001 / 17 / 74 / +0.020, t +1.25 | +0.007 / 0.014 / +0.021 / 15 / 77 / -0.009, t -0.81 |
+| 2.0 % | -0.009 / 0.011 / +0.001 / 11 / 82 / +0.023, t +1.53 | +0.006 / 0.011 / +0.017 / 10 / 84 / -0.010, t -0.97 |
+| 3.0 % | -0.001 / 0.007 / +0.007 / 5 / 91 / **+0.032, t +2.27** | +0.002 / 0.007 / +0.009 / 6 / 91 / -0.015, t -1.48 |
+
+On the recent year the reading is monotonic and, at 3 %, significant:
+the wider the floor, the less the barriers cost and the more of the
+positive drift the trade keeps, until at 3 % nine trades in ten are
+plain 24-bar holds and the book is flat instead of -0.033 R. On the two
+years before every wider floor is worse, net and gross alike, and the
+ordering is reversed: there the barriers earned their keep, the target
+at 1.05 % paying more than the drift it forfeits. The first clause
+fails and nothing is built in. Read together with section 135 (the
+designed 2-ATR stop, 0.7 % of price, loses on both samples), the floor
+sits at a value both samples accept — narrower loses twice, wider loses
+once — which is as much as this book can say about its stop. Position
+sizing is untouched; the wider floors would also have cut sizes by a
+third to two thirds and multiplied the minimum-size skips.
