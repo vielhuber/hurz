@@ -2712,3 +2712,23 @@ the section numbers below point there.
   0.03 or 11.7 R per trade at the current risk.
 - **Decision:** nothing changed — sizing up multiplies an expectancy of
   zero. No code change, no restart. Section 148.
+
+## 2026-09-09 (thirty-third run) — the ADX slope on unselected samples
+
+- **Lever:** regime filter — run 42's fading-ADX candidate (the last on
+  the forward-test list) read on the excluded instruments and the live
+  journal. Preregistered: veto built in only at t_diff < -2 on the
+  excluded set with the journal agreeing in sign.
+- **Measurement:** `scripts/adx_slope_second_look.py` — (A) 13 excluded
+  instruments, three years, router-passed, costs charged without the
+  ceiling skip; (B) 238 journal trades, R from prices.
+
+  | sample | fading − rest / t |
+  |---|---|
+  | run 42, last 365 d / prior 730 d | -0.065 / -2.33 ; -0.042 / -2.19 |
+  | excluded instruments | **+0.023 / +1.04** |
+  | journal (forward) | -0.027 / -0.18 (+0.098 / +0.29) |
+
+  Reversed on the excluded set; the first condition fails.
+- **Decision:** not built in; the forward-test list is empty. No code
+  change, no restart. Section 149.

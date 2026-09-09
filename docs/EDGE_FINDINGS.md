@@ -4490,3 +4490,35 @@ away in risk per trade, and risk per trade is the one parameter this
 document has not touched, because at an expectancy of zero within
 ±0.03 R it multiplies noise and, on the recent year, loss. Recorded so
 the daily-gain line is read against what it can show.
+
+## 149. The ADX slope does not travel either — the candidate list is empty
+
+Section 112 left the fading ADX (change over three bars below +0.22)
+as the one forward candidate: worse than the rest on both walk-forward
+samples at |t| > 2, the bucket itself missing t < -2 on the older one.
+Following section 115's rule, `scripts/adx_slope_second_look.py` reads
+the same split, fixed at +0.22, on the excluded instruments (three
+years, router-passed, costs charged without the ceiling skip) and on the
+live journal (238 closed 1h-trend trades, R from prices). Preregistered:
+a fading-ADX veto is built in only if the bucket is below the rest at
+t < -2 on the excluded instruments and the journal agrees in sign.
+
+| sample | n fading | E[R] fading | rest | fading − rest | t |
+|---|---|---|---|---|---|
+| section 112, last 365 d | 1,126 | -0.081 | -0.016 | -0.065 | -2.33 |
+| section 112, prior 730 d | 2,519 | -0.017 | +0.025 | -0.042 | -2.19 |
+| (A) excluded instruments, net | 2,067 | -0.111 | -0.134 | **+0.023** | **+1.04** |
+| (A) excluded instruments, gross | 2,067 | +0.017 | +0.000 | +0.017 | +0.77 |
+| (B) journal, all closed | 65 | -0.084 | -0.057 | -0.027 | -0.18 |
+| (B) journal, forward since 2026-08-24 | 8 | +0.084 | -0.014 | +0.098 | +0.29 |
+
+On the instruments that were not part of the selection the fading
+quarter is the better one, in two of the three strategies, net and
+gross; the journal agrees in sign on the whole sample at t = -0.18 and
+reverses in the forward window on eight trades. The first condition
+fails and nothing is built in. That closes the forward-test list: of
+the 4h ADX (section 115), the target re-entry (122) and the ADX slope,
+none carried beyond the 26 instruments and three years they were found
+on. The rule that every candidate surviving the time split must also
+survive the instrument split and the journal has now retired all three
+that reached it, which is what the rule was for.
