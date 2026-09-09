@@ -2902,3 +2902,10 @@ the section numbers below point there.
   45 % below 20, 19 % at or above 30; accepted median 36.4, rejected
   20.0; momentum's eight intents all under 30 (read-only).
 - **Decision:** nothing changed. No code change, no restart. Section 169.
+
+## 2026-09-09 (fifty-fourth run) — the rate limits and the signal window
+
+- **Lever:** operational cost of the night's replays and the refresh —
+  92 rate-limit hits, none in the five minutes after a bar close, 91
+  mid-hour where the poll repeats (read-only).
+- **Decision:** nothing changed. No code change, no restart. Section 170.

@@ -4864,3 +4864,16 @@ when the level breaks — so the router, by construction, keeps the
 first four fifths of every breakout out and admits the ones that come
 after ADX has built. That is the mechanism behind section 152's
 frequency and section 153's forward reading; it is not changed here.
+
+## 170. The rate limits cost no entries
+
+Ninety-two rate-limit errors hit the bot's evaluations between
+2026-09-08 04:00 and 2026-09-09 08:00 UTC — the night's replays and the
+05:30 refresh (58 of them). By minute of the hour: none in the first
+five minutes after a bar close, where the just-closed bar's signal is
+evaluated and an order would leave; one in the last five minutes
+before; 91 mid-hour, where an evaluation that fails is repeated on the
+next poll with the same closed bar. The replays' pacing and the loop's
+60-second poll kept the venue's budget clear at the one moment it
+matters. Nothing to change; the replays stay paced and the refresh's
+fetches remain unpaced, as section 157 noted.
