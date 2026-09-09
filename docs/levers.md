@@ -2887,3 +2887,11 @@ the section numbers below point there.
   entries: FX 2.29, indices 2.37, commodities 2.52, crypto 2.69 USD; the
   cap binds on 75–100 % in every class, tilt 15 % (read-only).
 - **Decision:** nothing changed. No code change, no restart. Section 167.
+
+## 2026-09-09 (fifty-second run) — intents and trades by instrument
+
+- **Lever:** pair selection, descriptive — 30 instruments with
+  intents, 22 with a trade; top five carry 29 % of intents and 24 % of
+  trades; router pass rate 0 % (USDCHF, J225, GBPUSD, DE40) to 53 %
+  (COPPER) (read-only).
+- **Decision:** nothing changed. No code change, no restart. Section 168.

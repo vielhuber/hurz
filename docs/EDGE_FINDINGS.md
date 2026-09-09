@@ -4837,3 +4837,15 @@ is 15 %, not a clean pinned-versus-unpinned split; the window's sign
 by class (FX +0.50 R on 8 closes, commodities -0.21 on 12, crypto -0.41
 on 4) is sample noise at those counts. Nothing changes; section 166's
 figures stand with the tilt narrower than stated there.
+
+## 168. Where the frequency comes from: everywhere, thinly
+
+Intents since 2026-08-24 by instrument: 30 instruments raised them,
+22 traded at least once, and the five busiest (US100, AUDNZD, BTCUSD,
+AUDUSD, ETHUSD, 17–20 intents each) carry 29 % of the intents and
+24 % of the trades. The router's pass rate by instrument runs from
+zero (USDCHF, J225, GBPUSD, DE40: 12–14 intents each, none passed) to
+about a half (COPPER 53 %, GOLD 45 %, CHFJPY 36 %), with the crypto and
+index names at 10–17 %. No instrument carries the book and none is
+idle by construction: the frequency is spread across the universe and
+thinned uniformly by the router. Nothing changes.
