@@ -4602,3 +4602,13 @@ on 39 intents. On the simulator the floor was flat between 15 and 40
 (sections 46b and run 18), so this is one bad fortnight read forward,
 not a new setting — but it is the direction the fortnight points, and
 it is the same direction as section 127. The floor stays at 30.
+
+## 154. Stale-exit latency: 71 seconds, symmetric
+
+The three stale exits of 2026-09-08 in the session log went from the
+leash trigger to the confirmed close in 71, 73 and 71 seconds — the
+close request and its confirmation poll. At an hourly range of about
+0.15 % the price moves about 0.02 % in that time, 2 % of the 1.05 %
+stop, with no sign: a ±0.02 R jitter on two closes in five, not a
+cost. The three open positions at the time of reading were 23.0, 21.0
+and 13.0 hours old, inside the leash. Nothing to change.

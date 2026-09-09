@@ -2773,3 +2773,11 @@ the section numbers below point there.
   over 39 intents.
 - **Decision:** nothing changed — the floor stays at 30. No code change,
   no restart. Section 153.
+
+## 2026-09-09 (thirty-eighth run) — stale-exit latency
+
+- **Lever:** exit execution — trigger to confirmed close on the three
+  stale exits of 2026-09-08: 71 / 73 / 71 s; about 0.02 % of price, a
+  symmetric ±0.02 R jitter, not a cost. Open positions 23.0 / 21.0 /
+  13.0 h, inside the leash.
+- **Decision:** nothing changed. No code change, no restart. Section 154.
