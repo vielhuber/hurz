@@ -2342,3 +2342,34 @@ the section numbers below point there.
 - **Decision:** not built in; recorded as the second known
   understatement of the gain figure (after run 10's currency mix). No
   code change, no restart. Section 126.
+
+## 2026-09-09 (eleventh run) — the guards in practice, and the router's forward test
+
+- **Lever:** regime filter / risk guards — what the live guards refuse
+  (journal since 2026-08-24, read-only) and, for the router, the
+  counterfactual of what it refused, which is the forward test its
+  standing rule asks for (off only at passed − rejected < t -2).
+- **Measurement:** journal rejection reasons; `scripts/router_forward_test.py`
+  replays rejected and accepted intents alike from the 1h history with
+  their journalled stop and target (24-bar hold, gap-aware, audited
+  spread).
+
+  | guard, since 2026-08-24 | refusals |
+  |---|---:|
+  | regime router | 246 (against 33 accepted) |
+  | duplicate instrument signal | 19 |
+  | stop below floor | 3 |
+  | concurrent cap (8) | 2 |
+  | size below broker minimum | 2 |
+
+  | router forward test | n | E[R] | t | Σ R |
+  |---|---|---|---|---|
+  | accepted (traded) | 30 | -0.115 | -0.74 | -3.4 |
+  | rejected | 197 | -0.177 | -3.28 | -34.9 |
+  | passed − rejected | | +0.062 | +0.38 | |
+
+  The cap does not bind (2 refusals), so signal prioritisation at the
+  cap is not a lever. The router's rule is not met (t = +0.38) and it
+  stays on; first forward reading with the right sign, on one bad
+  fortnight, no power on the accepted side.
+- **Decision:** nothing changed. No code change, no restart. Section 127.

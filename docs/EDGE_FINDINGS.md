@@ -3834,3 +3834,40 @@ corrected — the journal is price-based by design and the account is
 topped up (section 38), so the fee would have to be pulled from the
 transaction history per position; recorded as the second known
 understatement after section 99's currency mix.
+
+## 127. The router's forward test: the trades it kept out lost 35 R
+
+Sections 46, 46b and 49e left the ADX router on with a standing rule:
+it comes off only when an independent forward test reads passed minus
+rejected below t = -2. Since 2026-08-24 the live loop journals every
+intent the router refuses with its pair, direction, signal price, stop
+and target, and since then it has refused 246 intents against 33
+accepted trades — seven in eight signals the strategies raise are
+rejected on the 1h ADX. `scripts/router_forward_test.py` replays both
+sides the same way from the 1h history that followed each signal bar
+(24-bar hold, gap-aware stop, audited spread; 197 rejected and 30
+accepted intents had complete history):
+
+| intents since 2026-08-24 | n | E[R] | t | win % | Σ R |
+|---|---|---|---|---|---|
+| accepted by the router (traded) | 30 | -0.115 | -0.74 | 46.7 | -3.4 |
+| rejected by the router | 197 | **-0.177** | **-3.28** | 38.6 | **-34.9** |
+| passed − rejected | | +0.062 | +0.38 | | |
+
+The rule is not met — the difference is t = +0.38, and the router stays
+on — but this is the first forward reading in which the router's sign
+is right: the signals it kept out would have lost 35 R in sixteen days,
+significantly, while the book it let through lost 3.4 R. Per strategy
+the rejected donchian signals are the loss (-0.221 R, t = -3.46, n =
+122), turtle's -0.152 R at t = -1.59; the seven rejected momentum
+signals would have won. By ADX band nothing is monotonic: the rejected
+signals lose about the same below 20 as at 25–30, and the nine at ADX
+above 40 that fell to the core-floor logic are flat. Two cautions. The
+accepted side is 30 trades, so the difference has no power at all.
+And the sixteen days are one regime — the same fortnight in which the
+book itself lost — so the reading says the router filtered a bad
+fortnight well, not that ADX predicts. It is recorded as the forward
+test the rule asked for; the rule is not triggered and nothing changes.
+The remaining guards, for the record, barely act: since 2026-08-24 the
+concurrent cap refused 2 entries, the size floor 2, the stop floor 3,
+the duplicate-instrument guard 19.
