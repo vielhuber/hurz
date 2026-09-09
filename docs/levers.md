@@ -2423,3 +2423,26 @@ the section numbers below point there.
 - **Decision:** nothing blocked; UK100 shorts recorded as a watch. No
   code change, no restart. Section 129. Direction is measured at class
   and instrument level.
+
+## 2026-09-09 (fourteenth run) — does instrument expectancy transfer? (selector premise)
+
+- **Lever:** pair selection — the nightly selector ranks by backtest
+  expectancy; tested whether the prior sample's instrument ranking on
+  the live path predicts the recent year, using run 55's trade dumps
+  (no new venue load). Preregistered: drop the prior bottom quartile
+  only if below the rest on the recent year at t < -2.
+- **Measurement:** offline from `scripts/direction_by_instrument.py`
+  dumps, 26 instruments, router-passed path, 2-ATR stop.
+
+  | prior-sample selection | recent E[R] | rest | diff / t |
+  |---|---|---|---|
+  | bottom quartile (6) | -0.063 | -0.026 | -0.038 / -1.33 |
+  | top quartile (6) | -0.056 | -0.025 | -0.031 / -0.99 |
+  | prior-positive (15) vs prior-negative (11) | -0.031 | -0.036 | +0.006 / +0.24 |
+  | Spearman prior → recent | rho -0.22 (p 0.28) | | |
+
+  No transfer in either direction; GOLD the only instrument positive on
+  both samples (run 17).
+- **Decision:** nothing dropped, no code change, no restart. Section
+  130. The selector's ranking is confirmed as non-predictive; it stays
+  as the list of instruments that trade.

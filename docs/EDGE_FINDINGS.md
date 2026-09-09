@@ -3940,3 +3940,34 @@ recent year's standout BTCUSD (+0.23 R both sides, t 2.6 and 2.4) is
 is at the level chance produces. Nothing is blocked; UK100 shorts are
 recorded as a watch, as SILVER was before section 109, and the
 direction dimension is now measured at class and instrument level.
+
+## 130. Instrument expectancy does not transfer between the samples
+
+The nightly selector ranks instrument-strategy combinations by their
+backtest expectancy and trades the top of the list, which assumes that
+an instrument's past expectancy predicts its next. Section 129's trade
+dumps allow the cleanest version of that test on the live path: rank
+the 26 instruments by their router-passed E[R] over days 366–1,095 and
+read the same instruments over the last 365 days. Preregistered: the
+prior sample's bottom quartile is dropped from the book only if it is
+below the rest on the recent year at t < -2.
+
+| selection made on the prior 730 d | instruments | recent-year n / E[R] | rest of the book | diff / t |
+|---|---|---|---|---|
+| bottom quartile | OIL_BRENT, OIL_CRUDE, AUDUSD, UK100, EURAUD, EURUSD | 861 / -0.063 | -0.026 | -0.038 / -1.33 |
+| top quartile | HK50, ETHUSD, US30, COPPER, US100, GOLD | 1,189 / -0.056 | -0.025 | -0.031 / -0.99 |
+| all instruments positive on the prior sample (15) | | 2,855 / -0.031 | -0.036 (the 11 negative ones) | +0.006 / +0.24 |
+| Spearman rank correlation, prior → recent | 26 | rho = -0.22, p = 0.28 | | |
+
+Nothing transfers. The prior sample's winners and losers are both worse
+than the rest on the recent year; an instrument that was positive
+before reads the same as one that was negative, to within 0.006 R; the
+rank correlation is negative and insignificant. Of the six top-quartile
+names, four (US100, COPPER, US30, HK50) are among the recent year's
+worst, and the recent year's best (BTCUSD +0.22 R) was +0.01 before.
+GOLD is the one instrument positive on both samples, as section 70
+already recorded. The condition is not met and nothing is dropped. What
+follows is not a new filter but a reading of the selector: its ranking
+by past expectancy is, as run 27 put it, a list of instruments that
+trade, not a forecast — and a list of all tradeable instruments would
+have done the same.
