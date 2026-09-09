@@ -2781,3 +2781,13 @@ the section numbers below point there.
   symmetric ±0.02 R jitter, not a cost. Open positions 23.0 / 21.0 /
   13.0 h, inside the leash.
 - **Decision:** nothing changed. No code change, no restart. Section 154.
+
+## 2026-09-09 (thirty-ninth run) — the projection tile's premise
+
+- **Lever:** pair selection as the dashboard's projection assumes it —
+  prior top-3 instruments by E[R] read on the recent year (run 62's
+  dumps): GOLD +0.177, US100 -0.116, COPPER -0.158 R; pooled -0.054 R
+  against the book's -0.033. The "119T" header is the 119-day span, not
+  a defect.
+- **Decision:** nothing changed; the tile stays labelled as an
+  extrapolation. No code change, no restart. Section 155.

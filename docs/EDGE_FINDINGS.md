@@ -4612,3 +4612,19 @@ close request and its confirmation poll. At an hourly range of about
 stop, with no sign: a ±0.02 R jitter on two closes in five, not a
 cost. The three open positions at the time of reading were 23.0, 21.0
 and 13.0 hours old, inside the leash. Nothing to change.
+
+## 155. The projection tile's premise does not hold out of sample
+
+The dashboard's "Projected Gains" tile extrapolates the three most
+profitable live combinations of net-positive strategies to a EUR-per-day
+figure at a 1,000 EUR stake with a 50 % haircut ("Netto 119T" is the
+net over the 119-day span). Its premise — that the best combinations so
+far predict the next period — is section 130's question, and run 62's
+dumps answer it for instruments: the prior sample's top three by E[R]
+(GOLD +0.138, US100 +0.111, COPPER +0.075 R) read +0.177, -0.116 and
+-0.158 R on the recent year, -0.054 R pooled against the book's -0.033.
+Two of three reversed, the pooled selection did worse than no
+selection. The tile is labelled as an extrapolation and haircut, and it
+is not the daily-gain figure the objective is measured by, so it stays;
+it should be read as what the last period's winners would have made
+had they continued, which section 130 shows they do not.
