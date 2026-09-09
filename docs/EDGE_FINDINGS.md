@@ -4466,3 +4466,27 @@ on 238 trades and the long-short difference is t = 0.09 over the book.
 Nothing follows: the block already stands where the evidence met the
 bar, and the index side did not meet it on the simulator's second
 sample.
+
+## 148. The target on the live frequency
+
+Section 37 priced the 50 EUR/day target on the frequency of July. On
+the live book as it trades now — 33 entries in the 16 days since the
+filters went live, 2.05 a day, 2.44 USD of risk at fill against 3.00
+planned (the 250 USD notional cap binds on the pinned trades):
+
+| what the target needs | value |
+|---|---|
+| 58.5 USD a day at 2.05 entries a day | 28.5 USD per trade |
+| at E[R] = 0.03 (the book's ±noise) | 950 USD of risk per trade, 390 times the current |
+| at E[R] = 0.10 | 285 USD per trade, 117 times |
+| at E[R] = 0.30 | 95 USD per trade, 39 times |
+| at the current risk and frequency | 11.7 R per trade, or 800 trades a day at 0.03 R |
+
+No lever measured in this document moves E[R] by more than a few
+hundredths of an R on both samples, and none moves the entry rate by
+more than a factor of two without letting through what the router
+refuses (section 127: -0.177 R). The target is two orders of magnitude
+away in risk per trade, and risk per trade is the one parameter this
+document has not touched, because at an expectancy of zero within
+±0.03 R it multiplies noise and, on the recent year, loss. Recorded so
+the daily-gain line is read against what it can show.

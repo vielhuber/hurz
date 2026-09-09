@@ -2703,3 +2703,12 @@ the section numbers below point there.
   index shorts -0.193 R (n 15), nothing significant; book long-short
   difference t 0.09.
 - **Decision:** nothing changed. No code change, no restart. Section 147.
+
+## 2026-09-09 (thirty-second run) — the target on the live frequency
+
+- **Lever:** position sizing — what the 50 EUR/day target requires at
+  the live entry rate (2.05 a day since 2026-08-24, 2.44 USD risk at
+  fill): 28.5 USD per trade, i.e. 950 USD of risk per trade at E[R]
+  0.03 or 11.7 R per trade at the current risk.
+- **Decision:** nothing changed — sizing up multiplies an expectancy of
+  zero. No code change, no restart. Section 148.
