@@ -4354,3 +4354,29 @@ the book's structural losers on other grounds (sections 70, 129). The
 audit is not refreshed from one day of samples taken at one minute of
 the hour; when a week is in, `capital_spread_audit.py` can take the
 medians, and the two unaudited yen crosses should be added then.
+
+## 143. The journal shows the same shape: barriers lose, stale exits carry
+
+Section 131's split of the simulated book by exit kind, read on the 238
+live 1h-trend trades of the journal (R from prices, free of currency;
+outcomes as the journal labels them — `win` target, `loss` stop,
+`manual` the 24-hour stale exit):
+
+| exit | n | share | mean R | t | contribution to E[R] |
+|---|---|---|---|---|---|
+| target | 56 | 23.5 % | +1.273 | +25.5 | +0.299 |
+| stop | 89 | 37.4 % | -1.042 | -50.1 | -0.390 |
+| stale exit | 93 | 39.1 % | +0.065 | +0.92 | +0.026 |
+| all | 238 | | -0.065 | -0.99 | |
+
+The live book reads as the simulator does: the stop is hit more often
+than the target and the two barriers together cost 0.09 R a trade,
+while the trades that reach neither drift the right way by +0.065 R —
+the same +0.055 / +0.068 R the two simulator samples gave. The barrier
+shares are higher live (61 % against 39 %) because most journal trades
+date from the 1-ATR stop; in the forward window since 2026-08-24, mostly
+at the 2-ATR stop, half the closes are stale exits at +0.22 R, a sixth
+targets, a third stops, and the book reads +0.012 R over 30 trades.
+Section 139 has already shown that the drift is that of the survivors
+and is zero unconditionally; the journal adds that live execution does
+not change the shape.

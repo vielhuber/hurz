@@ -2652,3 +2652,13 @@ the section numbers below point there.
   risk against a 10 % ceiling); CADJPY and USDJPY are unaudited.
 - **Decision:** nothing changed; refresh the audit from a week of
   samples, not one day. No code change, no restart. Section 142.
+
+## 2026-09-09 (twenty-seventh run) — exit decomposition on the live journal
+
+- **Lever:** exit logic, forward read of run 59 on the 238 live 1h-trend
+  trades (R from prices, no venue load).
+- **Result:** targets 23.5 % at +1.27 R, stops 37.4 % at -1.04 R, stale
+  exits 39.1 % at +0.065 R (t 0.92); barriers cost 0.09 R a trade, the
+  stale exits carry — the simulator's shape. Forward since 2026-08-24:
+  half the closes stale at +0.22 R, book +0.012 R over 30.
+- **Decision:** nothing changed. No code change, no restart. Section 143.
