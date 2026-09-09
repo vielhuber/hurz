@@ -2918,3 +2918,11 @@ the section numbers below point there.
   the list; a third of the nightly refresh's load (read-only).
 - **Decision:** nothing changed — run 3 keeps it on expectancy, and
   rarity is not a reason. No code change, no restart. Section 171.
+
+## 2026-09-09 (fifty-sixth run) — entry slippage since the forming-bar fix, re-read
+
+- **Lever:** cost side, live — all fills since 2026-09-08 04:00 UTC:
+  still the five of run 27 (no entry since 2026-09-08 16:00 UTC), mean
+  +0.004 R, median -0.001 R, orders 2–43 s after the close (median
+  30 s). Section 118 stands unchanged.
+- **Decision:** nothing changed. No code change, no restart.
