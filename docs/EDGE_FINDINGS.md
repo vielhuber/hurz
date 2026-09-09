@@ -4325,3 +4325,32 @@ expression on the CHFJPY close. Forward since 2026-08-24, corrected: 30
 closes, +0.012 R, -2.67 USD. The journal analyses of sections 115, 119,
 121, 122 and 134 used the old ratio; only the three post-switch
 non-USD closes were affected, three rows in 238, and no reading moves.
+
+## 142. The live spreads against the audit: right within a tenth, except three indices
+
+Section 106 put a spread sampler on the heartbeat so the static spread
+audit the cost filter and the simulator use (2026-08-24 and 2026-09-04)
+could be checked against the venue's live quotes. After one day, 554
+samples on 31 instruments, 14–21 per instrument, taken at the
+heartbeat's minute (about :47) each hour:
+
+| instrument | samples | median live spread | audit | ratio |
+|---|---|---|---|---|
+| 24 instruments (crypto, FX, US indices, metals, oils) | 14–21 each | — | — | 0.95–1.13 |
+| DE40 | 21 | 0.0077 % | 0.0057 % | 1.34 |
+| FR40 | 19 | 0.0156 % | 0.0090 % | 1.74 |
+| UK100 | 19 | 0.0185 % | 0.0090 % | 2.06 |
+| CADJPY, USDJPY | 20, 15 | 0.0063 %, 0.0078 % | not audited | — |
+
+The audit holds to within a tenth for everything the book trades most,
+crypto and the oils to within 3 %. The three European indices trade at
+1.3–2.1 times their audited spread at the sampled hours — the off-hours
+widening of section 105 read live — and the FX crosses show occasional
+outliers (AUDJPY 0.18 %, USDCHF 0.24 % once each) that the medians
+absorb. In R the understatement is small: UK100's round trip at the live
+median is 1.8 % of a 1.05 % stop instead of 0.9 %, far under the 10 %
+ceiling, so no filter decision changes, and UK100 and FR40 are already
+the book's structural losers on other grounds (sections 70, 129). The
+audit is not refreshed from one day of samples taken at one minute of
+the hour; when a week is in, `capital_spread_audit.py` can take the
+medians, and the two unaudited yen crosses should be added then.

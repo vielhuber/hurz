@@ -2640,3 +2640,15 @@ the section numbers below point there.
   (270). Corrected forward expectancy since 2026-08-24: +0.012 R over 30
   closes. Veto and edge scaling were consistent already. Section 141.
 - **Decision:** metric fix only; no trading change, no restart.
+
+## 2026-09-09 (twenty-sixth run) — live spreads against the cost audit
+
+- **Lever:** cost filter input — the heartbeat spread samples of run 38
+  (554 samples, one day) against the static audit the cost filter and
+  simulator use.
+- **Result:** 24 of 27 audited instruments within 0.95–1.13 of the audit;
+  DE40 1.34×, FR40 1.74×, UK100 2.06× at the sampled hours (off-hours
+  widening, run 37). No filter decision changes (UK100's cost is 1.8 % of
+  risk against a 10 % ceiling); CADJPY and USDJPY are unaudited.
+- **Decision:** nothing changed; refresh the audit from a week of
+  samples, not one day. No code change, no restart. Section 142.
