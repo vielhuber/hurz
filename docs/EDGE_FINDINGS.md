@@ -4890,3 +4890,60 @@ venue load (section 157) and, in the live book, for nothing. Section
 57 measured it positive against random on both samples at t ≤ 1.4 and
 kept it; that stands — a strategy is not dropped for trading rarely —
 and the load it adds is the refresh's, not the bot's. Nothing changes.
+
+## 172. Volatility at the signal: the quiet quarter wins one year and nothing the next
+
+How volatile an instrument is at the moment a 1h breakout fires,
+relative to its own recent history, had never been read on the live
+book; the old `vol_squeeze` strategies of section 7 asked a different
+question with a different simulator. `scripts/atr_regime_gate.py`
+replays the three live 1h trend strategies on the router-passed path
+at the 2-ATR stop, venue minimum, live widening rule, gap-aware stop
+booking and the commodity short block over all 26 tradeable
+instruments, and buckets every trade by the percentile rank of
+ATR(14)/close at the signal bar against the 720 bars (30 days) before
+it, so nothing after the signal is seen and the first month of each
+window carries no feature. Quartile edges were fixed on the recent
+year (28.75 / 57.50 / 81.94) and applied unchanged to the two years
+before. Preregistered rule as in sections 110 to 114: a bucket is
+blocked only if significantly negative at t < -2 on both disjoint
+samples and its difference to the rest holds at |t| > 2 with the same
+sign on both. After the recent year had been seen and before the older
+sample ran, a second candidate was preregistered under the same bar:
+keep only the quietest quarter (rank below 28.75), i.e. block the
+upper three quarters as one bucket.
+
+| ATR% rank at the 1h signal | last 365 d: n / E[R] / t / diff vs rest / t | prior 730 d: same |
+|---|---|---|
+| below 28.75 (quiet) | 994 / **+0.066** / **+2.62** / +0.133 / **+4.52** | 2,305 / +0.027 / +1.76 / +0.011 / +0.57 |
+| 28.75–57.50 | 997 / **-0.083** / **-3.16** / -0.065 / **-2.15** | 2,392 / +0.008 / +0.51 / -0.016 / -0.80 |
+| 57.50–81.94 | 986 / **-0.098** / **-3.86** / -0.086 / **-2.89** | 1,914 / +0.027 / +1.46 / +0.010 / +0.47 |
+| above 81.94 (loud) | 995 / -0.021 / -0.75 / +0.017 / +0.55 | 1,989 / +0.017 / +0.81 / -0.004 / -0.17 |
+| upper three quarters (>= 28.75) | 2,978 / **-0.067** / **-4.39** / -0.133 / **-4.52** | 6,295 / +0.017 / +1.57 / -0.011 / -0.57 |
+| book without 57.50–81.94 | 2,986 / -0.013 | 6,686 / +0.017 |
+| book, whole | 3,972 / -0.034 / -2.58 | 8,600 / +0.020 / +2.21 |
+
+On the recent year the reading is as clean as section 114's: the
+quietest quarter is the only profitable one, +0.066 R at t = +2.62,
+its gap to the rest holds at t = +4.52, and the two middle quarters are
+significantly negative on their own (t = -3.16 and -3.86), the third
+qualifying for the first clause of the bar with t_diff = -2.89. All
+three strategies share the shape; donchian_breakout carries the third
+quarter (-0.101 R, t = -2.47) and keltner_breakout the quiet one
+(+0.069 R, t_diff = +3.27).
+
+On the two years before, nothing of it survives. The third quarter
+turns to +0.027 R at t = +1.46, the quiet quarter's advantage shrinks
+to +0.011 R at t = +0.57, and the upper three quarters as one bucket
+read +0.017 R at t = +1.57 — positive, against the t < -2 the rule
+requires. No bucket is farther than 0.8 standard errors from the rest
+on the older sample, in any of the three strategies. Both candidates
+fail the first clause outright; this is not the near miss of sections
+112 and 114 but a sign flip, of the kind sections 110, 111, 113 and
+116 recorded for the signal-bar features.
+
+Read together with section 114: the recent year rewarded breakouts
+that fired before anything had built — 4h ADX still low, ATR still
+low — and the two years before did not. That is one regime's
+signature, not a filter. No filter is built in; the feature is
+recorded as a non-lever. Nothing changes.

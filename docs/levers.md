@@ -2926,3 +2926,34 @@ the section numbers below point there.
   +0.004 R, median -0.001 R, orders 2–43 s after the close (median
   30 s). Section 118 stands unchanged.
 - **Decision:** nothing changed. No code change, no restart.
+
+## 2026-09-09 (fifty-seventh run) — volatility regime at the signal (ATR% rank)
+
+- **Lever:** regime filter — the router gates on ADX only; the
+  instrument's own volatility at the signal, relative to its last 30
+  days, had never been read on the live book. Feature: percentile rank
+  of ATR(14)/close at the signal bar against the 720 bars before it.
+  Preregistered rule as in runs 40 to 44 (quartile bucket blocked only
+  if t < -2 on both disjoint samples and |t| > 2 for the difference to
+  the rest with the same sign on both; edges fixed on the recent year).
+  After the recent year and before the older sample: "keep only the
+  quietest quarter" (block rank >= 28.75) preregistered as a second
+  candidate, same bar.
+- **Measurement:** `scripts/atr_regime_gate.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware stop
+  booking, router-passed path, commodity short block, three live trend
+  strategies, all 26 tradeable instruments, paced 35-day history pages
+  (no 429 on the bot during either fetch). Last 365 days, then days
+  366–1,095 as the independent check.
+- **Result (E[R] net of costs):** recent year — quietest quarter
+  +0.066 R (t = +2.62, t_diff = +4.52), third quarter -0.098 R
+  (t = -3.86, t_diff = -2.89), upper three quarters -0.067 R
+  (t = -4.39, t_diff = -4.52). Older sample — third quarter +0.027 R
+  (t = +1.46), upper three quarters +0.017 R (t = +1.57), no bucket
+  beyond 0.8 standard errors from the rest. Both candidates fail the
+  first clause by a sign flip.
+- **Decision:** not built in. No code change, no restart. Section 172.
+  Volatility level joins the signal-bar features as a non-lever; the
+  recent year's "quiet before the break" reading is the same regime
+  signature as run 44's low 4h ADX, not an independent signal.
