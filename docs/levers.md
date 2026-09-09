@@ -2603,3 +2603,15 @@ the section numbers below point there.
 - **Decision:** not built in; the stop dimension is closed. No code
   change, no restart. Section 138 tabulates the 25 levers of this night
   and what holds on both samples.
+
+## 2026-09-09 (twenty-third run) — the unconditional drift after a router-passed signal
+
+- **Lever:** exit logic, the barrier-less drift book implied by run 59 —
+  read from run 64's 3 % floor variant (91 % timeouts) by class on both
+  samples, no venue load. Preregistered: a lever only if positive at
+  t > 2 on both samples.
+- **Result:** all classes -0.001 / +0.002 R (t -0.09 / +0.32); FX
+  negative on both at the size of its spread; indices and commodities
+  flip; crypto +0.108 then +0.011 R. Section 131's timeout drift was
+  survivorship.
+- **Decision:** nothing changed. No code change, no restart. Section 139.

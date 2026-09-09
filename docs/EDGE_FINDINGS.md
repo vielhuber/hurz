@@ -4258,3 +4258,32 @@ index regime. What follows for the objective is section 37's
 arithmetic, unchanged: at 3 USD of risk and an expectancy of zero
 within ±0.03 R, the daily gain is noise around zero, and no lever this
 book allows has moved it.
+
+## 139. The drift is survivorship: unconditional, the router book is zero
+
+Section 131's positive timeout drift is conditional on a trade reaching
+neither barrier. Section 136's 3 % floor, at which 91 % of trades run
+to the 24-bar leash, is as close to the unconditional drift after a
+router-passed signal as this book allows, net of costs, from the
+sweep's dumps:
+
+| class | last 365 d: n / E[R] / t | prior 730 d: n / E[R] / t |
+|---|---|---|
+| crypto | 537 / +0.108 / +2.89 | 1,120 / +0.011 / +0.40 |
+| fx | 1,637 / -0.008 / -2.09 | 3,283 / -0.008 / -2.48 |
+| index | 1,557 / -0.058 / -6.02 | 3,239 / +0.013 / +1.90 |
+| commodity | 525 / +0.079 / +2.62 | 978 / -0.015 / -0.98 |
+| **all** | 4,256 / **-0.001** / -0.09 | 8,620 / **+0.002** / +0.32 |
+
+Unconditionally the book drifts nowhere: -0.001 and +0.002 R on the two
+samples, with R here a 3 % move. The positive drift of the timeouts was
+the drift of the trades that had not already gone 1 % against — the
+survivors — and the barriers' cost was the price of selecting them. FX
+is the one class negative on both samples (t -2.1 and -2.5), and its
+size is the cost: -0.008 R of a 3 % stop is -0.02 % of price per trade,
+the spread. Indices and commodities flip sign between the samples once
+more; crypto is positive twice but at t = 0.4 on the older. Read as the
+preregistered test of a barrier-less drift book — positive at t > 2 on
+both samples — it fails on both, and with it the last mechanism this
+book had left: the signals do not drift, the barriers do not select,
+and the costs are what remains.
