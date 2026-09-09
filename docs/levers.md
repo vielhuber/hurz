@@ -2684,3 +2684,13 @@ the section numbers below point there.
   since blocked; without them +0.02 R. Two stop exits since the 2-ATR
   stop: +0.028 R.
 - **Decision:** nothing changed. No code change, no restart. Section 145.
+
+## 2026-09-09 (thirtieth run) — live expectancy per strategy
+
+- **Lever:** strategy selection — realised R per strategy, currency-free,
+  all closed trades (read-only).
+- **Result:** donchian -0.045 (n 132, t -0.5), turtle -0.038 (n 68),
+  momentum -0.035 (n 5); the retired mean-reversion names -0.17 to
+  -0.42 R at t up to -2.9 carry the historical loss.
+- **Decision:** nothing changed; no live strategy is significantly
+  negative. No code change, no restart. Section 146.

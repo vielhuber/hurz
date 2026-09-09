@@ -4422,3 +4422,24 @@ exits that could carry a weekend gap read +0.04 R. Stop execution is
 not a cost of this book; the gap risk that remains is the one section
 75 priced (a gapped stop costs 1.75 R, one Friday trade in twenty to
 fifty), and it lives in instruments no longer traded. Nothing changes.
+
+## 146. Live expectancy per strategy, currency-free
+
+The strategy-level veto (section 91) reads realised results per
+strategy; the same read with R taken from prices, so no currency enters,
+over every closed Capital.com trade:
+
+| strategy | n | E[R] | t | win % | forward since 2026-08-24: n / E[R] |
+|---|---|---|---|---|---|
+| donchian_breakout | 132 | -0.045 | -0.50 | 43.9 | 22 / +0.056 |
+| turtle_breakout | 68 | -0.038 | -0.30 | 39.7 | 8 / -0.110 |
+| momentum | 5 | -0.035 | -0.06 | 40.0 | 0 |
+| keltner_breakout (not in the rotation) | 33 | -0.205 | -1.36 | 39.4 | 0 |
+| retired mean reversion (bollinger, stochastic, rsi) | 208 | -0.165 to -0.416 | -1.8 to -2.9 | 28–41 | 0 |
+| disabled variants (v2, v3, trail, 4h) | 82 | -0.05 to -0.73 | | | 0 |
+
+The three live trend strategies are indistinguishable from zero and from
+each other, live as in the simulator; the retired and disabled names
+carry the loss the dashboard's "Gesamt inkl. stillgelegt" line shows.
+Nothing in the live rotation is significantly negative and nothing
+follows for the veto.
