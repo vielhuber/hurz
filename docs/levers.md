@@ -3632,3 +3632,45 @@ the section numbers below point there.
   including four new ones. Hurz restarted. Section 192. Section 130's
   conclusion stands unamended: one prior sample does not predict the
   next; three agreeing ones do.
+
+## 2026-09-10 (eighteenth run) — the consistency rule at combination granularity
+
+- **Lever:** pair selection — run 17's three-sample consistency rule
+  applied one level down, at instrument-strategy granularity, which is
+  what the nightly selector actually ranks. Acceptance fixed before the
+  test sample was read: paired t > 2 on the held-out recent year; the
+  three instruments blocked in run 17 excluded from the universe so any
+  effect is additional; minimum 30 trades per training sample; the same
+  rule reversed in time must agree.
+- **Measurement:** `scripts/combo_consistency_block.py` — per-trade
+  (pair, strategy, direction, R) dumped for all four samples by the
+  cost-charging walk-forward simulator against the current system (ADX
+  ceiling, 3×ATR floor, run 17's block list), so flagging and test come
+  from the same booking. n = 2,384 / 5,272 / 4,802 / 4,679.
+- **Result:** rejected, and it points the wrong way. Of 51 combinations
+  with 30+ trades per training sample, three read negative in all three
+  — against a chance expectation of 6.4, so the rule finds fewer
+  consistent losers than randomness does. On the held-out year those
+  three return **+0.0134 R** against -0.0075 for the rest; paired
+  **-0.0009 R at t = -0.42**. All three arrangements agree: forward
+  -0.0009 / t -0.42, backward -0.0045 / t -1.57, middle-out +0.0003 /
+  t +0.10, and in two of three the flagged combinations beat the rest.
+  Combination expectancy is not positively autocorrelated across
+  samples; an instrument losing in three regimes is plausibly a bad
+  instrument, a strategy-on-instrument losing in three regimes carries
+  no such information.
+- **Decision:** not built in — expectancy blocks stay at instrument
+  level, where run 17 put them. No code change, no restart. Section 193.
+  Side benefit: these dumps are the first read of the system with all
+  three of today's builds in place. E[R] moves from -0.0377 to -0.0062
+  (365 d), +0.0134 to +0.0322 at t +3.36, -0.0230 to +0.0215 at t +2.02,
+  +0.0013 to +0.0169 at t +1.75; R sums -171.0 → -14.8, +122.8 → +169.8,
+  -218.6 → **+103.4**, +11.7 → +79.2. Every sample improves, two now
+  clear t = 2 positive where none did this morning, and the recent year
+  is within one standard error of zero instead of three. Cost: 47 % of
+  the recent year's trades. Where that leaves the objective: three of
+  four years profitable, the fourth about flat — at 3 USD risk per trade
+  that is 2 to 4 USD a day on the older samples and roughly zero on the
+  recent one. The remaining gap to 50 EUR is risk per trade against a
+  positive expectancy, not another entry filter, and the expectancy has
+  to hold forward first.

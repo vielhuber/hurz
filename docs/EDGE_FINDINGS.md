@@ -6117,3 +6117,83 @@ What section 130 concluded still holds and is worth keeping straight:
 one prior sample does not predict the next. Three agreeing ones do, and
 the reason is not subtle — an instrument that loses in three separate
 market regimes is more plausibly a bad instrument than an unlucky one.
+
+## 193. The consistency rule does not survive at combination granularity — and the day's balance
+
+Section 192 blocked three instruments by requiring three disjoint
+training samples to agree, with the recent year held out, and cleared
+the bar at t = +5.22. The nightly selector ranks instrument-strategy
+combinations rather than instruments, so the natural next question is
+whether the same rule works one level down: donchian on DE40 and
+keltner on DE40 are separate bets, and one could be sound while the
+other is not.
+
+`scripts/combo_consistency_block.py` dumps per-trade (pair, strategy,
+direction, R) for all four samples against the current system — ADX
+ceiling, 3 x ATR floor, and section 192's block list, so anything found
+here is additional to it rather than a restatement. Flagging and test
+are computed from the same booking.
+
+Of the 51 combinations carrying 30+ trades in every training sample,
+three read negative in all three: CHFJPY / donchian, EURAUD / keltner,
+EURUSD / turtle. Chance alone would produce 6.4 — the rule finds
+*fewer* consistent losers than randomness, which is the first hint.
+
+| test sample (held out, last 365 d) | n | E[R] | t |
+|---|---|---|---|
+| live | 2,384 | -0.0062 | -0.45 |
+| the three flagged combinations | 154 | **+0.0134** | +0.42 |
+| the rest | 2,230 | -0.0075 | -0.52 |
+
+Paired difference **-0.0009 R at t = -0.42**. The flagged combinations
+are the *better* side on the held-out year, so the rule is not merely
+unproven here, it points the wrong way. Nothing is blocked.
+
+Run in all three arrangements the picture is consistent about being
+inconsistent:
+
+| arrangement | universe | flagged (chance) | flagged vs rest on test | paired / t |
+|---|---|---|---|---|
+| forward | 51 | 3 (6.4) | +0.013 vs -0.008 | -0.0009 / -0.42 |
+| backward | 44 | 5 (5.5) | +0.055 vs +0.014 | -0.0045 / -1.57 |
+| middle-out | 51 | 8 (6.4) | -0.002 vs +0.039 | +0.0003 / +0.10 |
+
+In two of three the flagged combinations beat the rest. Combination
+expectancy is not positively autocorrelated across samples at all,
+which is why the flag count sits at or below chance in every
+arrangement. The finding is about where persistence lives: an
+instrument that loses in three separate regimes is plausibly a bad
+instrument, but a *strategy on* an instrument losing in three regimes
+carries no such information — the combination's result is dominated by
+which of the three correlated breakout rules happened to fire, not by
+anything durable about the pairing. The selector should keep ranking
+combinations for what it uses them for, and expectancy blocks belong at
+instrument level, where section 192 put them.
+
+**The day's balance.** These four dumps are the first measurement of the
+system with all three of today's builds in place — the ADX ceiling
+(188), the 3 x ATR volatility floor (190) and the instrument block
+(192):
+
+| sample | E[R] this morning | E[R] now | sum R this morning | sum R now | n now |
+|---|---|---|---|---|---|
+| 365 d | -0.0377 | **-0.0062** | -171.0 | **-14.8** | 2,384 |
+| 366-1,095 d | +0.0134 | **+0.0322** (t +3.36) | +122.8 | **+169.8** | 5,272 |
+| 1,096-1,825 d | -0.0230 | **+0.0215** (t +2.02) | -218.6 | **+103.4** | 4,802 |
+| 1,826-2,555 d | +0.0013 | **+0.0169** (t +1.75) | +11.7 | **+79.2** | 4,679 |
+
+Every sample improves. Two now clear t = 2 positive where none did this
+morning, the 1,096-1,825 sample crosses from -218.6 R to +103.4 R, and
+the recent year goes from -171.0 R to -14.8 R — still negative, but
+within a standard error of zero (t = -0.45) rather than three of them.
+The cost is 47 % of the trades on the recent year.
+
+The plain statement of where this leaves the objective: three of four
+years would now be profitable and the fourth roughly breaks even before
+slippage. That is not 50 EUR a day. At 3 USD of risk per trade and the
+frequency that survives these filters, the recent year's rate is
+approximately zero, and the older years' +0.02 to +0.03 R would be
+2 to 4 USD a day. Reaching the target from here is a question of risk
+per trade against a positive expectancy, not of another entry filter —
+and the expectancy has to hold forward before that multiplication is
+worth making.
