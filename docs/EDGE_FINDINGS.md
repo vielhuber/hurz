@@ -6045,3 +6045,75 @@ today's two builds changes the fact that the last twelve months are the
 sample the system cannot make money in, and no entry characteristic
 tested so far separates that year from the three before it in a way
 that survives out of sample.
+
+## 192. Instrument expectancy transfers when three samples have to agree — BUILT IN
+
+Section 130 tested the selector's premise with one prior sample against
+one following it and found nothing: quartiles did not carry in either
+direction, and the rank correlation was -0.22 (p 0.28). The conclusion
+recorded then — the ranking is non-predictive — was correct for the
+test it ran. The venue now serves enough history for a stricter form of
+the same question, and the answer changes.
+
+The rule: three disjoint training samples (days 366-1,095, 1,096-1,825,
+1,826-2,555) must ALL read negative on an instrument before it is
+flagged; the most recent year is held out entirely. Applied to the
+per-instrument tables of section 191 — measured against the current
+system, ADX ceiling and volatility floor included — it flags three of
+the 24 instruments present throughout: AUDUSD, GBPCAD, GBPUSD.
+
+Three of 24 is exactly the count chance produces under no transfer at
+all (24 x 0.5³ = 3.0). The training agreement therefore proves nothing
+by itself, and the acceptance rule was written to say so: the held-out
+year decides, at paired t > 2, or nothing is blocked.
+
+`scripts/instrument_consistency_block.py` books the block on the test
+sample the way every filter in this log is booked — every signal's live
+R against the variant's R, zero where the variant does not trade,
+paired per trade.
+
+| test sample (last 365 d) | n | E[R] | sum R | t |
+|---|---|---|---|---|
+| live | 2,870 | -0.0215 | -61.8 | -1.82 |
+| the three flagged | 487 | **-0.0963** | -46.9 | **-5.34** |
+| the other 21 | 2,383 | -0.0063 | -14.9 | -0.45 |
+| rule (block the three) | 2,870 | **-0.0052** | -14.9 | — |
+
+Paired difference **+0.0163 R at t = +5.22**. Each of the three is
+significant on its own on data that did not select it: AUDUSD -0.155
+(t -3.77), GBPUSD -0.084 (t -3.23), GBPCAD -0.054 (t -2.16). They are
+17 % of the year's trades and 76 % of its loss — remove them and the
+remaining 21 instruments are flat rather than losing.
+
+**Method check.** A single held-out window is one degree of freedom, so
+the same rule was run with the time direction reversed and from the
+middle out:
+
+| arrangement | flagged | test: flagged vs rest |
+|---|---|---|
+| forward (train on the 3 oldest, test on the recent year) | AUDUSD, GBPCAD, GBPUSD | -0.096 vs -0.006 |
+| backward (train on the 3 newest, test on the oldest) | + EURAUD, UK100 | -0.006 vs +0.019 |
+| middle-out (train on the 2 oldest, test on days 366-1,095) | + NZDUSD | -0.014 vs +0.032 |
+
+Every arrangement points the same way, and the three forward-flagged
+names appear in all three. That makes this the instruments rather than
+the ordering. Only the three the preregistered forward rule produced
+are blocked; EURAUD, UK100 and NZDUSD come from arrangements computed
+after the fact and are not.
+
+**The live journal, unprompted.** Across 536 closed trades the book has
+lost 239.57 USD. The three flagged pairs account for 23.67 of that over
+28 trades, AUDUSD alone for 27.98 over 15 — the largest single loser in
+the real book. This is not part of the acceptance test (n is far too
+small) but it does not contradict it.
+
+Implementation: the three are added to `EXPECTANCY_BLOCKED_PAIRS`
+beside AU200, which the entry guard in `evaluate_pair`, the order guard
+in `execute_intent` and the nightly pair selector all consult through
+`BLOCKED_PAIRS`. No open position is affected — none of the three was
+open — and the guards refuse entries only; exits are untouched.
+
+What section 130 concluded still holds and is worth keeping straight:
+one prior sample does not predict the next. Three agreeing ones do, and
+the reason is not subtle — an instrument that loses in three separate
+market regimes is more plausibly a bad instrument than an unlucky one.

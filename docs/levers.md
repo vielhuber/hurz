@@ -3593,3 +3593,42 @@ the section numbers below point there.
   four different entry characteristics have now shown the same shape —
   at some point the shape is the finding: the last twelve months are a
   different regime, not a weaker version of the three before them.
+
+## 2026-09-10 (seventeenth run) — instrument consistency across three samples — BUILT IN
+
+- **Lever:** pair selection — section 130 tested whether instrument
+  expectancy transfers using one prior sample against one following it
+  and found none (Spearman -0.22). With four samples available a
+  stricter form is possible: three disjoint training samples must ALL
+  read negative before an instrument is flagged, the most recent year
+  held out entirely. Flagged three of 24: AUDUSD, GBPCAD, GBPUSD —
+  exactly the chance count under no transfer (24 × 0.5³ = 3.0), so the
+  acceptance rule was written to let the held-out year decide alone:
+  paired t > 2 on the test sample, or nothing is blocked. Training
+  agreement is negative by construction and was not counted.
+- **Measurement:** `scripts/instrument_consistency_block.py` — flags
+  derived offline from run 16's per-instrument tables, then the block
+  booked on the test sample by the cost-charging walk-forward simulator
+  against the current system (ADX ceiling in `gate()`, 3×ATR floor),
+  every signal's live R against the variant's R, zero where it does not
+  trade, paired per trade. n = 2,870.
+- **Result:** paired **+0.0163 R at t = +5.22**. The three read -0.0963 R
+  at t = -5.34 on data that did not select them, against -0.0063 at
+  t = -0.45 for the other 21; each is significant alone (AUDUSD -0.155
+  / t -3.77, GBPUSD -0.084 / t -3.23, GBPCAD -0.054 / t -2.16). They are
+  17 % of the year's trades and 76 % of its loss: the year's sum goes
+  from -61.8 R to -14.9 R, and the remaining 21 instruments are flat
+  rather than losing. Method check — the same rule reversed in time and
+  run middle-out points the same way (-0.006 vs +0.019 and -0.014 vs
+  +0.032) and flags the same three plus others; only the three the
+  preregistered forward rule produced are blocked. Live journal,
+  outside the test: 23.67 USD of the book's 239.57 USD all-time loss
+  sits in these three over 28 trades, AUDUSD alone -27.98 over 15.
+- **Decision:** built in. Added to `EXPECTANCY_BLOCKED_PAIRS` beside
+  AU200, consulted by the entry guard in `evaluate_pair`, the order
+  guard in `execute_intent` and the nightly selector through
+  `BLOCKED_PAIRS`. No open position affected — none of the three was
+  open — and the guards refuse entries only. Verified: 58/58 tests green
+  including four new ones. Hurz restarted. Section 192. Section 130's
+  conclusion stands unamended: one prior sample does not predict the
+  next; three agreeing ones do.

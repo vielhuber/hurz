@@ -31,7 +31,18 @@ COST_BLOCKED_PAIRS = {
 # (-0.30 R at t = -5.5 over the last year, -0.11 R at t = -2.6 over the two
 # years before) and on all five live trades; random entries lose there
 # too, so this is the instrument, not the signal — see EDGE_FINDINGS 70.
-EXPECTANCY_BLOCKED_PAIRS = {"AU200"}
+#
+# AUDUSD, GBPCAD and GBPUSD were added 2026-09-10 (section 192) by a
+# stricter form of the same test: three disjoint training samples must
+# ALL read negative before an instrument is flagged, and the most recent
+# year is held out. Three of 24 instruments qualified — exactly the
+# chance count under no transfer — so the held-out year decided it, and
+# there they book -0.096 R at t = -5.34 against -0.006 R for the other
+# 21, each of the three significant on its own. Reversing the time
+# direction flags the same three and reads the same way, so this is the
+# instruments rather than the ordering. Section 130's finding stands:
+# ONE prior sample does not predict the next. Three agreeing ones do.
+EXPECTANCY_BLOCKED_PAIRS = {"AU200", "AUDUSD", "GBPCAD", "GBPUSD"}
 
 # What the selector and the entry guards actually consult.
 BLOCKED_PAIRS = COST_BLOCKED_PAIRS | EXPECTANCY_BLOCKED_PAIRS
