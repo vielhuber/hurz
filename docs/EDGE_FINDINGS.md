@@ -5241,3 +5241,68 @@ section 23 closes twice as hard on a two-legged trade.
 No spread strategy is built in. The relative-value family joins the
 structural sources of section 7 as tested and negative; nothing
 changes.
+
+## 178. Market breadth at the signal: with the market was the losing side one year and the winning side the next
+
+Peer confirmation (section 116) asked whether same-class instruments
+broke out together and trend alignment (section 173) whether the
+instrument sat beyond its own EMA(200); neither read the market as a
+whole. `scripts/market_breadth_gate.py` replays the three live 1h
+trend strategies on the router-passed path at the 2-ATR stop, venue
+minimum, live widening rule, gap-aware stop booking and the commodity
+short block over all 26 tradeable instruments and tags every trade
+with the directional breadth at its signal bar: the mean over the
+other 25 instruments of sign(close − EMA200 of 1h closes), each
+carried forward from its latest bar at or before the signal,
+multiplied by the signal's direction, so +1 means the whole market
+already leans the signal's way and −1 that all of it leans against.
+Preregistered: the primary split is breadth ≥ 0 against < 0, quartile
+edges fixed on the recent year (−0.12 / 0.20 / 0.44) and applied
+unchanged to the two years before, block only at t < −2 on both
+disjoint samples with |t| > 2 for the difference to the rest and the
+same sign on both.
+
+| directional breadth at the 1h signal | last 365 d: n / E[R] / t / diff vs rest / t | prior 730 d: same |
+|---|---|---|
+| against the market (< 0) | 1,418 / +0.023 / +1.12 / +0.077 / **+2.97** | 3,001 / -0.017 / -1.19 / -0.050 / **-2.81** |
+| strongly against (< −0.5) | 323 / -0.015 / -0.36 / +0.015 / +0.36 | 691 / -0.017 / -0.58 / -0.037 / -1.17 |
+| strongly with (≥ 0.5) | 1,033 / **-0.108** / **-4.22** / -0.103 / **-3.53** | 2,246 / +0.035 / +1.91 / +0.025 / +1.19 |
+| below −0.12 | 990 / +0.028 / +1.14 / +0.074 / **+2.57** | 2,098 / -0.020 / -1.16 / -0.047 / **-2.40** |
+| −0.12 to 0.20 | 916 / +0.012 / +0.46 / +0.052 / +1.72 | 2,001 / +0.005 / +0.27 / -0.015 / -0.74 |
+| 0.20 to 0.44 | 1,097 / -0.013 / -0.49 / +0.022 / +0.74 | 1,976 / +0.007 / +0.38 / -0.012 / -0.60 |
+| above 0.44 | 1,395 / **-0.109** / **-4.91** / -0.118 / **-4.39** | 2,974 / **+0.056** / **+3.53** / +0.059 / **+3.13** |
+| book, whole | 4,398 / -0.029 / -2.15 | 9,049 / +0.016 / +1.83 |
+
+Two thirds of the signals fire with the market already leaning their
+way, and on the recent year those were the losers: the top quartile
+lost 0.109 R per trade at t = −4.91, its gap to the rest held at
+t = −4.39, all three strategies agreed (donchian_breakout −0.126 R at
+t = −3.43, turtle_breakout −0.114 R at t = −2.87, keltner_breakout
+−0.086 R at t = −2.17), and the signals against the market were the
+only profitable ones at +0.023 R with t_diff = +2.97. Read alone, that
+is a late-entry story with a mechanism attached — when everything has
+already moved, the breakout is the last leg. On the two years before
+the same top quartile is the best bucket of the table, +0.056 R at
+t = +3.53 and t_diff = +3.13, again on all three strategies, and the
+signals against the market are the losers at t_diff = −2.81. Every
+cut flips; no bucket passes the first clause on both samples.
+
+This is the fourth cross-sectional or regime feature to reverse
+between the samples (sections 114, 116, 172, 176), and the shape is
+the one the series keeps finding: the recent year punished breakouts
+that fired late into a move the market had already made, and the two
+years before rewarded them. Which regime the next year brings is not
+something the signal bar can tell. No breadth filter is built in;
+market breadth joins the non-levers, and nothing changes in the
+trading rules.
+
+Because the price history's own features have now all dissolved on a
+second sample, the run also opened the one signal source the history
+cannot supply. The venue reports its clients' positioning per market
+(`GET /api/v1/clientsentiment`, long percentage per instrument); the
+bot now records it on every heartbeat, one line per instrument in
+`data/sentiment_samples.jsonl`, a minute or two before each hourly
+signal bar, next to the spread samples of section 108. Nothing reads
+it yet; once the journal holds enough trades with a sample beside
+them, the split will be read the same way as the features above. That
+is a data collection, not a lever, and it changes no trading decision.

@@ -3106,3 +3106,39 @@ the section numbers below point there.
 - **Decision:** not built in — negative on both samples. No code
   change, no restart. Section 177. The relative-value family joins
   section 7's structural sources as tested and negative.
+
+## 2026-09-10 (third run) — market breadth at the signal, and the client-sentiment sampler — SAMPLER BUILT IN
+
+- **Lever:** regime filter — directional market breadth at the 1h
+  signal: the mean over the other 25 instruments of sign(close −
+  EMA200), carried forward to the signal bar, in the signal's
+  direction. Neither peer confirmation (same class, run 46) nor trend
+  alignment (own instrument, run 58) had read the market as a whole.
+  Preregistered: primary split breadth ≥ 0 against < 0, quartile edges
+  fixed on the recent year, block only at t < -2 on both disjoint
+  samples and |t| > 2 for the difference to the rest with the same
+  sign on both.
+- **Measurement:** `scripts/market_breadth_gate.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware stop
+  booking, router-passed path, commodity short block, three live trend
+  strategies, all 26 tradeable instruments. Last 365 days (n = 4,398),
+  then days 366–1,095 (n = 9,049); edges -0.12 / 0.20 / 0.44.
+- **Result (E[R] net of costs):** recent year — with the market
+  (top quartile, breadth ≥ 0.44) -0.109 R (t = -4.91, t_diff = -4.39,
+  all three strategies), against the market +0.023 R
+  (t_diff = +2.97). Older sample — the same top quartile +0.056 R
+  (t = +3.53, t_diff = +3.13, all three strategies), against the
+  market -0.017 R (t_diff = -2.81). Every cut flips sign between the
+  samples; no bucket passes the first clause on both.
+- **Decision:** not built in. Section 178. The fourth regime feature
+  to reverse between the samples (runs 44, 46, 57, 61).
+- **Built in alongside (data collection, no trading change):** the
+  price history's features are exhausted, so the heartbeat now records
+  the venue's client positioning per instrument (long percentage from
+  `GET /api/v1/clientsentiment`) into `data/sentiment_samples.jsonl`,
+  next to the spread samples of run 38 — `_sample_sentiment` in
+  `app/spot_trading/autotrade.py`, one batched request per heartbeat,
+  fail-silent, covered by `tests/test_sentiment_sampler.py`. Nothing
+  reads it yet; the split is to be measured on the journal once
+  enough trades carry a sample. Hurz restarted for the sampler.

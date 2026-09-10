@@ -541,6 +541,43 @@ async def _sample_spreads(platform: Platform, pairs, now: datetime,
     return len(lines)
 
 
+# The signal-bar features of the price history all dissolve on a second
+# sample (EDGE_FINDINGS 110-116, 172-177); the venue's client positioning
+# is the one signal source the history cannot supply, so it is recorded
+# on the heartbeat, a minute or two before each hourly signal bar, until
+# the journal holds enough of it to be read.
+_SENTIMENT_SAMPLES_PATH = "data/sentiment_samples.jsonl"
+
+
+async def _sample_sentiment(platform: Platform, pairs, now: datetime,
+                            path: str = _SENTIMENT_SAMPLES_PATH) -> int:
+    """Append one long-percentage line per instrument from the venue's client sentiment; venues without it contribute nothing."""
+    request = getattr(platform, "_raw_request", None)
+    wanted = sorted(set(p for p in pairs if p))
+    if request is None or not wanted:
+        return 0
+    try:
+        data = await request(
+            "GET", "/api/v1/clientsentiment?marketIds=" + ",".join(wanted), auth=True,
+        )
+    except Exception:
+        return 0
+    lines = []
+    for row in (data or {}).get("clientSentiments") or []:
+        pair, long_pct = row.get("marketId"), row.get("longPositionPercentage")
+        if pair not in wanted or long_pct is None:
+            continue
+        lines.append(json.dumps({
+            "ts": now.strftime("%Y-%m-%dT%H:%M:%SZ"), "pair": pair,
+            "long_pct": float(long_pct),
+        }))
+    if lines:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "a", encoding="utf-8") as handle:
+            handle.write("\n".join(lines) + "\n")
+    return len(lines)
+
+
 def _has_open_position(positions: List[Position], pair: str) -> bool:
     return any(p.asset == pair for p in positions)
 
@@ -1948,6 +1985,15 @@ async def run_loop(
                         _safe_log(f"spread sample: {sampled} instruments")
                 except Exception as exc:
                     _safe_log(f"⚠ spread sample failed: {exc}")
+                try:
+                    sampled = await _sample_sentiment(
+                        platform, [p.get("pair") for p in active if p.get("pair")],
+                        now_utc,
+                    )
+                    if sampled:
+                        _safe_log(f"sentiment sample: {sampled} instruments")
+                except Exception as exc:
+                    _safe_log(f"⚠ sentiment sample failed: {exc}")
                 # Refresh the static dashboard on each heartbeat so it
                 # stays current whenever hurz runs — fire-and-forget, and
                 # never let a dashboard hiccup disturb the trading loop.
