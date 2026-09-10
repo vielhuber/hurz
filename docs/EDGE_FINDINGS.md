@@ -6264,3 +6264,81 @@ that remains was bought with expectancy. Any further increase in daily
 gain has to come from risk per trade against the positive expectancy the
 three older samples now show, and that multiplication is only worth
 making once the expectancy holds forward on the live book.
+
+## 195. What the risk budget can deliver: the scaling gate cannot open, and the target is 93x the account
+
+Section 194 closed the frequency question — every remaining cut was
+bought with expectancy, there is no free volume. That leaves risk per
+trade, which `edge_scaling.py` governs. Its docstring states the premise
+plainly: "The daily-return target cannot be reached at 3 USD of risk per
+trade — it needs roughly ten times that. But raising the budget while
+expectancy is negative just scales the losses, so the size has to be
+earned." The mechanism is sound. This section measures whether it can
+ever fire, and what it would deliver if it did.
+
+**The gate.** Risk scales only once a post-cutoff sample shows an
+expectancy whose lower 2-sigma bound is above zero. Measured on the live
+out-of-sample book (37 qualifying trades since 2026-08-24): mean
++0.0421 R, sd 0.839, standard error 0.138, lower bound **-0.234**. At
+n = 37 the gate needs a mean above +0.276 R. Solving n for the
+expectancies the backtest now shows:
+
+| E[R] | trades for a positive 2-sigma bound | days at 3 trades/day |
+|---|---|---|
+| +0.0421 (live sample, in-sample-ish) | 1,589 | ~530 |
+| +0.0322 (best backtest sample) | 2,750 | ~917 |
+| +0.0215 | 6,091 | ~2,030 |
+| +0.0169 | 9,858 | ~3,286 |
+
+A trend-following edge of two to three hundredths of an R against a
+per-trade standard deviation of 0.84 needs thousands of trades to prove
+itself at two sigma. The gate is not miscalibrated for safety; it is
+simply asking for evidence this system cannot accumulate inside years.
+
+**The cap behind the gate.** Even if it opened, the 10x edge multiple
+never binds, because `MAX_RISK_ACCOUNT_FRACTION` caps risk at 1 % of
+equity. At the balance measured today, 557.35 EUR:
+
+- 1 % of equity = 6.02 USD per trade = **2.01x** the 3 USD base.
+- The 10x multiple would require an account of roughly 3,000 USD.
+
+**What that means for the objective.** The target is 50 EUR a day on an
+account of 557 EUR — 8.97 % of equity per day. Required risk per trade:
+
+| E[R] | trades/day | risk needed per trade | as % of equity | vs the 1 % cap |
+|---|---|---|---|---|
+| +0.0322 | 3 | 559 USD | 92.9 % | 93x |
+| +0.0322 | 6.5 | 258 USD | 42.9 % | 43x |
+| +0.0215 | 3 | 837 USD | 139.1 % | 139x |
+| +0.0169 | 3 | 1,065 USD | 176.9 % | 177x |
+
+And what the configuration as it stands can deliver, at three trades a
+day:
+
+| sample | at base 3 USD | at the 1 % cap (6.02 USD) |
+|---|---|---|
+| +0.0322 | +0.29 USD/day | +0.58 USD/day |
+| +0.0215 | +0.19 USD/day | +0.39 USD/day |
+| +0.0169 | +0.15 USD/day | +0.31 USD/day |
+
+The ceiling of the current configuration is about 0.6 USD — roughly
+0.54 EUR — a day, against a target of 50. The gap is a factor of
+ninety, and it is not a gap any entry filter, exit rule or parameter
+sweep can close: it is the product of account size, per-trade risk and
+an edge of three hundredths of an R.
+
+This is recorded as a measurement, not an argument for loosening
+anything. Raising risk per trade to reach 50 EUR a day would put 93 % of
+the account behind every position and ruin it on the first cluster of
+stops; that is not a trade-off, it is arithmetic. The honest conclusion
+is that the daily target and the account are inconsistent by two orders
+of magnitude, and the three quantities that could change it are the
+balance, the edge, and the number of trades per day — in that order of
+leverage, and none of them by a filter.
+
+What today's work did achieve stands: three of four disjoint samples now
+show a positive expectancy where none did this morning, at +0.032,
++0.022 and +0.017 R, and the recent year moved from -171 R to -15 R.
+That is the precondition for any sizing decision at all. It is not, by
+itself, 50 EUR a day, and no honest reading of these numbers turns it
+into that.

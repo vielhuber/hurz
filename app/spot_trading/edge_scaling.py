@@ -11,6 +11,17 @@ expectancy whose lower confidence bound is still positive, and it grows
 in bounded steps. If the edge decays, the budget shrinks again on the
 next evaluation. With no edge, nothing changes.
 
+What section 195 measured about this gate, so nobody waits on it
+unknowingly: at a per-trade standard deviation of 0.84 R, a positive
+2-sigma lower bound needs about 2,750 closed trades at an expectancy of
++0.032 R and about 9,858 at +0.017 R — roughly 900 to 3,300 days at
+three trades a day. The gate is not miscalibrated; it asks for evidence
+this system cannot accumulate quickly. And the "ten times" above is
+unreachable for a second, independent reason: MAX_RISK_ACCOUNT_FRACTION
+caps risk at 1 % of equity, which on the 557 EUR balance of 2026-09-11
+is 6.02 USD — 2.0x the base, not 10x. The 10x multiple needs an account
+near 3,000 USD before it binds at all.
+
 Trades before `cutoff` are excluded on purpose — the entry filters were
 calibrated on them, so their expectancy is in-sample and worthless as
 evidence for sizing.

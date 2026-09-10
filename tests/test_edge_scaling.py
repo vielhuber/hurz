@@ -4,6 +4,11 @@ import unittest
 from unittest.mock import patch
 
 from app.spot_trading import edge_scaling
+from app.spot_trading.edge_scaling import (
+    MAX_RISK_ACCOUNT_FRACTION,
+    MAX_RISK_MULTIPLE,
+)
+from app.spot_trading.position_sizing import DEFAULT_TARGET_RISK_USD
 from app.utils import singletons
 
 
@@ -137,3 +142,16 @@ class AccountCeilingTest(unittest.TestCase):
 
         # No ceiling applied, but the edge multiple still governs.
         self.assertGreater(edge.risk_usd, 3.0)
+
+
+class ScalingGateReachabilityTest(unittest.TestCase):
+    """Section 195: the 10x multiple cannot bind on a small account,
+    because the equity cap is reached first."""
+
+    def test_the_equity_cap_binds_before_the_ten_times_multiple(self) -> None:
+        equity_usd = 601.94          # 557.35 EUR on 2026-09-11
+        cap = equity_usd * MAX_RISK_ACCOUNT_FRACTION
+        ten_times = DEFAULT_TARGET_RISK_USD * MAX_RISK_MULTIPLE
+
+        self.assertLess(cap, ten_times)
+        self.assertLess(cap / DEFAULT_TARGET_RISK_USD, 3.0)

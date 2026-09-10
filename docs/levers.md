@@ -3713,3 +3713,48 @@ the section numbers below point there.
   daily gain has to come from risk per trade against the positive
   expectancy the three older samples now show, and that multiplication is
   only worth making once it holds forward on the live book.
+
+## 2026-09-11 (second run) — what the risk budget can deliver
+
+- **Lever:** position sizing — run 19 closed the frequency question, so
+  risk per trade is what remains. `edge_scaling.py` governs it and states
+  the premise itself: the daily target "needs roughly ten times" the 3 USD
+  base, but size has to be earned. This run measures whether the gate can
+  fire and what it would pay if it did. Read-only measurement; no risk
+  limit was touched, and nothing here argues for touching one.
+- **Measurement:** `assess_edge()` on the live out-of-sample book plus
+  closed-form reachability against the expectancies runs 13–18 established
+  (+0.032 / +0.022 / +0.017 R), and the account balance read from the
+  broker (557.35 EUR).
+
+  | | |
+  |---|---|
+  | live out-of-sample sample | 37 trades, mean +0.0421 R, sd 0.839, se 0.138 |
+  | lower 2σ bound | **-0.234** — gate shut; needs mean > +0.276 at n=37 |
+  | trades for a positive 2σ bound at +0.032 R | 2,750 (~917 days at 3/day) |
+  | at +0.017 R | 9,858 (~3,286 days) |
+  | 1 % equity cap at 557 EUR | 6.02 USD = **2.01x** base — the 10x multiple never binds |
+  | target 50 EUR/day on 557 EUR equity | 8.97 % of equity per day |
+  | risk needed at +0.032 R, 3 trades/day | 559 USD = 92.9 % of equity per trade |
+  | ceiling of the current configuration | ~0.6 USD ≈ 0.54 EUR a day |
+
+- **Result:** the gate cannot open on any relevant horizon — a
+  two-to-three hundredth R edge against a 0.84 R per-trade deviation
+  needs thousands of trades at two sigma — and behind it the equity cap
+  binds at 2x, not 10x. The objective is a factor of ninety away from
+  what the configuration can produce, and the factor is the product of
+  account size, per-trade risk and edge, none of which an entry filter,
+  exit rule or parameter sweep touches. Raising risk to close it would
+  put 93 % of the account behind every position.
+- **Decision:** nothing loosened. Two stale claims corrected in
+  `edge_scaling.py`'s docstring — that ten times the base is what the
+  target needs (the equity cap allows two) and the implicit suggestion
+  that the gate is waiting on a few more trades (it is waiting on
+  thousands) — with the measured figures in their place, plus one
+  regression test that the equity cap binds before the 10x multiple.
+  58/58 green. No behavioural change, no restart. Section 195. What today
+  did achieve stands and is the precondition for any sizing decision:
+  three of four disjoint samples now positive where none was this
+  morning. It is not 50 EUR a day, and the three quantities that could
+  become that are the balance, the edge and the trade count — in that
+  order of leverage.
