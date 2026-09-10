@@ -37,7 +37,7 @@ settings.load_env()
 from app.platforms import get_platform, Bar, OrderConstraints
 from app.platforms.registry import clear_cache
 from app.strategies import get_strategy, available_strategies, add_indicators
-from app.spot_trading.autotrade import _min_stop_fraction
+from app.spot_trading.autotrade import _min_stop_fraction, _min_stop_atr_multiple
 from app.spot_trading.regime import (
     decide as _regime_decide,
     adx_at as _regime_adx,
@@ -349,7 +349,9 @@ def _simulate_trades(asset: str, df: pd.DataFrame, signals, *,
     outcomes: List[TradeOutcome] = []
     in_trade_until = -1
     min_stop_fraction = _min_stop_fraction()
+    min_stop_atr = _min_stop_atr_multiple()
     skipped_below_stop_floor = 0
+    skipped_below_atr_floor = 0
     for sig in signals:
         i = sig.index
         if i <= in_trade_until or i >= len(df):
@@ -379,6 +381,9 @@ def _simulate_trades(asset: str, df: pd.DataFrame, signals, *,
         if (min_stop_fraction > 0 and entry > 0
                 and stop_dist / entry < min_stop_fraction):
             skipped_below_stop_floor += 1
+            continue
+        if min_stop_atr > 0 and stop_dist / atr < min_stop_atr:
+            skipped_below_atr_floor += 1
             continue
         round_trip_cost = 2.0 * fee_rate * entry
         cost_fraction = calculate_round_trip_cost_fraction(
@@ -489,6 +494,9 @@ def _simulate_trades(asset: str, df: pd.DataFrame, signals, *,
         # rather than "the floor removed most of them".
         print(f"    {asset}: {skipped_below_stop_floor} signal(s) below the "
               f"{min_stop_fraction:.2%} stop floor — skipped as live would")
+    if skipped_below_atr_floor:
+        print(f"    {asset}: {skipped_below_atr_floor} signal(s) below the "
+              f"{min_stop_atr:g}×ATR floor — skipped as live would")
     return outcomes
 
 

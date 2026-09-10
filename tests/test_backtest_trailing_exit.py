@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import unittest
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
@@ -31,6 +32,14 @@ class TrailingExitSimulationTest(unittest.TestCase):
     """Without this the backtest scored donchian_trail on its RR 5.0
     backstop, an exit it effectively never reaches live because the trail
     closes the position first."""
+    # The 3xATR volatility floor of section 190 is not this test's
+    # subject and its 1xATR fixture stop sits under it.
+    def setUp(self) -> None:
+        os.environ["HURZ_MIN_STOP_ATR_MULTIPLE"] = "0"
+
+    def tearDown(self) -> None:
+        os.environ.pop("HURZ_MIN_STOP_ATR_MULTIPLE", None)
+
 
     def _run(self, closes, strategy):
         df = _frame(closes)

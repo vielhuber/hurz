@@ -260,6 +260,17 @@ def _derive_stop_target(entry: float, direction: int, atr: float,
 _MAX_COST_STOP_WIDENING = 2.0
 
 _DEFAULT_MIN_STOP_FRACTION = 0.01
+
+# Smallest stop, as a multiple of ATR(14), still worth trading. Added
+# 2026-09-10 (section 190). The venue's 1.05 % minimum widens most stops
+# far past the 2 x ATR the strategy asks for, and the trades where it
+# does NOT — where volatility alone already clears the floor — are the
+# worst segment of the book on four disjoint walk-forward samples:
+# -0.062, -0.011, -0.079 and -0.005 R against a positive or flat reading
+# in every wider band. A wide stop cannot reach its target, but noise
+# cannot drag it to the stop either; the narrow ones get neither.
+# Skipping them is paired-positive on all four samples.
+_DEFAULT_MIN_STOP_ATR_MULTIPLE = 3.0
 _SPREAD_PERCENT_PATH = "data/capital_spread_percent.json"
 _SPREAD_PERCENT_CACHE: Optional[Dict[str, float]] = None
 _CRYPTO_SPREAD_FALLBACK_PER_SIDE = {
@@ -332,6 +343,18 @@ def _min_stop_fraction() -> float:
         return max(0.0, float(raw))
     except ValueError:
         return _DEFAULT_MIN_STOP_FRACTION
+
+
+def _min_stop_atr_multiple() -> float:
+    """Smallest stop distance, as a multiple of ATR(14), still worth
+    trading. Set `HURZ_MIN_STOP_ATR_MULTIPLE=0` to disable the floor."""
+    raw = os.environ.get("HURZ_MIN_STOP_ATR_MULTIPLE")
+    if raw is None or raw == "":
+        return _DEFAULT_MIN_STOP_ATR_MULTIPLE
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        return _DEFAULT_MIN_STOP_ATR_MULTIPLE
 
 
 def _last_signal_for_bar(signals, target_index: int):
@@ -458,6 +481,21 @@ async def evaluate_pair(
                     intent,
                     f"skipped: stop distance below "
                     f"{min_stop_fraction:.2%} floor",
+                )
+            return None
+    # Volatility floor — see _DEFAULT_MIN_STOP_ATR_MULTIPLE. Read after
+    # the venue expansion above and before the cost widening further
+    # down the order path: widening only fires above a 5.25 % spread,
+    # which the tradeable universe does not reach, so the two orderings
+    # differ on no instrument the book actually trades.
+    min_stop_atr = _min_stop_atr_multiple()
+    if min_stop_atr > 0:
+        if abs(entry_price - sl) / float(atr) < min_stop_atr:
+            if on_rejected_intent is not None:
+                on_rejected_intent(
+                    intent,
+                    f"skipped: stop distance below "
+                    f"{min_stop_atr:g}×ATR floor",
                 )
             return None
     return intent

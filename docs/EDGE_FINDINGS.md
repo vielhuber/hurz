@@ -5920,3 +5920,76 @@ No cap is added. The finding worth carrying is the segment itself,
 consistent across three disjoint samples in the direction opposite to
 the one tested, and it is the next run's question rather than this
 one's conclusion.
+
+## 190. The least-pinned band: the segment the venue floor never touched — BUILT IN
+
+Section 189 tested the opposite rule and produced this one. Excluding
+the most heavily pinned trades failed on every count, but its bucket
+table showed the worst segment of the book is the *least* pinned one —
+the 2-3 ATR band, where volatility alone already clears the venue's
+1.05 % minimum, so the stop is very nearly the 2 x ATR the strategy
+asked for. That band read -0.060, -0.011 and -0.078 R across the three
+samples then available.
+
+Those three samples produced the hypothesis, so they could not also
+confirm it. The venue serves hourly history past seven years, so days
+1,826-2,555 are a fourth disjoint sample, fetched for the first time
+for this question, and the acceptance rule — section 188's, extended by
+one sample — was fixed in `scripts/pin_floor_filter.py` before the
+fetch: positive on all four, t > 2 on at least one, cut segment
+E[R] <= 0 on all four, ship the mildest qualifying floor.
+
+| floor | 365 d: cut E[R] / diff / t | 366-1,095 d | 1,096-1,825 d | 1,826-2,555 d (unseen) |
+|---|---|---|---|---|
+| pin >= 2.5 | -0.0831 / +0.0237 / +2.67 | -0.0295 / +0.0067 / +1.17 | -0.0950 / +0.0286 / +4.48 | +0.0066 / **-0.0021** / -0.31 |
+| **pin >= 3.0** | **-0.0622 / +0.0216 / +2.23** | **-0.0107 / +0.0031 / +0.48** | **-0.0789 / +0.0301 / +4.24** | **-0.0051 / +0.0019 / +0.26** |
+| pin >= 3.5 | -0.0430 / +0.0173 / +1.69 | +0.0130 / **-0.0045** / -0.66 | -0.0623 / +0.0277 / +3.66 | +0.0035 / -0.0016 / -0.20 |
+| pin >= 4.0 | -0.0433 / +0.0196 / +1.83 | +0.0148 / **-0.0060** / -0.83 | -0.0526 / +0.0264 / +3.34 | +0.0037 / -0.0018 / -0.23 |
+
+Exactly one threshold survives. At 3.0 ATR the difference is positive
+on all four samples, clears t = 2 on two of them, and the cut segment
+is negative on all four — including the unseen one, where the band
+reads -0.0051 R and the filter +0.0019 at t = +0.26. The neighbouring
+floors each fail on a different sample, which is the ordinary shape of
+a real but modest effect rather than a lucky pick: 2.5 leaves part of
+the bad band in, 3.5 and 4.0 start cutting into the good one.
+
+The fourth sample deserves its own sentence. It is much weaker than the
+other three — +0.0019 R at t = +0.26, against +0.022 and +0.030 — so
+what it establishes is direction, not size. That is what it was asked
+for.
+
+**The concentration check.** The band is crypto-heavy: BTCUSD and
+ETHUSD supply 34 / 47 / 32 / 38 % of the cut across the four samples,
+which would make this a pair-selection question in disguise if they
+carried the effect. They do not — they dilute it. Split by instrument
+group, the filter is worth +0.049 / +0.005 / +0.043 / +0.010 R a trade
+on everything except crypto, and -0.022 / -0.001 / +0.028 / -0.038 on
+crypto alone. The rule ships unconditionally anyway: a crypto exemption
+would be a threshold chosen after seeing the split, which is the move
+this log refuses. (The per-instrument aggregation omits pairs whose cut
+is under ten trades, so the group figures are directional; the ALL rows
+above are the measurement.)
+
+The mechanism is symmetric and explains why the wide stops are not the
+problem they look like. A stop 8 ATR away cannot reach a target 12 ATR
+away inside 24 bars — but ordinary noise cannot drag it to the stop
+either, so the trade resolves on drift at the leash. A stop at 2 ATR
+offers neither protection: close enough to be hit by noise, with a
+target close enough that the trade ends before any drift accumulates.
+
+Implementation: `HURZ_MIN_STOP_ATR_MULTIPLE`, default 3.0, applied in
+`evaluate_pair` beside the existing 1 % price floor and at the matching
+point in `spot_backtest._simulate_trades`, so live and simulator refuse
+the same signals. It is read after the venue expansion and before the
+cost widening further down the order path; widening only fires above a
+5.25 % spread, which no instrument in the tradeable universe reaches,
+so the two orderings differ on nothing the book trades. No risk control
+is loosened — the rule removes entries and never widens a stop.
+
+The cost is frequency: the floor refuses 29-38 % of router-passed
+signals depending on the sample. That is the largest single reduction
+in trade count the project has made, and it is the point — the R sums
+go from -124.8 to -32.9, +124.3 to +150.5, -209.7 to +57.7 and +11.7
+to +28.9. The third sample crosses from a heavy loss to a profit; the
+recent year does not cross, it only loses less.

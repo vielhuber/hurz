@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import unittest
 from datetime import datetime, timezone
 from types import SimpleNamespace
@@ -14,6 +15,14 @@ class GapThroughStopTest(unittest.TestCase):
     """A stop order fills at the first available price. When a bar opens
     beyond the stop the backtest used to book the stop itself, which
     scored every weekend gap on the oils as a clean -1 R."""
+    # The 3xATR volatility floor of section 190 is not this test's
+    # subject and its 1xATR fixture stop sits under it.
+    def setUp(self) -> None:
+        os.environ["HURZ_MIN_STOP_ATR_MULTIPLE"] = "0"
+
+    def tearDown(self) -> None:
+        os.environ.pop("HURZ_MIN_STOP_ATR_MULTIPLE", None)
+
 
     def _frame(self, second_open: float, second_low: float) -> pd.DataFrame:
         timestamp = datetime(2026, 1, 1, tzinfo=timezone.utc)

@@ -72,7 +72,10 @@ class StopFloorRejectionTest(IsolatedAsyncioTestCase):
 
     async def test_signal_with_a_stop_inside_the_cost_floor_is_dropped(self):
         rejected = []
-        with patch.dict(os.environ, {"HURZ_MIN_STOP_FRACTION": "0.01"}):
+        # The ATR floor of section 190 would reject this fixture too, and
+        # then the assertion below would no longer be about the price floor.
+        with patch.dict(os.environ, {"HURZ_MIN_STOP_FRACTION": "0.01",
+                                     "HURZ_MIN_STOP_ATR_MULTIPLE": "0"}):
             self.assertIsNone(await self._evaluate(
                 on_rejected_intent=lambda intent, reason: rejected.append(
                     (intent, reason)
@@ -83,7 +86,8 @@ class StopFloorRejectionTest(IsolatedAsyncioTestCase):
         self.assertIn("stop distance below", rejected[0][1])
 
     async def test_same_signal_survives_once_the_floor_is_disabled(self):
-        with patch.dict(os.environ, {"HURZ_MIN_STOP_FRACTION": "0"}):
+        with patch.dict(os.environ, {"HURZ_MIN_STOP_FRACTION": "0",
+                                     "HURZ_MIN_STOP_ATR_MULTIPLE": "0"}):
             intent = await self._evaluate()
 
         self.assertIsNotNone(intent)

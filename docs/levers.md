@@ -3504,3 +3504,54 @@ the section numbers below point there.
   -122.4 R where run 13 predicted -122.2, the residual being occupancy
   the filtered trades hand back. The least-pinned band is the next
   run's question.
+
+## 2026-09-10 (fifteenth run) — the least-pinned band — BUILT IN
+
+- **Lever:** entry filter on stop geometry — run 14's bucket table
+  showed the worst segment is the least pinned one, the 2–3 ATR band
+  where volatility alone clears the venue's 1.05 % minimum. Those three
+  samples produced the hypothesis, so a fourth was fetched for the first
+  time (days 1,826–2,555; the venue serves hourly history past seven
+  years). Acceptance fixed before the fetch, run 13's rule extended by
+  one sample: positive on all four, t > 2 on at least one, cut segment
+  E[R] <= 0 on all four, ship the mildest qualifying floor.
+- **Measurement:** `scripts/pin_floor_filter.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware booking,
+  router-passed path including run 13's ADX ceiling, commodity short
+  block, three live trend strategies, all 26 tradeable instruments;
+  paired per trade, occupancy on the live rule. Floors 2.5 / 3.0 / 3.5 /
+  4.0 ATR on n = 4,249 / 8,534 / 8,884 / 8,895.
+
+  | floor | 365 d | 366–1,095 d | 1,096–1,825 d | 1,826–2,555 d (unseen) |
+  |---|---|---|---|---|
+  | 2.5 | +0.0237 / +2.67 | +0.0067 / +1.17 | +0.0286 / +4.48 | **-0.0021** / -0.31 |
+  | **3.0** | +0.0216 / +2.23 | +0.0031 / +0.48 | +0.0301 / +4.24 | +0.0019 / +0.26 |
+  | 3.5 | +0.0173 / +1.69 | **-0.0045** / -0.66 | +0.0277 / +3.66 | -0.0016 / -0.20 |
+  | 4.0 | +0.0196 / +1.83 | **-0.0060** / -0.83 | +0.0264 / +3.34 | -0.0018 / -0.23 |
+
+- **Result:** exactly one threshold survives. At 3.0 ATR every sample is
+  positive, two clear t = 2, and the cut segment is negative on all four
+  (-0.062 / -0.011 / -0.079 / -0.005 R). The neighbours each fail on a
+  different sample — 2.5 leaves part of the bad band in, 3.5 and 4.0 cut
+  into the good one. The fourth sample is much weaker than the other
+  three (+0.0019 at t = +0.26), so it establishes direction, not size.
+  Concentration check: crypto supplies 34–47 % of the cut but dilutes
+  rather than carries the effect — the filter is worth +0.049 / +0.005 /
+  +0.043 / +0.010 R a trade excluding crypto and -0.022 / -0.001 /
+  +0.028 / -0.038 on crypto alone; it ships unconditionally, since a
+  crypto exemption would be a threshold chosen after seeing the split.
+  R sums: -124.8 → -32.9, +124.3 → +150.5, -209.7 → +57.7, +11.7 → +28.9.
+- **Decision:** built in. `HURZ_MIN_STOP_ATR_MULTIPLE`, default 3.0, in
+  `evaluate_pair` beside the existing 1 % price floor and at the matching
+  point in `spot_backtest._simulate_trades`, so live and simulator refuse
+  the same signals. No risk control is loosened — the rule removes
+  entries and never widens a stop. Verified: 57/57 tests green including
+  seven new ones, and on 140 days of live history no signal under
+  3.01 ATR survives the path. Four existing tests had 1×ATR fixtures
+  that the floor would have caught; they now disable it explicitly,
+  since gap booking, trailing, sizing and the price floor are their
+  subjects, not this. Hurz restarted. Section 190. Honest cost: the
+  floor refuses 29–38 % of router-passed signals, the largest cut in
+  trade count the project has made. The 1,096–1,825 sample crosses from
+  a heavy loss to a profit; the recent year only loses less.

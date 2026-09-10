@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import unittest
 from datetime import datetime, timezone
 from types import SimpleNamespace
@@ -46,6 +47,14 @@ class MarketRulesPlatform(CapitalComPlatform):
 
 
 class PositionSizingTest(unittest.TestCase):
+    # The 3xATR volatility floor of section 190 is not this test's
+    # subject and its 1xATR fixture stop sits under it.
+    def setUp(self) -> None:
+        os.environ["HURZ_MIN_STOP_ATR_MULTIPLE"] = "0"
+
+    def tearDown(self) -> None:
+        os.environ.pop("HURZ_MIN_STOP_ATR_MULTIPLE", None)
+
     def test_size_targets_configured_dollar_risk(self) -> None:
         result = calculate_position_size(
             entry_price=100.0,
