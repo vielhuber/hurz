@@ -3259,3 +3259,28 @@ the section numbers below point there.
   older sample. No code change, no restart. Section 182. With run 66
   this closes the confirmation from both sides: the split is real and
   stable, no rule that acts on it survives two samples.
+
+## 2026-09-10 (eighth run) — the ATR lookback behind the stop (the grid's last unswept axis)
+
+- **Lever:** strategy parameter — the stop is 2 x ATR(14) and the 14
+  had never been swept (run 9 did the same for the Donchian length).
+  Swept at 7 / 14 / 28 / 56 for the stop distance only; signals
+  unchanged, so the Keltner band keeps its own ATR(14). Preregistered
+  acceptance: better than 14 at paired t > 2 on both disjoint samples.
+- **Measurement:** `scripts/atr_period_sweep.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware booking,
+  router-passed path, commodity short block, three live trend
+  strategies, all 26 tradeable instruments; four variants on the same
+  bar path, differences paired per trade. Last 365 days (n = 4,488),
+  then days 366–1,095 (n = 9,138).
+- **Result:** flat. Widest paired difference 0.0036 R at t = +0.90;
+  period 56 is best on the recent year (+0.0036) and worst on the
+  older (-0.0027), period 7 the reverse. The reason is mechanical: the
+  1.05 % venue floor is wider than 2 ATR on 76–85 % of trades, so the
+  ATR sets the stop on only a fifth of the book, and the share rises
+  with the lookback.
+- **Decision:** not built in — period 14 stays. No code change, no
+  restart. Section 183. The grid's last unswept axis is closed; the
+  finding to carry is that this system's stop is a fixed 1.05 % of
+  price on most trades, not a volatility-adaptive distance.

@@ -5538,3 +5538,49 @@ close the confirmation question from both sides: the split is real,
 large and stable, and neither the entry nor the exit that acts on it
 survives a second sample. What is stable is the cut price, -0.21 R,
 which is the toll any one-bar reaction rule pays here.
+
+## 183. The ATR lookback behind the stop: flat, because the venue floor overrides it on four trades in five
+
+Section 1's grid varied the stop multiple, the reward:risk, the hold
+and the ADX threshold; section 58 later found the Donchian lookback
+had been left out of it, and the ATR period behind the stop distance
+is the same omission. The stop is 2 x ATR(14) and the 14 had never
+been moved. `scripts/atr_period_sweep.py` sweeps it at 7 / 14 / 28 /
+56 bars for the stop distance only — the signals are generated exactly
+as live, so the Keltner band keeps its own ATR(14) and nothing but the
+stop, the target derived from it and the resulting size changes. All
+four variants are booked on the same bar path of every signal,
+occupancy follows the live variant, and a signal counts only where
+every variant prices inside the 10 % cost ceiling (144 and 82 signals
+dropped).
+
+| ATR period | last 365 d (n = 4,488): E[R] / diff vs 14 / paired t / floor binds | prior 730 d (n = 9,138): same |
+|---|---|---|
+| 7 | -0.0357 / +0.0015 / +0.39 / 76 % | +0.0164 / +0.0022 / +0.89 / 80 % |
+| **14 (live)** | **-0.0372** / — / — / 77 % | **+0.0142** / — / — / 82 % |
+| 28 | -0.0356 / +0.0015 / +0.47 / 79 % | +0.0145 / +0.0003 / +0.15 / 83 % |
+| 56 | -0.0336 / +0.0036 / +0.90 / 81 % | +0.0115 / -0.0027 / -1.04 / 85 % |
+
+Nothing moves. The widest paired difference in the pooled table is
+0.0036 R at t = +0.90, the two candidates disagree between the samples
+(56 is the best on the recent year and the worst on the older one, 7
+the reverse), and per strategy the only cell above one standard error
+is keltner_breakout at period 7 on the recent year (+0.011 R,
+t = +1.89) which reads +0.002 R at t = +0.59 on the older sample. The
+win rate is flat to a tenth of a point across every variant.
+
+The reason is in the last column. The venue's minimum stop distance —
+the project's own 1.05 % floor of section 135 — is wider than 2 ATR on
+76 to 85 % of the trades, so on four fifths of the book the ATR does
+not set the stop at all and the period behind it is inert by
+construction. What the sweep really measures is the fifth of the book
+where the ATR still binds, and there it is noise. The share rises with
+the lookback (76 % to 81 %, 80 % to 85 %) because a longer average is
+smoother and dips under the floor more often, which is why period 56
+converges towards the pure floor rule.
+
+Period 14 stays. The grid's last unswept axis is swept and flat, and
+the finding worth carrying is the mechanical one: this system's stop
+is a fixed 1.05 % of price on most trades, not a volatility-adaptive
+distance, and no ATR parameter can change that while the floor stands.
+Nothing changes.
