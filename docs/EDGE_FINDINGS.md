@@ -5584,3 +5584,53 @@ the finding worth carrying is the mechanical one: this system's stop
 is a fixed 1.05 % of price on most trades, not a volatility-adaptive
 distance, and no ATR parameter can change that while the floor stands.
 Nothing changes.
+
+## 184. Removing the target: the barrier the RR sweep never reached, and the drift that does not pay for it
+
+Section 131 measured the barrier pair and found it losing: at a 1.5 R
+target the stop is hit nearly twice as often on both samples, so the
+two together book -0.06 R and -0.04 R per trade, while the 24-bar
+drift of the trades that reach neither barrier is the only component
+in the black (+0.055 and +0.068 R at t = 4.4 and 7.6). It then closed
+the target question by inference from the RR 1.0-3.0 sweep of sections
+63 and 124. Inference is not measurement: RR 3.0 still places a
+barrier, and the rule section 131 actually implies is no target at
+all, the stop and the 24-bar leash alone. That variant had never been
+booked.
+
+`scripts/no_target_sweep.py` books four rules on the same bar path of
+every signal of the three live 1h trend strategies — the live 1.5 R
+target, 3.0 R, 6.0 R and none — with occupancy on the live variant so
+the trade set is identical and every difference is paired per trade.
+The stop is untouched in all four, so the 1 R loss limit stands and
+only the upside barrier moves.
+
+| target | last 365 d (n = 4,524): E[R] / diff vs 1.5 / paired t | prior 730 d (n = 9,161): same | target % | timeout % | win % |
+|---|---|---|---|---|---|
+| **1.5 R (live)** | **-0.0374** / — / — | **+0.0132** / — / — | 13 / 13 | 61 / 64 | 45.1 / 47.7 |
+| 3 R | -0.0385 / -0.0011 / -0.17 | +0.0128 / -0.0004 / -0.08 | 4 / 3 | 70 / 73 | 43.6 / 46.1 |
+| 6 R | -0.0477 / -0.0103 / -1.35 | +0.0228 / +0.0096 / +1.58 | 0 / 1 | 73 / 76 | 43.3 / 45.9 |
+| none | -0.0466 / -0.0092 / -1.09 | +0.0190 / +0.0058 / +0.95 | 0 / 0 | 73 / 77 | 43.3 / 45.9 |
+
+The sign flips between the samples and neither reading comes near the
+bar: removing the target costs 0.009 R on the recent year and gains
+0.006 R on the older one. Per strategy the same disagreement — on the
+recent year all three lose (donchian -0.009, turtle -0.006, keltner
+-0.012 R), on the older all three gain (+0.002, +0.003, +0.012 R), and
+no cell exceeds t = 1.4.
+
+Two things the table settles. First, 6 R and none are the same rule:
+at that distance the barrier is reached on 0 to 1 % of trades, so the
+RR sweep of section 63 had in fact already priced the barrier-less
+variant at its far end without naming it. Second, the change is
+confined to the 13 % of trades that live exits at the target — every
+other exit is bit-identical — so the whole effect is what those trades
+do afterwards, and it is worth about -0.07 R each on the recent year
+and +0.045 R each on the older. The stop share barely moves (26 to 27
+and 22 to 23 %): letting a winner run does not walk it back into the
+stop, it walks it into the leash, where the 24-bar close pays a little
+less than 1.5 R in one regime and a little more in the other.
+
+Section 131's decomposition survives — the drift is the black
+component — but it does not follow that the drift is worth harvesting
+past 1.5 R. The target stays. Nothing changes.

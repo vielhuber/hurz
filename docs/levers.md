@@ -3284,3 +3284,35 @@ the section numbers below point there.
   restart. Section 183. The grid's last unswept axis is closed; the
   finding to carry is that this system's stop is a fixed 1.05 % of
   price on most trades, not a volatility-adaptive distance.
+
+## 2026-09-10 (ninth run) — removing the target (the barrier the RR sweep never reached)
+
+- **Lever:** exit logic — section 131 measured the barrier pair as
+  losing and the 24-bar drift as the only black component, then closed
+  the target question by inference from the RR 1.0-3.0 sweep. The rule
+  it actually implies is no target at all, and that variant had never
+  been booked. Measured against 3.0 R and 6.0 R on the same path. The
+  stop is untouched in all four, so the 1 R loss limit stands and no
+  risk control is loosened. Preregistered acceptance: better than the
+  live rule at paired t > 2 on both disjoint samples.
+- **Measurement:** `scripts/no_target_sweep.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, stop
+  2.0 ATR, venue minimum, live widening rule, gap-aware stop booking,
+  router-passed path, commodity short block, three live trend
+  strategies, all 26 tradeable instruments; occupancy on the live
+  variant so the trade set is identical, differences paired per trade.
+  Last 365 days (n = 4,524), then days 366–1,095 (n = 9,161).
+- **Result:** the sign flips. No target reads -0.0092 R at t = -1.09 on
+  the recent year and +0.0058 R at t = +0.95 on the older one, and per
+  strategy all three lose on the first sample and all three gain on the
+  second, no cell above t = 1.4. 6 R and none are the same rule — the
+  barrier is reached on 0-1 % of trades — so the RR sweep had already
+  priced the far end without naming it. The effect is confined to the
+  13 % of trades that live exits at the target: about -0.07 R each on
+  the recent year, +0.045 R each on the older. The stop share moves
+  only 26→27 and 22→23 %, so a runner does not walk back into the stop,
+  it walks into the 24-bar leash.
+- **Decision:** not built in — the target stays. No code change, no
+  restart. Section 184. Section 131's decomposition survives, but the
+  drift being the black component does not make it worth harvesting
+  past 1.5 R; the target question is now measured rather than inferred.
