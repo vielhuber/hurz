@@ -3555,3 +3555,41 @@ the section numbers below point there.
   floor refuses 29–38 % of router-passed signals, the largest cut in
   trade count the project has made. The 1,096–1,825 sample crosses from
   a heavy loss to a profit; the recent year only loses less.
+
+## 2026-09-10 (sixteenth run) — extension at the breakout (RSI in the signal's direction)
+
+- **Lever:** entry filter — RSI(14) sits beside the ADX and ATR in
+  `add_indicators` and had never been read as an entry segment. Read in
+  the signal's direction so "high" means extended (RSI for longs,
+  100 - RSI for shorts); refusal at 70 / 75 / 80 / 85. Hypothesis a
+  priori rather than mined from these samples, so all four count
+  equally. Acceptance identical to runs 13 and 15: positive on all four,
+  t > 2 on at least one, cut segment E[R] <= 0 on all four, ship the
+  mildest qualifying threshold. Stop untouched; the rule only removes
+  entries.
+- **Measurement:** `scripts/rsi_extension_filter.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware booking,
+  router-passed path including the ADX ceiling, the 3×ATR floor
+  replicated from `_min_stop_atr_multiple()`, commodity short block,
+  three live trend strategies, all 26 tradeable instruments; paired per
+  trade, occupancy on the live rule. n = 2,869 / 6,258 / 5,777 / 5,637.
+- **Result:** rejected at every threshold on both (a) and (c). Only the
+  recent year is positive (+0.0238 / +0.0140 / +0.0143 / +0.0067); all
+  three older samples are negative at every threshold, and every cut
+  segment there is positive, so the rule would discard winners in three
+  years out of four. The 80+ band — the most extended entries, ~30 % of
+  the book — returns +0.013 / +0.017 / +0.034 R on the older samples and
+  -0.045 R at t = -2.14 on the recent one. Buying an already-run
+  breakout was the profitable half of this system for three years and
+  its worst segment in the last one.
+- **Decision:** not built in. No code change, no restart. Section 191.
+  Side benefit, and the real value of this run: measured against the
+  post-run-15 system, the live baseline is a clean out-of-sample read on
+  what shipped today — E[R] moves from -0.0377 to -0.0216 (365 d),
+  +0.0134 to +0.0229, -0.0230 to **+0.0118**, +0.0013 to +0.0098. The two
+  builds improve every sample and flip 1,096–1,825 d positive; three of
+  four samples now read positive. The recent year still does not, and
+  four different entry characteristics have now shown the same shape —
+  at some point the shape is the finding: the last twelve months are a
+  different regime, not a weaker version of the three before them.

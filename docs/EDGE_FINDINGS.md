@@ -5993,3 +5993,55 @@ in trade count the project has made, and it is the point — the R sums
 go from -124.8 to -32.9, +124.3 to +150.5, -209.7 to +57.7 and +11.7
 to +28.9. The third sample crosses from a heavy loss to a profit; the
 recent year does not cross, it only loses less.
+
+## 191. Extension at the breakout: overbought entries were the good ones for three years and the bad ones for the last
+
+RSI(14) sits in `add_indicators` beside the ADX and the ATR and had
+never been read as an entry segment. `scripts/rsi_extension_filter.py`
+reads it in the signal's own direction — RSI for longs, 100 - RSI for
+shorts, so "high" always means extended — and tests a refusal at 70 /
+75 / 80 / 85 on all four disjoint samples, against the system as it now
+stands: the ADX ceiling in `gate()` and the 3 x ATR floor replicated
+from `_min_stop_atr_multiple()`.
+
+| cap | 365 d: cut E[R] / diff / t | 366-1,095 d | 1,096-1,825 d | 1,826-2,555 d |
+|---|---|---|---|---|
+| rsi < 70 | -0.0343 / +0.0238 / +2.44 | +0.0209 / -0.0143 / -2.09 | +0.0159 / -0.0107 / -1.40 | +0.0081 / -0.0056 / -0.79 |
+| rsi < 75 | -0.0290 / +0.0140 / +1.72 | +0.0323 / -0.0156 / -2.76 | +0.0252 / -0.0122 / -1.88 | +0.0109 / -0.0054 / -0.89 |
+| rsi < 80 | -0.0450 / +0.0143 / +2.14 | +0.0129 / -0.0038 / -0.86 | +0.0173 / -0.0051 / -1.01 | +0.0340 / -0.0102 / -2.15 |
+| rsi < 85 | -0.0402 / +0.0067 / +1.36 | +0.0064 / -0.0009 / -0.31 | +0.0327 / -0.0049 / -1.35 | +0.0575 / -0.0086 / -2.60 |
+
+Not one threshold is positive on more than a single sample, and every
+cut segment on the three older samples is positive — the rule would
+discard winners in three years out of four. Condition (a) and condition
+(c) both fail at every threshold. Nothing is built.
+
+The bucket table says it more plainly. The 80+ band — the most extended
+entries, roughly 30 % of the book — returns +0.013, +0.017 and +0.034 R
+on the three older samples and -0.045 R at t = -2.14 on the recent
+year. Buying a breakout that has already run was the profitable half of
+this system for three years and became its worst segment in the last
+one. That is the fourth different entry characteristic today to show
+the same shape, and at some point the shape is the finding: the recent
+year is not a weaker version of the previous three, it is a different
+regime, and a filter fitted to it would be fitted to twelve months.
+
+**What this run does establish, in its baseline column.** These samples
+were measured against the post-190 system, so the live rows are a clean
+out-of-sample read on what shipped today:
+
+| sample | E[R] before (section 187/189) | E[R] now | n before | n now |
+|---|---|---|---|---|
+| 365 d | -0.0377 | **-0.0216** | 4,530 | 2,869 |
+| 366-1,095 d | +0.0134 | **+0.0229** | 9,169 | 6,258 |
+| 1,096-1,825 d | -0.0230 | **+0.0118** | 9,500 | 5,777 |
+| 1,826-2,555 d | +0.0013 | **+0.0098** | 8,895 | 5,637 |
+
+The ADX ceiling and the volatility floor together improve expectancy on
+all four samples and flip the 1,096-1,825 sample from negative to
+positive. Three of the four now read positive. The recent year does not
+— it improves by 0.016 R a trade and stays at -0.022. Nothing about
+today's two builds changes the fact that the last twelve months are the
+sample the system cannot make money in, and no entry characteristic
+tested so far separates that year from the three before it in a way
+that survives out of sample.
