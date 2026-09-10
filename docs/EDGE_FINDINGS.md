@@ -5634,3 +5634,61 @@ less than 1.5 R in one regime and a little more in the other.
 Section 131's decomposition survives — the drift is the black
 component — but it does not follow that the drift is worth harvesting
 past 1.5 R. The target stays. Nothing changes.
+
+## 185. A volatility-anchored target: five points of win rate, and the sign of the trade flips between the samples
+
+Section 124 read the reward:risk separately for pinned and ATR-bound
+trades and closed with a sentence that was never followed up: the
+pinned trades — 78 % of the book at a mean stop of 6.5 ATR — need a
+volatility-scaled distance the venue does not offer. It does not offer
+it on the stop, where its 1.05 % floor overrides the ATR on four
+trades in five (section 183). It offers it on the target. The live
+target sits at 1.5 x the stop distance, so on a pinned trade it asks
+for roughly 10 ATR of travel inside 24 bars, which is the mechanical
+reason 61 % of the book times out.
+
+`scripts/atr_target_sweep.py` anchors the target to the ATR instead —
+1.5, 3.0 and 4.5 ATR against the live rule — on the same bar path of
+every signal, occupancy on the live variant, differences paired per
+trade. One constraint section 124's group-wise RR sweep did not carry:
+the venue's minimum distance applies to the target as it does to the
+stop, so an ATR target closer than the floor is not placeable and is
+clamped to it. On a pinned trade, where the stop *is* the floor, that
+caps the variant at RR 1.0 — which is why the 1.5 ATR column below
+reports a mean realised reward:risk of 0.95, not 0.75.
+
+| target | last 365 d (n = 4,521): E[R] / diff / paired t | prior 730 d (n = 9,169): same | mean rr | target % | win % |
+|---|---|---|---|---|---|
+| **live 1.5 R** | **-0.0378** / — / — | **+0.0134** / — / — | 1.50 | 13 / 13 | 45.2 / 47.7 |
+| 1.5 ATR | -0.0184 / +0.0193 / **+2.93** | +0.0020 / -0.0114 / **-2.85** | 0.95 / 0.97 | 26 / 24 | 50.1 / 51.1 |
+| 3 ATR | -0.0369 / +0.0009 / +0.30 | +0.0072 / -0.0062 / -2.97 | 1.15 / 1.12 | 19 / 20 | 46.0 / 48.5 |
+| 4.5 ATR | -0.0384 / -0.0006 / -0.13 | +0.0140 / +0.0006 / +0.18 | 1.44 / 1.36 | 13 / 15 | 44.3 / 47.0 |
+
+This is the first variant in the series to clear t = 2 on a sample —
+and it clears it in both directions. The near target is worth +0.019 R
+at t = +2.93 on the recent year and -0.011 R at t = -2.85 on the older
+one, and the disagreement is not an artefact of one strategy: all
+three gain on the first sample (+0.021, +0.019, +0.018 R) and all
+three lose on the second (-0.010, -0.016, -0.009 R). The preregistered
+bar asks for t > 2 on both. It fails.
+
+What the table does establish is the shape of the trade. Pulling the
+target in from 1.5 R to the venue floor doubles the target exits from
+13 to 26 %, lifts the win rate by five points to just over 50, and
+cuts the timeout share from 61 to 51 % — the leash stops being the
+dominant exit. The stop share barely moves (26 to 23 %), so this is
+not risk being traded away; it is win size being traded for win
+frequency at a realised reward:risk just under 1.0. Whether that trade
+pays depends entirely on how far the winners run, and that is the one
+thing this book's regime decides: in the older, trending sample the
+runners paid for the misses, in the recent year they did not.
+
+The 4.5 ATR column is the control that confirms the reading — it lands
+within 0.0006 R of the live rule on both samples, because at that
+distance the clamp rarely binds and the rule nearly is the live rule.
+
+The live target stays. The finding to carry is that this system has a
+real, measurable win-rate lever on the target distance, worth five
+points of hit rate, and that its expectancy sign is regime-dependent
+rather than structural — which makes it a candidate for a regime-
+conditional rule, not for an unconditional one. Nothing changes.

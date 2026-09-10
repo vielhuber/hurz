@@ -3316,3 +3316,39 @@ the section numbers below point there.
   restart. Section 184. Section 131's decomposition survives, but the
   drift being the black component does not make it worth harvesting
   past 1.5 R; the target question is now measured rather than inferred.
+
+## 2026-09-10 (tenth run) — a volatility-anchored target (section 124's open sentence)
+
+- **Lever:** exit logic — section 124 closed with the observation that
+  the pinned trades (78 % of the book, mean stop 6.5 ATR) need a
+  volatility-scaled distance the venue does not offer on the stop. It
+  offers it on the target. Targets at 1.5 / 3.0 / 4.5 ATR against the
+  live 1.5 x stop, clamped to the venue's minimum distance because a
+  closer target is not placeable — the constraint section 124's
+  group-wise RR sweep did not carry. The stop is untouched in all four
+  variants, so the 1 R loss limit stands and the target can only move
+  closer. Preregistered acceptance: better than the live rule at paired
+  t > 2 on both disjoint samples.
+- **Measurement:** `scripts/atr_target_sweep.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, stop
+  2.0 ATR, venue minimum, live widening rule, gap-aware stop booking,
+  router-passed path, commodity short block, three live trend
+  strategies, all 26 tradeable instruments; occupancy on the live
+  variant so the trade set is identical, differences paired per trade.
+  Last 365 days (n = 4,521), then days 366–1,095 (n = 9,169).
+- **Result:** the first variant in the series to clear t = 2 — in both
+  directions. The 1.5 ATR target reads +0.0193 R at t = +2.93 on the
+  recent year and -0.0114 R at t = -2.85 on the older one, and all
+  three strategies gain on the first sample and lose on the second.
+  The shape of the trade is unambiguous: target exits double from 13 to
+  26 %, the win rate rises five points to just over 50, timeouts fall
+  from 61 to 51 %, and the stop share barely moves (26 → 23 %) — win
+  size traded for win frequency at a realised RR just under 1.0,
+  because the venue floor clamps the target. The 4.5 ATR control lands
+  within 0.0006 R of the live rule on both samples, as it should.
+- **Decision:** not built in — the bar asks for both samples and the
+  sign flips. No code change, no restart. Section 185. What this run
+  hands the next one is a lever that is real but conditional: five
+  points of hit rate on the target distance, paying in the trending
+  sample and not in the recent one, which makes the regime router —
+  not an unconditional target change — the place to test it.
