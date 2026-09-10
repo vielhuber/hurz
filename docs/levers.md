@@ -3142,3 +3142,32 @@ the section numbers below point there.
   fail-silent, covered by `tests/test_sentiment_sampler.py`. Nothing
   reads it yet; the split is to be measured on the journal once
   enough trades carry a sample. Hurz restarted for the sampler.
+
+## 2026-09-10 (fourth run) — index entries priced at their hour (the open cost correction of run 37)
+
+- **Lever:** cost filter — block off-hours index entries, now priced
+  at the venue's real spread for the hour they fire, from the
+  two-day spread-by-hour table the heartbeat sampler of run 38 has
+  built (the correction run 37 left open). Preregistered: block only
+  at t < -2 on both disjoint samples and |t| > 2 against the
+  cash-hours rest with the same sign on both.
+- **Measurement:** `scripts/index_hour_costs.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware stop
+  booking, router-passed path, three live trend strategies, the nine
+  index instruments, every trade charged the median sampled
+  half-spread of its signal hour. Last 365 days (n = 1,660), then
+  days 366–1,095 (n = 3,416).
+- **Result (E[R] net of the hour's cost):** the hour table raises the
+  index book's cost from 1.0 % to 1.5 % of risk (0.0045 R per trade,
+  8 R and 15 R on the two samples — half of run 37's one-snapshot
+  estimate). Off-hours entries -0.109 R (t = -4.01) against cash-hours
+  -0.119 R on the recent year (t_diff = +0.24) and +0.041 R
+  (t = +2.16) against +0.031 R on the older (t_diff = +0.35): not the
+  losing side on either sample, positive on the older one. The index
+  book flips with the regime (run 20 / section 137), at any hour.
+- **Decision:** not built in — the block fails the bar on the older
+  sample. Section 179. Run 37's open correction is closed as
+  measured: half a percent of risk, too small to change a ranking;
+  the shared simulator keeps the daytime table. No code change, no
+  restart.

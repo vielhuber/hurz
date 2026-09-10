@@ -5306,3 +5306,61 @@ signal bar, next to the spread samples of section 108. Nothing reads
 it yet; once the journal holds enough trades with a sample beside
 them, the split will be read the same way as the features above. That
 is a data collection, not a lever, and it changes no trading decision.
+
+## 179. Index entries at the hour they fire: the off-hours spread costs half a percent of risk, and the off-hours trades are not the bad ones
+
+Section 107 charged a single 04:36 UTC snapshot for every off-hours
+index entry and left one cost correction open: sample the venue's
+spreads by hour, then charge them. The heartbeat sampler of section
+108 has since recorded two full days, one to three quotes per
+instrument and hour. The median half-spread by UTC hour, in thousandths
+of a percent of mid, reads DE40 3 by day and 8–16 by night, FR40 5
+and 27–60, UK100 5 and 14, EU50 12 and 16–24, HK50 10 inside its
+session and 59–60 outside, while the three US indices and J225 barely
+move (US30 2 at every hour, J225 8). `scripts/index_hour_costs.py`
+replays the three live 1h trend strategies on the router-passed path
+at the 2-ATR stop, venue minimum, live widening rule, gap-aware stop
+booking and the 10 % ceiling over the nine index instruments, charges
+every trade the median sampled half-spread of its signal hour, and
+tags it cash-hours or off-hours by the underlying's session in UTC
+(Europe 07–16, US 14–20, HK50 02–08, J225 00–06). Preregistered: the
+off-hours bucket is blocked only if significantly negative at t < −2
+on both disjoint samples and |t| > 2 against the cash-hours rest with
+the same sign on both.
+
+| index book, nine instruments | last 365 d: n / E[R] / cost R / Σ R | prior 730 d: same |
+|---|---|---|
+| audited table (what the backtest charges) | 1,665 / -0.107 / 0.0101 / -179 | 3,422 / +0.041 / 0.0104 / +140 |
+| sampled hour table | 1,660 / -0.113 / 0.0147 / -187 | 3,416 / +0.037 / 0.0142 / +125 |
+| of which off-hours entries | 1,033 / -0.109 (t = -4.01) / 0.0172 | 2,019 / +0.041 (t = +2.16) / 0.0167 |
+| of which cash-hours entries | 627 / -0.119 (t = -3.46) / 0.0106 | 1,397 / +0.031 (t = +1.38) / 0.0106 |
+| off-hours − cash-hours | +0.011 R, t = +0.24 | +0.010 R, t = +0.35 |
+
+The correction is real and small. Charging the hour the signal fires
+instead of the daytime table raises the index book's cost from 1.0 %
+to 1.5 % of risk per trade, 0.0045 R, and costs it 8 R on the recent
+year and 15 R on the older one — the number section 107 estimated from
+its one snapshot (0.010–0.013 R) was about twice too large, because
+the snapshot fell on the widest hour. Two thirds of the index entries
+fire outside cash hours on either sample, and at their true cost they
+are not the losing side: on the recent year they lose 0.109 R against
+0.119 R for the cash-hours entries, on the older sample they make
+0.041 R against 0.031 R, and neither gap is a quarter of a standard
+error. Per instrument the picture is noise in both directions: FR40's
+off-hours entries are its better half on both samples (+0.082 R and
++0.090 R) despite paying 3.6–5 % of risk in spread, EU50's are its
+worse half on both, and the significant cells are single strategies
+on single samples (keltner_breakout off-hours -0.19 R on the recent
+year, +0.07 R on the older).
+
+What the table does show is section 137 again: the index book as a
+whole loses 0.11 R per trade on the recent year at t = −4.5 and makes
+0.04 R on the two years before at t = +2.9, with every one of the nine
+instruments on the same side of zero as the book — the bull years paid
+the index breakouts and the last year took it back, at any hour and
+under either cost model. No hour filter is built in; the off-hours
+block fails the bar on the older sample outright. The one open cost
+correction of section 107 is closed as measured: the shared simulator
+keeps the daytime table, which understates the index book's cost by
+half a percent of risk, too little to move any ranking the selector
+has produced. Nothing changes.
