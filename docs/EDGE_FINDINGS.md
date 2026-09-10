@@ -5364,3 +5364,48 @@ correction of section 107 is closed as measured: the shared simulator
 keeps the daytime table, which understates the index book's cost by
 half a percent of risk, too little to move any ranking the selector
 has produced. Nothing changes.
+
+## 180. A close-confirmed stop: the same expectancy, one trade in eight losing more than its risk
+
+The live stop sits at the broker two ATR from the entry and fills on
+a touch; section 131 read that the barriers lose and the drift wins,
+and the one stop variant never measured was a close-confirmed stop —
+the position is closed at the bar's close only if that close lies
+beyond the 2-ATR level, so a wick through the level that closes back
+inside no longer stops the trade out. `scripts/close_based_stop.py`
+books three rules on the same bar path of every trade of the three
+live 1h trend strategies on the router-passed path over all 26
+tradeable instruments (venue minimum, live widening rule, gap-aware
+booking, commodity short block): the live touch stop; A, the
+close-confirmed 2-ATR stop behind a broker-side catastrophe stop at
+3 ATR on touch; B, the close-confirmed stop alone, an upper bound no
+bot should run. The target stays intrabar at 1.5 R and the leash at
+24 bars. The trade set is fixed by the live rule, so every difference
+is paired per trade. Acceptance, fixed before the data were seen:
+better than the live rule at paired t > 2 on both disjoint samples.
+
+| rule | last 365 d (n = 4,503): E[R] / diff vs live / paired t / stop % / trades below −1 R | prior 730 d (n = 9,156): same |
+|---|---|---|
+| live: touch stop at 2 ATR | -0.031 / — / — / 26 / 0.4 % | +0.014 / — / — / 22 / 0.1 % |
+| A: close-confirmed 2 ATR, touch at 3 ATR | -0.029 / +0.002 / +0.53 / 21 / **13.7 %** | +0.014 / -0.000 / -0.01 / 18 / **12.2 %** |
+| B: close-confirmed 2 ATR only | -0.030 / +0.002 / +0.34 / 20 / **13.4 %** (worst -3.4 R) | +0.015 / +0.001 / +0.27 / 18 / **11.9 %** (worst -4.4 R) |
+
+Confirming the stop on the close takes a fifth of the stop-outs away
+— 26 % of trades stop under the live rule, 21 % under A — and the win
+rate rises a point and a half, and none of it reaches the expectancy:
++0.002 R on the recent year at paired t = +0.53, nothing on the two
+years before, and the three strategies disagree on the sign in both
+samples (keltner_breakout +0.009 R then -0.005 R, turtle_breakout
++0.001 R then +0.004 R). The wicks that the touch stop pays for and
+the close stop forgives are worth exactly what the bars that close
+through the level and keep going cost: the stop-outs saved come back
+as losses booked at the close, deeper than one R. That is where the
+rule's price sits. Under the live rule one trade in 250 loses more
+than its risk, and only by a gap; under either close-confirmed
+variant it is one in eight, at up to 1.6 R behind the 3-ATR
+catastrophe stop and up to 4.4 R without it.
+
+A rule that leaves the mean where it was and turns the 1-R loss
+ceiling into a distribution with a fat left tail is not a lever but a
+weaker risk limit. Not built in; the stop stays at the broker, on
+touch, at 2 ATR. Nothing changes.

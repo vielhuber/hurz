@@ -3171,3 +3171,30 @@ the section numbers below point there.
   measured: half a percent of risk, too small to change a ranking;
   the shared simulator keeps the daytime table. No code change, no
   restart.
+
+## 2026-09-10 (fifth run) — close-confirmed stop against the live touch stop
+
+- **Lever:** exit logic — the one stop variant never measured: close
+  the position at the bar's close only if that close lies beyond the
+  2-ATR level, instead of the broker-side touch stop. A keeps a
+  broker-side catastrophe stop at 3 ATR on touch; B has no touch stop
+  (upper bound). Target intrabar 1.5 R, leash 24 bars. Preregistered
+  acceptance: better than the live rule at paired t > 2 on both
+  disjoint samples; both variants weaken the 1-R loss limit, which was
+  part of the reading from the start.
+- **Measurement:** `scripts/close_based_stop.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware booking,
+  router-passed path, commodity short block, three live trend
+  strategies, all 26 tradeable instruments, three rules booked on the
+  same bar path, differences paired per trade. Last 365 days
+  (n = 4,503), then days 366–1,095 (n = 9,156).
+- **Result (E[R] net of costs, diff vs live, paired t):** A +0.0023 R
+  (t = +0.53) then -0.0000 R (t = -0.01); B +0.0016 R (t = +0.34) then
+  +0.0008 R (t = +0.27); strategies disagree on the sign in both
+  samples. Stop-outs fall from 26 % to 21 % of trades and the win rate
+  rises 1.5 points, but 12–14 % of trades then lose more than 1 R
+  (worst -1.6 R under A, -4.4 R under B) against 0.1–0.4 % live.
+- **Decision:** not built in — no expectancy gain and a weaker risk
+  limit. The stop stays broker-side on touch at 2 ATR. No code change,
+  no restart. Section 180.
