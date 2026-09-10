@@ -5739,3 +5739,65 @@ loses less of it.
 
 The live target stays and no ADX condition is added. The regime
 router's own threshold is untouched. Nothing changes.
+
+## 187. An upper ADX bound on trend entries: the strongest single-sample effect the series has produced, and it is one sample wide
+
+The regime router gates trend entries at ADX >= 30 and has no upper
+bound. Section 186 found the reason to look for one: on the recent
+year the live rule's expectancy falls monotonically with ADX at entry,
+from -0.008 R below 35 to -0.144 R above 50. `scripts/adx_ceiling_filter.py`
+books the ceiling as a filter at 35 / 40 / 45 / 50 — every signal's
+live R against the variant's R, zero where the variant does not trade,
+paired per trade, occupancy on the live rule so a filtered trade does
+not free its slot and the measurement understates rather than flatters
+the filter.
+
+Because the hypothesis came from data already seen, the acceptance
+rule was written out before the run and deliberately made asymmetric:
+a filter removes trades rather than adding exposure, and one that
+helps in one regime and is neutral in the other can never show t > 2
+twice. Required were (a) a positive point estimate on both samples,
+(b) t > 2 on at least one, (c) no reading below t = -1 on either,
+(d) a sign stable across the sweep rather than at one cherry-picked
+value, (e) no contradiction from the live journal.
+
+| ceiling | last 365 d: cut n / cut E[R] / paired diff / t | prior 730 d: cut n / cut E[R] / paired diff / t |
+|---|---|---|
+| ADX < 35 | 2,150 / -0.0709 / +0.0336 / **+3.97** | 4,427 / +0.0051 / -0.0025 / -0.41 |
+| ADX < 40 | 1,068 / -0.1074 / +0.0253 / **+4.04** | 2,297 / -0.0010 / +0.0003 / +0.06 |
+| ADX < 45 | 587 / -0.1241 / +0.0161 / **+3.39** | 1,302 / +0.0004 / -0.0001 / -0.02 |
+| ADX < 50 | 341 / -0.1431 / +0.0108 / **+2.82** | 729 / -0.0158 / +0.0013 / +0.46 |
+
+On the recent year this is the strongest lever the series has
+measured: every threshold positive, monotone in severity, t between
+2.8 and 4.0, and the cut trades carry -0.07 to -0.14 R each. Criteria
+(b) and (c) pass comfortably — the older sample never goes near -1.
+
+(a) and (d) fail together, and they fail in a way worth naming
+precisely. On the older sample the filter is not harmful; it is
+nothing. All four readings sit between -0.0025 and +0.0013 R at
+|t| <= 0.46, so the point estimate's sign there is decided by noise:
+positive at two thresholds, negative at two. Picking ADX < 40 or
+ADX < 50 because those happen to be the positive two is exactly the
+cherry-pick (d) exists to forbid, and without that pick (a) is not
+satisfied.
+
+The per-strategy split argues the same way from the other side. On the
+older sample turtle_breakout — the only strategy with a positive live
+expectancy there (+0.030 R, t = +1.93) — reads a negative difference
+at every threshold (-0.013 to -0.004 R), and its cut trades are its
+good ones (+0.027 to +0.046 R). The aggregate's near-zero older
+reading is not homogeneity; it is keltner's negative high-ADX trades
+cancelling turtle's positive ones.
+
+Criterion (e) returns nothing either way: the journal holds 34 closed
+trades with a stored entry ADX, and every threshold reads |t| <= 0.46
+on them. That is a sample too small to contradict or confirm, and it
+is recorded as neither.
+
+No ceiling is added; the router keeps its floor at 30 and no upper
+bound. What is now measured rather than suspected: high-ADX trend
+entries have been the recent year's worst segment by a wide margin and
+carried no penalty at all in the two years before it. That is a
+statement about the last twelve months, not about the system. Nothing
+changes.

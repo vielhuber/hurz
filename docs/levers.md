@@ -3387,3 +3387,44 @@ the section numbers below point there.
   restart. Section 186. What section 185 read as a conditional target
   effect is a high-ADX entry problem confined to one sample; the next
   question is that entry, not the target.
+
+## 2026-09-10 (twelfth run) — an upper ADX bound on trend entries
+
+- **Lever:** regime filter — the router gates trend entries at ADX >= 30
+  and has no ceiling; section 186 found the live expectancy falling
+  monotonically with ADX on the recent year (-0.008 R below 35 to
+  -0.144 R above 50). Ceilings at 35 / 40 / 45 / 50. The hypothesis
+  came from data already seen, so the acceptance rule was written out
+  first and made asymmetric — a filter removes trades rather than
+  adding exposure, and one that helps in one regime and is neutral in
+  the other cannot show t > 2 twice by construction. Required: (a)
+  positive point estimate on both samples, (b) t > 2 on at least one,
+  (c) no reading below t = -1 on either, (d) sign stable across the
+  sweep, (e) no contradiction from the journal.
+- **Measurement:** `scripts/adx_ceiling_filter.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware booking,
+  router-passed path, commodity short block, three live trend
+  strategies, all 26 tradeable instruments; every signal's live R
+  against the variant's R, zero where it does not trade, paired per
+  trade, occupancy on the live rule so a filtered trade does not free
+  its slot. Last 365 days (n = 4,530), then days 366–1,095 (n = 9,169).
+  Journal cross-read on the 34 closed trades carrying an entry ADX.
+- **Result:** the strongest single-sample effect the series has
+  produced, and one sample wide. Recent year: +0.0336 / +0.0253 /
+  +0.0161 / +0.0108 R at t = +3.97 / +4.04 / +3.39 / +2.82, monotone in
+  severity, cut trades worth -0.07 to -0.14 R each. Older sample: -0.0025
+  / +0.0003 / -0.0001 / +0.0013 R, every |t| <= 0.46 — not harmful,
+  simply nothing, with the sign decided by noise at two thresholds each
+  way. Per strategy the aggregate's older zero is a cancellation, not
+  homogeneity: turtle_breakout, the only strategy with positive older
+  expectancy (+0.030 R), reads negative at every threshold and its cut
+  trades are its good ones (+0.027 to +0.046 R). Journal: |t| <= 0.46
+  at every threshold on n = 34, too small to count either way.
+- **Decision:** not built in — (b), (c) and (e) pass, (a) and (d) fail
+  together: choosing the two thresholds whose older sign happens to be
+  positive is the cherry-pick (d) was written to forbid. No code
+  change, no restart. Section 187. Measured rather than suspected:
+  high-ADX trend entries were the recent year's worst segment by a wide
+  margin and carried no penalty in the two years before it — a
+  statement about the last twelve months, not about the system.
