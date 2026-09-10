@@ -5409,3 +5409,72 @@ A rule that leaves the mean where it was and turns the 1-R loss
 ceiling into a distribution with a fat left tail is not a lever but a
 weaker risk limit. Not built in; the stop stays at the broker, on
 touch, at 2 ATR. Nothing changes.
+
+## 181. Two-bar confirmation: the strongest split the series has found, and the rule that acts on it keeps almost none of it
+
+The pullback entry (section 53), the retest (55) and the next-open
+timing (91) each moved where the entry sits; none asked whether a
+breakout that is still beyond its level one bar later is a different
+trade from one that has already slipped back inside.
+`scripts/two_bar_confirmation.py` replays the three live 1h trend
+strategies on the router-passed path at the 2-ATR stop, venue minimum,
+live widening rule, gap-aware stop booking and the commodity short
+block over all 26 tradeable instruments, and tags every live trade by
+whether the close of the bar after the signal still lies beyond the
+level the signal broke (the prior 20/55-bar extreme, or the Keltner
+band). Two readings: the live book split confirmed against
+unconfirmed, and the variant that enters at that later close with its
+own 2-ATR stop, compared paired per signal against the live rule
+(a signal the variant does not take contributes zero).
+
+| | last 365 d | prior 730 d |
+|---|---|---|
+| live book | 4,521 / -0.035 R / Σ -158 | 9,159 / +0.014 R / Σ +126 |
+| live, unconfirmed next close (29–30 %) | 1,290 / **-0.291** / **t = -14.6** / Σ -375 | 2,747 / **-0.217** / **t = -15.1** / Σ -597 |
+| live, confirmed next close (70–71 %) | 3,231 / **+0.067** / **t = +4.6** / Σ +217 | 6,412 / **+0.113** / **t = +11.0** / Σ +723 |
+| unconfirmed − confirmed | -0.358 / **t = -14.5** | -0.330 / **t = -18.7** |
+| variant: enter at the next close | 3,791 / -0.035 / Σ -133 | 7,523 / +0.032 / Σ +238 |
+| **variant − live, paired per signal** | **+0.0168 / t = +1.95** | **+0.0094 / t = +1.54** |
+
+The split itself is the largest and most consistent this project has
+measured. Where every signal-bar feature of sections 110 to 180 either
+reversed between the samples or sat inside two standard errors, this
+one holds its sign and its size on both: a breakout whose next bar
+closes back inside the level loses 0.22–0.29 R, at t beyond 14, on all
+three strategies (donchian_breakout -0.284 and -0.207, turtle_breakout
+-0.297 and -0.197, keltner_breakout -0.289 and -0.248), while the
+confirmed remainder makes 0.07–0.11 R. It is not a regime artefact and
+it is not a selection: the whole live book's loss on the recent year
+is the unconfirmed third, and the confirmed two thirds are profitable
+on both samples.
+
+None of that is available. The confirmation exists only one bar after
+the signal, so the only rule that can use it enters at that later
+close — and the price of the delay eats the benefit almost exactly.
+Decomposed per signal: skipping the unconfirmed signals adds +354 R on
+the recent year and +568 R on the older one, and entering the
+confirmed ones a bar late costs -279 R and -482 R (the delayed entries
+go from +0.064 R to -0.027 R and from +0.114 R to +0.035 R, at
+t = -11.5 and -14.5). What remains is +0.017 R and +0.009 R per
+signal, at paired t = +1.95 and +1.54 — the same sign twice, and short
+of the preregistered t > 2 on either sample. Pooled over both samples
+it reads +0.012 R at t = +2.38, which is the wrong test: pooling two
+regimes is what sections 114 and 176 were designed to refuse.
+
+The live journal, read as the third sample
+(`scripts/two_bar_confirmation_journal.py`, the level and the next
+close reconstructed for each of 216 closed trades, realised R at the
+actual fill against the simulated variant): the same shape, no power.
+The 110 signals whose next bar closed back inside lost 0.457 R each,
+the variant's 106 entries made +0.022 R, and paired the variant is
++0.048 R per signal at t = +0.76. The 31 forward trades since the
+router floor go the other way (-0.102 R, t = -0.66).
+
+Not built in: the rule fails the preregistered bar on both samples.
+What is worth keeping is the decomposition, because it is the first
+time the series has located where the loss sits rather than how it
+splits — the failed breakout, one bar old. Acting on it by delaying
+every entry pays for the information with the very move the confirmed
+breakouts make in that bar. A rule that keeps the entry where it is
+and uses the confirmation as an exit instead is the obvious next
+question, and it is not this one. Nothing changes.

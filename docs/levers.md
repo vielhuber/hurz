@@ -3198,3 +3198,35 @@ the section numbers below point there.
 - **Decision:** not built in — no expectancy gain and a weaker risk
   limit. The stop stays broker-side on touch at 2 ATR. No code change,
   no restart. Section 180.
+
+## 2026-09-10 (sixth run) — two-bar confirmation (enter only if the next close still holds)
+
+- **Lever:** entry timing — enter at the close of the bar after the
+  signal, and only if that close still lies beyond the level the
+  signal broke; otherwise no trade. Neither the pullback entry
+  (run 4), the retest (run 6) nor the next-open timing (run 21 of
+  2026-09-08) had asked this. Preregistered acceptance: better than
+  the live rule at paired t > 2 on both disjoint samples.
+- **Measurement:** `scripts/two_bar_confirmation.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware stop
+  booking, router-passed path, commodity short block, three live trend
+  strategies, all 26 tradeable instruments; every signal's live R set
+  against the variant's R (zero where the variant does not trade) and
+  compared paired. Last 365 days (n = 4,521), then days 366–1,095
+  (n = 9,159). Third sample: `scripts/two_bar_confirmation_journal.py`
+  on the 216 closed live trades, realised R at the actual fill.
+- **Result:** the split is the strongest the series has measured —
+  unconfirmed signals (29–30 % of the book) lose 0.291 R and 0.217 R
+  at t = -14.6 and -15.1, on all three strategies, while the confirmed
+  remainder makes +0.067 R and +0.113 R. The rule that acts on it
+  keeps almost none: skipping the unconfirmed adds +354 R and +568 R,
+  entering the confirmed a bar late costs -279 R and -482 R, leaving
+  paired +0.0168 R (t = +1.95) and +0.0094 R (t = +1.54). Journal:
+  +0.048 R paired at t = +0.76; the 31 forward trades -0.102 R.
+- **Decision:** not built in — fails the bar on both samples, and
+  pooling them (t = +2.38) is the test this log refuses. No code
+  change, no restart. Section 181. The decomposition is kept: the
+  loss sits in the one-bar-old failed breakout, and the next question
+  is whether the confirmation works as an exit instead of an entry
+  filter — measured separately, not assumed.
