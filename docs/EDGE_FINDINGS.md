@@ -5191,3 +5191,53 @@ not a property of the signal. This is section 115 once more — the
 4h-ADX split also travelled through two history samples and reversed
 in the journal. No filter is built in. The variance ratio joins the
 signal-bar features as a non-lever; nothing changes.
+
+## 177. Spread mean reversion between related instruments: negative on both samples, and half the signals cannot pay two spreads
+
+Section 7 tested multi-timeframe confirmation, volatility filters, a
+BTC lead and cross-sectional relative strength as structurally
+different signal sources; a relative-value bet between two related
+instruments was never among them, and the retired single-instrument
+mean-reversion family of section 2 asked a different question.
+`scripts/pairs_spread_mr.py` opens the family once, with the rule
+fixed before the data were seen: nine spreads (Brent/WTI, gold/silver,
+US500/US100, US500/US30, DE40/EU50, DE40/FR40, EURUSD/GBPUSD,
+AUDUSD/NZDUSD, BTC/ETH); z-score of the log ratio of the closes
+against its causal 240-bar mean and standard deviation; entry when the
+close crosses |z| = 2, one position per spread; exit at the close when
+z crosses back through zero (target), when |z| reaches 3.5 (stop) or
+after 48 bars (leash). Risk is the log-ratio distance from the entry
+to the stop level, both legs are charged their audited round-trip
+spread, and a signal whose cost exceeds the live 10 % ceiling is
+cost-skipped as the bot would skip it. Acceptance: pooled E[R] > 0 at
+t > 2 on both disjoint samples.
+
+| spread | last 365 d: n / E[R] / t / timeout % / cost-skipped | prior 730 d: same |
+|---|---|---|
+| OIL_BRENT / OIL_CRUDE | 13 / -0.293 / -0.80 / 62 / 69 | 0 / — / — / — / 224 |
+| GOLD / SILVER | 41 / -0.361 / -1.68 / 66 / 1 | 76 / +0.065 / +0.55 / 68 / 14 |
+| US500 / US100 | 43 / -0.080 / -0.44 / 81 / 0 | 78 / -0.067 / -0.53 / 77 / 2 |
+| US500 / US30 | 42 / +0.087 / +0.37 / 52 / 1 | 77 / +0.025 / +0.14 / 62 / 2 |
+| DE40 / EU50 | 32 / -0.231 / -1.09 / 72 / 16 | 64 / -0.054 / -0.35 / 78 / 56 |
+| DE40 / FR40 | 35 / **-0.427** / **-2.08** / 91 / 0 | 79 / +0.090 / +0.59 / 71 / 2 |
+| EURUSD / GBPUSD | 37 / +0.000 / +0.00 / 73 / 9 | 74 / -0.018 / -0.12 / 70 / 19 |
+| AUDUSD / NZDUSD | 41 / -0.065 / -0.39 / 80 / 27 | 55 / -0.148 / -1.38 / 89 / 98 |
+| BTCUSD / ETHUSD | 39 / +0.132 / +0.67 / 69 / 47 | 94 / **-0.348** / **-2.77** / 74 / 45 |
+| pooled | 323 / **-0.118** / -1.69 / 72 / 170 | 597 / **-0.062** / -1.23 / 73 / 462 |
+
+The family loses on both samples, 0.12 R per trade on the recent year
+and 0.06 R on the two years before, and no spread is positive on both
+with any weight: the two that look best on one sample (BTC/ETH at
++0.13 R, DE40/FR40 at +0.09 R) are the two significantly negative
+ones on the other. Three in four trades end at the leash without the
+ratio having come back to its mean, so the bet is mostly a 48-bar
+hold of a random spread paying two round trips. And a third of the
+recent year's signals and 44 % of the older sample's never trade at
+all because two audited spreads against a 1.5-sigma risk exceed the
+10 % cost ceiling — Brent/WTI on the older sample fires 224 times and
+trades never, the FX cross AUDUSD/NZDUSD skips 98 of 153. The vise of
+section 23 closes twice as hard on a two-legged trade.
+
+No spread strategy is built in. The relative-value family joins the
+structural sources of section 7 as tested and negative; nothing
+changes.

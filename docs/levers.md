@@ -3082,3 +3082,27 @@ the section numbers below point there.
 - **Decision:** not built in. No code change, no restart. Section 176.
   Section 115's pattern again: two history samples agree, the live
   book disagrees. The variance ratio joins the non-levers.
+
+## 2026-09-10 (second run) — spread mean reversion between related instruments
+
+- **Lever:** new signal source — a relative-value family, never opened
+  in section 7's structural test: z-score (240 bars) of the log ratio
+  of two related instruments, entry on crossing |z| = 2, target z = 0,
+  stop |z| = 3.5, leash 48 bars, nine spreads (Brent/WTI, gold/silver,
+  US500/US100, US500/US30, DE40/EU50, DE40/FR40, EURUSD/GBPUSD,
+  AUDUSD/NZDUSD, BTC/ETH). Both legs charged their audited round-trip
+  spread, live 10 % cost ceiling applied. Preregistered acceptance:
+  pooled E[R] > 0 at t > 2 on both disjoint samples.
+- **Measurement:** `scripts/pairs_spread_mr.py` on the 1h history,
+  capital_com, paced 35-day pages. Last 365 days (323 trades, 170
+  cost-skipped signals), then days 366–1,095 (597 trades, 462
+  cost-skipped).
+- **Result (E[R] net of both legs' costs):** pooled -0.118 R
+  (t = -1.69) on the recent year and -0.062 R (t = -1.23) on the older
+  sample; 72–73 % of trades end at the leash; no spread positive on
+  both samples (BTC/ETH +0.13 R then -0.35 R at t = -2.77; DE40/FR40
+  -0.43 R at t = -2.08 then +0.09 R). A third to nearly half of the
+  signals cannot pay two spreads inside the cost ceiling.
+- **Decision:** not built in — negative on both samples. No code
+  change, no restart. Section 177. The relative-value family joins
+  section 7's structural sources as tested and negative.
