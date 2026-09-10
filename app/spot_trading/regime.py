@@ -14,9 +14,11 @@ Two separate drawdowns taught us the full picture:
 So there is a "death zone" around ADX ~20–30 where breakouts whipsaw AND
 ranges aren't clean — BOTH styles lose. The router encodes this:
 
-    ADX >= adx_trend (30)  -> STRONG TREND  -> trend-following only
+    adx_trend (30) <= ADX < adx_trend_max (50) -> STRONG TREND
+                                               -> trend-following only
     ADX <= adx_range (20)  -> RANGE         -> mean-reversion only
     adx_range < ADX < adx_trend -> NO-TRADE ZONE -> stand aside (block all)
+    ADX >= adx_trend_max   -> OVEREXTENDED   -> trend-following blocked
 
 This is a true router, not a soft filter: trend-following is blocked
 *below* the trend threshold (not just in clear ranges), and mean-reversion
@@ -38,6 +40,7 @@ the backtest/pair-selector never diverge:
 TOGGLE / TUNE via env (read per call; set before bot start):
     HURZ_REGIME_FILTER    = 1|0   (default 1 = on)
     HURZ_REGIME_ADX_TREND = float (default 30 — trend-following floor)
+    HURZ_REGIME_ADX_TREND_MAX = float (default 50 — trend-following ceiling)
     HURZ_REGIME_ADX_RANGE = float (default 20 — mean-reversion ceiling)
     HURZ_REGIME_ADX_TREND_CORE = float (default 30, see _CORE_1H)
 """
@@ -62,6 +65,16 @@ _TREND = {"donchian_breakout", "momentum", "turtle_breakout", "donchian_atr",
 
 _DEFAULT_ADX_TREND = 30.0
 _DEFAULT_ADX_RANGE = 20.0
+
+# Upper bound on the trend gate, added 2026-09-10 (section 187/188). The
+# router had a floor and no ceiling, and entries above ADX 50 lost on all
+# three disjoint walk-forward samples: -0.143 R (last 365 d), -0.016 R
+# (days 366-1,095) and -0.035 R (days 1,096-1,825), 7-8 % of the book.
+# Skipping them is paired-positive on all three (+0.0108 at t=+2.82,
+# +0.0013, +0.0026). Lower ceilings measure stronger on the recent year
+# but flip sign on the older samples; 50 is the mildest value that holds
+# its sign on all three, which is why it is the one that ships.
+_DEFAULT_ADX_TREND_MAX = 50.0
 
 # The 1h core ran a raised trend floor of 35 from 2026-07-20, on the
 # theory that its entries were clearing the global ADX 30 gate on short
@@ -107,7 +120,12 @@ def _config() -> tuple:
         adx_range = float(os.getenv("HURZ_REGIME_ADX_RANGE", "") or _DEFAULT_ADX_RANGE)
     except ValueError:
         adx_range = _DEFAULT_ADX_RANGE
-    return enabled, adx_trend, adx_range
+    try:
+        adx_trend_max = float(os.getenv("HURZ_REGIME_ADX_TREND_MAX", "")
+                              or _DEFAULT_ADX_TREND_MAX)
+    except ValueError:
+        adx_trend_max = _DEFAULT_ADX_TREND_MAX
+    return enabled, adx_trend, adx_range, adx_trend_max
 
 
 def _trend_floor(strategy_name: str, adx_trend: float) -> float:
@@ -123,7 +141,7 @@ def _trend_floor(strategy_name: str, adx_trend: float) -> float:
 
 def trend_floor(strategy_name: str) -> float:
     """Expose the effective live ADX gate for reporting and backtests."""
-    _, adx_trend, _ = _config()
+    _, adx_trend, _, _ = _config()
     return _trend_floor(strategy_name, adx_trend)
 
 
@@ -133,7 +151,7 @@ def decide(strategy_name: str, adx_value: Optional[float]) -> RegimeDecision:
     reversion needs ADX <= adx_range; the gap between is a no-trade zone
     where both styles are blocked. Missing ADX blocks classified strategies
     because silently disabling the router is less safe than standing aside."""
-    enabled, adx_trend, adx_range = _config()
+    enabled, adx_trend, adx_range, adx_trend_max = _config()
     style = style_of(strategy_name)
     if not enabled:
         return RegimeDecision(False, "n/a", adx_value, "regime router disabled")
@@ -143,6 +161,10 @@ def decide(strategy_name: str, adx_value: Optional[float]) -> RegimeDecision:
         return RegimeDecision(True, "unknown", None, "ADX unavailable — block")
     if style == "trend":
         floor = _trend_floor(strategy_name, adx_trend)
+        if adx_value >= adx_trend_max:
+            return RegimeDecision(
+                True, "overextended", adx_value,
+                f"trend-following needs ADX<{adx_trend_max:.0f}, got {adx_value:.1f}")
         if adx_value >= floor:
             return RegimeDecision(False, "strong-trend", adx_value,
                                   f"trend-following in trend (ADX={adx_value:.1f})")
@@ -214,12 +236,12 @@ def flip_exit_threshold() -> float:
 
 def summary() -> str:
     """One-line config summary for the startup log."""
-    enabled, adx_trend, adx_range = _config()
+    enabled, adx_trend, adx_range, adx_trend_max = _config()
     flip = "on" if flip_exit_enabled() else "off"
     if not enabled:
         return f"off (flip-exit {flip})"
     core = _trend_floor("donchian_breakout", adx_trend)
     core_note = f", 1h-core ADX>={core:.0f}" if core != adx_trend else ""
-    return (f"router on (trend-follow ADX>={adx_trend:.0f}{core_note}, "
-            f"mean-rev ADX<={adx_range:.0f}, else stand aside; "
+    return (f"router on (trend-follow {adx_trend:.0f}<=ADX<{adx_trend_max:.0f}"
+            f"{core_note}, mean-rev ADX<={adx_range:.0f}, else stand aside; "
             f"flip-exit {flip})")

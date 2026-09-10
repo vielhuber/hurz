@@ -3428,3 +3428,45 @@ the section numbers below point there.
   high-ADX trend entries were the recent year's worst segment by a wide
   margin and carried no penalty in the two years before it — a
   statement about the last twelve months, not about the system.
+
+## 2026-09-10 (thirteenth run) — the ADX ceiling on a third sample — BUILT IN
+
+- **Lever:** regime filter — section 187 refused the upper ADX bound
+  because the middle sample's sign was noise, leaving the choice of
+  threshold to a cherry-pick. The venue serves hourly history past
+  three years, so days 1,096–1,825 are available as a third disjoint
+  sample never read for this question. Decision rule fixed before the
+  fetch: build only if the third sample is positive at every threshold,
+  reaches t > 2 at least once, and the cut segment carries E[R] <= 0 on
+  all three samples; ship the mildest threshold holding its sign on all
+  three, not the best t.
+- **Measurement:** `scripts/adx_ceiling_filter.py`, unchanged from run
+  12, on days 1,096–1,825 (n = 9,500, live E[R] -0.0230).
+
+  | ceiling | 365 d: cut E[R] / diff / t | 366–1,095 d | 1,096–1,825 d |
+  |---|---|---|---|
+  | ADX<35 | -0.0709 / +0.0336 / +3.97 | +0.0051 / -0.0025 / -0.41 | -0.0314 / +0.0151 / +2.42 |
+  | ADX<40 | -0.1074 / +0.0253 / +4.04 | -0.0010 / +0.0003 / +0.06 | -0.0333 / +0.0083 / +1.83 |
+  | ADX<45 | -0.1241 / +0.0161 / +3.39 | +0.0004 / -0.0001 / -0.02 | -0.0650 / +0.0087 / +2.58 |
+  | **ADX<50** | -0.1431 / +0.0108 / +2.82 | -0.0158 / +0.0013 / +0.46 | -0.0348 / +0.0026 / +1.02 |
+
+- **Result:** all four conditions met at ADX < 50, and only there and at
+  ADX < 40. The third sample is positive throughout and clears t = 2
+  twice; the cut-segment condition eliminates 35 and 45, whose middle
+  sample cuts profitable trades (+0.0051 and +0.0004 R); of the two
+  survivors 50 is the milder, refusing 7–8 % of signals against 25 %.
+  R sums improve on every sample: -171.0 → -122.2 (365 d), +111.3 →
+  +122.8 (730 d), -218.6 → -193.7 (730 d).
+- **Decision:** built in. `HURZ_REGIME_ADX_TREND_MAX`, default 50,
+  enforced in `regime.decide()` — the single function both
+  `autotrade.py` and `spot_backtest.py` call, so live and simulator
+  cannot diverge. Trend signals at or above the ceiling return blocked
+  with regime `overextended`; mean-reversion, neutral strategies and the
+  fail-closed path for a missing ADX are untouched, and no risk control
+  is loosened since the rule only removes entries. Verified: 56/56 tests
+  green plus four new ones, and on 140 days of live history across three
+  instruments and three strategies the router now passes exactly
+  30 <= ADX < 50 (375 signals, none at either side). Hurz restarted.
+  Section 188. Honest limit: the recent year still reads -0.0270 R a
+  trade with the ceiling against -0.0377 without — a losing year made
+  less losing, not a winning one.
