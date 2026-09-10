@@ -3470,3 +3470,37 @@ the section numbers below point there.
   Section 188. Honest limit: the recent year still reads -0.0270 R a
   trade with the ceiling against -0.0377 without — a losing year made
   less losing, not a winning one.
+
+## 2026-09-10 (fourteenth run) — the pin degree as an exclusion
+
+- **Lever:** entry filter on the stop geometry — a trade pinned at 10 ATR
+  carries its 1.5 R target 15 ATR away, unreachable inside a 24-bar
+  leash, so it should only stop out or time out near zero while paying
+  full spread. Structural rather than regime-dependent, hence a filter
+  candidate. Caps at 4 / 6 / 8 / 10 ATR. Acceptance identical to run 13:
+  positive point estimate on all three disjoint samples, t > 2 on at
+  least one, cut segment E[R] <= 0 on all three, ship the mildest
+  qualifying threshold. The stop itself is untouched — the rule only
+  removes entries.
+- **Measurement:** `scripts/pin_degree_filter.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware booking,
+  router-passed path (now including run 13's ADX ceiling), commodity
+  short block, three live trend strategies, all 26 tradeable
+  instruments; paired per trade, occupancy on the live rule. Samples:
+  365 d (n = 4,254), 366–1,095 d (n = 8,541), 1,096–1,825 d (n = 8,885).
+- **Result:** rejected on condition (c) alone — on both older samples
+  every cut segment is positive (+0.004 to +0.053 R), so the rule would
+  discard profitable trades. No threshold is positive on more than one
+  sample and none reaches t > 2 positively. The bucket table explains
+  why and points the opposite way: the worst segment on all three
+  samples is the *least* pinned one, the 2–3 ATR band where the venue
+  floor barely binds, at -0.060 / -0.011 / -0.078 R (t -2.16 / -0.47 /
+  -4.22). A wide stop cannot reach its target, but noise cannot drag it
+  to the stop either; what is left is the drift.
+- **Decision:** not built in — no cap. No code change, no restart.
+  Section 189. Side benefit: this is the first measurement against the
+  post-run-13 system and it verifies the build — the recent year reads
+  -122.4 R where run 13 predicted -122.2, the residual being occupancy
+  the filtered trades hand back. The least-pinned band is the next
+  run's question.

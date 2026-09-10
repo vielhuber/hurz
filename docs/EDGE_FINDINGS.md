@@ -5859,3 +5859,64 @@ What this does not do is close the gap to the objective. On the recent
 year the book still reads -0.0270 R a trade with the ceiling in place,
 against -0.0377 without it. The ceiling makes a losing year less
 losing; it does not make it a winning one.
+
+## 189. The pin degree as an exclusion: the hypothesis was backwards, and the worst segment is the one the venue never touched
+
+A trade pinned at 10 ATR carries its 1.5 R target 15 ATR away, which
+inside a 24-bar leash is unreachable by construction — it can only stop
+out or time out near zero while paying its full spread either way. The
+reasoning is structural rather than regime-dependent, so if it held the
+penalty would appear in every sample. `scripts/pin_degree_filter.py`
+tests it as an exclusion at 4 / 6 / 8 / 10 ATR against the live rule,
+on all three disjoint samples at once, under the acceptance rule that
+settled the ADX ceiling in section 188.
+
+This is also the first measurement taken against the post-188 system:
+the ceiling is live in `gate()`, so the samples are 4,254 / 8,541 /
+8,885 trades against the 4,530 / 9,169 / 9,500 of section 187. The R
+sums confirm the build did what it was measured to do — the recent
+year now reads -122.4 R where section 188 predicted -122.2, and the
+small residual is the occupancy the filtered trades hand back.
+
+| cap | 365 d: cut E[R] / diff / t | 366-1,095 d | 1,096-1,825 d |
+|---|---|---|---|
+| pin <= 4 | -0.0192 / +0.0105 / +1.68 | +0.0137 / -0.0082 / -1.67 | +0.0057 / -0.0028 / -0.62 |
+| pin <= 6 | -0.0057 / +0.0022 / +0.52 | +0.0186 / -0.0072 / -2.13 | +0.0075 / -0.0020 / -0.71 |
+| pin <= 8 | +0.0058 / -0.0015 / -0.50 | +0.0051 / -0.0012 / -0.52 | +0.0238 / -0.0030 / -1.71 |
+| pin <= 10 | +0.0094 / -0.0014 / -0.69 | +0.0038 / -0.0005 / -0.33 | +0.0528 / -0.0027 / -2.59 |
+
+No threshold is positive on more than one sample, none reaches t > 2 in
+the positive direction, and on the two older samples every cut segment
+is *positive* — the rule would be discarding trades that made money.
+Condition (c) alone kills all four. Nothing is built.
+
+The reason is in the bucket table, and it points the other way:
+
+| pin at entry | 365 d: n / E[R] / t | 366-1,095 d | 1,096-1,825 d |
+|---|---|---|---|
+| **2-3 ATR** | 1,484 / **-0.0599** / -2.16 | 2,455 / **-0.0105** / -0.47 | 3,390 / **-0.0784** / -4.22 |
+| 3-5 ATR | 822 / -0.0131 / -0.43 | 1,915 / +0.0319 / +1.66 | 2,163 / +0.0296 / +1.59 |
+| 5-8 ATR | 877 / -0.0330 / -1.69 | 2,236 / +0.0342 / +2.65 | 2,221 / -0.0147 / -1.18 |
+| 8-12 ATR | 751 / +0.0054 / +0.36 | 1,366 / +0.0041 / +0.33 | 958 / +0.0283 / +1.87 |
+| 12+ ATR | 320 / +0.0066 / +0.42 | 569 / +0.0076 / +0.49 | 153 / -0.0043 / -0.12 |
+
+The worst segment on all three samples is the least pinned one — the
+2-3 ATR band, where the venue floor barely binds and the stop is very
+nearly the 2 x ATR the strategy asked for. Those are the trades whose
+volatility is large enough relative to price that 2 ATR already clears
+the 1.05 % floor, and they read -0.060, -0.011 and -0.078 R. The
+heavily pinned trades this run set out to exclude are, if anything, the
+better half.
+
+That inverts section 124's reading, which had the ATR-bound group
+slightly ahead of the pinned one on a single sample and without the
+ADX ceiling in place. It also inverts the intuition behind this run:
+the unreachable target does not cost what it looks like it should,
+because a trade that cannot reach its target also cannot be dragged to
+its stop by ordinary noise — the same wide distance protects both
+sides, and what is left is the drift.
+
+No cap is added. The finding worth carrying is the segment itself,
+consistent across three disjoint samples in the direction opposite to
+the one tested, and it is the next run's question rather than this
+one's conclusion.
