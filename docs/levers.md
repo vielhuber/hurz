@@ -3758,3 +3758,32 @@ the section numbers below point there.
   morning. It is not 50 EUR a day, and the three quantities that could
   become that are the balance, the edge and the trade count — in that
   order of leverage.
+
+## 2026-09-11 (third run) — the consistency rule on the direction axis
+
+- **Lever:** pair selection / direction — run 17's three-sample rule works
+  on instruments and run 18 showed it fails at instrument-strategy
+  granularity. The third axis is instrument × direction, where a
+  structural story is easy to tell and the project already keeps a
+  hand-built `SHORT_BLOCKED_PAIRS`. Acceptance as before: paired t > 2 on
+  the held-out recent year, minimum 30 trades per training sample, and the
+  reversed time direction must agree.
+- **Measurement:** computed from run 18's per-trade dumps (pair,
+  strategy, direction, R) — no new venue load, same booking, current
+  system throughout. 34 (pair, direction) cells qualified.
+- **Result:** rejected. Three cells flagged against a chance expectation
+  of 4.2; on the held-out year they return **+0.0347 R** against -0.0104
+  for the rest, paired **-0.0032 at t = -1.19**. All three arrangements
+  agree: forward -0.0032 / t -1.19, backward +0.0002 / t +0.17,
+  middle-out +0.0016 / t +0.63. Direction pooled is equally unusable —
+  longs lead on three samples (+0.023, +0.045, +0.024) and shorts lead
+  decisively on the third (+0.0429 at t +2.59), so no global rule holds.
+- **Decision:** not built in; the existing commodity short block stands on
+  its own evidence and is untouched. No code change, no restart. Section
+  196. The mechanism is now explained rather than just observed: the three
+  axes divide the same trades into cells of ~150-700 (instrument) versus
+  ~30-80 (combination, direction) trades, and since a cell mean's standard
+  error scales with 1/√n, only instrument cells are large enough for three
+  samples to agree about anything but sampling error. Flag counts confirm
+  it — at or below chance on both finer axes, above it only for
+  instruments. The segmentation programme is closed.

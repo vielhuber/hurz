@@ -6342,3 +6342,57 @@ show a positive expectancy where none did this morning, at +0.032,
 That is the precondition for any sizing decision at all. It is not, by
 itself, 50 EUR a day, and no honest reading of these numbers turns it
 into that.
+
+## 196. The consistency rule only works at instrument level — the direction axis fails too
+
+Section 192 blocked three instruments with the three-sample consistency
+rule at t = +5.22. Section 193 found the same rule useless one level down
+at instrument-strategy granularity. This section closes the third axis:
+instrument x direction, where a structural story is easy to tell — index
+drift favours longs, a commodity short faces a carry — and where the
+project already keeps a hand-built block list (`SHORT_BLOCKED_PAIRS`).
+
+Computed from section 193's per-trade dumps, so no new venue load and the
+same booking throughout. Of the 34 (pair, direction) cells carrying 30+
+trades in every training sample, three read negative in all three —
+against a chance expectation of 4.2, again at or below chance.
+
+| test sample (held out) | n | E[R] | t |
+|---|---|---|---|
+| live | 2,384 | -0.0062 | — |
+| the three flagged cells | 223 | **+0.0347** | +1.19 |
+| the rest | 2,161 | -0.0104 | — |
+
+Paired **-0.0032 R at t = -1.19**. As in section 193 the flagged cells
+are the better side on the held-out year. All three arrangements agree
+there is nothing here: forward -0.0032 / t -1.19, backward +0.0002 /
+t +0.17, middle-out +0.0016 / t +0.63.
+
+Direction pooled across instruments says the same in a simpler way:
+
+| sample | long | short |
+|---|---|---|
+| 365 d | +0.0231 (t +1.28) | -0.0419 (t -1.98) |
+| 366-1,095 d | +0.0447 (t +3.53) | +0.0154 (t +1.05) |
+| 1,096-1,825 d | +0.0050 (t +0.36) | **+0.0429 (t +2.59)** |
+| 1,826-2,555 d | +0.0242 (t +1.95) | +0.0061 (t +0.40) |
+
+Longs lead on three samples and shorts lead decisively on the fourth, so
+no global direction rule is defensible either. The existing commodity
+short block stands on its own evidence (section 109) and is untouched.
+
+**Why instrument level and nowhere else.** The three axes carry the same
+trades divided into different numbers of cells. An instrument cell holds
+roughly 150-700 trades per sample; a combination or direction cell holds
+30-80. The standard error of a cell mean scales with 1/sqrt(n), so at
+instrument level a real -0.10 R instrument separates from noise, while at
+finer granularity the cell mean is mostly noise — which is exactly what
+the flag counts show: at or below the chance expectation in both finer
+axes, and above it only for instruments. The consistency rule is not a
+general method that happens to work on instruments; it works precisely
+where the cells are large enough for three samples to agree about
+something other than sampling error.
+
+That closes the segmentation programme. Instrument-level expectancy
+blocks are in (192); combination and direction blocks are measured and
+refused (193, 196).
