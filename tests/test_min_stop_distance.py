@@ -122,3 +122,13 @@ class StopFloorRejectionTest(IsolatedAsyncioTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FloorUnreachableAfterExpansionTest(unittest.TestCase):
+    """Section 194: the 1 % floor sits below the 1.05 % venue expansion
+    that runs before it, so on the normal path it can never reject."""
+
+    def test_the_price_floor_lies_below_the_venue_expansion(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertLess(autotrade._min_stop_fraction(),
+                            autotrade.VENUE_MIN_STOP_FRACTION)

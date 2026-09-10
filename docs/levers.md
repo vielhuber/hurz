@@ -3674,3 +3674,42 @@ the section numbers below point there.
   recent one. The remaining gap to 50 EUR is risk per trade against a
   positive expectancy, not another entry filter, and the expectancy has
   to hold forward first.
+
+## 2026-09-11 — the 1 % price floor, revisited at a positive expectancy
+
+- **Lever:** cost filter / frequency — the floor's own comment named the
+  condition for reopening it ("revisit only once expectancy is positive —
+  at that point the floor becomes the single largest constraint on
+  frequency", removing it "multiplies volume roughly fifteenfold"). After
+  runs 13, 15 and 17 that condition holds on three of four samples, and
+  the daily objective is trades-per-day × E[R] × risk. This lever ADDS
+  trades, so the acceptance rule gained a term: positive on all four,
+  t > 2 on at least one, AND the added trades carrying E[R] >= 0 on all
+  four, shipping the most conservative qualifying floor. Risk per trade
+  unchanged — sizing targets a fixed dollar risk, so a narrower stop
+  takes a larger position for the same loss at the stop.
+- **Measurement:** `scripts/stop_floor_revisit.py` — floors 1.00 / 0.75 /
+  0.50 / 0.25 % and off, occupancy resolved per floor so the frequency
+  change is modelled rather than held fixed on the live variant; against
+  the current system (ADX ceiling, 3×ATR floor, run 17's block list). All
+  four samples, n = 2,385 / 5,272 / 4,803 / 4,679.
+- **Result:** the same line five times. **Zero trades added at any level
+  on any sample.** The floor cannot fire: `_min_stop_fraction()` is
+  1.00 % of price, `VENUE_MIN_STOP_FRACTION` is 1.05 %, and the floor is
+  checked after the venue expansion, so every stop reaching the check has
+  already been widened past it. The comment's fifteenfold figure was the
+  magnitude of the ordering bug fixed since (floor checked *before*
+  expansion, see `StopFloorOrderTest`), not of the floor — a stale note
+  promising a lever its own fix had removed.
+- **Decision:** no lever here; the floor stays as the fail-closed
+  backstop for a zero expansion distance, and its comment is corrected to
+  say what it does. One regression test added (58/58 green). No
+  behavioural change, so no restart. Section 194. Frequency on the recent
+  year, in guard order: 4,530 → ~4,189 (ADX ceiling, -341) → 2,869 (3×ATR
+  floor, -1,320) → 2,384 (instrument block, -485). The volatility floor is
+  the largest cut by a factor of four and the one that bought a measured
+  expectancy improvement on four samples. There is no free frequency to
+  recover — every remaining cut was paid for with expectancy. Further
+  daily gain has to come from risk per trade against the positive
+  expectancy the three older samples now show, and that multiplication is
+  only worth making once it holds forward on the live book.

@@ -458,21 +458,21 @@ async def evaluate_pair(
         if on_rejected_intent is not None:
             on_rejected_intent(intent, "skipped: short-blocked instrument")
         return None
-    # Volume floor. The original justification — narrow stops lose more
-    # because spread eats a bigger share of a small risk budget — does not
-    # survive booking against actual fills. Over 435 closed trades:
-    # stops under 1% return -0.058R (n=56), stops at or above it -0.432R
-    # (n=379). The floor removes the *better* side, not the worse one; the
-    # old figures came from the signal-price PnL column that overstated
-    # narrow-stop losses precisely because slippage is a larger share of a
-    # small R.
+    # Volume floor, kept as a fail-closed backstop and nothing more.
     #
-    # It stays on regardless, for a different reason: expectancy is
-    # negative on both sides, so trading more of either only loses faster.
-    # Removing it would lift the blended expectancy (-0.432 to -0.384) and
-    # raise the loss in dollars, because it multiplies volume roughly
-    # fifteenfold. Revisit only once expectancy is positive — at that point
-    # the floor becomes the single largest constraint on frequency.
+    # It cannot fire on the normal path: this check runs AFTER the venue
+    # expansion above, which widens every stop to at least
+    # VENUE_MIN_STOP_FRACTION (1.05 %) of price, so a stop inside the
+    # 1.00 % floor never reaches here. Section 194 measured floors of
+    # 1.00 / 0.75 / 0.50 / 0.25 % and off across four disjoint samples:
+    # identical results, zero trades added at any level.
+    #
+    # An earlier comment claimed removing it would multiply volume
+    # fifteenfold and called it the largest constraint on frequency.
+    # That was the magnitude of the ordering bug fixed since — checking
+    # the floor before the expansion, see StopFloorOrderTest — not of the
+    # floor. What it still does is catch the case where the expansion
+    # returns no distance at all.
     min_stop_fraction = _min_stop_fraction()
     if min_stop_fraction > 0 and entry_price > 0:
         if abs(entry_price - sl) / entry_price < min_stop_fraction:

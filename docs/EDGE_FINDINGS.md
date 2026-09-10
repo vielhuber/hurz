@@ -6197,3 +6197,70 @@ approximately zero, and the older years' +0.02 to +0.03 R would be
 per trade against a positive expectancy, not of another entry filter —
 and the expectancy has to hold forward before that multiplication is
 worth making.
+
+## 194. The 1 % price floor cannot fire, and the comment that said it constrained frequency was wrong
+
+The floor's own comment in `evaluate_pair` named the condition for
+reopening it: expectancy negative on both sides, so trading more only
+loses faster, "revisit only once expectancy is positive — at that point
+the floor becomes the single largest constraint on frequency", and
+removing it "multiplies volume roughly fifteenfold". After sections
+188, 190 and 192 that condition is met on three of four samples, and
+the daily objective is trades-per-day x E[R] x risk, so this was the
+arithmetic's next binding term.
+
+`scripts/stop_floor_revisit.py` books floors of 1.00 / 0.75 / 0.50 /
+0.25 % and off, occupancy resolved per floor so the frequency change is
+modelled rather than held fixed. The result is the same line five times:
+
+| floor | 365 d | 366-1,095 d | 1,096-1,825 d | 1,826-2,555 d | added trades |
+|---|---|---|---|---|---|
+| 1.00 % (live) | -0.0060 / n 2,385 | +0.0322 / n 5,272 | +0.0213 / n 4,803 | +0.0169 / n 4,679 | — |
+| 0.75 % | identical | identical | identical | identical | **0** |
+| 0.50 % | identical | identical | identical | identical | **0** |
+| 0.25 % | identical | identical | identical | identical | **0** |
+| off | identical | identical | identical | identical | **0** |
+
+Not one trade is added at any level, on any sample. The floor is not a
+constraint on frequency; it cannot fire at all.
+
+The reason is arithmetic and sits two constants apart:
+`_min_stop_fraction()` is 1.00 % of price, `VENUE_MIN_STOP_FRACTION` is
+1.05 %, and the floor is checked *after* the venue expansion. Every stop
+that reaches the check has already been widened to at least 1.05 % of
+price, so `stop_dist / entry < 0.01` is unreachable. The same holds in
+the backtest, where `_venue_min_distance` returns a positive default for
+instruments outside the audit file rather than zero.
+
+The comment's figures were true once — they came from the era when the
+floor was checked BEFORE the expansion, the ordering bug that
+`StopFloorOrderTest` was written to prevent and whose fix is recorded in
+`spot_backtest._simulate_trades` ("Checking it before expansion — as this
+once did — rejects roughly fifteen signals in sixteen that live trades
+happily"). The fifteenfold figure is that bug's magnitude, not the
+floor's. The comment survived the fix and kept promising a lever that
+the fix had already removed, which is exactly the kind of stale note
+that costs a run — this one.
+
+The floor stays in place: it is unreachable while the venue expansion
+returns a positive distance, and it is the fail-closed backstop for the
+case where that distance is zero. Only its comment changes, to say what
+it actually does.
+
+**Where frequency is really constrained**, on the recent year, in the
+order the guards apply:
+
+| stage | trades | removed |
+|---|---|---|
+| router-passed, before today's builds | 4,530 | — |
+| after the ADX ceiling (188) | ~4,189 | 341 |
+| after the 3 x ATR volatility floor (190) | 2,869 | 1,320 |
+| after the instrument block (192) | 2,384 | 485 |
+
+The volatility floor is the largest single reduction by a factor of
+four, and it is the one that carried a measured expectancy improvement
+on four samples. There is no free frequency to recover here — every cut
+that remains was bought with expectancy. Any further increase in daily
+gain has to come from risk per trade against the positive expectancy the
+three older samples now show, and that multiplication is only worth
+making once the expectancy holds forward on the live book.
