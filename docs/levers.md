@@ -3352,3 +3352,38 @@ the section numbers below point there.
   points of hit rate on the target distance, paying in the trending
   sample and not in the recent one, which makes the regime router —
   not an unconditional target change — the place to test it.
+
+## 2026-09-10 (eleventh run) — the near target by ADX (section 185's conditional candidate)
+
+- **Lever:** regime filter on the exit — section 185 found the near
+  target worth five points of win rate on both samples but positive
+  expectancy on one only, and the candidate explanation was trend
+  strength: a target at the venue floor caps runners, so it should pay
+  where they do not run. Preregistered before the data were seen: the
+  paired difference must show the same bucket gradient on both samples
+  before a threshold rule is built; thresholds ADX < 35 / 40 / 45 then
+  booked as their own variants at paired t > 2 on both samples. Stop
+  untouched throughout, the 1 R loss limit stands.
+- **Measurement:** `scripts/target_by_adx.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, stop
+  2.0 ATR, venue minimum, live widening rule, gap-aware booking,
+  router-passed path, commodity short block, three live trend
+  strategies, all 26 tradeable instruments; live and near target on the
+  same bar path, difference paired per trade, split by ADX at entry.
+  Last 365 days (n = 4,530), then days 366–1,095 (n = 9,171).
+- **Result:** the precondition fails outright. On the recent year all
+  five buckets are positive (+0.003 to +0.053 R), on the older sample
+  four of five are negative (-0.004 to -0.019 R). Within a sample the
+  near target points the same way at every trend strength; the sample
+  decides the direction. The threshold rules inherit the flip — ADX<45
+  reads +0.0125 R at t = +2.11 and -0.0105 R at t = -3.03. Two
+  findings against expectation: the recent year's advantage *grows*
+  with ADX, the opposite of the capping story, and the reason sits in
+  the live column — the live rule's expectancy collapses from -0.008 to
+  -0.144 R as ADX rises on the recent year and shows no ADX ordering at
+  all on the older one (+0.018 to -0.016 R).
+- **Decision:** not built in — no threshold rule was booked, because
+  the gate that had to open first stayed shut. No code change, no
+  restart. Section 186. What section 185 read as a conditional target
+  effect is a high-ADX entry problem confined to one sample; the next
+  question is that entry, not the target.

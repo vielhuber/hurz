@@ -5692,3 +5692,50 @@ real, measurable win-rate lever on the target distance, worth five
 points of hit rate, and that its expectancy sign is regime-dependent
 rather than structural — which makes it a candidate for a regime-
 conditional rule, not for an unconditional one. Nothing changes.
+
+## 186. The near target by ADX: the gradient runs the wrong way on one sample and vanishes on the other
+
+Section 185 left a conditional candidate: the near target buys five
+points of win rate on both samples but pays only on one, and the
+obvious suspect was trend strength — a target at the venue floor caps
+the runners, so it should pay where they do not run and cost where
+they do. The regime router gates trend entries at ADX >= 30, but not
+at the same ADX, so the book carries the variation needed to test it.
+
+`scripts/target_by_adx.py` books the live target and the 1.5 ATR
+target on the same bar path and reads the paired difference by ADX
+bucket at the entry bar. The rule preregistered before the data were
+seen: the bucket gradient must carry the same sign on both samples
+before any threshold rule is built.
+
+| ADX at entry | last 365 d: n / live E[R] / paired diff / t | prior 730 d: n / live E[R] / paired diff / t |
+|---|---|---|
+| 30-35 | 2,382 / -0.0075 / +0.0032 / +0.39 | 4,751 / +0.0177 / -0.0110 / -2.17 |
+| 35-40 | 1,080 / -0.0345 / +0.0325 / +2.30 | 2,128 / +0.0132 / -0.0187 / -2.47 |
+| 40-45 | 480 / -0.0870 / +0.0284 / +1.34 | 995 / -0.0033 / -0.0044 / -0.34 |
+| 45-50 | 247 / -0.0993 / +0.0347 / +1.19 | 568 / +0.0344 / +0.0030 / +0.15 |
+| 50+ | 341 / -0.1438 / +0.0528 / +1.66 | 729 / -0.0160 / -0.0136 / -0.70 |
+
+The precondition fails, and it fails in the most explicit way
+available: on the recent year every bucket is positive, on the older
+sample four of five are negative. The near target does not help
+selectively at some trend strength and hurt at another — within a
+sample it points the same way everywhere, and the direction is set by
+which sample you are in. The conditional rules confirm it rather than
+rescue it: ADX < 45 reads +0.0125 R at t = +2.11 on the recent year
+and -0.0105 R at t = -3.03 on the older one, the same flip section 185
+already recorded, now with a threshold bolted on. No rule is built.
+
+Two things are worth carrying out of the table. The hypothesis was
+backwards: on the recent year the near target's advantage *grows* with
+ADX (+0.003 at 30-35 to +0.053 at 50+), the opposite of capping
+runners in a strong trend. And the reason is in the live column beside
+it — on the recent year the live rule's expectancy collapses as ADX
+rises (-0.008 to -0.144 R), while on the older sample it does not move
+with ADX at all (+0.018 to -0.016 R, no ordering). What looks like a
+target effect conditioned on trend strength is a high-ADX entry
+problem that exists in one sample only, and the near target merely
+loses less of it.
+
+The live target stays and no ADX condition is added. The regime
+router's own threshold is untouched. Nothing changes.
