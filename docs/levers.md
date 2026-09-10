@@ -3230,3 +3230,32 @@ the section numbers below point there.
   loss sits in the one-bar-old failed breakout, and the next question
   is whether the confirmation works as an exit instead of an entry
   filter — measured separately, not assumed.
+
+## 2026-09-10 (seventh run) — the failed-breakout exit (the confirmation as an exit)
+
+- **Lever:** exit logic — the other half of run 66: keep the entry
+  where the live rule has it and close the position at the close of
+  the bar after the signal if that close lies back inside the level.
+  A cuts every unconfirmed trade, B only a losing one. Preregistered
+  acceptance: better than the live rule at paired t > 2 on both
+  disjoint samples. Neither variant weakens the 1 R loss limit — both
+  exit strictly earlier than the stop.
+- **Measurement:** `scripts/failed_breakout_exit.py` — cost-charging
+  walk-forward simulator, capital_com, 1h, 3 segments, hold 24, RR 1.5,
+  stop 2.0 ATR, venue minimum, live widening rule, gap-aware booking,
+  router-passed path, commodity short block, three live trend
+  strategies, all 26 tradeable instruments, three rules on the same
+  bar path, differences paired per trade. Last 365 days (n = 4,528),
+  then days 366–1,095 (n = 9,156).
+- **Result:** B is A — every unconfirmed close is a losing one, so the
+  clause never fires. Paired +0.0172 R (t = +3.17) on the recent year
+  and -0.0023 R (t = -0.55) on the older one. The cut books -0.209 R
+  and -0.207 R, the same toll in both regimes on 28–29 % of the book;
+  what it saves is +0.062 R per cut trade on the recent year and
+  -0.008 R on the older. A third of the cut trades (32 % and 36 %)
+  would have ended positive at +0.54 R and +0.62 R, and the win rate
+  falls nine points on both samples.
+- **Decision:** not built in — the sign flips and the bar fails on the
+  older sample. No code change, no restart. Section 182. With run 66
+  this closes the confirmation from both sides: the split is real and
+  stable, no rule that acts on it survives two samples.

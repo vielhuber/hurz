@@ -5478,3 +5478,63 @@ every entry pays for the information with the very move the confirmed
 breakouts make in that bar. A rule that keeps the entry where it is
 and uses the confirmation as an exit instead is the obvious next
 question, and it is not this one. Nothing changes.
+
+## 182. The failed-breakout exit: the price of cutting is a constant, what the cut saves is not
+
+Section 181 located the loss and showed that acting on it as an entry
+filter pays for the information with a delayed entry. This asks the
+other half: keep the entry where the live rule has it and use the same
+confirmation as an exit. `scripts/failed_breakout_exit.py` books three
+rules on the same bar path of every live trade of the three 1h trend
+strategies on the router-passed path over all 26 tradeable instruments
+(2-ATR stop, venue minimum, live widening rule, gap-aware booking,
+commodity short block), so the trade set is identical and every
+difference is paired per trade: the live rule; A, close the position
+at the close of the bar after the signal if that close lies back
+inside the level; B, the same but only if the position is at a loss
+there. Neither variant can lose more than the live rule's 1 R —
+it exits strictly earlier, at a close the stop has not reached.
+
+B is A. Every unconfirmed close is also a losing one, because the
+entry sits at the signal close, which was beyond the level by
+construction; the two rules book identically on all 13,684 trades of
+both samples, and the "leave a profitable slip alone" clause never
+fires.
+
+| | last 365 d (n = 4,528) | prior 730 d (n = 9,156) |
+|---|---|---|
+| live | -0.038 R / Σ -171 / 45.0 % wins | +0.014 R / Σ +124 / 47.7 % wins |
+| A = B: cut on the unconfirmed close | -0.021 R / Σ -93 / 36.1 % wins | +0.011 R / Σ +103 / 37.2 % wins |
+| **paired difference** | **+0.0172 / t = +3.17** | **-0.0023 / t = -0.55** |
+| trades cut | 1,256 (28 %) | 2,686 (29 %) |
+| booked at the cut | **-0.209 R** | **-0.207 R** |
+| what those trades would have become | -0.271 R | -0.199 R |
+| of the cut trades, share that would have ended positive | 32 %, at +0.544 R | 36 %, at +0.621 R |
+| the trades never touched | 3,272 at +0.052 R | 6,470 at +0.102 R |
+
+The price of the rule is a constant. Cutting a failed breakout at the
+next close books -0.209 R on the recent year and -0.207 R on the two
+years before — a fifth of the risk, paid on 28-29 % of the book, in
+both regimes, which is what a one-bar adverse move against a 2-ATR
+stop mechanically costs. What the cut buys is not constant at all. On
+the recent year those trades went on to -0.271 R, so cutting saved
+0.062 R each and 78 R in total, at paired t = +3.17. On the two years
+before they went on to -0.199 R — slightly less bad than the cut
+itself — so cutting cost 0.008 R each and 21 R, at t = -0.55. The sign
+flips, and the preregistered bar (paired t > 2 on both samples) fails
+on the second one.
+
+What the rule does in both regimes is turn a third of its cut trades
+into certain small losses: 32-36 % of them would have ended positive,
+at +0.54 R and +0.62 R, and the win rate falls nine points under
+either sample. That is the shape of every exit rule this log has
+measured (sections 52, 132, 174, 180) — the barrier is moved, the
+distribution narrows, and whether the mean improves depends on the
+year. The recent year kept punishing the failed breakout after the
+first bar; the two before let it recover just enough.
+
+Not built in. The exit stays as it is. Sections 181 and 182 together
+close the confirmation question from both sides: the split is real,
+large and stable, and neither the entry nor the exit that acts on it
+survives a second sample. What is stable is the cut price, -0.21 R,
+which is the toll any one-bar reaction rule pays here.
