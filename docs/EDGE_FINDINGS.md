@@ -6735,3 +6735,53 @@ the exposure was removed as a side effect rather than by design, and that
 the remaining crypto trades are too few to measure — which is also why no
 financing term needs adding to the simulator: at 0.003 R a trade on the
 surviving book it would change no decision this log has made.
+
+## 204. The winning side of the consistency rule does not transfer, and all five candidates are indices
+
+Section 192 blocked three instruments that read negative in all three
+training samples, and the held-out year confirmed it at t = +5.22. The
+rule was only ever applied to the losing side. Its mirror image is the
+obvious next question: concentrate the book on instruments positive in all
+three, and trade nothing else.
+
+Of the 18 instruments carrying 60+ trades in every training sample, five
+qualify — against a chance expectation of 2.2, so the selection is not
+merely noise-sized as it was at combination and direction granularity
+(sections 193, 196). On the held-out year:
+
+| instrument | training E[R] | test n | test E[R] | t |
+|---|---|---|---|---|
+| FR40 | +0.055 / +0.090 / +0.009 | 97 | **+0.1728** | +2.15 |
+| US100 | +0.009 / +0.191 / +0.068 | 115 | +0.0915 | +1.08 |
+| J225 | +0.061 / +0.060 / +0.038 | 42 | +0.0365 | +0.24 |
+| US30 | +0.015 / +0.112 / +0.076 | 190 | -0.0656 | -1.24 |
+| EU50 | +0.050 / +0.082 / +0.012 | 108 | **-0.2255** | **-2.89** |
+
+| test sample | n | E[R] | sum R |
+|---|---|---|---|
+| live (everything) | 2,384 | -0.0062 | -14.8 |
+| the five winners only | 552 | **-0.0145** | -8.0 |
+| the rest | 1,832 | -0.0037 | -6.7 |
+
+Rejected, and not narrowly: concentrating on the winners is worse than
+trading everything, two of the five are negative on the held-out year and
+one significantly so, and the rule would remove 77 % of the trades to
+achieve that.
+
+All five candidates are indices. That is the same artefact sections 137,
+155 and the runs behind them recorded — an index bull run inside the
+training window, which the log has already caught twice dressed as a
+stop-floor effect and a projection premise. Here it is dressed as
+instrument selection.
+
+The asymmetry between this and section 192 is the finding worth keeping,
+and it is not a paradox. An instrument can be structurally bad in a way
+that persists: wide spreads relative to its volatility, a stop the venue
+floor distorts, a microstructure that fills poorly. Nothing symmetric
+exists on the other side — being structurally good would have to mean
+"tends to trend", and trend is exactly the property that does not persist
+across regimes. So consistency identifies durable losers and transient
+winners, which is why the rule works in one direction only.
+
+Nothing changes. The instrument dimension is now closed in both
+directions: losers blocked on four samples, winners measured and refused.

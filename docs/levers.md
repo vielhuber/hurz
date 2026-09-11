@@ -4061,3 +4061,38 @@ the section numbers below point there.
   0.003 R a trade on the surviving book it would change no decision in
   this log. This is the other half of section 190's concentration check,
   which had found crypto diluting rather than carrying the floor's effect.
+
+## 2026-09-11 (eleventh run) — the winning side of the consistency rule
+
+- **Lever:** pair selection — run 17 applied the three-sample consistency
+  rule to the losing side only. Its mirror: concentrate the book on
+  instruments positive in all three training samples, trade nothing else.
+  Acceptance as before: better on the held-out recent year at t > 2,
+  minimum 60 trades per training sample.
+- **Measurement:** offline from run 18's per-trade dumps. Of 18 qualifying
+  instruments, five are positive throughout training (chance expectation
+  2.2, so the set is not merely noise-sized).
+
+  | instrument | test n | test E[R] | t |
+  |---|---|---|---|
+  | FR40 | 97 | +0.1728 | +2.15 |
+  | US100 | 115 | +0.0915 | +1.08 |
+  | J225 | 42 | +0.0365 | +0.24 |
+  | US30 | 190 | -0.0656 | -1.24 |
+  | EU50 | 108 | **-0.2255** | **-2.89** |
+
+  Concentrated book on the test sample: n = 552, E[R] -0.0145 against
+  -0.0062 for trading everything and -0.0037 for the rest.
+- **Result:** rejected, and not narrowly — the winners are worse than the
+  full book, two of five are negative out of sample and one significantly,
+  and the rule would remove 77 % of trades to get there. All five
+  candidates are indices, i.e. the index bull-run artefact sections 137
+  and 155 already caught twice in other disguises.
+- **Decision:** nothing changed. No code change, no restart. Section 204.
+  The asymmetry with run 17 is the finding: an instrument can be
+  structurally bad in a persistent way (spread against volatility, a stop
+  the venue floor distorts, poor fills), but structurally good would have
+  to mean "tends to trend", and trend is precisely what does not persist
+  across regimes. Consistency therefore identifies durable losers and
+  transient winners, and works in one direction only. The instrument
+  dimension is closed in both.
