@@ -7169,3 +7169,58 @@ overstated it at 24 %, section 211 decomposed it to 11.8 %, an inferred
 step size then understated it at 2.7 %, and the venue's own numbers
 settled it at 10.9 %. Three of those four were produced in this session,
 and only the last one asked the broker.
+
+## 213. Dollar efficiency per instrument: a 47-to-87 % spread the selector does not see
+
+Sections 211 and 212 established that increment rounding costs about 20 %
+of the configured risk budget and cannot be recovered. What they did not
+ask is whether that cost is spread evenly. It is not.
+
+Computed analytically per instrument — current price, the venue's own
+`order_constraints`, the 1.05 % venue stop and the live 3 USD / 250 USD
+configuration, with the quote-currency conversion the sizing path applies:
+
+| instrument | step | raw size | sized | realised risk | efficiency |
+|---|---|---|---|---|---|
+| GBPJPY | 100 | 185.10 | 100.00 | 1.42 | **47 %** |
+| UK100 | 0.01 | 0.0174 | 0.0100 | 1.51 | **50 %** |
+| FR40 | 0.01 | 0.0264 | 0.0200 | 1.99 | 66 % |
+| USDJPY | 100 | 250.06 | 200.00 | 2.10 | 70 % |
+| USDCHF | 100 | 250.04 | 200.00 | 2.10 | 70 % |
+| … | | | | | |
+| COPPER | 1 | 38.14 | 38.00 | 2.62 | 87 % |
+| ETHUSD | 0.001 | 0.1013 | 0.1010 | 2.62 | 87 % |
+| SILVER | 0.1 | 3.9047 | 3.9000 | 2.62 | **87 %** |
+
+Across the 25 tradeable instruments of the current active list: mean
+77.3 %, median 81.2 %, range 47 % to 87 %. The worst case is not marginal
+— GBPJPY delivers 1.42 USD of risk where the configuration asks for 3.00,
+so at identical expectancy in R it produces 47 % of the dollars SILVER
+does. The driver is arithmetic, not market behaviour: a raw size of 185
+against a step of 100 loses 46 % to the floor, and a raw size of 0.0174
+against a step of 0.01 loses 43 %.
+
+**Why this matters for selection.** The nightly selector ranks by
+expectancy in R. Section 130 established that this ranking does not
+transfer between samples — the R component is largely noise. Efficiency is
+not: it follows price level, step size and minimum size, all of which move
+slowly and none of which depends on regime. So the one instrument property
+that demonstrably persists is the one the selector does not price, while
+the property it does price is the one that does not persist. An instrument
+at +0.02 R and 87 % efficiency yields more dollars per trade than one at
++0.03 R and 47 %.
+
+Nothing is built on that here, because the claim that reweighting would
+raise the daily figure is not yet measured — it needs the efficiency
+recomputed at historical prices across the four samples, which is the next
+run's work, not this one's assertion.
+
+**A repeated error, recorded.** The first version of this calculation
+omitted the quote-currency conversion and reported seven instruments — all
+JPY-quoted plus J225 — as structurally untradeable at 0 % efficiency. They
+are not: with the conversion they run at 47 to 86 %. This is the same
+mistake section 205 made when it read 33,580 JPY of notional as dollars,
+made again four runs later in the same session. The sizing path itself has
+handled quote currency correctly since sections 118 and 119; it is the
+ad-hoc checks around it that keep forgetting, and that is now twice in one
+day.

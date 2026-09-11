@@ -4394,3 +4394,35 @@ the section numbers below point there.
   run 38 decomposed it to 11.8 %, an inferred step size understated it at
   2.7 %, and the venue's own numbers settled it at 10.9 % — three of those
   four figures came from this session, and only the last asked the broker.
+
+## 2026-09-11 (twentieth run) — dollar efficiency per instrument
+
+- **Lever:** pair selection — runs 38 and 39 showed increment rounding
+  costs ~20 % of the risk budget and cannot be recovered. This asks
+  whether the cost is spread evenly across instruments. Computed
+  analytically: current price, the venue's `order_constraints`, the 1.05 %
+  stop, the live 3 USD / 250 USD configuration, with quote-currency
+  conversion.
+- **Measurement:** 25 tradeable instruments of the current active list.
+  Mean efficiency 77.3 %, median 81.2 %, range **47 % (GBPJPY) to 87 %
+  (SILVER, ETHUSD, COPPER)**. Five below 70 %. The driver is arithmetic:
+  a raw size of 185 against a step of 100 loses 46 % to the floor; 0.0174
+  against 0.01 loses 43 %.
+- **Result:** at identical expectancy in R, GBPJPY produces 47 % of the
+  dollars SILVER does. The selector ranks by expectancy in R, which
+  section 130 showed does not transfer between samples; efficiency does
+  persist, since it follows price level, step and minimum size — none of
+  them regime-dependent. The one instrument property that demonstrably
+  persists is the one the selector does not price, and the one it prices
+  is the one that does not persist.
+- **Decision:** nothing built. The claim that reweighting would raise the
+  daily figure is not yet measured — it needs efficiency recomputed at
+  historical prices across the four samples. That is the next run's work,
+  not this one's assertion. No code change, no restart. Section 213.
+- **A repeated error, recorded:** the first version of this calculation
+  omitted quote-currency conversion and reported seven instruments (all
+  JPY-quoted, plus J225) as untradeable at 0 % efficiency. With conversion
+  they run at 47–86 %. Same mistake as run 30's reading of 33,580 JPY as
+  dollars, repeated four runs later in the same session. The sizing path
+  has handled quote currency correctly since sections 118/119; the ad-hoc
+  checks around it keep forgetting.
