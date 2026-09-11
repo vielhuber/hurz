@@ -3787,3 +3787,46 @@ the section numbers below point there.
   samples to agree about anything but sampling error. Flag counts confirm
   it — at or below chance on both finer axes, above it only for
   instruments. The segmentation programme is closed.
+
+## 2026-09-11 (fourth run) — the router's ADX floor, re-measured
+
+- **Lever:** regime filter / frequency — the floor at 30 is the largest
+  single constraint on trade count, and its last examination (section
+  153) used sixteen days of replayed intents and predates all three of
+  2026-09-10's builds. Runs 19 and 20 had narrowed the daily-gain
+  arithmetic to the frequency term, so the floor was the remaining
+  candidate. This lever ADDS trades, so acceptance carried the extra
+  term: positive on all four samples, t > 2 on at least one, added
+  trades at E[R] >= 0 on all four, ship the most conservative
+  qualifying floor.
+- **Measurement:** `scripts/router_floor_revisit.py` — floors 30 / 27.5 /
+  25 / 22.5 / 20, both `HURZ_REGIME_ADX_TREND` and the core override set
+  per variant, occupancy resolved per floor, ADX ceiling + volatility
+  floor + block list all in force. n at the live floor = 2,386 / 5,271 /
+  4,806 / 4,679.
+
+  | floor | 365 d ΔΣR | 366–1,095 d | 1,096–1,825 d | 1,826–2,555 d |
+  |---|---|---|---|---|
+  | 27.5 | +10.9 | -41.0 | -30.3 | -33.7 |
+  | 25 | +8.8 | -126.4 | -82.6 | -84.6 |
+  | 22.5 | -20.2 | -142.9 | -149.3 | -80.2 |
+  | 20 | +16.5 | -71.5 | -108.3 | +1.8 |
+
+- **Result:** rejected at every level on both (a) and (c). On the three
+  older samples 30 is the best floor and every reduction costs, growing
+  monotonically to 22.5 before partly recovering at 20; the added trades
+  read -0.002 to -0.019 R there. Only the recent year would gain, and
+  that is the sample whose sign has reversed on every lever measured
+  today. Section 153's conclusion confirmed on evidence forty-five times
+  larger.
+- **Decision:** not changed — the floor stays at 30. No code change, no
+  restart. Section 197. This closes the frequency term: every guard
+  between signal and order that has now been measured on four samples
+  holds back trades that lose. There is no configuration of this system
+  that trades more often *and* earns more per trade.
+- **Operational note:** 13 rate-limit (429) responses appeared in the bot
+  log during today's measurement runs, individual pairs skipped for one
+  cycle each; the heartbeat kept scanning all 68 pairs throughout and no
+  entry or exit was missed. Cause is this session's own history fetching,
+  not a defect. Future measurement batches should raise PAGE_PAUSE or run
+  fewer windows back-to-back while the bot is live.

@@ -6396,3 +6396,48 @@ something other than sampling error.
 That closes the segmentation programme. Instrument-level expectancy
 blocks are in (192); combination and direction blocks are measured and
 refused (193, 196).
+
+## 197. The router's ADX floor at 30 confirmed on four samples — frequency cannot be bought there
+
+Section 153 examined the floor by replaying sixteen days of live intents
+and kept 30. Sixteen days is a fortnight of noise, and that reading
+predates the ADX ceiling (188), the volatility floor (190) and the
+instrument block (192), all of which changed both which trades survive
+and what the surviving book earns. Sections 194 and 195 had narrowed the
+daily-gain arithmetic to one open term: frequency, with the floor as its
+largest single constraint. So the floor gets the four-sample treatment.
+
+`scripts/router_floor_revisit.py` sweeps 30 / 27.5 / 25 / 22.5 / 20,
+setting both `HURZ_REGIME_ADX_TREND` and the core override per variant,
+occupancy resolved per floor, with the ceiling, the volatility floor and
+the block list all in force.
+
+| floor | 365 d: Σ R / ΔΣ / added E[R] | 366-1,095 d | 1,096-1,825 d | 1,826-2,555 d |
+|---|---|---|---|---|
+| **30 (live)** | **-12.8 / — / —** | **+168.4 / — / —** | **+104.1 / — / —** | **+78.5 / — / —** |
+| 27.5 | -1.9 / +10.9 / +0.022 | +127.3 / -41.0 / -0.002 | +73.9 / -30.3 / -0.017 | +44.8 / -33.7 / -0.011 |
+| 25 | -3.9 / +8.8 / +0.004 | +41.9 / -126.4 / -0.016 | +21.6 / -82.6 / -0.014 | -6.1 / -84.6 / -0.012 |
+| 22.5 | -33.0 / -20.2 / -0.012 | +25.4 / -142.9 / -0.009 | -45.1 / -149.3 / -0.019 | -1.7 / -80.2 / -0.012 |
+| 20 | +3.7 / +16.5 / +0.001 | +96.9 / -71.5 / +0.004 | -4.1 / -108.3 / -0.010 | +80.3 / +1.8 / +0.004 |
+
+No variant is positive on all four, so (a) fails everywhere, and no
+variant's added trades are non-negative on all four, so (c) fails too.
+The pattern is clean on the three older samples: 30 is the best floor,
+every reduction costs, and the cost grows monotonically to 22.5 before
+partially recovering at 20. The band between 20 and 30 — the router's
+own no-trade zone, introduced after the 2026-06-26 whipsaw drawdown — is
+negative on the samples that have a positive expectancy to lose.
+
+Only the recent year would gain from lowering it (+10.9 R at 27.5, +8.8
+at 25), and that is the one sample whose sign has reversed on every
+lever tested today. Acting on it alone is the mistake sections 189, 191
+and 196 were each written to avoid.
+
+The floor stays at 30, and section 153's conclusion is confirmed on
+evidence forty-five times larger than it had. What this closes: the
+frequency term of the daily-gain arithmetic is not available. The guards
+between the signal and the order — router floor, ADX ceiling, volatility
+floor, instrument block, cost ceiling, caps — each hold trades back, and
+every one that has been measured on four samples holds back trades that
+lose. There is no configuration of this system that trades more often
+and earns more per trade.
