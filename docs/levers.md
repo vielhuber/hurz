@@ -3830,3 +3830,45 @@ the section numbers below point there.
   entry or exit was missed. Cause is this session's own history fetching,
   not a defect. Future measurement batches should raise PAGE_PAUSE or run
   fewer windows back-to-back while the bot is live.
+
+## 2026-09-11 (fifth run) — the leash as a throughput lever (R per calendar day)
+
+- **Lever:** exit logic / throughput — every earlier leash sweep measured
+  E[R] per trade, but the objective is gain per day and a position holds
+  its slot for the whole leash: at the cap of 8, 24 bars allows 8
+  openings a day, 12 bars 16. A shorter leash at lower per-trade
+  expectancy could still pay more per day. Last open term of the
+  daily-gain arithmetic after runs 19, 20 and 22. Acceptance fixed
+  first: sum R per calendar day higher than live on all four samples,
+  paired daily difference at t > 2 on at least one, per-trade expectancy
+  not negative on any sample, ship the leash closest to 24. Risk per
+  trade and the stop unchanged.
+- **Measurement:** `scripts/hold_throughput.py` — merged book as section
+  132 requires: all three strategies on one chronological timeline, one
+  open position per instrument, concurrent cap 8 enforced, ADX ceiling +
+  3×ATR floor + block list in force; sum R keyed by exit date over the
+  calendar span. Leashes 6 / 12 / 24 / 48.
+
+  | leash | 365 d | 366–1,095 d | 1,096–1,825 d | 1,826–2,555 d |
+  |---|---|---|---|---|
+  | 6 | -0.0758 | -0.0091 | -0.0200 | -0.0480 |
+  | 12 | -0.0339 | +0.0250 | -0.0171 | +0.0070 |
+  | **24 (live)** | **-0.0302** | **+0.0718** | **+0.0347** | **+0.0382** |
+  | 48 | +0.0391 | +0.0568 | +0.0514 | +0.0500 |
+
+- **Result:** rejected. 6 bars loses on all four, 12 bars loses on all
+  four, 48 gains on three and loses 0.0149 on the second sample; nothing
+  near t = 2. The reason is section 131's finding: the only positive
+  component is the drift of trades reaching neither barrier, and that
+  drift accrues *during* the leash. Shortening it lifts frequency (2.8 →
+  4.6 trades a day) but cuts the mechanism that makes a trade positive,
+  and expectancy falls faster than count rises (+0.024 → -0.002 R on
+  sample 2). Time is not overhead in this system; it is the product.
+- **Decision:** not changed — 24 bars stays. No code change, no restart.
+  Section 198. Two things this run establishes beyond the lever: the
+  merged simulation opens 2.84 trades a day against 3.3 realised in the
+  live journal, the first independent check that this project's per-day
+  arithmetic is not fiction; and read in dollars at 3 USD risk, the three
+  older samples give +0.22, +0.10 and +0.11 USD a day, the recent year
+  -0.09 — the same ceiling section 195 derived from the account side,
+  reached independently from the throughput side.

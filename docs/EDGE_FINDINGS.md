@@ -6441,3 +6441,53 @@ floor, instrument block, cost ceiling, caps — each hold trades back, and
 every one that has been measured on four samples holds back trades that
 lose. There is no configuration of this system that trades more often
 and earns more per trade.
+
+## 198. The leash as throughput: shorter is worse per day, because the expectancy comes from the time
+
+Every leash sweep in this log measured E[R] per trade. The objective is
+gain per day, and a position holds its slot for the whole leash — at the
+concurrent cap of 8, a 24-bar leash allows at most 8 openings a day and a
+12-bar leash 16. A shorter leash at a lower per-trade expectancy could
+therefore still pay more per day, and no run had asked in that metric.
+
+`scripts/hold_throughput.py` answers it on the merged book, which section
+132's lesson makes mandatory: all three strategies on one timeline, one
+open position per instrument, the concurrent cap of 8 enforced — the
+constraints the live book runs under. Sum R is keyed by exit date and
+divided by the calendar span.
+
+| leash | 365 d | 366-1,095 d | 1,096-1,825 d | 1,826-2,555 d |
+|---|---|---|---|---|
+| 6 bars | -0.0758 | -0.0091 | -0.0200 | -0.0480 |
+| 12 bars | -0.0339 | +0.0250 | -0.0171 | +0.0070 |
+| **24 bars (live)** | **-0.0302** | **+0.0718** | **+0.0347** | **+0.0382** |
+| 48 bars | +0.0391 | +0.0568 | +0.0514 | +0.0500 |
+
+Sum R per calendar day. Against the live leash: 6 bars loses on all four
+(-0.046 to -0.086), 12 bars loses on all four (-0.004 to -0.052), and 48
+bars gains on three but loses 0.0149 on the 366-1,095 sample. No variant
+clears condition (a), and nothing comes near t = 2 on the paired daily
+difference. The leash stays at 24.
+
+The throughput idea fails for a specific reason, and it is the one
+section 131 already identified: the book's only positive component is the
+drift of trades that reach neither barrier, worth +0.055 and +0.068 R at
+t > 4. That drift accrues *during* the leash. Shortening the leash raises
+the trade count — 2.8 a day at 24 bars to 4.6 at 6 bars — but cuts the
+mechanism that makes a trade positive, and per-trade expectancy collapses
+faster than frequency rises: +0.024 R at 24 bars against -0.002 at 6 on
+the second sample, +0.014 against -0.011 on the fourth. Time is not
+overhead in this system; it is the product.
+
+**The simulation validates against the live book.** At the live leash the
+merged timeline opens 2.84 trades a day on the recent year. The live
+journal booked 98 closed trades in 30 days, 3.3 a day. A book-level
+simulation landing inside 15 % of realised live frequency is the first
+independent check this project has had that its per-day arithmetic is not
+fiction — and it means the per-day figures above can be read as dollars:
+at 3 USD of risk, the three older samples return +0.22, +0.10 and +0.11
+USD a day, and the recent year -0.09.
+
+That is the same ceiling section 195 derived from the account side,
+reached independently from the throughput side. Both say the current
+configuration produces tens of cents a day, not fifty euros.
