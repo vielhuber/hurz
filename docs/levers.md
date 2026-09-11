@@ -4252,3 +4252,39 @@ the section numbers below point there.
   24 % of the configured budget (run 30) and that loss cannot be taken
   back at the stop floor — only at the cap, which run 30 declined on
   forward-evidence grounds and run 31 repaired for the day it arrives.
+
+## 2026-09-11 (sixteenth run) — the nightly refresh after an interrupted run — FIXED
+
+- **Lever:** pair selection, operational defect — the active list on disk
+  was 28 hours old and still carried six entries for the three instruments
+  blocked in run 17. The bot log (local time) shows the refresh fired at
+  07:30 CEST and a restart at 07:37 killed it seven minutes into a run that
+  normally takes twenty-three, with nothing to repair it until the next
+  day.
+- **Cause:** the scheduler's start-up rule marks the day done whenever the
+  process starts past 05:30 UTC — the clock, not the result. It cannot
+  distinguish "already ran" from "interrupted" or "never started". Its own
+  comment names the intent (a restart must not fire an immediate
+  catch-up), which is sound; the implementation achieved it by assuming
+  success.
+- **Fix:** the scheduler checks whether the persisted list carries today's
+  UTC date. Same protection — at most one fire per UTC day however often
+  the process restarts, since a completed refresh stamps the file — while
+  repairing an interrupted or missed run the same day. Missing, unreadable
+  or undated counts as not written, so it repairs rather than assumes.
+- **Verified in the running system:** after the fix and a restart the
+  scheduler fired the catch-up unaided at 09:51 and completed 3/3
+  backtests; the list went from 68 combinations dated 2026-09-10 with six
+  blocked entries to **55 combinations dated 2026-09-11 with none**, and
+  the heartbeat now scans 55 pairs. 61/61 tests green including five new
+  ones. Section 209.
+- **Severity, both directions:** nothing incorrect was traded —
+  `BLOCKED_PAIRS` is consulted at the entry guard, not only at selection,
+  so the retired instruments were refused regardless. But the failure
+  compounds: every restart after 05:30 defers the refresh another day, and
+  this session restarted the bot five times.
+- **Also checked this run:** entries since the build are still zero. At
+  07:46 UTC with Europe open, 26 of 26 tradeable 1h combinations had no
+  fresh signal on the last bar — not one reached a guard. That matches the
+  arithmetic: 2.84 trades a day across 69 combinations is one per
+  combination every 25 days. Signal scarcity, not filter action.

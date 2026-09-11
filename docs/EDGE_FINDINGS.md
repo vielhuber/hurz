@@ -6984,3 +6984,49 @@ the configured dollar budget (section 205), and that loss cannot be
 recovered at the stop floor. It can only be recovered at the cap itself,
 which section 205 declined on forward-evidence grounds and section 206
 repaired for the day the evidence arrives.
+
+## 209. The nightly refresh read the clock instead of the result — FIXED
+
+The active-pairs list is what the trader iterates: the nightly refresh
+ranks instrument-strategy combinations and persists the top forty. On
+2026-09-11 the list on disk was 28 hours old and still carried six entries
+for AUDUSD, GBPCAD and GBPUSD — instruments the block list had retired the
+previous evening (section 192). The entry guard refused them, so nothing
+wrong was traded, but the list the bot worked from described a system that
+no longer existed.
+
+The cause is in the scheduler's start-up rule, and the bot log — which
+writes local time — makes it exact. The refresh DID fire at 07:30 CEST.
+A restart at 07:37 killed it seven minutes in; the previous day's run had
+taken twenty-three. Nothing repaired it, because the rule reads:
+
+    last_fired_date = now.date() if (now.hour, now.minute) >= (hour, minute) else None
+
+A process starting after 05:30 UTC marks the day done. That is the clock,
+not the result — it cannot distinguish "today's refresh already ran" from
+"today's refresh was interrupted" or "today's refresh never started". Its
+own comment states the intent it was protecting: a restart should not fire
+an immediate catch-up. That intent is sound; the implementation achieved
+it by assuming success.
+
+The scheduler now checks whether the persisted list carries today's UTC
+date. This preserves the original protection exactly — at most one fire
+per UTC day however often the process restarts, since a completed refresh
+stamps the file — while repairing an interrupted or missed run the same
+day. A missing, unreadable or undated file counts as not written, so the
+scheduler repairs rather than assumes.
+
+Verified in the running system rather than in a fixture: after the fix and
+a restart, the scheduler fired the catch-up on its own at 09:51, completed
+at 3/3 backtests, and the list went from 68 combinations dated 2026-09-10
+with six blocked entries to 55 combinations dated 2026-09-11 with none.
+The heartbeat now scans 55 pairs.
+
+The severity is worth stating honestly in both directions. Nothing
+incorrect was traded: `BLOCKED_PAIRS` is consulted at the entry guard, not
+only at selection, so the retired instruments were refused regardless of
+the stale list. But the failure mode compounds — every restart after 05:30
+would have deferred the refresh another day, and this session restarted
+the bot five times. A list that degrades silently while the guards hold is
+exactly the kind of defect that stays invisible until something else
+depends on it.
