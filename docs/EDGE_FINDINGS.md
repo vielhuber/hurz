@@ -6686,3 +6686,52 @@ ceiling is genuinely right for the 1,096-1,825 sample and genuinely wrong
 for the two newer ones. Both runs now say the same thing — this filter
 rests on a disagreement between regimes, not on a stable effect, and the
 right response to that is the middle value, not a fitted one.
+
+## 203. Crypto longs after financing: the volatility floor already removed them
+
+Section 126 read the venue's overnight financing for the first time and
+found it immaterial for the book as a whole — 0.003 R a trade — with one
+exception it explicitly left open: crypto longs pay **0.051 R a night**,
+which is more than the entire book's expectancy. It declined a block
+because the two samples then available read about +0.01 and -0.03 R after
+financing. That was before the ADX ceiling, the volatility floor and the
+instrument block, so the question was worth asking again on four samples
+against the current system.
+
+The financing charge applied here is 0.051 x 0.7 = 0.0357 R a trade. The
+0.7 is the conservative side of section 131's exit mix: 60.7 % of trades
+time out at 24 bars and reliably cross the 21:00 UTC rollover, while the
+stops and targets resolve at a 3.0-4.5 h median and mostly do not.
+
+| sample | crypto longs | gross E[R] | net E[R] | net t |
+|---|---|---|---|---|
+| 365 d | 19 | -0.3266 | -0.3623 | -1.55 |
+| 366-1,095 d | 30 | +0.4256 | +0.3899 | +1.85 |
+| 1,096-1,825 d | 26 | -0.2287 | -0.2644 | -1.36 |
+| 1,826-2,555 d | 7 | +0.0128 | -0.0229 | -0.05 |
+
+Nineteen, thirty, twenty-six and seven trades. No block can be built on
+that and none is needed, because the sample size *is* the finding:
+
+| sample | crypto trades before the floor | after | removed | mean pin |
+|---|---|---|---|---|
+| 365 d | 527 | 30 | 94 % | 2.14 |
+| 366-1,095 d | 1,178 | 49 | 96 % | 2.10 |
+| 1,096-1,825 d | 1,125 | 47 | 96 % | 2.10 |
+| 1,826-2,555 d | 1,299 | 15 | 99 % | 2.04 |
+
+The 3 x ATR floor of section 190 removed 94 to 99 % of crypto without
+being aimed at it. The mechanism is exact: crypto's ATR is large relative
+to price, so 2 x ATR already clears the 1.05 % venue minimum and the stop
+stays near 2 ATR — which is precisely the least-pinned band the floor
+refuses. Section 190's concentration check had noted that crypto supplied
+34 to 47 % of the cut and diluted rather than carried the effect; this is
+the other half of that observation, and it means the financing exposure
+section 126 flagged was closed by a filter built for an unrelated reason.
+
+Nothing is built. What is recorded is that the one materially
+financing-exposed segment of this book no longer trades in volume, that
+the exposure was removed as a side effect rather than by design, and that
+the remaining crypto trades are too few to measure — which is also why no
+financing term needs adding to the simulator: at 0.003 R a trade on the
+surviving book it would change no decision this log has made.

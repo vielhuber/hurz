@@ -4028,3 +4028,36 @@ the section numbers below point there.
   refused by the new filters. Signal scarcity, not a filter defect. The
   instrument block correctly refuses 6 of 63 combinations still listed by
   the pre-build nightly selector.
+
+## 2026-09-11 (tenth run) — crypto longs after overnight financing
+
+- **Lever:** cost filter — section 126 found financing immaterial overall
+  (0.003 R a trade) with one open exception: crypto longs at 0.051 R a
+  night, more than the book's whole expectancy. It declined a block on the
+  two samples then available (+0.01 / -0.03 R net). Re-asked on four
+  samples against the current system. Charge applied: 0.051 × 0.7 R a
+  trade, the 0.7 being the conservative side of section 131's exit mix
+  (60.7 % time out across the 21:00 UTC rollover; barriers resolve at a
+  3.0–4.5 h median and mostly do not).
+- **Measurement:** offline from run 18's per-trade dumps, so no venue load.
+
+  | sample | crypto longs | gross E[R] | net E[R] | net t |
+  |---|---|---|---|---|
+  | 365 d | 19 | -0.3266 | -0.3623 | -1.55 |
+  | 366–1,095 d | 30 | +0.4256 | +0.3899 | +1.85 |
+  | 1,096–1,825 d | 26 | -0.2287 | -0.2644 | -1.36 |
+  | 1,826–2,555 d | 7 | +0.0128 | -0.0229 | -0.05 |
+
+- **Result:** no block is possible and none is needed — the sample size is
+  the finding. Crypto trades before the 3×ATR floor vs after: 527 → 30,
+  1,178 → 49, 1,125 → 47, 1,299 → 15, i.e. **94–99 % removed**, at a mean
+  pin of 2.04–2.14. The mechanism is exact: crypto's ATR is large relative
+  to price, so 2 ATR already clears the 1.05 % venue minimum and the stop
+  stays near 2 ATR — the least-pinned band section 190's floor refuses.
+  The financing exposure section 126 flagged was closed by a filter built
+  for an unrelated reason.
+- **Decision:** nothing built. No code change, no restart. Section 203.
+  Also settled: no financing term needs adding to the simulator — at
+  0.003 R a trade on the surviving book it would change no decision in
+  this log. This is the other half of section 190's concentration check,
+  which had found crypto diluting rather than carrying the floor's effect.
