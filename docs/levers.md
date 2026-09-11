@@ -4169,3 +4169,47 @@ the section numbers below point there.
   repairs the path so the mechanism built for earning a larger size can
   deliver it once its own evidence bar is met. One loosens a limit; the
   other connects two limits that were talking past each other.
+
+## 2026-09-11 (fourteenth run) — the stop floor in dollars
+
+- **Lever:** stop logic, re-asked in the objective's unit — section 136
+  swept the floor in R per trade and kept 1.05 %, but R is normalised by
+  the very quantity being changed. Section 205 showed the cap binds at
+  1.05 % (3 USD needs 286 USD of notional against a 250 cap, so the trade
+  carries 2.62), while a wider floor needs less notional for the same
+  dollar risk and frees the budget. Floors 1.05 / 1.2 / 1.5 / 2.0 %.
+  Acceptance: USD/day higher on all four samples, paired daily t > 2 on at
+  least one, planned risk never above the configured 3.00, ship the
+  smallest qualifying floor. No risk limit is loosened — the dollar loss
+  at the stop stays at its configured ceiling.
+- **Measurement:** `scripts/stop_floor_dollars.py` — merged book, cap 8,
+  every trade sized through the live `calculate_position_size` so cap,
+  broker increment and resulting rejections are real; ADX ceiling, 3×ATR
+  floor and block list in force; stop and target move together.
+
+  | floor | mean risk | 365 d | 366–1,095 d | 1,096–1,825 d | 1,826–2,555 d |
+  |---|---|---|---|---|---|
+  | **1.05 %** | **2.62** | **-0.0783** | **+0.1873** | **+0.0890** | **+0.0867** |
+  | **1.20 %** | **2.99** | +0.013 | +0.014 | +0.045 | +0.002 |
+  | 1.50 % | 2.99 | -0.040 | -0.111 | -0.081 | +0.013 |
+  | 2.00 % | 2.98 | +0.043 | -0.025 | -0.126 | -0.019 |
+
+- **Result:** the mechanism works as predicted — at 1.20 % mean planned
+  risk goes 2.62 → 2.99 USD, the configured budget is reached, and trade
+  count rises 5 % because the wider floor lifts pin ratios past run 15's
+  3×ATR threshold. **1.20 % is the only variant positive on all four
+  samples.** 1.50 and 2.00 give the risk back but lose more expectancy
+  than the extra dollars are worth — section 136's finding surviving in
+  the new unit.
+- **Decision:** not built in. (a), (c) and (d) pass; (b) fails everywhere,
+  best reading **t = +0.49**. Named precisely because it is not the same
+  as absence: a per-calendar-day paired test has little power here, since
+  most days carry two or three trades and many none, so the series is
+  dominated by single-trade variance. Four of four positive is p = 0.0625
+  on a sign test, which was not the preregistered statistic and does not
+  license a build. No code change, no restart. Section 207.
+- **Recorded for the next run:** the 24 % of dollar gain the notional cap
+  forgoes can be recovered at the stop floor rather than at the exposure
+  limit, it shows on all four samples, and what remains is measurement
+  power, not direction. Preregister a statistic with the power to settle
+  it — paired per trade over the signals both variants take.

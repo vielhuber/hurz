@@ -6887,3 +6887,51 @@ other connects two limits that were talking past each other.
 Verified: 60/60 tests green including three new ones that pin the defect —
 a fixed cap makes a doubled budget inert, a scaled cap makes it effective,
 and a scale of 1.0 leaves the base case identical.
+
+## 207. The stop floor in dollars: 1.20 % is better on all four samples and misses the significance bar
+
+Section 136 swept the venue stop floor in R per trade and kept 1.05 %.
+Section 205 showed why that unit hides something: a 3 USD risk at a 1.05 %
+stop needs 286 USD of notional against a 250 USD cap, so the cap binds and
+the trade carries 2.62 USD. A wider floor needs less notional for the same
+dollar risk — 250 at 1.2 %, 200 at 1.5 % — so past roughly 1.2 % the cap
+stops binding and the configured budget is finally reached.
+
+`scripts/stop_floor_dollars.py` measures USD per calendar day on the
+merged book, sizing every trade through the live `calculate_position_size`
+so the cap, the broker increment and the rejections they cause are real.
+
+| floor | mean risk | 365 d | 366-1,095 d | 1,096-1,825 d | 1,826-2,555 d |
+|---|---|---|---|---|---|
+| **1.05 % (live)** | **2.62** | **-0.0783** | **+0.1873** | **+0.0890** | **+0.0867** |
+| 1.20 % | 2.99 | -0.0650 (**+0.013**) | +0.2017 (**+0.014**) | +0.1339 (**+0.045**) | +0.0883 (**+0.002**) |
+| 1.50 % | 2.99 | -0.1181 (-0.040) | +0.0760 (-0.111) | +0.0078 (-0.081) | +0.0993 (+0.013) |
+| 2.00 % | 2.98 | -0.0359 (+0.043) | +0.1620 (-0.025) | -0.0373 (-0.126) | +0.0682 (-0.019) |
+
+The mechanism works exactly as predicted: at 1.20 % the mean planned risk
+goes from 2.62 to 2.99 USD, the configured budget is reached, and trade
+count rises 5 % because a wider floor lifts every trade's pin ratio past
+section 190's 3 x ATR threshold. **1.20 % is the only variant positive on
+all four samples.** 1.50 % and 2.00 % give the risk back but lose more in
+expectancy than the extra dollars are worth, which is section 136's
+finding surviving in the new unit.
+
+It is still not built, because the preregistered rule asks for t > 2 on at
+least one sample and the best reading is **t = +0.49**. Conditions (a),
+(c) and (d) pass; (b) fails everywhere.
+
+That failure is worth naming precisely, because it is not the same as the
+effect being absent. A per-calendar-day paired test has very little power
+here: most days carry two or three trades and many carry none, so the day
+series is dominated by single-trade variance. The sign test is the honest
+summary of what four samples agreeing does say — four out of four positive
+is p = 0.0625 under a null of no effect — and that was not the
+preregistered statistic, so it does not license a build.
+
+What this run establishes: the 24 % of dollar gain the notional cap
+forgoes (section 205) can be recovered at the stop floor instead of at the
+exposure limit, the recovery is visible on all four samples, and the
+remaining question is entirely one of measurement power rather than
+direction. The next run on this should preregister a statistic with the
+power to settle it — paired per trade over the signals both variants take,
+rather than per calendar day.
