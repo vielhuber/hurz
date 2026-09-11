@@ -4426,3 +4426,33 @@ the section numbers below point there.
   dollars, repeated four runs later in the same session. The sizing path
   has handled quote currency correctly since sections 118/119; the ad-hoc
   checks around it keep forgetting.
+
+## 2026-09-11 (twenty-first run) — refusing structurally inefficient entries
+
+- **Lever:** cost filter / pair selection — section 213 showed realised
+  risk ranges from 47 % to 87 % of the 3 USD budget purely through the
+  broker's size increment. This measures whether refusing a signal whose
+  realised risk falls below 60 / 70 / 80 % of target raises the dollars
+  per calendar day. The rule only refuses; it never enlarges a position
+  and moves no risk limit.
+- **Measurement:** merged book (ADX router, 3.0-ATR floor, 8 concurrent,
+  24-bar hold) over four samples spanning 2,555 days, 25 instruments,
+  efficiency recomputed per trade at that trade's entry price with the
+  venue's real `order_constraints` and `usd_per_quote`.
+
+  | sample | live | ≥60 % | ≥70 % | ≥80 % |
+  |---|---|---|---|---|
+  | 0–365 d | −0.0263 | **+0.1181** (t +2.94) | **+0.1350** (t +2.02) | +0.0528 |
+  | 366–1095 d | +0.1825 | +0.0023 | −0.0040 | −0.0117 |
+  | 1096–1825 d | +0.0601 | −0.0174 | +0.0115 | −0.0356 |
+  | 1826–2555 d | +0.0762 | −0.0038 | −0.0040 | −0.0241 |
+
+- **Result:** the preregistered condition (a) — better on all four samples
+  — fails at every threshold. The improvement lives entirely in the most
+  recent year, the one sample where the live book is negative. The
+  mechanism itself works: mean realised risk rises from 2.210 to 2.404 USD
+  at 70 %. The dollars do not follow from that, they follow from dropping
+  1,033 trades to 752, and those 281 removed trades were net losers only
+  in that year.
+- **Decision:** verworfen. No code change, no restart. The measurement
+  script is kept. Section 214.

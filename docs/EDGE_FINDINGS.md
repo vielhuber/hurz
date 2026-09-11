@@ -7224,3 +7224,57 @@ made again four runs later in the same session. The sizing path itself has
 handled quote currency correctly since sections 118 and 119; it is the
 ad-hoc checks around it that keep forgetting, and that is now twice in one
 day.
+
+## 214. Refusing structurally inefficient entries: the gain lives in one sample only
+
+Section 213 measured a 47-to-87 % spread in dollar efficiency across
+instruments and deliberately built nothing on it. This section asks the
+question that was left open: does refusing an entry whose realised risk
+would fall below a share of the 3 USD budget raise the dollars per
+calendar day?
+
+The filter is a refusal, never an increase — a signal is dropped when the
+broker's size increment would shrink its risk below 60, 70 or 80 % of
+target. Efficiency is recomputed per trade at that trade's own entry
+price, through the venue's real `order_constraints`, its `usd_per_quote`
+and the live `calculate_position_size`. The book is the current one:
+ADX router, 3.0-ATR stop floor, eight concurrent positions, 24-bar hold.
+
+Acceptance was fixed before the data were seen: higher USD per calendar
+day on **all four** samples, a paired daily t above 2 on at least one, and
+the lowest qualifying threshold ships.
+
+| sample | live | ≥60 % | ≥70 % | ≥80 % |
+|---|---|---|---|---|
+| 0–365 d | −0.0263 | **+0.1181** (t +2.94) | **+0.1350** (t +2.02) | +0.0528 (t +0.49) |
+| 366–1095 d | +0.1825 | +0.0023 (t +0.15) | −0.0040 (t −0.10) | −0.0117 (t −0.18) |
+| 1096–1825 d | +0.0601 | −0.0174 (t −1.21) | +0.0115 (t +0.32) | −0.0356 (t −0.49) |
+| 1826–2555 d | +0.0762 | −0.0038 (t −0.59) | −0.0040 (t −0.15) | −0.0241 (t −0.41) |
+
+No threshold clears condition (a). Every one of them improves the most
+recent year and does nothing measurable on the three older samples: at
+60 % the three older deltas are +0.002, −0.017 and −0.004 USD/day against
+live figures of +0.18, +0.06 and +0.08 — a rounding error on the scale of
+the book itself.
+
+**The mechanism works; the money does not follow.** Mean realised risk
+rises exactly as designed — 2.210 to 2.404 USD at the 70 % threshold in
+the recent sample, 2.366 to 2.443 in the second. So the filter does keep
+the trades whose size survives the increment. But the dollar gain in the
+recent sample does not come from those larger trades: it comes from the
+1,033 live trades shrinking to 752, and from the removed 281 having been
+net losers in that particular year. Trades per day falls from 2.83 to
+2.06 while the sum moves from −9.60 to +39.68 USD.
+
+That is the signature section 130 described. Efficiency itself persists —
+it is arithmetic — but *which* instruments a given efficiency threshold
+removes interacts with which instruments happened to lose money in a
+sample, and that second part does not transfer. The recent year is the
+one where the live book is negative, so any filter that removes trades
+looks good there and nowhere else.
+
+**Decision: not built.** A rule justified by one sample out of four is
+section 174's half-out-at-+1-R in different clothing — the recent year
+likes it and the older years pay for it. The persisting property is real
+and section 213 stands; what does not follow from it is that refusing the
+inefficient instruments earns anything.
