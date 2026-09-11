@@ -7791,3 +7791,45 @@ as a subset rather than an equality.
 **Effect on the daily figure:** not measurable, and not the point. One
 occurrence in eighteen days is too rare to price, and the risk it removes
 is the tail where one instrument moves against two positions at once.
+
+## 224. The strategy mix: each of the three is nearly free to keep
+
+The last axis of the selection machinery the series had not measured is
+the mix itself. Section 199 showed that when two strategies fire on the
+same bar it does not matter which one wins — they are one bet — but that
+is about contested bars, not about whether the daily figure would be
+higher with one of the three dropped outright.
+
+Same walk-forward at the live configuration, `_NIGHTLY_STRATEGIES`
+dropped one at a time. 22,310 gated signals: donchian_breakout 12,077,
+turtle_breakout 9,521, momentum 712.
+
+| sample | **all three** | − donchian | − momentum | − turtle |
+|---|---|---|---|---|
+| 0–365 d | **+0.2036** | +0.1379 | +0.1556 | +0.1849 |
+| 366–1095 d | +0.2059 | +0.1059 | +0.2442 | **+0.2572** |
+| 1096–1825 d | +0.1057 | **+0.1822** | +0.1057 | +0.1037 |
+| 1826–2555 d | +0.2726 | **+0.2845** | +0.2726 | +0.2415 |
+| pooled diff | — | −0.0177 | +0.0059 | +0.0092 |
+| paired t | — | −0.36 | +0.81 | +0.51 |
+| trades | 4,414 | 3,333 (−24.5 %) | 4,396 (−0.4 %) | 4,251 (−3.7 %) |
+
+No variant meets either condition — each drop wins two samples and loses
+two. The mix stays.
+
+**The trade counts say more than the dollars.** Removing turtle_breakout
+deletes 9,521 of 22,310 signals — 43 % of the population — and costs
+**3.7 %** of the trades. Removing momentum deletes 712 and costs 0.4 %.
+The one-position-per-pair rule means donchian is almost always already
+holding the instrument when the others fire, so the second and third
+strategies are not adding a book; they are queueing behind one. Section
+199 found the same thing on the contested bar and called them one bet;
+this is the throughput face of it, and it explains why six previous
+attempts to improve the list changed nothing measurable. There is only
+ever one book.
+
+**Decision: nothing built.** With the mix measured, the selection axis is
+closed in every direction the code exposes: what is eligible (217), how
+many are kept (216, 218), how they are ranked (215), which half they come
+from (219), whether capacity constrains them (220) and now which
+strategies may enter at all.

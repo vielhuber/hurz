@@ -4740,3 +4740,28 @@ the section numbers below point there.
 - **Effect on the daily figure:** not measurable — one occurrence in
   eighteen days. What it removes is the tail where one instrument moves
   against two positions at once. Section 223. Hurz restarted on the fix.
+
+## 2026-09-11 (thirty-first run) — the nightly strategy mix
+
+- **Lever:** strategy parameters / selection — the three strategies the
+  scheduler offers, dropped one at a time. Untested: run 199 covered
+  contested bars, not the mix.
+- **Measurement:** walk-forward as in runs 22–29, 22,310 gated signals
+  (donchian 12,077, turtle 9,521, momentum 712), 24 out-of-sample blocks.
+
+  | variant | trades | pooled vs live | t | (a)/(b) |
+  |---|---|---|---|---|
+  | **all three** | **4,414** | — | — | — |
+  | − donchian | 3,333 (−24.5 %) | −0.0177 | −0.36 | NO/NO |
+  | − momentum | 4,396 (−0.4 %) | +0.0059 | +0.81 | NO/NO |
+  | − turtle | 4,251 (−3.7 %) | +0.0092 | +0.51 | NO/NO |
+
+- **Result:** no variant qualifies; each drop wins two samples and loses
+  two. The trade counts carry the finding: deleting turtle removes 43 %
+  of all signals and 3.7 % of the trades, momentum 3 % of signals and
+  0.4 % of trades. One position per pair means donchian already holds the
+  instrument when the others fire — they queue behind one book rather
+  than adding a second. That is why six earlier attempts to improve the
+  list moved nothing.
+- **Decision:** mix unchanged, nothing built, no restart. Section 224.
+  The selection axis is now closed in every direction the code exposes.
