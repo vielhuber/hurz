@@ -1513,6 +1513,7 @@ async def run_loop(
             # burst.
             opened_this_cycle: List[tuple] = []
             opened_this_cycle_count = 0
+            opened_this_cycle_pairs: set = set()
             for entry in active:
                 pair = entry.get("pair")
                 entry_strategy = entry.get("strategy") or strategy_name
@@ -1671,6 +1672,31 @@ async def run_loop(
                         )
                         issued_intents[dedup_key] = intent.bar_time
                         continue
+
+                # One position per instrument, enforced against what
+                # this cycle has already opened. `positions` is a
+                # cycle-start snapshot and the bar-time dedup above sees
+                # two resolutions on one pair as two distinct signals,
+                # not a repeat — so neither catches the pair twice in a
+                # single cycle (HK50, 2026-09-10: turtle_breakout_4h and
+                # donchian_breakout three seconds apart, two positions on
+                # one instrument at twice the intended risk).
+                if intent.pair in opened_this_cycle_pairs:
+                    error = (
+                        f"skipped: {intent.pair} already opened this cycle"
+                    )
+                    _safe_log(
+                        f"⏭ {intent.pair}: already opened this cycle — "
+                        f"skipping ({intent.strategy})"
+                    )
+                    _record_skip(
+                        intent,
+                        error,
+                        platform_name=platform_name,
+                        paper_mode=platform.paper_trade_only,
+                    )
+                    issued_intents[dedup_key] = intent.bar_time
+                    continue
 
                 # Concurrent-position cap. Defended against the
                 # "all 5 active pairs go long on the same 4h close"
@@ -1986,6 +2012,7 @@ async def run_loop(
                     if cluster is not None:
                         opened_this_cycle.append((cluster, intent.direction))
                     opened_this_cycle_count += 1
+                    opened_this_cycle_pairs.add(intent.pair)
                 else:
                     _safe_log(f"  ⛔ rejected: {result.error}")
                     if "LONG_ONLY" in (result.error or ""):

@@ -4717,3 +4717,26 @@ the section numbers below point there.
   between 0.15 and at most 0.89 USD and cannot be tuned to 54. Moving it
   requires materially more capital, a different strategy family, or a
   lower objective — an operator decision, not a parameter here.
+
+## 2026-09-11 (thirtieth run) — the duplicate-instrument guard — FIXED
+
+- **Not a lever but a defect**, found while checking an anomaly from run
+  27's occupancy work: the live book showed two positions on HK50 three
+  seconds apart on 2026-09-10, `turtle_breakout_4h` and
+  `donchian_breakout`, each sized for the full 3 USD budget.
+- **Cause:** the one-position-per-pair guard reads `positions`, the
+  cycle-start snapshot, which cannot contain what the cycle just opened;
+  the bar-time dedup treats two resolutions as two distinct signals by
+  design. Commit dc3afcf gave the cluster and concurrent caps an
+  `opened_this_cycle` view in August and left this guard behind.
+- **Fixed:** pairs opened in the cycle are tracked and a second entry on
+  one is refused and journalled, beside the concurrent cap so the skip
+  stays visible. Regression test reproduces the live case across two
+  resolutions — two orders before, one after. Full suite 301 tests green;
+  a stale assertion in the cluster-map test was corrected alongside.
+- **Also verified:** the 89 books above eight positions all predate
+  2026-08-24, when the concurrent cap stopped depending on an unset
+  environment variable. The cap is working.
+- **Effect on the daily figure:** not measurable — one occurrence in
+  eighteen days. What it removes is the tail where one instrument moves
+  against two positions at once. Section 223. Hurz restarted on the fix.

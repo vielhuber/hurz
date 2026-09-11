@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import patch
 
@@ -104,6 +104,71 @@ class DuplicateInstrumentEntryTest(IsolatedAsyncioTestCase):
         self.assertEqual(1, len(platform.orders))
         self.assertEqual(2, record.call_count)
         self.assertIn("duplicate instrument signal", record.call_args.args[1].error)
+
+    async def test_second_resolution_cannot_open_a_second_position(self):
+        """Two resolutions on one pair must not both open in a cycle.
+
+        The bar-time dedup above cannot see this case: a 4h entry and a 1h
+        entry carry different bar_times, so the second is not a repeat of
+        the first. Only the open position guards it, and that reads a
+        snapshot taken before the cycle opened anything (observed live on
+        HK50, 2026-09-10: turtle_breakout_4h and donchian_breakout three
+        seconds apart)."""
+        stop_event = asyncio.Event()
+        platform = EmptyPositionPlatform(stop_event)
+        now = datetime.now(timezone.utc)
+        bar_times = {
+            "turtle_breakout_4h": now - timedelta(hours=3),
+            "donchian_breakout": now,
+        }
+        active_pairs = [
+            {
+                "pair": "BTCUSD",
+                "platform": "capital_com",
+                "strategy": "turtle_breakout_4h",
+                "resolution": "4h",
+            },
+            {
+                "pair": "BTCUSD",
+                "platform": "capital_com",
+                "strategy": "donchian_breakout",
+                "resolution": "1h",
+            },
+        ]
+
+        async def evaluate_pair(*args, strategy_name, **kwargs):
+            return TradeIntent(
+                pair="BTCUSD",
+                direction=1,
+                entry_price=75000.0,
+                stop_loss=74000.0,
+                take_profit=76500.0,
+                strategy=strategy_name,
+                confidence=1.0,
+                bar_time=bar_times[strategy_name],
+            )
+
+        with patch.object(autotrade, "get_platform", lambda name: platform), \
+                patch.object(pair_selector, "load_active_pairs",
+                             lambda *args, **kwargs: active_pairs), \
+                patch.object(journal, "list_unresolved_open",
+                             lambda platform=None: []), \
+                patch.object(journal, "list_recent_issued_times",
+                             return_value=[]), \
+                patch.object(journal, "record"), \
+                patch.object(autotrade, "evaluate_pair", evaluate_pair), \
+                patch("app.spot_trading.risk_guard.daily_loss",
+                      return_value=DailyLoss(0.0, 6.0, False, 0)), \
+                patch.object(autotrade.subprocess, "Popen",
+                             lambda *args, **kwargs: None):
+            await autotrade.run_loop(
+                platform_name="capital_com",
+                strategy_name="donchian_breakout",
+                poll_seconds=1,
+                stop_event=stop_event,
+            )
+
+        self.assertEqual(1, len(platform.orders))
 
 
 if __name__ == "__main__":

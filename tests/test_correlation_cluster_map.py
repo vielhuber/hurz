@@ -28,8 +28,12 @@ class CorrelationClusterMapTest(unittest.TestCase):
     def test_every_active_instrument_is_mapped_or_a_known_singleton(self):
         with open("data/active_pairs.capital_com.json", encoding="utf-8") as handle:
             active = {row["pair"] for row in json.load(handle)["pairs"]}
-        unmapped = sorted(active - set(_CORRELATION_CLUSTERS))
-        self.assertEqual(["AUDNZD", "EURAUD", "GBPCAD"], unmapped)
+        unmapped = set(active) - set(_CORRELATION_CLUSTERS)
+        # Equality against a fixed list broke whenever the nightly
+        # selection legitimately changed — GBPCAD left the list when
+        # section 192 blocked it and the test failed on that alone. The
+        # property to protect is that nothing unmeasured goes uncapped.
+        self.assertEqual(set(), unmapped - {"AUDNZD", "EURAUD", "GBPCAD"})
 
 
 if __name__ == "__main__":

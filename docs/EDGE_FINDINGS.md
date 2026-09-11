@@ -7744,3 +7744,50 @@ measurement: materially more capital at the same risk fraction, a
 different strategy family with an expectancy an order of magnitude
 higher, or a lower objective. That is a decision for the operator, not a
 parameter in this repository.
+
+## 223. One position per instrument leaked across resolutions — FIXED
+
+Section 220's occupancy work turned up a second reading worth checking:
+the live book held more than eight positions 89 times, and 46 instruments
+carried two overlapping positions at once. Both belong to the era before
+2026-08-24: until commit dc3afcf the concurrent cap only applied when
+`HURZ_MAX_CONCURRENT` was set in the environment, and it is not set, so
+the cap was inert. The last book above eight is 2026-08-21, three days
+before that commit gave it a default of 8. The guard works.
+
+One overlap is newer. On 2026-09-10 HK50 opened twice three seconds
+apart, `turtle_breakout_4h` at 12:00:59 and `donchian_breakout` at
+12:01:02 — two positions on one instrument, each sized for the full 3 USD
+budget, so twice the intended risk on a single name and a book the
+simulator cannot reproduce (every replay in this document enforces one
+position per pair).
+
+**Why both guards miss it.** The pair guard reads `positions`, the
+snapshot taken at the start of the cycle, which cannot contain anything
+the cycle itself has opened. The bar-time dedup sees a 4h bar_time and a
+1h bar_time as two distinct signals rather than a repeat, which is what
+it is designed to do. dc3afcf gave the cluster cap and the concurrent cap
+an `opened_this_cycle` view for exactly this reason and left the pair
+guard on the stale snapshot.
+
+**Fixed** by tracking the pairs opened in the cycle and refusing a second
+entry on one, journalled as a skip like the other caps so the operator
+can see it. The check sits beside the concurrent cap rather than at the
+top of the loop, so the duplicate is still evaluated and still recorded —
+moving it earlier silently dropped the journal entry the existing
+regression test asserts.
+
+The regression test reproduces the live case: two resolutions on one
+pair, different bar_times, one cycle. It fails on the previous code with
+two orders placed and passes with one. Full suite: 301 tests, green.
+
+A second, unrelated failure surfaced while running it and is also fixed:
+`test_every_active_instrument_is_mapped_or_a_known_singleton` compared
+the unmapped set against a fixed list of three, so it broke when GBPCAD
+legitimately left the active list after section 192 blocked it. The
+property it protects — nothing unmeasured goes uncapped — is now asserted
+as a subset rather than an equality.
+
+**Effect on the daily figure:** not measurable, and not the point. One
+occurrence in eighteen days is too rare to price, and the risk it removes
+is the tail where one instrument moves against two positions at once.
