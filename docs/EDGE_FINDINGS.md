@@ -6491,3 +6491,53 @@ USD a day, and the recent year -0.09.
 That is the same ceiling section 195 derived from the account side,
 reached independently from the throughput side. Both say the current
 configuration produces tens of cents a day, not fifty euros.
+
+## 199. Who wins a contested bar does not matter: the three strategies are one bet
+
+Section 132 established that the duplicate-exposure guard reduces three
+strategies to one position per instrument. This section asks which of the
+three should get it. Ranked over the three older samples turtle leads
+(+0.036, +0.027, +0.018 R) and keltner trails; the live order resolves a
+contested bar as donchian > turtle > keltner purely by iteration order.
+
+`scripts/strategy_priority.py` re-resolves same-bar contests as
+turtle > donchian > keltner on the merged book — one position per
+instrument, concurrent cap 8, all of today's filters in force — and
+measures sum R per calendar day.
+
+| sample | contested slots | current R/day | ranked R/day | difference | t |
+|---|---|---|---|---|---|
+| 365 d | 2,194 of 3,939 (55.7 %) | -0.0401 | -0.0457 | -0.0056 | -0.84 |
+| 366-1,095 d | 4,535 of 7,868 (57.6 %) | +0.0721 | +0.0744 | +0.0023 | +0.75 |
+| 1,096-1,825 d | 4,673 of 7,968 (58.6 %) | +0.0399 | +0.0374 | -0.0025 | -0.69 |
+| 1,826-2,555 d | 4,594 of 7,756 (59.2 %) | +0.0406 | +0.0392 | -0.0014 | -0.99 |
+
+Rejected: positive on one sample only, nothing near t = 2.
+
+The interesting part is not the verdict but what the trade mix reveals.
+Under the live order donchian takes 716 of 1,039 trades on the recent
+year and turtle sixteen — turtle is almost entirely crowded out, despite
+ranking first on three of the four samples. Reversing the priority gives
+turtle 526 and donchian 207, so **roughly half of every trade in the book
+changes hands**. And the result barely moves: per-trade expectancy goes
+from -0.0141 to -0.0161 on the recent year and +0.0239 to +0.0246 on the
+second sample.
+
+Replacing half the book's trades and changing expectancy by two
+thousandths of an R means the trades are interchangeable. The three
+strategies are Donchian channels, Turtle channels and Keltner bands read
+on the same instruments at the same hour — they fire on the same breakouts
+and differ mostly in which one gets there first. The per-strategy
+expectancy differences that motivated this run are therefore not
+differences in trade quality; they are composition artefacts of which
+instrument-hours each strategy happened to claim.
+
+Two earlier findings follow from this and are now explained rather than
+merely observed. Section 193's combination-level consistency failed not
+only because the cells are small but because they are near-duplicates of
+each other. And section 132's "five signals in six would pyramid" is the
+same fact from the other side: the signals overlap because the rules do.
+
+Nothing changes in the router order. What this closes is the last
+structural degree of freedom on the entry side — the choice of which rule
+to trade is not a lever, because there is effectively one rule.

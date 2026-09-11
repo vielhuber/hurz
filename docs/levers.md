@@ -3872,3 +3872,43 @@ the section numbers below point there.
   older samples give +0.22, +0.10 and +0.11 USD a day, the recent year
   -0.09 — the same ceiling section 195 derived from the account side,
   reached independently from the throughput side.
+
+## 2026-09-11 (sixth run) — strategy priority on a contested bar
+
+- **Lever:** strategy parameter / selection — the duplicate guard gives one
+  position per instrument (section 132) and today the winner is decided by
+  iteration order. Ranked over the three older samples turtle leads and
+  keltner trails, so same-bar contests were re-resolved as
+  turtle > donchian > keltner, with the recent year held out. Scope limit
+  stated first: only same-bar contests can be re-ordered, since preferring
+  a later signal needs information the moment lacks. Acceptance: sum R per
+  calendar day higher on all four samples, paired daily t > 2 on at least
+  one, recent year not made worse.
+- **Measurement:** `scripts/strategy_priority.py` — merged book, one
+  position per instrument, concurrent cap 8, ADX ceiling + 3×ATR floor +
+  block list in force, sum R keyed by exit date.
+
+  | sample | contested slots | current | ranked | diff / t |
+  |---|---|---|---|---|
+  | 365 d | 55.7 % | -0.0401 | -0.0457 | -0.0056 / -0.84 |
+  | 366–1,095 d | 57.6 % | +0.0721 | +0.0744 | +0.0023 / +0.75 |
+  | 1,096–1,825 d | 58.6 % | +0.0399 | +0.0374 | -0.0025 / -0.69 |
+  | 1,826–2,555 d | 59.2 % | +0.0406 | +0.0392 | -0.0014 / -0.99 |
+
+- **Result:** rejected — positive on one sample, nothing near t = 2. The
+  finding is in the mix: under the live order donchian takes 716 of 1,039
+  trades on the recent year and turtle sixteen, so turtle is crowded out
+  despite ranking first on three samples. Reversing priority moves turtle
+  to 526 and donchian to 207 — about half the book changes hands — and
+  per-trade expectancy shifts by two thousandths of an R (-0.0141 →
+  -0.0161; +0.0239 → +0.0246). Trades that interchangeable are the same
+  trades: three channel-breakout rules on the same instruments at the same
+  hour, differing mainly in which arrives first. The per-strategy
+  expectancy gaps that motivated the run are composition artefacts.
+- **Decision:** not changed — router order stays. No code change, no
+  restart. Section 199. This explains two earlier results instead of just
+  recording a third: section 193's combination cells failed because they
+  are near-duplicates, not only because they are small, and section 132's
+  "five signals in six would pyramid" is the same overlap seen from the
+  entry side. The choice of which rule to trade is not a lever, because
+  there is effectively one rule.
