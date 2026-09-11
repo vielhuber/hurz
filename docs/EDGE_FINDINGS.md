@@ -7833,3 +7833,41 @@ closed in every direction the code exposes: what is eligible (217), how
 many are kept (216, 218), how they are ranked (215), which half they come
 from (219), whether capacity constrains them (220) and now which
 strategies may enter at all.
+
+## 225. The 4h pins: they block the 1h book for four days and it does not show
+
+The six 4h pins have never been in the harness, so their contribution had
+never been priced. The reason to price it is not their own result — about
+−10 USD over 24 live trades, far too thin — but the interference: a 4h
+position holds its 24-bar leash for four days, and one position per pair
+means the 1h book cannot touch that instrument for the duration. Section
+223 fixed the version of this that happens in one second; this is the
+slow version.
+
+4h bars aggregated from the cached 1h bars, five of the six pins inside
+the universe (WHEAT is not), both variants otherwise at the live
+configuration.
+
+| sample | with pins | without | diff |
+|---|---|---|---|
+| 0–365 d | **+0.2673** | +0.2055 | −0.0619 |
+| 366–1095 d | +0.1740 | **+0.2161** | +0.0421 |
+| 1096–1825 d | +0.1002 | **+0.1096** | +0.0095 |
+| 1826–2555 d | +0.2670 | **+0.2726** | +0.0056 |
+| pooled | — | — | +0.0092 (t +0.76) |
+
+Removing them wins three samples and loses the fourth, the most recent —
+the same split that has retired a dozen candidates in this document.
+Neither condition is met, so the pins stay.
+
+The interference is real but small at this scale: the 4h combos produce
+122 signals in seven years and take 51 trades, and dropping them changes
+the book's trade count by 0.7 %. Five combos cannot block much of a
+23-instrument book. The mechanism would matter at a larger 4h allocation;
+at this one it is inside the noise like everything else on this axis.
+
+**Decision: nothing built.** With this, every combination the live list
+can take — which strategies, which resolutions, which half, how many, how
+ranked, how filtered — has been measured against the same walk-forward,
+and none of them moves the daily figure by more than a hundredth of a
+dollar.

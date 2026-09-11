@@ -4765,3 +4765,25 @@ the section numbers below point there.
   list moved nothing.
 - **Decision:** mix unchanged, nothing built, no restart. Section 224.
   The selection axis is now closed in every direction the code exposes.
+
+## 2026-09-11 (thirty-second run) — the 4h pins and what they block
+
+- **Lever:** pair selection / resolution — the six 4h pins had never been
+  in the harness. The reason to measure them is interference: a 4h
+  position holds four days and locks the 1h book out of that instrument.
+- **Measurement:** 4h bars aggregated from the cached 1h bars (no API
+  calls), five of six pins inside the universe, same walk-forward.
+
+  | | with pins | without | diff |
+  |---|---|---|---|
+  | 0–365 d | +0.2673 | +0.2055 | −0.0619 |
+  | 366–1095 d | +0.1740 | +0.2161 | +0.0421 |
+  | 1096–1825 d | +0.1002 | +0.1096 | +0.0095 |
+  | 1826–2555 d | +0.2670 | +0.2726 | +0.0056 |
+  | pooled | — | — | +0.0092 (t +0.76) |
+
+- **Result:** removing them wins three samples and loses the most recent.
+  Neither condition met. The interference exists but is small at this
+  scale — 122 signals in seven years, 51 trades, 0.7 % of the book.
+- **Decision:** pins stay, nothing built, no restart. Section 225. Every
+  dimension of the active list the code exposes is now measured.
