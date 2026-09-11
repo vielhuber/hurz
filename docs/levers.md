@@ -4134,3 +4134,38 @@ the section numbers below point there.
   dollar gain that needs no new edge (+24 % at unchanged expectancy), and
   its blocking condition is now named precisely — forward confirmation on
   entries after 2026-09-10.
+
+## 2026-09-11 (thirteenth run) — the scaling gate was inert — FIXED
+
+- **Lever:** position sizing, defect rather than trade-off — run 30 found
+  the notional cap binding on every venue-pinned stop. Following that
+  through: `edge_scaling` raises `risk_per_trade` only, and sizing takes
+  `min(risk_size, notional_size)`. With the notional term already smaller
+  at base risk, a raised budget changes nothing.
+- **Measurement:** live sizing function, US30 at a 1.05 % stop, fine
+  broker increment.
+
+  | target risk | cap | notional | planned risk |
+  |---|---|---|---|
+  | 3.00 | 250 | 246.75 | 2.59 |
+  | 4.50 | 250 | 246.75 | **2.59** |
+  | 6.00 | 250 | 246.75 | **2.59** |
+  | 6.00 | 500 | 498.75 | 5.24 |
+
+  Three budgets, one outcome. Had the gate opened it would have logged
+  "risk scaled $3.00 → $6.00" and placed identical orders — the confidence
+  bound, the equity ceiling and the bounded steps all unreachable behind a
+  constant the module does not know about.
+- **Decision:** fixed. `evaluate_pair` scales the notional cap by the same
+  factor as the risk budget, preserving the exposure-to-risk ratio the cap
+  was set at instead of tightening it as the budget grows. While the gate
+  is shut the factor is 1.0 and the cap stays at 250 — verified against the
+  live journal state: no order changes today or until the gate opens on
+  post-2026-09-10 entries. 60/60 tests green including three new ones
+  pinning the defect. Hurz restarted. Section 206.
+- **Explicitly not run 30's lever:** that one asked to raise the cap now on
+  backtest expectancy and was refused, because an exposure limit should not
+  open on four-sample evidence. This leaves today's exposure unchanged and
+  repairs the path so the mechanism built for earning a larger size can
+  deliver it once its own evidence bar is met. One loosens a limit; the
+  other connects two limits that were talking past each other.

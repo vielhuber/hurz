@@ -897,8 +897,10 @@ async def run_loop(
     otherwise produce a single concentrated bet disguised as N trades.
 
     `risk_per_trade` targets a fixed dollar loss at the normalized stop.
-    `notional_per_trade` remains a hard exposure cap. Broker minimum,
-    maximum and increment constraints are applied without increasing size."""
+    `notional_per_trade` remains a hard exposure cap; it scales with the
+    risk budget when `edge_scaling` raises it, because a fixed cap makes a
+    raised budget inert (EDGE_FINDINGS 205). Broker minimum, maximum and
+    increment constraints are applied without increasing size."""
     import os as _os
     if max_concurrent is None:
         try:
@@ -946,12 +948,25 @@ async def run_loop(
         _safe_log(f"  ⚠ account balance unavailable ({exc}) — risk held at base")
     edge = assess_edge(risk_per_trade, account_equity=account_equity)
     if edge.risk_usd > risk_per_trade:
+        # The notional cap has to move with the budget or the scaling is
+        # inert: sizing takes min(risk_size, notional_size), and at a
+        # venue-pinned 1.05 % stop the notional term is already the
+        # smaller one at the base risk (3 USD needs 286 USD of notional
+        # against a 250 USD cap — EDGE_FINDINGS 205). Leaving the cap
+        # fixed means a scaled budget buys nothing: measured on US30,
+        # target risk 3 / 4.5 / 6 USD all produce the same 246.75 USD
+        # notional and the same 2.59 USD of planned risk. Scaling the cap
+        # by the same factor keeps the exposure-to-risk ratio the limit
+        # was set at, rather than tightening it as the budget grows.
+        scale = edge.risk_usd / risk_per_trade
         _safe_log(
             f"  ⬆ risk scaled ${risk_per_trade:.2f} → ${edge.risk_usd:.2f} "
             f"({edge.reason}; {edge.trades} trades, "
             f"lower bound {edge.lower_bound_r:+.3f}R)"
         )
         risk_per_trade = edge.risk_usd
+        notional_per_trade *= scale
+        _safe_log(f"  ⬆ notional cap scaled with it → ${notional_per_trade:.2f}")
     else:
         _safe_log(f"  risk held at base: {edge.reason}")
     _safe_log(f"  risk_per_trade=${risk_per_trade:.2f}")

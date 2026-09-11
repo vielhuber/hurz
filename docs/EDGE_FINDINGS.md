@@ -6843,3 +6843,47 @@ on dollar gain that does not require a new edge — worth +24 % at
 unchanged expectancy — its blocking condition has been named precisely
 (forward confirmation on entries after 2026-09-10), and the dollar
 figures elsewhere in this log are corrected to the risk actually taken.
+
+## 206. The scaling gate was inert: a raised risk budget could not reach the sizing — FIXED
+
+Section 205 established that the notional cap binds on every venue-pinned
+stop, so planned risk sits at 2.41 USD against a configured 3.00. Working
+through what that implies for `edge_scaling` exposes a defect rather than
+a trade-off: the gate raises `risk_per_trade` and nothing else, and sizing
+takes `min(risk_size, notional_size)`. If the notional term is already the
+smaller one at base risk, raising the risk term changes nothing at all.
+
+Measured on US30 at a 1.05 % stop with a fine broker increment:
+
+| target risk | cap | notional | planned risk |
+|---|---|---|---|
+| 3.00 | 250 | 246.75 | 2.59 |
+| 4.50 | 250 | 246.75 | **2.59** |
+| 6.00 | 250 | 246.75 | **2.59** |
+| 6.00 | 500 | 498.75 | 5.24 |
+
+Three budgets, one outcome. Had the gate ever opened — and section 195
+showed it needs thousands of trades to do so — it would have logged
+"⬆ risk scaled $3.00 → $6.00" and placed exactly the same orders. The
+whole mechanism, its confidence bound, its equity ceiling and its
+bounded-step scaling, was unreachable behind a constant it does not know
+about.
+
+`evaluate_pair` now scales the cap by the same factor the budget is
+scaled by, so the exposure-to-risk ratio the cap was set at is preserved
+instead of tightening as the budget grows. While the gate is shut the
+factor is exactly 1.0 and the cap stays at 250, which is the current
+state: no order changes today, and none until the gate opens on entries
+after 2026-09-10.
+
+This is deliberately not section 205's lever. That one asked to raise the
+cap now, on backtest expectancy, and was refused because an exposure limit
+should not open on four-sample evidence. This one leaves today's exposure
+exactly as it was and repairs the path so that the mechanism the project
+built for earning a larger size can actually deliver it once its own
+evidence bar is met. The distinction matters: one loosens a limit, the
+other connects two limits that were talking past each other.
+
+Verified: 60/60 tests green including three new ones that pin the defect —
+a fixed cap makes a doubled budget inert, a scaled cap makes it effective,
+and a scale of 1.0 leaves the base case identical.
