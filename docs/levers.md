@@ -4326,3 +4326,38 @@ the section numbers below point there.
   the run would have had to be repeated before deciding.
 - **Decision:** not changed — RR 1.5 stays. No code change to the trading
   system, no restart. Section 210.
+
+## 2026-09-11 (eighteenth run) — decomposing the risk shortfall
+
+- **Lever:** position sizing, correcting run 30's own attribution — the
+  first live trade after the builds (EURUSD short, notional 231.9 against
+  a 250 cap) showed planned risk at 2.44 while the cap was not binding at
+  all. Run 30 had attributed the whole 2.41-vs-3.00 gap to the cap and
+  called it a +24 % lever.
+- **Measurement:** sizing arithmetic reproduced per trade over 44 accepted
+  entries since 2026-08-01 — `risk_size = target/stop_distance`,
+  `notional_size = cap/entry`, then the broker increment floor.
+
+  | component | mean USD | share |
+  |---|---|---|
+  | total shortfall | 0.591 of 3.00 | 100 % |
+  | notional cap | 0.355 | **60 %** |
+  | broker increment rounding | 0.165 | **28 %** |
+  | remainder (quote conversion, minimums) | 0.071 | 12 % |
+
+  The cap binds on 39 of 44 trades. EURUSD is the clean case: risk_size
+  245.7, notional_size 215.6, actual 200.0 — cap costs 0.366 USD, rounding
+  a further 0.190, and 3.00 − 0.556 = 2.44 is exactly the journalled value.
+- **Result:** run 30's cap lever is worth **+11.8 %** at unchanged
+  expectancy, not +24 %. The rounding term is not recoverable: the
+  increment is a broker constraint and rounding up would breach the risk
+  target — at EURUSD's 100-unit step, 300 units is 3.65 USD against a 3.00
+  budget. `ROUND_FLOOR` is correct and its cost is the price of a discrete
+  instrument.
+- **Decision:** nothing changed; run 30's decision stands unaffected (an
+  exposure limit does not open on backtest evidence alone), but the prize
+  behind it is halved, which matters when that decision is made on forward
+  data. No code change, no restart. Section 211. What this corrects is a
+  habit more than a number — run 30 inferred a cause from a correlation
+  without decomposing it, and the first contradicting live trade was
+  enough to expose that.

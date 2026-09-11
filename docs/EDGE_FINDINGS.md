@@ -7080,3 +7080,49 @@ samples. A t-statistic can only strengthen or weaken a difference that
 exists — it cannot make a negative difference positive. Had any variant
 been positive on all four, this run would have had to be repeated before
 deciding. None was, so it does not.
+
+## 211. The risk shortfall is not all the cap: 60 % cap, 28 % broker rounding
+
+Section 205 measured planned risk at 2.41 USD against a configured 3.00
+and attributed the gap to the notional cap, calling it "24 % of dollar
+gain forgone" and "the single largest identified lever that does not
+require a new edge". The first live trade after the builds showed that
+attribution is too simple: EURUSD short, size 200.0 at 1.1596, notional
+231.9 USD — the 250 cap does not bind there at all, yet planned risk was
+2.44.
+
+Decomposed over 44 accepted entries since 2026-08-01, with the sizing
+arithmetic reproduced per trade (`risk_size = target / stop_distance`,
+`notional_size = cap / entry`, then the broker's increment floor):
+
+| component | mean USD | share of shortfall |
+|---|---|---|
+| total shortfall | 0.591 of 3.00 | 100 % |
+| notional cap | 0.355 | **60 %** |
+| broker increment rounding | 0.165 | **28 %** |
+| remainder (quote conversion, minimums) | 0.071 | 12 % |
+
+The cap binds on 39 of 44 trades, so section 205 was right that it is the
+dominant term — but not that it is the whole one. EURUSD is the clean
+illustration: `risk_size` 245.7, `notional_size` 215.6, actual 200.0. The
+cap costs 30.1 units (0.366 USD), the rounding to a 100-unit step costs a
+further 15.6 units (0.190 USD), and 3.00 - 0.556 = 2.44 is exactly what
+the journal recorded.
+
+**Consequence for the cap lever.** Raising the cap recovers the 60 %, not
+the 100 %: +11.8 % of dollar gain at unchanged expectancy, not the +24 %
+section 205 claimed. That does not change section 205's decision — an
+exposure limit still should not open on backtest evidence alone — but it
+halves the prize, which matters when the decision is eventually made on
+forward data.
+
+**The rounding term is not recoverable.** The increment is a broker
+constraint, and rounding up rather than down would breach the risk target
+it exists to respect: at EURUSD's 100-unit step, 300 units is 3.65 USD of
+risk against a 3.00 budget. `ROUND_FLOOR` is correct and its cost is the
+price of a discrete instrument, not a defect.
+
+What this run really corrects is a habit rather than a number: section 205
+inferred a cause from a correlation — planned risk is low, the cap binds,
+therefore the cap explains the shortfall — without decomposing it. The
+first live trade that contradicted the inference was enough to expose it.
