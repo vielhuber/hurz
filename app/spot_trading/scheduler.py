@@ -130,8 +130,13 @@ async def _refresh_pairs(top_n: int, min_trades: int, platform: Optional[str] = 
         # we cast a WIDE net and let FORWARD (live) results decide the
         # winners — backtest stats proved non-predictive, so we no longer
         # pre-filter hard on them. The regime router still gates every
-        # trade to its regime, so "wide" ≠ "reckless". Narrow these back
-        # down once forward data identifies the profitable combos.
+        # trade to its regime, so "wide" ≠ "reckless".
+        # Measured 2026-09-11 (EDGE_FINDINGS 217): every tightening is
+        # worse on all four walk-forward samples — -0.034, -0.042 and
+        # -0.074 USD/day at 0.9/-0.1, 1.0/0.0 and 1.1/+0.05. Tightening
+        # removes combos by in-sample expectancy, which section 130 shows
+        # does not transfer, and pays for it in throughput, which section
+        # 198 shows the daily figure is bound by. Do NOT narrow these.
         "--min-pf", "0.8",       # was 1.0 — allow marginal backtest edge
         "--min-er", "-0.2",      # was 0.0 — allow slightly-negative IS
         "--min-stability", "0",  # was 0.5 — IS stability is not predictive

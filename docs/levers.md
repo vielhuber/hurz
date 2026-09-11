@@ -4516,3 +4516,41 @@ the section numbers below point there.
   because no cut binds, the live list carries combinations with a
   negative score (down to −0.105). Whether removing those raises the
   daily figure is a separate lever and was not measured here.
+
+## 2026-09-11 (twenty-fourth run) — the selector's eligibility thresholds
+
+- **Lever:** pair selection — run 23 showed the top-40 cut selects
+  nothing, which leaves the eligibility filter as what actually decides
+  the active list. Since 2026-07-03 the scheduler asks for a widened one
+  (`--min-pf 0.8`, `--min-er -0.2`, `--min-stability 0`) with a comment
+  to narrow it back down once forward data arrives. 70 days have passed
+  and four ranked combos now carry negative expectancy, so the lever is:
+  does the strict filter earn more per day than the wide one?
+- **Measurement:** walk-forward as in runs 22 and 23, same cached bars,
+  24 out-of-sample blocks, cut held at 40, eligibility the only variable.
+
+  | variant | pooled vs live | t | trades | all four better |
+  |---|---|---|---|---|
+  | **live 0.8/−0.2** | — | — | **4,848** | — |
+  | 0.9/−0.1 | −0.0343 | −1.48 | 4,437 (−8.5 %) | NO |
+  | 1.0/0.0 | −0.0421 | −1.23 | 3,976 (−18.0 %) | NO |
+  | 1.1/+0.05 | −0.0737 | −1.32 | 2,588 (−46.6 %) | NO |
+
+- **Result:** every tightening is worse on every one of the four samples
+  — twelve comparisons, no exception — and the loss grows with the
+  tightening. The reason is the combination of sections 130 and 198:
+  tightening removes combos by in-sample expectancy, which does not
+  transfer, and pays certain throughput for it. The 2026-07-03 widening
+  was not a temporary expedient that expired; it is still correct.
+- **Decision:** thresholds unchanged. The stale instruction to narrow
+  them was removed from `scheduler.py` and replaced with the measured
+  result, so the next reader does not make a measurably worse change.
+  Comment-only edit, no behaviour change, no restart. Section 217.
+- **A correction, recorded:** run 23 claimed the harness had reproduced
+  the live pool size (31.1 against 29). It had not — the harness ran the
+  strict filter, not the one the scheduler uses; under the live
+  thresholds its pool is 39 of a possible 40. Run 23's finding that
+  shortening the list costs throughput survives, but its N-sweep ran
+  under an eligibility filter the bot does not use, and under the live
+  one the cut very nearly binds. **Raising N above 40 is therefore
+  untested and is the next run's lever.**

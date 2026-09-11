@@ -7361,12 +7361,19 @@ approximately — identically, 3,976 trades and the same figure on every
 sample. The eligible pool averages 31.1 combinations per block (min 19,
 max 40), so the cut at 40 never removes anything.
 
-This is not an artifact of the harness's smaller universe. The live list
-persisted on 2026-09-11 holds 55 combinations, 26 of them operator pins,
-which leaves **29 ranked** — `persist_active_pairs` took `ranked[:40]`
-and got 29, because that is all there were. The live cut does not bind
-either, and the harness reproduced the live pool size (31.1 against 29)
-from an entirely different direction.
+The live cut does not bind either, and that is read straight from
+production rather than inferred: the list persisted on 2026-09-11 holds
+55 combinations, 26 of them operator pins, which leaves **29 ranked** —
+`persist_active_pairs` took `ranked[:40]` and got 29, because that is all
+there were.
+
+*(Corrected by section 217: this section originally added that the
+harness "reproduced the live pool size, 31.1 against 29, from an entirely
+different direction". It did not. The harness ran the STRICT eligibility
+filter — `eR > 0`, `pf >= 1` — which is not what the scheduler asks for.
+Under the thresholds live actually uses the harness pool is 39 of a
+possible 40, so the agreement was a coincidence of the wrong filter. The
+production reading stands; the corroboration did not exist.)*
 
 So the ranking orders the list but selects nothing. What actually decides
 the active list is the eligibility filter inside the scorer and the 26
@@ -7383,3 +7390,68 @@ is a different lever and is not measured here: the harness required
 `eR > 0` and `pf >= 1` to be eligible at all, which live does not, so
 whether dropping the negative-score combinations helps remains an open
 question for the next run.
+
+## 217. The selector's eligibility thresholds: the wide net is the right one, 70 days on
+
+Section 216 established that the top-40 cut selects nothing, which makes
+the eligibility filter the thing that actually decides the active list.
+Since 2026-07-03 the scheduler asks for a deliberately widened one:
+
+    --min-pf 0.8        (was 1.0)
+    --min-er -0.2       (was 0.0)
+    --min-stability 0   (was 0.5)
+
+The comment introducing it says to narrow the thresholds back down once
+forward data identifies the profitable combos. That was 70 days ago, and
+the widening is visible in today's list: four ranked combinations carry a
+negative expectancy, US30 donchian the worst at −0.026 R. The obvious
+reading is a temporary setting that outstayed its welcome.
+
+The measurement says the opposite. Same walk-forward as 215 and 216, the
+cut held at 40, eligibility the only thing varied:
+
+| sample | **live 0.8/−0.2** | 0.9/−0.1 | 1.0/0.0 | 1.1/+0.05 |
+|---|---|---|---|---|
+| 0–365 d | **+0.1736** | +0.1313 | +0.0788 | +0.1067 |
+| 366–1095 d | **+0.1755** | +0.1432 | +0.1450 | +0.1714 |
+| 1096–1825 d | **+0.2332** | +0.2122 | +0.1948 | +0.0994 |
+| 1826–2555 d | **+0.3518** | +0.3008 | +0.3340 | +0.2451 |
+| pooled diff | — | −0.0343 | −0.0421 | −0.0737 |
+| paired t | — | −1.48 | −1.23 | −1.32 |
+| trades | 4,848 | 4,437 (−8.5 %) | 3,976 (−18.0 %) | 2,588 (−46.6 %) |
+
+Every tightening is worse, on every one of the four samples, without a
+single exception in twelve comparisons. The loss grows with the
+tightening: −0.034, −0.042, −0.074 USD per day. None of it is
+individually significant, but a sign that holds twelve times out of
+twelve is not noise about the direction.
+
+**Why the obvious reading was wrong.** Tightening removes combinations by
+their *in-sample* expectancy, and section 130 is the whole reason that
+does not work: the in-sample ranking does not transfer, so a combination
+at −0.05 R in the ranking window is not a worse bet in the trading window
+than one at +0.05 R. What tightening reliably does is remove trades, and
+by section 198 the daily figure is throughput-bound. So the filter pays
+its cost in certain throughput for a benefit that in-sample statistics
+cannot actually deliver. The widening of 2026-07-03 was not a temporary
+expedient that expired — it was correct for the same reason it was
+introduced, and 70 days of extra data have not changed that.
+
+**Decision: not built, and the comment corrected.** The thresholds stay
+where they are. The instruction to narrow them once forward data arrives
+is the part that is now stale, and it stays in the code as a standing
+invitation to make a measurably worse change, so it is replaced with a
+pointer to this section.
+
+**A correction to section 216.** That section claimed the harness had
+reproduced the live pool size — 31.1 eligible combinations against 29
+ranked in production. It had not. The harness was running the strict
+filter, `eR > 0` and `pf >= 1`, which is not what the scheduler asks for;
+under the live thresholds the harness pool is 39 of a possible 40. The
+production reading stands on its own, but the independent corroboration
+did not exist, and 216's N-sweep therefore measured list length under an
+eligibility filter the bot does not use. Its finding that shortening
+costs throughput survives that; what does not survive is the claim that
+40 equals "everything eligible" live. Under the live thresholds the cut
+very nearly binds, which makes **raising N above 40 an untested lever**
+and the first candidate for the next run.
