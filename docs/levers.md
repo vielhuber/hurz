@@ -4653,3 +4653,34 @@ the section numbers below point there.
   trades worth nothing at the margin. That rules out the capacity
   direction too, and leaves per-trade expectancy and per-trade dollars as
   the only axes that can still matter.
+
+## 2026-09-11 (twenty-eighth run) — the cost axis, priced whole
+
+- **Lever:** cost filters — run 27 left per-trade expectancy as the only
+  live axis. Instead of testing another cost filter, this prices the
+  entire axis by booking every trade twice, with the cost term and at
+  zero.
+- **Measurement:** walk-forward as in runs 22–27, 4,848 trades over
+  24 out-of-sample blocks.
+
+  | | R per trade | t | USD/day |
+  |---|---|---|---|
+  | gross | +0.0391 | +3.82 | +0.2109 |
+  | cost | 0.0115 | — | −0.0608 |
+  | **net** | **+0.0276** | **+2.70** | **+0.1501** |
+
+- **Result:** the edge is real and survives costs, positive on all four
+  samples. Costs take 30 % of the gross edge, so **+0.06 USD/day is the
+  hard ceiling on every conceivable cost lever** — a free venue included.
+  That retires the axis instead of inviting another filter on it.
+- **The wall, stated in one line:** 0.0276 R × 2.2 USD risk × 2.7 trades
+  a day ≈ 0.16 USD/day. The 50 EUR objective is ~300× that. Run 7 reached
+  the same wall from the sizing side (target = 93× the account).
+- **Live comparison:** since the current filter set completed on
+  2026-08-24 the live book is −0.72 USD/day over 46 trades, about one
+  standard error from the harness's +0.15 — not yet distinguishable. The
+  July–August book at −0.31 USD/trade over 417 trades is more than three
+  standard errors below it, and predates these filters.
+- **Decision:** nothing built, no restart. Section 221. Any future lever
+  must name which of expectancy, size or frequency it multiplies, and by
+  how much; nothing in 221 sections has produced a factor above ~1.1.

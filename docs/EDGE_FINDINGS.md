@@ -7629,3 +7629,61 @@ because *no rearrangement of which or how many trades can move a figure
 built from trades that are worth zero at the margin*. That is a stronger
 constraint than the one they named, not a weaker one, and it rules out
 the capacity direction as well.
+
+## 221. The book gross and net: the edge is real, tiny, and two orders of magnitude short of the target
+
+Section 220 ruled out capacity and list composition and named what is
+left — the expectancy of the trade itself. Rather than test another
+filter on that axis, this bounds it. Every entry in the harness carries
+an explicit cost term, `cost_r = 2 * fee * entry / stop_distance`.
+Booking each trade twice, once with it and once at zero, separates the
+strategies' gross edge from what the venue takes.
+
+| sample | trades | gross R | cost R | net R | gross $/day | net $/day |
+|---|---|---|---|---|---|---|
+| 0–365 d | 708 | +0.0323 | 0.0134 | +0.0188 | +0.1699 | +0.1108 |
+| 366–1095 d | 1,807 | +0.0311 | 0.0121 | +0.0190 | +0.1939 | +0.1221 |
+| 1096–1825 d | 1,545 | +0.0430 | 0.0104 | +0.0326 | +0.2038 | +0.1513 |
+| 1826–2555 d | 782 | +0.0556 | 0.0108 | +0.0448 | +0.1467 | +0.1187 |
+| **pooled** | **4,848** | **+0.0391** | **0.0115** | **+0.0276** | **+0.2109** | **+0.1501** |
+
+Gross E[R] is +0.0391 at t +3.82, net +0.0276 at t +2.70, positive on all
+four samples. The edge exists and survives costs.
+
+**Three consequences, and they are the point of this section.**
+
+*The cost axis is now priced as a whole.* Costs take 0.0115 R a trade,
+30 % of the gross edge. That is the ceiling on every cost lever there
+will ever be: a venue that charged nothing, a perfect spread filter, a
+better entry — all of it together is worth at most +0.0115 R a trade,
+which at the book's frequency is **+0.06 USD per day**. Sections 11 and
+68 found the cost ceiling flat as a lever; this explains why. No cost
+work can matter, and that retires the axis rather than inviting another
+filter on it.
+
+*The daily figure is small by construction, not by fault.* The net book
+earns 0.0276 R a trade at a realised risk of about 2.2 USD and 2.7 trades
+a day: 0.0276 × 2.2 × 2.7 ≈ **0.16 USD per day**, which is what the
+table shows. The 50 EUR daily objective is roughly **three hundred times**
+that. Section 195 reached the same wall from the sizing side — the target
+is 93× the account — and this reaches it from the expectancy side. No
+arrangement of these three factors closes a 300× gap: the expectancy is
+0.028 R and would have to be 8 R, or the frequency 2.7 a day and would
+have to be 800.
+
+*The live shortfall is mostly older than the current filters.* Live,
+since the filter set completed on 2026-08-24: 46 closed trades,
+−13.04 USD, **−0.72 USD/day** at 2.56 trades a day. Against the harness's
++0.15 the gap is 0.34 USD a trade, and on 46 trades the standard error is
+0.32 — about one sigma, so the current book is not yet distinguishable
+from its backtest. The July-to-August book is: 417 trades at −0.31 USD
+each, more than three standard errors below the harness figure, and it
+ran under the pre-filter regime that sections 201 to 208 replaced.
+
+**Decision: nothing built, and the cost axis retired.** What this run
+changes is the target of the search. The daily figure is not being held
+down by a mis-set knob; it is the arithmetic product of a small, genuine
+edge, a small position and a modest frequency. Any future work that
+claims to raise it must say which of those three it multiplies, and by
+how much — and no measurement in this document has produced a factor
+above about 1.1 on any of them.
