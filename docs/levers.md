@@ -4096,3 +4096,41 @@ the section numbers below point there.
   across regimes. Consistency therefore identifies durable losers and
   transient winners, and works in one direction only. The instrument
   dimension is closed in both.
+
+## 2026-09-11 (twelfth run) — the notional cap's expired condition
+
+- **Lever:** position sizing — section 81 kept the 250 USD notional cap
+  with a conditional argument: raising it trades a 20 % looser exposure
+  limit for a proportional dollar change "whose sign is the book's
+  expectancy — which every section of this document puts at zero". After
+  runs 13, 15 and 17 that sign is positive on three of four samples
+  (+0.0715 / +0.0334 / +0.0332 R a day, recent year -0.0258), so the
+  condition has expired and the question is legitimately reopened.
+- **Measurement:** live sizing path, 43 accepted entries since
+  2026-08-01. Planned risk averages **2.41 USD against the configured
+  3.00**, 39 of 43 below 2.90 — `raw_size = min(risk_size, notional_size)`
+  and the notional term is smaller whenever the venue floor sets the stop
+  (3 USD at a 1.05 % stop needs 286 USD of notional). 24 % of the intended
+  dollar gain is forgone structurally. Per-day effect of closing the gap:
+  +0.042 / +0.020 / +0.020 USD on the three positive samples, -0.015 on
+  the recent year. Exposure at 8 positions would go from 3.2 % to 4.0 % of
+  equity, per-trade 0.40 % to 0.50 %, both inside the 1 % per-trade cap.
+- **Decision:** not raised, for three reasons that are not arithmetic.
+  The regime the book trades in now is the recent year, where the cap is
+  protective (+0.015 USD a day of loss avoided). The forward evidence for
+  the positive samples is zero trades — run 25 reset the out-of-sample
+  window to the build date exactly because nothing earlier is evidence for
+  the current system, and raising exposure on backtest expectancy alone is
+  that same error mirrored. And section 81's rule protects an exposure
+  limit, which a four-sample backtest is the weakest evidence to open.
+  No code change, no restart. Section 205.
+- **Correction this run owes the log:** every dollar figure in runs 20 and
+  23 was stated at 3 USD of risk; the risk actually taken is 2.41, so they
+  were 24 % too high. Run 23's "+0.22 / +0.10 / +0.11 USD a day" should
+  read +0.17 / +0.08 / +0.08. Run 20's ~0.6 USD/day ceiling stands, since
+  it was computed at the 1 % equity cap of 6.02 USD — but the figure for
+  the configuration as it actually runs is 0.17 USD a day at best.
+- **Recorded for the next run:** the cap is the largest identified lever on
+  dollar gain that needs no new edge (+24 % at unchanged expectancy), and
+  its blocking condition is now named precisely — forward confirmation on
+  entries after 2026-09-10.

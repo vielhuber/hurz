@@ -6785,3 +6785,61 @@ winners, which is why the rule works in one direction only.
 
 Nothing changes. The instrument dimension is now closed in both
 directions: losers blocked on four samples, winners measured and refused.
+
+## 205. The notional cap's standing condition has expired, and a correction to this log's dollar figures
+
+Section 81 measured the 250 USD notional cap, established that it binds
+on every venue-pinned stop — a 3 USD risk at a 1.05 % stop needs 286 USD
+of notional — and kept it with an explicitly conditional argument:
+"Raising it is a 20 % loosening of a hard exposure limit in exchange for
+a proportional change in dollar outcome **whose sign is the book's
+expectancy — which every section of this document puts at zero**."
+Sections 166 and 167 reaffirmed it on forward data.
+
+That condition no longer holds. After the three builds of 2026-09-10 the
+expectancy is positive on three of the four disjoint samples: +0.0715,
++0.0334 and +0.0332 R a day, with the recent year at -0.0258. The
+proportional change the cap forgoes therefore now has a positive sign on
+three samples out of four rather than a zero sign on all of them.
+
+**What the cap costs.** Measured on the live sizing path across 43
+accepted entries since 2026-08-01, planned risk averages **2.41 USD
+against the configured 3.00** — 39 of 43 below 2.90 — because
+`raw_size = min(risk_size, notional_size)` and the notional term is the
+smaller one whenever the venue floor sets the stop. That is 24 % of the
+dollar gain the risk configuration intends, forgone structurally rather
+than by decision.
+
+| sample | R/day | at 2.41 USD | at 3.00 USD | delta |
+|---|---|---|---|---|
+| 366-1,095 d | +0.0715 | +0.172 | +0.214 | +0.042 |
+| 1,096-1,825 d | +0.0334 | +0.080 | +0.100 | +0.020 |
+| 1,826-2,555 d | +0.0332 | +0.080 | +0.100 | +0.020 |
+| 365 d | -0.0258 | -0.062 | -0.077 | -0.015 |
+
+**A correction this log owes.** Every dollar figure in sections 195 and
+198 was stated at 3 USD of risk per trade. The risk actually taken is
+2.41, so those figures were 24 % too high. Section 198's "+0.22, +0.10
+and +0.11 USD a day" should read +0.17, +0.08 and +0.08. Section 195's
+ceiling of roughly 0.6 USD a day stands, because it was computed at the
+1 % equity cap of 6.02 USD, which a raised notional cap would make
+reachable — but the figure for the configuration as it actually runs is
+0.17 USD a day at best, not 0.29.
+
+**Decision: not raised.** Three reasons, and none of them is that the
+arithmetic is wrong. First, the sample whose regime the book is currently
+trading in — the recent year — is the one still negative, and there the
+cap's effect is protective: +0.015 USD a day of loss avoided. Second, the
+forward evidence for the positive samples is zero trades; section 200
+reset the out-of-sample window to the build date precisely because
+nothing before it is evidence for the system that now trades, and raising
+exposure on backtest expectancy alone is the same error in the opposite
+direction. Third, section 81's rule protects an exposure limit, and an
+exposure limit opened on a four-sample backtest is opened on the weakest
+kind of evidence the project accepts for anything.
+
+What is recorded instead: the cap is the single largest identified lever
+on dollar gain that does not require a new edge — worth +24 % at
+unchanged expectancy — its blocking condition has been named precisely
+(forward confirmation on entries after 2026-09-10), and the dollar
+figures elsewhere in this log are corrected to the risk actually taken.
