@@ -7030,3 +7030,53 @@ would have deferred the refresh another day, and this session restarted
 the bot five times. A list that degrades silently while the guards hold is
 exactly the kind of defect that stays invisible until something else
 depends on it.
+
+## 210. Reward:risk on the post-build book: the samples split, and 1.5 stays
+
+Sections 63, 124, 184 and 185 all swept the target on the pre-build book.
+The three filters of 2026-09-10 did not trim that book evenly — the 3 x ATR
+floor removed 94-99 % of crypto and every least-pinned trade, the
+instrument block removed three FX pairs carrying 76 % of the recent year's
+loss, the ADX ceiling removed the high-trend tail. What remains is almost
+entirely venue-pinned stops at 3+ ATR, and a target is a claim about how
+far price runs before turning, so the parameter deserved one measurement
+on the book that now exists.
+
+R per calendar day, merged one-position-per-instrument book:
+
+| RR | 365 d | 366-1,095 d | 1,096-1,825 d | 1,826-2,555 d |
+|---|---|---|---|---|
+| 1.0 | -0.0377 | +0.0496 | +0.0519 | +0.0243 |
+| **1.5 (live)** | **-0.0280** | **+0.0746** | **+0.0358** | **+0.0332** |
+| 2.0 | -0.0384 | +0.0545 | +0.0820 | +0.0508 |
+| 2.5 | -0.0499 | +0.0474 | +0.0782 | +0.0581 |
+
+Differences from the live 1.5:
+
+| RR | 365 d | 366-1,095 d | 1,096-1,825 d | 1,826-2,555 d | all four? |
+|---|---|---|---|---|---|
+| 1.0 | -0.010 | -0.025 | +0.016 | -0.009 | no |
+| 2.0 | -0.010 | -0.020 | +0.046 | +0.018 | no |
+| 2.5 | -0.022 | -0.027 | +0.042 | +0.025 | no |
+
+No variant is better on all four, so condition (a) fails for every one of
+them and 1.5 stays. The split is the familiar one in a new place: the two
+older samples prefer a wider target (2.0 and 2.5 add 0.02 to 0.05 R a
+day), the two newer prefer 1.5, and 1.0 is worse than 1.5 on three of
+four. Filtering the book did not change that answer — the same
+disagreement the RR sweeps found before the builds survives them.
+
+**A defect in this run's own measurement, recorded rather than hidden.**
+The script was derived from the leash sweep and its final comparison
+table still iterated the leash variable, so it raised a NameError after
+printing the per-variant figures. The per-day numbers above are complete
+and were produced before the failure; the paired daily t-statistics were
+not produced at all. The fix is committed.
+
+That missing statistic does not change the decision, and it is worth
+being precise about why rather than waving it through: condition (a) is
+evaluated on point estimates and fails for every variant on at least two
+samples. A t-statistic can only strengthen or weaken a difference that
+exists — it cannot make a negative difference positive. Had any variant
+been positive on all four, this run would have had to be repeated before
+deciding. None was, so it does not.

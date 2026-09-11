@@ -4288,3 +4288,41 @@ the section numbers below point there.
   fresh signal on the last bar — not one reached a guard. That matches the
   arithmetic: 2.84 trades a day across 69 combinations is one per
   combination every 25 days. Signal scarcity, not filter action.
+
+## 2026-09-11 (seventeenth run) — reward:risk on the post-build book
+
+- **Lever:** exit logic — the target was last swept on the pre-build book
+  (sections 63, 124, 184, 185). The three filters trimmed it unevenly:
+  94–99 % of crypto gone, every least-pinned trade gone, three FX pairs
+  gone, the high-trend tail gone. What remains is almost entirely
+  venue-pinned stops at 3+ ATR, and a target is a claim about how far
+  price runs before turning. RR 1.0 / 1.5 / 2.0 / 2.5, measured in R per
+  calendar day on the merged book because the RR changes both per-trade
+  expectancy and occupancy. Acceptance: better on all four samples,
+  paired daily t > 2 on at least one, ship the qualifying value closest
+  to 1.5. Stop untouched, 1 R loss limit unmoved.
+- **Measurement:** `scripts/rr_current_book.py`.
+
+  | RR | 365 d | 366–1,095 d | 1,096–1,825 d | 1,826–2,555 d | all four? |
+  |---|---|---|---|---|---|
+  | 1.0 | -0.010 | -0.025 | +0.016 | -0.009 | no |
+  | **1.5 (live)** | — | — | — | — | — |
+  | 2.0 | -0.010 | -0.020 | +0.046 | +0.018 | no |
+  | 2.5 | -0.022 | -0.027 | +0.042 | +0.025 | no |
+
+- **Result:** no variant better on all four; (a) fails for each. The split
+  is the familiar one in a new place — the two older samples prefer a
+  wider target (2.0/2.5 add 0.02–0.05 R a day), the two newer prefer 1.5,
+  and 1.0 is worse than 1.5 on three of four. Filtering the book did not
+  change the answer the pre-build sweeps gave.
+- **Defect in this run's measurement, recorded not hidden:** the script
+  was derived from the leash sweep and its final comparison table still
+  iterated the leash variable, raising a NameError after the per-variant
+  figures printed. The per-day numbers are complete; the paired daily
+  t-statistics were never produced. Fix committed. It does not change the
+  decision: (a) is evaluated on point estimates and fails for every
+  variant on at least two samples, and a t-statistic cannot turn a
+  negative difference positive. Had any variant been positive on all four,
+  the run would have had to be repeated before deciding.
+- **Decision:** not changed — RR 1.5 stays. No code change to the trading
+  system, no restart. Section 210.
