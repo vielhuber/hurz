@@ -6935,3 +6935,52 @@ remaining question is entirely one of measurement power rather than
 direction. The next run on this should preregister a statistic with the
 power to settle it — paired per trade over the signals both variants take,
 rather than per calendar day.
+
+## 208. The stop floor, settled: the paired test separates the cap effect from the composition effect, and the cap effect is not robust
+
+Section 207 found 1.20 % positive on all four samples in USD per calendar
+day and missed its significance bar for lack of power. This run supplies
+the power by pairing in USD on the trades both floors take, and reporting
+the trades only one of them takes separately. That separation is what
+settles the question.
+
+| sample | shared trades | paired USD diff | t | only-1.20 % trades | their mean USD |
+|---|---|---|---|---|---|
+| 365 d | 935 | +0.0201 | +1.34 | 152 | +0.0454 |
+| 366-1,095 d | 2,013 | **-0.0110** | -1.09 | 287 | +0.0382 |
+| 1,096-1,825 d | 1,792 | +0.0106 | +0.92 | 358 | +0.0263 |
+| 1,826-2,555 d | 1,786 | +0.0157 | +1.58 | 262 | **-0.0737** |
+
+Three of the four conditions fail. (a) the paired difference is negative
+on the 366-1,095 sample; (b) no t reaches 2, the best being +1.58; (c) the
+trades the wider floor adds are negative on the oldest sample. Only (d)
+holds — planned risk reaches 3.00 and never exceeds it.
+
+**Why the two measurements disagree**, and why the paired one is right.
+Section 207's per-day figure mixes two different things: the cap effect on
+trades both variants take, and a composition effect from trades only one
+takes. On the 366-1,095 sample the trades only the live floor takes return
+-0.1232 USD each, so dropping them lifts the daily figure — which had
+nothing to do with the cap and everything to do with which signals survive
+a wider floor's interaction with section 190's 3 x ATR threshold. Pairing
+isolates the cap effect, and isolated it reads +0.020 / -0.011 / +0.011 /
++0.016 USD: not robust, not significant, sign unstable.
+
+The mechanism behind that is simple enough to state without the data. A
+wider floor buys more dollars per unit of R — 2.62 to 2.99, the 14 % the
+cap was forgoing — but it also widens the target by the same proportion,
+so it costs R. On these samples the two terms very nearly cancel. That is
+the same conclusion section 136 reached in R, arrived at independently in
+dollars, which is the outcome that should have been expected of a unit
+change that does not touch the underlying trade.
+
+The floor stays at 1.05 % and the question is closed: asked in R (136), in
+dollars per day (207) and paired in dollars (208), three times with three
+different statistics and three times unsupported. The log should stop
+asking.
+
+What remains true and unrecovered: the notional cap still forgoes 24 % of
+the configured dollar budget (section 205), and that loss cannot be
+recovered at the stop floor. It can only be recovered at the cap itself,
+which section 205 declined on forward-evidence grounds and section 206
+repaired for the day the evidence arrives.

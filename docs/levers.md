@@ -4213,3 +4213,42 @@ the section numbers below point there.
   limit, it shows on all four samples, and what remains is measurement
   power, not direction. Preregister a statistic with the power to settle
   it — paired per trade over the signals both variants take.
+
+## 2026-09-11 (fifteenth run) — the stop floor, paired in dollars
+
+- **Lever:** stop logic — run 32 found 1.20 % positive on all four samples
+  in USD per day but missed t > 2 for lack of power. This supplies it:
+  paired in USD on trades both floors take, with trades only one takes
+  reported separately. Preregistered: paired diff positive on all four,
+  t > 2 on at least one and never below -2, added trades at mean USD >= 0
+  on all four, planned risk never above 3.00. Declared in advance as the
+  last attempt at the floor.
+- **Measurement:** `scripts/stop_floor_paired.py` — merged book, live
+  `calculate_position_size` so cap and increment are real, occupancy per
+  variant, trades matched by instrument and bar.
+
+  | sample | shared | paired USD | t | only-1.20 % | their mean USD |
+  |---|---|---|---|---|---|
+  | 365 d | 935 | +0.0201 | +1.34 | 152 | +0.0454 |
+  | 366–1,095 d | 2,013 | **-0.0110** | -1.09 | 287 | +0.0382 |
+  | 1,096–1,825 d | 1,792 | +0.0106 | +0.92 | 358 | +0.0263 |
+  | 1,826–2,555 d | 1,786 | +0.0157 | +1.58 | 262 | **-0.0737** |
+
+- **Result:** rejected on three of four conditions — (a) negative on
+  366–1,095, (b) best t +1.58, (c) added trades negative on the oldest
+  sample; only (d) holds. The two measurements disagree because run 32's
+  per-day figure mixes the cap effect with a composition effect: on
+  366–1,095 the trades only the live floor takes return -0.1232 USD each,
+  so dropping them lifts the daily number for reasons unrelated to the cap.
+  Paired, the cap effect alone reads +0.020 / -0.011 / +0.011 / +0.016 —
+  sign unstable. Mechanism: a wider floor buys 14 % more dollars per unit
+  of R and widens the target by the same proportion, so it costs R; the
+  two terms very nearly cancel. Section 136's conclusion reached again,
+  independently, in the other unit.
+- **Decision:** not built in — 1.05 % stays, and the question is closed.
+  Asked in R (136), USD per day (207) and paired USD (208), three
+  statistics, three times unsupported. No code change, no restart.
+  Section 208. What remains unrecovered: the notional cap still forgoes
+  24 % of the configured budget (run 30) and that loss cannot be taken
+  back at the stop floor — only at the cap, which run 30 declined on
+  forward-evidence grounds and run 31 repaired for the day it arrives.
