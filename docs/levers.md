@@ -3941,3 +3941,44 @@ the section numbers below point there.
   accepted since the builds, showing "noch kein Trade" while that set is
   empty rather than a misleading 0.00. Verified: dashboard regenerated,
   row renders, 0644, 58/58 tests green plus four new ones.
+
+## 2026-09-11 (eighth run) — ablation of today's three filters
+
+- **Lever:** all three of today's builds, tested in reverse — each removed
+  with the other two in force. Runs 13, 15 and 17 each measured an
+  addition with occupancy fixed on the live variant, which understates an
+  exclusion filter but cannot see whether an earlier filter still earns
+  its place, or whether the trades it refuses would be replaced by better
+  ones. Acceptance, deliberately asymmetric toward caution: a filter is
+  REMOVED only if its ablation is at least as good on all four samples and
+  significant on one; it STAYS if its ablation is worse on any sample;
+  inconclusive leaves it in place.
+- **Measurement:** `scripts/filter_ablation.py` — merged
+  one-position-per-instrument book, cap 8, occupancy resolved per variant
+  so a freed slot is available, router floor 30 and short blocks in force
+  throughout. R per calendar day.
+
+  | variant | 365 d | 366–1,095 d | 1,096–1,825 d | 1,826–2,555 d |
+  |---|---|---|---|---|
+  | **full** | **-0.0258** | **+0.0715** | **+0.0334** | **+0.0337** |
+  | -ceiling | -0.016 | -0.027 | **+0.045 (t +3.27)** | +0.005 |
+  | -floor | -0.039 | -0.010 | **-0.140 (t -2.08)** | -0.009 |
+  | -block | -0.034 | -0.035 (t -1.95) | -0.017 | -0.022 |
+
+- **Result:** the volatility floor and the instrument block are confirmed
+  under the stricter accounting — removing either is worse on all four
+  samples, and the floor costs 34 % of trades (2.84/day to 4.32) while
+  still being the better rule everywhere. The ADX ceiling does not pass
+  the same test: its removal is worse on the two newer samples and better
+  on the two older, significantly so on the third (t +3.27). Section 188's
+  case rested partly on fixed occupancy; with the slot freed, the trades
+  it refuses are replaced by worse ones on the recent year and better ones
+  on the older.
+- **Decision:** nothing changed — all three stay, since the ceiling's
+  ablation is worse on two samples and the rule does not withdraw a
+  four-sample decision on an inconclusive retest. No code change, no
+  restart. Section 201. Methodological point recorded for future runs:
+  fixed-occupancy paired tests measure the filter, merged-book per-day
+  tests measure the book; for a rule the first is fairer, for the
+  objective the second counts, and they can disagree. The ceiling is
+  flagged as the next question rather than quietly kept or dropped.

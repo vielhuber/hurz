@@ -6582,3 +6582,59 @@ onward instead of being diluted for a month.
 Neither change touches trading behaviour. Both are the kind of drift that
 sections 194 and 195 caught in comments — a constant or a metric left
 describing a system that no longer exists.
+
+## 201. Ablation of today's three filters: the floor and the block confirm, the ceiling does not
+
+Sections 188, 190 and 192 were each measured as an addition to the system
+as it stood at the time, with occupancy held fixed on the live variant —
+deliberately conservative for an exclusion filter, since a refused trade
+does not hand its slot to a later signal. That understates a filter, but
+it also cannot see the reverse: whether an earlier filter still earns its
+place once the later ones exist, and whether the trades it refuses would
+have been replaced by better ones.
+
+`scripts/filter_ablation.py` removes each filter in turn with the other
+two in force, on the merged one-position-per-instrument book with the cap
+at 8 and occupancy resolved per variant — so the slot a refusal frees is
+available, which is the realistic accounting for a per-day figure.
+
+| variant | 365 d | 366-1,095 d | 1,096-1,825 d | 1,826-2,555 d |
+|---|---|---|---|---|
+| **full (live)** | **-0.0258** | **+0.0715** | **+0.0334** | **+0.0337** |
+| -ceiling | -0.0419 (-0.016) | +0.0447 (-0.027) | **+0.0788 (+0.045, t +3.27)** | +0.0384 (+0.005) |
+| -floor | -0.0646 (-0.039) | +0.0615 (-0.010) | -0.1063 (-0.140, t -2.08) | +0.0245 (-0.009) |
+| -block | -0.0600 (-0.034) | +0.0366 (-0.035, t -1.95) | +0.0169 (-0.017) | +0.0114 (-0.022) |
+
+R per calendar day; the bracket is the difference from the full system.
+
+**The volatility floor and the instrument block are confirmed, this time
+with occupancy freed.** Removing either is worse on all four samples —
+the floor by 0.009 to 0.140 R a day, the block by 0.017 to 0.035 — and
+the floor's removal is significant on the third sample at t = -2.08. The
+floor costs 34 % of the trades (2.84 a day to 4.32 without it) and is
+still the better rule everywhere, which is the strongest form the finding
+of section 190 has taken.
+
+**The ADX ceiling does not survive the same test.** Its removal is worse
+on the two newer samples (-0.016, -0.027, neither significant) and better
+on the two older ones, significantly so on the third at **t = +3.27**.
+The preregistered rule keeps a filter unless its ablation is at least
+neutral on all four, so the ceiling stays — two samples are worse without
+it. But the honest reading is that it is the weakest of the three, and
+that section 188's evidence rested partly on the fixed-occupancy
+accounting: with the slot freed, the high-ADX trades it refuses are
+partly replaced by trades that are worse, on the recent year, and by
+trades that are better on the older ones.
+
+That is not a reason to withdraw it on this run — reversing a
+four-sample decision on an inconclusive retest is the pattern this log
+refuses in both directions. It is a reason to name it as the next
+question and to record the methodological point it exposes:
+fixed-occupancy paired tests measure the filter, merged-book per-day
+tests measure the book. For a filter, the first is the fairer test of the
+rule; for the objective, the second is the one that counts, and the two
+can disagree.
+
+Nothing changes. All three filters stay, two of them now confirmed under
+the stricter accounting, and the ceiling flagged for a dedicated re-test
+on the merged book rather than quietly kept or quietly dropped.
