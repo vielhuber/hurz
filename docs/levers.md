@@ -4585,3 +4585,37 @@ the section numbers below point there.
 - **Next:** the list's other half is still unpriced — 26 of the 55 live
   entries are operator pins that bypass ranking, eligibility and cost
   filters entirely.
+
+## 2026-09-11 (twenty-sixth run) — what the operator pins contribute
+
+- **Lever:** pair selection — 26 of the 55 live combinations are pins
+  that bypass every filter. Run 25 showed extra combinations mostly swap
+  which signal takes a slot, so the question is whether the pinned half
+  earns its place against the ranked half.
+- **Measurement:** walk-forward as in runs 22–25 at the live
+  configuration, three lists: live (ranked ∪ pins), ranked only, pins
+  only. The harness holds 40 of the 59 pins; the 4h and momentum pins lie
+  outside its universe.
+
+  | variant | combos | trades | pooled vs live | t |
+  |---|---|---|---|---|
+  | **live (both)** | 56.3 | **5,908** | — | — |
+  | ranked only | 39.0 | 4,848 (−17.9 %) | +0.0173 | +0.41 |
+  | pins only | 40.0 | 4,963 (−16.0 %) | +0.0016 | +0.03 |
+
+- **Result:** dropping the pins is nominally better but fails both
+  conditions — t +0.41 and a loss on the 366–1095 d sample. The finding
+  is the flatness: three genuinely different lists, differing by 18 % in
+  trade count, land within 0.017 USD/day of each other.
+- **Decision:** pins stay, nothing built. No code change, no restart.
+  Section 219.
+- **Axis closed.** Runs 21–26 measured efficiency as a refusal and as a
+  reranking, the list length downward and upward, the eligibility
+  thresholds and now the composition. Six null results with one cause:
+  the concurrent cap of 8 and one-position-per-pair bound the book, and
+  the marginal trade is worth about zero (section 85 measured it at
+  −0.026 R from the other side). **The next lever must leave the
+  selection axis.** The only measured change that moved dollars is the
+  notional cap at +10.9 % (run 19), refused on forward-evidence grounds
+  in run 30 — that refusal, not the selector, is what holds the figure
+  down.

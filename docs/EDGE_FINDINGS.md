@@ -7508,3 +7508,64 @@ What remains unmeasured on this axis is not a knob but the list's other
 half: **26 of the 55 live entries are operator pins** that bypass ranking,
 eligibility and cost filters entirely. Their contribution has never been
 priced.
+
+## 219. What the pins contribute: three different lists, the same daily figure
+
+Section 218 left one half of the active list unpriced — 26 of the 55 live
+combinations are operator pins that bypass every selection filter.
+Section 160 established what they are: a cost-chosen universe of
+trend-following combos on instruments whose spread clears the cost
+ceiling, deliberately not a list of past winners. Whether that premise
+pays has never been measured against the alternative.
+
+Three lists on the same walk-forward at the live configuration. The
+harness covers the 1h trend-following universe and holds 40 of the 59
+pins; the 4h and momentum pins fall outside it.
+
+| sample | **live (both)** | ranked only | pins only |
+|---|---|---|---|
+| 0–365 d | +0.0489 | +0.1644 | **+0.1716** |
+| 366–1095 d | +0.2076 | +0.1698 | **+0.2251** |
+| 1096–1825 d | +0.1932 | **+0.2202** | +0.1672 |
+| 1826–2555 d | +0.3214 | **+0.3462** | +0.2256 |
+| pooled diff | — | +0.0173 | +0.0016 |
+| paired t | — | +0.41 | +0.03 |
+| combos | 56.3 | 39.0 | 40.0 |
+| trades | 5,908 | 4,848 (−17.9 %) | 4,963 (−16.0 %) |
+
+Dropping the pins is nominally better — +0.017 USD per day — but at
+t +0.41, and it loses on the 366–1095 d sample, so neither acceptance
+condition is met and the pins stay. That is also the conservative
+outcome: removing them would be section 214's confound, a variant that
+trades 18 % less.
+
+**The result is not the +0.017; it is the flatness.** The ranking's 39
+combinations, the pins' 40 and their union of 56 are three genuinely
+different lists — the pins are chosen structurally, the ranking
+statistically, and 17.4 pins per block are combinations the ranking would
+not have taken. They differ by 18 % in trade count. They produce daily
+figures within 0.017 USD of each other, which is a twentieth of the
+pooled level and well inside one standard error.
+
+**So the composition of the active list does not decide the daily
+figure.** That closes an axis this series has now worked through
+systematically: efficiency as a refusal (214) and as a reranking (215),
+the list's length downward (216) and upward (218), its eligibility
+thresholds (217), and now its composition. Six measurements, six null
+results, and the reason is the same each time — the concurrent cap of 8
+and the one-position-per-pair rule bound the open book, so a change in
+the list mostly swaps which signal takes a slot, and the marginal signal
+is worth approximately nothing.
+
+That last clause is the standing fact of this system: the marginal trade
+has an expectancy indistinguishable from zero. Section 85 found the same
+from the other side — the entries the concurrent cap refuses read −0.026
+and −0.034 R. Nothing that rearranges *which* or *how many* trades can
+move a daily figure built from trades that are individually worth zero.
+
+**Decision: pins stay, nothing built.** The next lever has to leave this
+axis. The only change this series has measured that moved dollars
+materially is on the size axis — the notional cap at +10.9 % (212) — and
+it was refused on forward-evidence grounds (run 30), not on measurement.
+That refusal, not the selection machinery, is where the daily figure is
+actually held down.
