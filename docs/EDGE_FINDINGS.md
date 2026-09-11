@@ -7126,3 +7126,46 @@ What this run really corrects is a habit rather than a number: section 205
 inferred a cause from a correlation — planned risk is low, the cap binds,
 therefore the cap explains the shortfall — without decomposing it. The
 first live trade that contradicted the inference was enough to expose it.
+
+## 212. The cap lever priced against real broker increments: +10.9 %, and 400 adds nothing over 300
+
+Section 211 decomposed the risk shortfall and put the notional cap at 60 %
+of it, worth +11.8 % of dollar gain. Checking that against the broker's
+actual size constraints produced a methodological detour worth recording,
+because the first attempt was wrong.
+
+Inferring each instrument's size step as the greatest common divisor of
+its observed trade sizes gave +2.7 % for a cap raise — a result that would
+have retired the lever. The inference was systematically too coarse:
+EURUSD's real step is 100 against 200 inferred, COPPER's is 1 against 36,
+DE40's 0.001 against 0.008. A GCD over a handful of sizes measures the
+sizes, not the step, and with few observations it can only overestimate.
+
+Re-run against `order_constraints` fetched from the venue, over 44
+accepted entries since 2026-07-01:
+
+| notional cap | mean realised risk | vs live | unchanged trades |
+|---|---|---|---|
+| **250 (live)** | **2.169 USD** | — | — |
+| 300 | 2.405 USD | **+10.9 %** | 22 of 44 |
+| 400 | 2.425 USD | +11.8 % | 22 of 44 |
+
+Section 211's figure is confirmed: the cap is worth about +11 %, not the
++24 % of section 205. Two further things the real constraints show. Raising
+the cap to 400 adds 0.9 points over 300, because past 300 the risk term
+binds first on most instruments — 300 is the whole of the available gain.
+And on half the trades a raise changes nothing at all, since the increment
+is coarser than the difference it would create.
+
+Even at cap 300 the realised risk is 2.405 against a configured 3.00, a
+19.8 % shortfall that is increment rounding and cannot be recovered
+(section 211).
+
+The lever is unchanged in status — section 205 declined it on
+forward-evidence grounds and that reasoning is untouched — but it is now
+priced correctly and for the right reason. The sequence is worth keeping
+as a record: section 205 inferred the cause from a correlation and
+overstated it at 24 %, section 211 decomposed it to 11.8 %, an inferred
+step size then understated it at 2.7 %, and the venue's own numbers
+settled it at 10.9 %. Three of those four were produced in this session,
+and only the last one asked the broker.

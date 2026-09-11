@@ -4361,3 +4361,36 @@ the section numbers below point there.
   habit more than a number — run 30 inferred a cause from a correlation
   without decomposing it, and the first contradicting live trade was
   enough to expose that.
+
+## 2026-09-11 (nineteenth run) — the cap lever against real broker increments
+
+- **Lever:** position sizing — run 38 put the notional cap at 60 % of the
+  risk shortfall, worth +11.8 %. This verifies that against the venue's
+  actual size constraints rather than against assumed ones.
+- **A wrong turn, recorded:** inferring each instrument's step as the GCD
+  of its observed sizes gave +2.7 % — a figure that would have retired the
+  lever. The inference is systematically too coarse: EURUSD's real step is
+  100 against 200 inferred, COPPER's 1 against 36, DE40's 0.001 against
+  0.008. A GCD over a handful of sizes measures the sizes, not the step.
+- **Measurement:** `order_constraints` fetched per instrument, sizing
+  arithmetic replayed over 44 accepted entries since 2026-07-01.
+
+  | cap | mean realised risk | vs live | unchanged |
+  |---|---|---|---|
+  | **250 (live)** | **2.169 USD** | — | — |
+  | 300 | 2.405 USD | **+10.9 %** | 22 of 44 |
+  | 400 | 2.425 USD | +11.8 % | 22 of 44 |
+
+- **Result:** run 38's figure confirmed — the cap is worth about +11 %, not
+  run 30's +24 %. Raising to 400 adds 0.9 points over 300 because past 300
+  the risk term binds first, so 300 is the whole available gain; and on
+  half the trades a raise changes nothing because the increment is coarser
+  than the difference. Even at 300 the realised risk is 2.405 against 3.00
+  — a 19.8 % shortfall that is rounding and unrecoverable.
+- **Decision:** nothing changed; run 30's refusal stands untouched on
+  forward-evidence grounds, but the lever is now priced correctly. No code
+  change, no restart. Section 212. Worth keeping as a record of method:
+  run 30 inferred the cause from a correlation and overstated it at 24 %,
+  run 38 decomposed it to 11.8 %, an inferred step size understated it at
+  2.7 %, and the venue's own numbers settled it at 10.9 % — three of those
+  four figures came from this session, and only the last asked the broker.
