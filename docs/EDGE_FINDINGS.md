@@ -7569,3 +7569,63 @@ materially is on the size axis — the notional cap at +10.9 % (212) — and
 it was refused on forward-evidence grounds (run 30), not on measurement.
 That refusal, not the selection machinery, is where the daily figure is
 actually held down.
+
+## 220. The book is not full — and that removes the explanation sections 218 and 219 gave
+
+Sections 214 to 219 produced six null results on the active list and
+explained all six the same way: the concurrent cap of 8 and the
+one-position-per-pair rule bound the open book, so a change to the list
+swaps which signal takes a slot rather than adding one. Section 219 put
+that explanation in its strongest form and closed the axis on it.
+
+The explanation has a premise, and the premise is false.
+
+**Live.** Sampled hourly over the last 30 days, the journal's accepted
+entries put the mean occupancy at **4.83 of 8**. The book is at capacity
+in 3.9 % of hours and empty in 0.3 %. Over the whole live history the
+mean is 3.59.
+
+**In the harness.** Occupancy measured at the moment of every candidate
+entry, at the live configuration: **3.21 of 8**, with 208 entries refused
+by the cap against 4,848 taken — 4 %. The two agree: neither production
+nor the backtest runs a full book.
+
+So the cap is not what flattened the results, and lifting it proves it:
+
+| | N=40 | N=60 | N=all | refused by cap |
+|---|---|---|---|---|
+| **cap 8 (live)** | +0.1836 | −0.0162 | −0.0162 | 208 |
+| **cap 24** | +0.1878 | −0.0099 | −0.0099 | 0 |
+
+(figures for N=60 and N=all are the pooled difference against that row's
+own N=40; the first column is that baseline's pooled level.)
+
+With capacity free the longer list is still worth −0.0099 USD per day at
+t −0.37. Removing the constraint removes 208 refusals and changes
+essentially nothing, so the constraint was not doing the work.
+
+**What actually holds the figure down.** The correct statement is the
+narrower one section 85 made from the other side and 219 buried under the
+capacity story: *the marginal trade has an expectancy indistinguishable
+from zero*. The entries the cap refuses read −0.026 and −0.034 R (85).
+The combinations at ranks 41 to 60 add 6.8 % more trades and no dollars
+(218). Three structurally different lists differing by 18 % in trade
+count land within 0.017 USD/day of each other (219). None of that is
+about slots. It is about the trades themselves being worth nothing at the
+margin, whether or not there is room for them.
+
+**Decision: nothing built.** The lever — a longer list, given capacity —
+fails both conditions at both caps. The cap stays at 8; this measurement
+is an argument for leaving it alone, not for raising it, since lifting it
+buys 58 trades and no dollars while adding exposure.
+
+**Corrections to 218 and 219.** Both attribute the null results to a
+capacity constraint that does not bind, in the harness or in production.
+Their measurements stand — the numbers were not wrong — but the mechanism
+they offer is refuted here, and the conclusion 219 drew from it ("the
+next lever must leave this axis, because the book is bounded") needs
+restating without the false cause: the next lever must leave this axis
+because *no rearrangement of which or how many trades can move a figure
+built from trades that are worth zero at the margin*. That is a stronger
+constraint than the one they named, not a weaker one, and it rules out
+the capacity direction as well.

@@ -4619,3 +4619,37 @@ the section numbers below point there.
   notional cap at +10.9 % (run 19), refused on forward-evidence grounds
   in run 30 — that refusal, not the selector, is what holds the figure
   down.
+
+## 2026-09-11 (twenty-seventh run) — a longer list given free capacity
+
+- **Lever:** pair selection under a lifted cap — runs 25 and 26 blamed
+  their null results on a full book. That premise is testable, and the
+  lever it implies is a longer list once capacity is free. Raising the
+  list length loosens no risk limit; only the simulation's cap was lifted,
+  to find out whether capacity was the cause.
+- **Measurement:** occupancy first, from both sides. Live, hourly over
+  30 days: mean 4.83 of 8, at capacity in 3.9 % of hours. Harness, at
+  every candidate entry: 3.21 of 8, 208 refusals against 4,848 trades.
+  Then the list sweep at cap 8 and cap 24.
+
+  | | N=60 vs N=40 | t | refused by cap |
+  |---|---|---|---|
+  | cap 8 (live) | −0.0162 | −0.61 | 208 |
+  | cap 24 | −0.0099 | −0.37 | 0 |
+
+- **Result:** both conditions fail at both caps. Lifting the cap removes
+  every refusal and changes the answer by a hundredth of a cent per day.
+  The book was never full — not live, not in the harness — so the
+  capacity explanation of runs 25 and 26 is refuted.
+- **Decision:** nothing built, cap stays at 8. Lifting it buys 58 trades
+  and no dollars while adding exposure, so this is an argument for
+  leaving it alone. No code change, no restart. Section 220.
+- **The correction matters more than the lever.** Runs 25 and 26 measured
+  correctly but explained wrongly. The real constraint is that the
+  marginal trade is worth about zero — section 85 measured the refused
+  entries at −0.026 R, run 25 found 6.8 % more trades and no dollars,
+  run 26 found three different lists within 0.017 USD/day. No
+  rearrangement of which or how many trades can move a figure built from
+  trades worth nothing at the margin. That rules out the capacity
+  direction too, and leaves per-trade expectancy and per-trade dollars as
+  the only axes that can still matter.
