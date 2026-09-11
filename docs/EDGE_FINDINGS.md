@@ -7455,3 +7455,56 @@ costs throughput survives that; what does not survive is the claim that
 40 equals "everything eligible" live. Under the live thresholds the cut
 very nearly binds, which makes **raising N above 40 an untested lever**
 and the first candidate for the next run.
+
+## 218. The list length under the live filter: 40 sits on a plateau, in both directions
+
+Section 217 closed with the one thing 216 had not measured: 216's sweep
+of the list length ran under the strict eligibility filter, and under the
+live one the cut at 40 nearly binds, so a longer list had never been
+priced. This measures it, with everything except N at the live
+configuration, the `pf >= 0.8 / eR >= -0.2` filter included.
+
+The pool is bigger than 217's capped reading suggested. Uncapped it
+averages **43.3** combinations per block (min 33, max 57), and the cut at
+40 actually binds in **15 of 24 blocks** — so there was real room for a
+longer list to matter.
+
+| sample | **N=40 (live)** | N=50 | N=60 | N=all |
+|---|---|---|---|---|
+| 0–365 d | **+0.1736** | +0.1035 | +0.1035 | +0.1035 |
+| 366–1095 d | +0.1718 | **+0.1855** | +0.1749 | +0.1749 |
+| 1096–1825 d | **+0.2308** | +0.2169 | +0.2169 | +0.2169 |
+| 1826–2555 d | **+0.3577** | +0.3474 | +0.3474 | +0.3474 |
+| pooled diff | — | −0.0125 | −0.0162 | −0.0162 |
+| paired t | — | −0.49 | −0.61 | −0.61 |
+| trades | 4,848 | 5,163 (+6.5 %) | 5,180 (+6.8 %) | 5,180 (+6.8 %) |
+
+Neither condition is met, and unlike the tightening of 217 this is not a
+consistent sign either: one sample gains, three give a little back, and
+the pooled difference is a fifth of a standard error from zero. Extending
+the list is neutral.
+
+**What that says about the throughput story.** Sections 198 and 216 both
+concluded the daily figure is throughput-bound, and the naive reading of
+that is "more trades, more dollars". Here throughput rises 6.5 % and the
+dollar figure does not move. The combinations at ranks 41 to 50 do trade,
+and what they earn is indistinguishable from nothing.
+
+The reason is that they do not add to the book so much as crowd it. The
+concurrent cap of 8 and the one-position-per-pair rule are what bound the
+open book, and once the list is long enough to keep those filled, another
+combination mostly changes *which* signal takes a slot, not how many
+slots there are. Shortening past that point removes trades the book
+cannot replace, which is what 216 measured; lengthening past it swaps one
+marginal entry for another, which is what this measures.
+
+**Decision: not built. The list length is exhausted as a lever.** 40 sits
+on a plateau: measurably worse below it (216, −0.06 to −0.17 USD/day),
+flat above it, under the filter the bot actually uses. Together with 217,
+which fixed the thresholds, the selector's two size knobs are now both
+measured and both stay where they are.
+
+What remains unmeasured on this axis is not a knob but the list's other
+half: **26 of the 55 live entries are operator pins** that bypass ranking,
+eligibility and cost filters entirely. Their contribution has never been
+priced.

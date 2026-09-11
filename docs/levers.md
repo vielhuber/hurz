@@ -4554,3 +4554,34 @@ the section numbers below point there.
   under an eligibility filter the bot does not use, and under the live
   one the cut very nearly binds. **Raising N above 40 is therefore
   untested and is the next run's lever.**
+
+## 2026-09-11 (twenty-fifth run) — a longer active list, under the live filter
+
+- **Lever:** pair selection — run 24 showed run 23's length sweep had run
+  under the strict eligibility filter, so a list longer than the live 40
+  had never been measured under the filter the bot uses. Throughput can
+  only rise here, so run 21's confound cannot appear.
+- **Measurement:** walk-forward as in runs 22–24, live filter
+  (pf ≥ 0.8, eR ≥ −0.2), 24 out-of-sample blocks, N in 40 / 50 / 60 / all.
+
+  | N | pooled vs live 40 | t | trades |
+  |---|---|---|---|
+  | **40 (live)** | — | — | **4,848** |
+  | 50 | −0.0125 | −0.49 | 5,163 (+6.5 %) |
+  | 60 | −0.0162 | −0.61 | 5,180 (+6.8 %) |
+  | all | −0.0162 | −0.61 | 5,180 (+6.8 %) |
+
+- **Result:** neither condition met, and the effect is flat rather than
+  negative — one sample gains, three give a little back. The uncapped
+  pool averages 43.3 per block and the cut binds in 15 of 24 blocks, so
+  the room existed; the combinations at ranks 41–50 simply earn nothing.
+  Throughput rises 6.5 % with no dollar effect, which qualifies the
+  throughput story of runs 18 and 23: the concurrent cap of 8 and the
+  one-position-per-pair rule bound the open book, so a longer list swaps
+  marginal entries rather than adding them.
+- **Decision:** verworfen. 40 sits on a plateau — worse below, flat above.
+  With run 24 fixing the thresholds, both of the selector's size knobs
+  are now measured and both stay. No code change, no restart. Section 218.
+- **Next:** the list's other half is still unpriced — 26 of the 55 live
+  entries are operator pins that bypass ranking, eligibility and cost
+  filters entirely.
