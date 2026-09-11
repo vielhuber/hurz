@@ -17,6 +17,7 @@ Configuration via `data/feature_flags.json` (re-uses the existing
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import sys
 from datetime import datetime, timezone
@@ -149,6 +150,22 @@ async def _refresh_pairs(top_n: int, min_trades: int, platform: Optional[str] = 
     return proc.returncode == 0
 
 
+def _list_written_today(platform: str, now: datetime) -> bool:
+    """Whether the active-pairs list on disk carries today's UTC date.
+
+    A missing, unreadable or undated file counts as not written, so the
+    scheduler repairs rather than assumes."""
+    from app.spot_trading.pair_selector import _platform_active_pairs_path
+    try:
+        with open(_platform_active_pairs_path(platform)) as handle:
+            stamp = json.load(handle).get("generated_at")
+        return datetime.strptime(
+            stamp, "%Y-%m-%dT%H:%M:%SZ"
+        ).replace(tzinfo=timezone.utc).date() == now.date()
+    except (OSError, ValueError, TypeError, AttributeError, json.JSONDecodeError):
+        return False
+
+
 async def nightly_spot_scheduler(
     stop_event: asyncio.Event, *,
     platform: str,
@@ -184,7 +201,19 @@ async def nightly_spot_scheduler(
     # If we start already past today's target, mark today done so a restart
     # after HH:MM doesn't fire an immediate catch-up — first fire is the next
     # day's HH:MM (preserves the original next-fire semantics).
-    last_fired_date = now.date() if (now.hour, now.minute) >= (hour, minute) else None
+    #
+    # Unless today's refresh never actually landed. The original rule reads
+    # the clock, not the result, so a restart that interrupts a running
+    # refresh leaves the active list a day stale with nothing to repair it
+    # until tomorrow — observed 2026-09-11, when a restart seven minutes
+    # into a refresh that normally takes twenty-three left the list holding
+    # instruments the block list had since retired (EDGE_FINDINGS 209).
+    # Checking the persisted list instead still fires at most once per UTC
+    # day however often the process restarts, which is what the original
+    # comment was protecting.
+    last_fired_date = None
+    if (now.hour, now.minute) >= (hour, minute) and _list_written_today(platform, now):
+        last_fired_date = now.date()
     while not stop_event.is_set():
         try:
             await asyncio.wait_for(stop_event.wait(), timeout=_POLL_SECONDS)
