@@ -149,4 +149,7 @@ async def main():
     print(f"net   E[R] per trade {net_r.mean():+.4f}  t {t_stat(net_r):+.2f}")
     print(f"cost  per trade      {cost_r.mean():.4f} R "
           f"({cost_r.mean()/abs(gross_r.mean()) if gross_r.mean() else float('nan'):.2f}x the gross edge)")
-asyncio.run(main())
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

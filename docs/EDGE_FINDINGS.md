@@ -7687,3 +7687,60 @@ edge, a small position and a modest frequency. Any future work that
 claims to raise it must say which of those three it multiplies, and by
 how much — and no measurement in this document has produced a factor
 above about 1.1 on any of them.
+
+## 222. The ceiling of this strategy family: 0.89 USD a day, 61x short of the objective
+
+Runs 21 to 28 measured eight levers and moved none of the three factors
+that make the daily figure by more than about a tenth. Section 221 put
+the book at 0.0276 R × 2.2 USD × 2.7 trades ≈ 0.16 USD a day. The
+question that follows is not which lever comes next but whether any
+combination of them reaches 50 EUR a day at all. This measures that
+instead of arguing it.
+
+Each factor is pushed to a bound no implementation could beat:
+
+- **frequency** — every gated, sizeable signal in the universe is taken,
+  with no concurrent cap, no one-position-per-pair rule, no ranking and
+  no active list: **12.57 a day** against the book's 2.7,
+- **expectancy** — the gross outcome with costs at zero, as if the venue
+  charged nothing: **+0.0236 R** over all 32,063 signals, t +6.26,
+- **size** — the full 3.00 USD target risk on every trade, as if neither
+  the broker's increment nor the notional cap ever rounded it down.
+
+    ceiling = 12.57 × 0.0236 × 3.00 = **+0.889 USD per day**
+    objective = 50 EUR = 54.00 USD per day (at 1.08 USD/EUR)
+    **shortfall at the ceiling: 61×**
+
+Net of costs the same population yields +0.436 USD a day; at the realised
+mean risk of 2.35 USD rather than the full budget, +0.697.
+
+| sample | signals | per day | gross R | USD/day at the bound |
+|---|---|---|---|---|
+| 0–365 d | 4,478 | 12.27 | +0.0018 | +0.065 |
+| 366–1095 d | 10,020 | 13.74 | +0.0181 | +0.748 |
+| 1096–1825 d | 8,828 | 12.11 | +0.0342 | +1.242 |
+| 1826–2555 d | 8,719 | 11.96 | +0.0308 | +1.106 |
+
+Note the first row. Over the last year the *unselected* signal is worth
++0.0018 R gross — indistinguishable from zero. The selection machinery
+of runs 21 to 28 was being asked to find structure in a population that
+currently has none; the 0.0276 R the book earns comes from selection
+working on a raw edge that has decayed to nothing in the recent sample.
+
+**What the objective would require.** At this frequency and this size,
+E[R] would have to be **1.43 R a trade** — sixty times the measured gross
+edge, and a figure no trend-following book produces. Turned the other
+way, at the book's own expectancy and frequency the objective needs about
+725 USD of risk per trade against the 3.00 USD budgeted, so the account
+would have to be roughly two hundred times larger. Section 195 reached
+the same wall from the sizing side at 93×.
+
+**Decision: nothing built, and the search for a lever inside this family
+is closed.** The daily figure can be moved between 0.15 and at most 0.89
+USD by measures that are not all tradeable — the cap exists for exposure
+and the rounding belongs to the venue. It cannot be moved to 54. Raising
+it further requires one of three things this document cannot supply by
+measurement: materially more capital at the same risk fraction, a
+different strategy family with an expectancy an order of magnitude
+higher, or a lower objective. That is a decision for the operator, not a
+parameter in this repository.

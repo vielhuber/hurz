@@ -4684,3 +4684,36 @@ the section numbers below point there.
 - **Decision:** nothing built, no restart. Section 221. Any future lever
   must name which of expectancy, size or frequency it multiplies, and by
   how much; nothing in 221 sections has produced a factor above ~1.1.
+
+## 2026-09-11 (twenty-ninth run) — the ceiling of the family, measured
+
+- **Lever:** none left to test individually — this measures the bound on
+  all three factors at once, so the question "which lever next" can be
+  answered rather than repeated.
+- **Measurement:** each factor pushed past any implementable setting.
+  Frequency: every gated, sizeable signal, no cap, no per-pair rule, no
+  list — 12.57/day against the book's 2.7. Expectancy: gross, costs at
+  zero — +0.0236 R over 32,063 signals, t +6.26. Size: the full 3.00 USD
+  budget, no rounding, no cap.
+
+  | | book | bound |
+  |---|---|---|
+  | frequency | 2.7 /day | 12.57 /day |
+  | expectancy | +0.0276 R | +0.0236 R gross |
+  | size | ~2.20 USD | 3.00 USD |
+  | **USD/day** | **+0.15** | **+0.889** |
+
+- **Result:** the ceiling is 0.889 USD/day against an objective of 54.00
+  USD/day — **61× short**, with every constraint removed and costs at
+  zero. The objective would need E[R] = 1.43 R a trade, sixty times the
+  measured gross edge, or an account roughly 200× larger at the same risk
+  fraction. Run 7 reached the same wall from the sizing side at 93×.
+- **A finding inside the finding:** over the last year the unselected
+  signal is worth +0.0018 R gross — zero. Runs 21–28 were asking the
+  selection machinery to order a population that currently has no edge to
+  order.
+- **Decision:** nothing built, no restart. Section 222. The search for a
+  lever inside this strategy family is closed: the daily figure lives
+  between 0.15 and at most 0.89 USD and cannot be tuned to 54. Moving it
+  requires materially more capital, a different strategy family, or a
+  lower objective — an operator decision, not a parameter here.
