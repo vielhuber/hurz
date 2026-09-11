@@ -3982,3 +3982,49 @@ the section numbers below point there.
   tests measure the book; for a rule the first is fairer, for the
   objective the second counts, and they can disagree. The ceiling is
   flagged as the next question rather than quietly kept or dropped.
+
+## 2026-09-11 (ninth run) — the ADX ceiling's value on the merged book
+
+- **Lever:** regime filter — run 26 flagged the ceiling as the weakest of
+  the three builds and identified the accounting as the reason: section
+  188 chose 50 with occupancy fixed, but on the merged book a refused
+  trade hands its slot onward. The value itself had never been swept
+  there. Ceilings 45 / 50 / 55 / 60 / none. Acceptance: at least parity on
+  all four samples, t > 2 on at least one, ship the qualifying value
+  closest to 50; nothing qualifying leaves 50 in place.
+- **Measurement:** `scripts/adx_ceiling_merged.py` — merged
+  one-position-per-instrument book, cap 8, occupancy per variant, router
+  floor 30, volatility floor and instrument block in force. R per calendar
+  day, differences from the live 50.
+
+  | ceiling | 365 d | 366–1,095 d | 1,096–1,825 d | 1,826–2,555 d |
+  |---|---|---|---|---|
+  | 45 | +0.017 | **-0.001** | +0.003 | +0.001 |
+  | **50 (live)** | — | — | — | — |
+  | 55 | -0.017 | -0.006 | +0.017 | +0.005 |
+  | 60 | -0.011 | -0.013 | +0.035 (t +2.76) | +0.009 |
+  | none | -0.013 | -0.027 | +0.045 (t +3.24) | +0.004 |
+
+- **Result:** nothing qualifies. 55, 60 and none lose on both newer
+  samples; 45 is better on three and misses parity on the second by
+  0.0014 R a day at t = -0.10 — noise, and still a miss. The rule is not
+  relaxed after the fact. The reason no value can be determined is that
+  the slope reverses: tighter is best on the recent year, looser on
+  1,096–1,825 (removal best at t +3.24), 50 optimal on 366–1,095, 60
+  marginally ahead on the oldest — four samples, four preferred values,
+  the extremes significant in opposite directions.
+- **Decision:** not changed — 50 stays, but its justification is now "the
+  value that loses least when the samples disagree" rather than "the value
+  the evidence picked": never best, never far from best, worst case
+  0.017 R a day against 0.045 for removal. That is a weaker claim than
+  section 188 made and the accurate one. No code change, no restart.
+  Section 202. Run 26's finding is confirmed, not overturned — this filter
+  rests on a disagreement between regimes, and the right response is the
+  middle value, not a fitted one.
+- **Operational check this run:** no entry had been booked since the first
+  build 13 hours earlier, so the entry path was tested directly rather
+  than assumed — 18 of 20 live 1h combinations produced no fresh signal on
+  the last bar, two were the existing GOLD short block, and none was
+  refused by the new filters. Signal scarcity, not a filter defect. The
+  instrument block correctly refuses 6 of 63 combinations still listed by
+  the pre-build nightly selector.

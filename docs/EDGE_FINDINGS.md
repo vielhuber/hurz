@@ -6638,3 +6638,51 @@ can disagree.
 Nothing changes. All three filters stay, two of them now confirmed under
 the stricter accounting, and the ceiling flagged for a dedicated re-test
 on the merged book rather than quietly kept or quietly dropped.
+
+## 202. The ADX ceiling's value on the merged book: the samples disagree about the direction, so 50 stays
+
+Section 201 flagged the ceiling as the weakest of the three filters
+shipped on 2026-09-10 and named the reason: section 188 chose 50 with
+occupancy fixed on the live variant, which is the fair test of a rule in
+isolation but not the accounting the objective uses. On the merged book a
+refused trade hands its slot onward, so the value right for the rule need
+not be the value right for the book. This sweeps the value itself there —
+45 / 50 / 55 / 60 / none, cap 8, occupancy per variant, volatility floor
+and instrument block in force.
+
+R per calendar day, difference from the live 50 in brackets:
+
+| ceiling | 365 d | 366-1,095 d | 1,096-1,825 d | 1,826-2,555 d |
+|---|---|---|---|---|
+| 45 | -0.0148 (+0.017) | +0.0713 (**-0.001**) | +0.0367 (+0.003) | +0.0345 (+0.001) |
+| **50 (live)** | **-0.0317** | **+0.0727** | **+0.0334** | **+0.0332** |
+| 55 | -0.0488 (-0.017) | +0.0666 (-0.006) | +0.0507 (+0.017) | +0.0382 (+0.005) |
+| 60 | -0.0428 (-0.011) | +0.0599 (-0.013) | +0.0680 (+0.035, t +2.76) | +0.0423 (+0.009) |
+| none | -0.0451 (-0.013) | +0.0456 (-0.027) | +0.0781 (+0.045, t +3.24) | +0.0372 (+0.004) |
+
+Nothing qualifies. The preregistered rule asks for at least parity on all
+four samples, and every variant fails somewhere: 55, 60 and none lose on
+both newer samples, and 45 — the best of them, better on three — misses by
+0.0014 R a day on the second sample at t = -0.10. That is noise, and it is
+still a miss; the rule is not relaxed after the fact to admit the variant
+it happens to favour.
+
+What the table shows is why no value can be determined. The slope
+reverses between samples. On the recent year tighter is better (45 is the
+best variant); on days 1,096-1,825 looser is better and removing the
+ceiling entirely is the best variant at t = +3.24; on 366-1,095 the live
+50 is the optimum; on the oldest sample 60 leads marginally. Four samples,
+four different preferred values, with the two extremes significant in
+opposite directions.
+
+50 stays, and its justification changes from "the value the evidence
+picked" to "the value that loses least when the samples disagree" — it is
+never the best and never far from the best, with a worst-case cost of
+0.017 R a day against 0.045 for removal. That is a weaker claim than
+section 188 made, and it is the accurate one.
+
+Section 201's finding is confirmed rather than overturned: removing the
+ceiling is genuinely right for the 1,096-1,825 sample and genuinely wrong
+for the two newer ones. Both runs now say the same thing — this filter
+rests on a disagreement between regimes, not on a stable effect, and the
+right response to that is the middle value, not a fitted one.
