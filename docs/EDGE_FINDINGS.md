@@ -7592,13 +7592,13 @@ nor the backtest runs a full book.
 
 So the cap is not what flattened the results, and lifting it proves it:
 
-| | N=40 | N=60 | N=all | refused by cap |
+| | N=60 vs N=40 | N=all vs N=40 | paired t | refused by cap |
 |---|---|---|---|---|
-| **cap 8 (live)** | +0.1836 | −0.0162 | −0.0162 | 208 |
-| **cap 24** | +0.1878 | −0.0099 | −0.0099 | 0 |
+| **cap 8 (live)** | −0.0162 | −0.0162 | −0.61 | 208 |
+| **cap 24** | −0.0099 | −0.0099 | −0.37 | 0 |
 
-(figures for N=60 and N=all are the pooled difference against that row's
-own N=40; the first column is that baseline's pooled level.)
+(pooled USD per calendar day against that row's own N=40 baseline; the
+baseline's recent-year level is +0.1736 at cap 8 and +0.2079 at cap 24.)
 
 With capacity free the longer list is still worth −0.0099 USD per day at
 t −0.37. Removing the constraint removes 208 refusals and changes
