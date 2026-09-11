@@ -4456,3 +4456,32 @@ the section numbers below point there.
   in that year.
 - **Decision:** verworfen. No code change, no restart. The measurement
   script is kept. Section 214.
+
+## 2026-09-11 (twenty-second run) — efficiency-weighted candidate ranking
+
+- **Lever:** pair selection — the last standing version of the efficiency
+  idea. Not a refusal (that was run 21, rejected) but a reordering: the
+  live composite score `eR * log1p(n) * pf` multiplied by the
+  combination's dollar efficiency. The active list keeps its size, so
+  throughput is held constant by construction.
+- **Measurement:** walk-forward over 2,555 days, rank on the trailing
+  365 d, trade the next 90 d with the top ten, 24 out-of-sample blocks,
+  23 instruments, 32,063 gated and sized signals, USD per calendar day.
+
+  | sample | live rank | eff-weighted | diff | t |
+  |---|---|---|---|---|
+  | 0–365 d | +0.0833 | +0.0810 | −0.0023 | −0.09 |
+  | 366–1095 d | +0.0094 | +0.0365 | +0.0271 | +1.37 |
+  | 1096–1825 d | +0.0022 | +0.0111 | +0.0089 | +0.83 |
+  | 1826–2555 d | +0.0684 | +0.0498 | −0.0185 | −1.44 |
+  | pooled | +0.0349 | +0.0396 | +0.0047 | +0.56 |
+
+- **Result:** (a) fails, two samples up and two down; (b) fails, best t
+  +1.37; (c) holds at −1.0 % throughput. The reason is mechanical: the
+  two top-ten lists overlap by **97 %** across the 24 blocks. The
+  composite score already selects the well-stepped instruments, and the
+  inefficient ones — GBPJPY at 47 %, UK100 at 50 % — rarely reach the top
+  ten anyway. There is nothing for efficiency to reorder.
+- **Decision:** verworfen, and the efficiency line is closed with it:
+  run 20 measured the spread, run 21 refused on it, run 22 reranked on
+  it. No code change, no restart. Section 215.

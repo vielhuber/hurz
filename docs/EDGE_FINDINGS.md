@@ -7278,3 +7278,51 @@ section 174's half-out-at-+1-R in different clothing — the recent year
 likes it and the older years pay for it. The persisting property is real
 and section 213 stands; what does not follow from it is that refusing the
 inefficient instruments earns anything.
+
+## 215. Ranking the selector by dollars instead of R: the top ten barely move
+
+Sections 213 and 214 left one version of the efficiency idea standing.
+Efficiency persists where expectancy in R does not (130), so the natural
+use is not a refusal at trade time — 214 measured that and it failed —
+but a reordering of the selector itself. The live composite score is
+`eR * log1p(n) * pf`; the candidate multiplies it by the combination's
+dollar efficiency at the ranking cut-off. The active list keeps its size,
+so nothing is removed and 214's confound cannot reappear.
+
+Walk-forward over 2,555 days: rank every (strategy, pair) combination on
+the trailing 365 days, trade the following 90 with the top ten only, step
+forward. 23 instruments, 32,063 gated and sized signals, 24 out-of-sample
+blocks, scored in USD per calendar day on the traded blocks only.
+
+| sample | live rank | eff-weighted | diff | t | days |
+|---|---|---|---|---|---|
+| 0–365 d | +0.0833 | +0.0810 | −0.0023 | −0.09 | 91 |
+| 366–1095 d | +0.0094 | +0.0365 | +0.0271 | +1.37 | 290 |
+| 1096–1825 d | +0.0022 | +0.0111 | +0.0089 | +0.83 | 292 |
+| 1826–2555 d | +0.0684 | +0.0498 | −0.0185 | −1.44 | 150 |
+| **pooled** | **+0.0349** | **+0.0396** | +0.0047 | +0.56 | 823 |
+
+Condition (a) fails — two samples improve, two worsen. Condition (b)
+fails, the best t is +1.37. Only (c) holds: 1,237 trades against 1,249,
+a throughput change of −1.0 %, which confirms the design did what it
+promised and did not quietly trade less.
+
+**Why it cannot work, and this is the part worth keeping.** The mean
+overlap of the two top-ten lists across the 24 blocks is **97 %** — on
+average less than one slot of ten differs. The reordering has almost
+nothing to reorder, because the candidates that survive the composite
+score are already the liquid, well-stepped instruments: the indices and
+metals at 80-plus per cent efficiency. The structurally inefficient ones
+that section 213 identified, GBPJPY at 47 % and UK100 at 50 %, rarely
+reach the top ten on their R statistics in the first place.
+
+So the gap section 213 opened — the selector prices the property that
+does not persist and ignores the one that does — is real as arithmetic
+and empty as an opportunity. The two rankings disagree on 3 % of slots,
+and 3 % of slots cannot move a daily figure. That closes the efficiency
+line: 213 measured the spread, 214 refused on it and failed, 215 reranked
+on it and found nothing left to rerank. The remaining 20 % shortfall
+against the 3 USD budget stays where 211 and 212 put it — in the cap and
+in rounding the broker will not give back.
+
+**Decision: not built.** No code change, no restart.
