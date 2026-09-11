@@ -36,8 +36,19 @@ from typing import Optional
 from app.spot_trading.position_sizing import DEFAULT_TARGET_RISK_USD
 
 # Out-of-sample window. Everything before this date fed the calibration
-# of the cost and veto filters.
-DEFAULT_EDGE_CUTOFF = "2026-08-24"
+# of the entry filters, so its expectancy is in-sample and cannot justify
+# a larger size.
+#
+# Moved from 2026-08-24 to 2026-09-10 in section 200: that day added the
+# ADX ceiling (188), the 3 x ATR volatility floor (190) and the instrument
+# block (192), all three calibrated on four walk-forward samples whose
+# most recent window covers the live journal itself. Every trade before
+# the builds is therefore in-sample for them, and the 37 trades the gate
+# had accumulated under the old cutoff are not evidence for the system
+# that now trades. The sample restarts at zero by design; the gate was
+# already unreachable on any near horizon (195), so this costs nothing
+# real and removes the possibility of scaling on contaminated evidence.
+DEFAULT_EDGE_CUTOFF = "2026-09-10"
 # Below this many closed trades no expectancy is believable, however
 # good it looks.
 MIN_SAMPLE = 40

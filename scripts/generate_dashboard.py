@@ -44,6 +44,13 @@ settings.load_env()
 # +193.59 USD for +1.20. Rows closed after the switch read the column.
 # Kept on one line so it can be substituted into any expression position.
 _USD_BOOKING_FROM = "2026-09-07 23:05:00"
+# The filter set that now trades was completed on 2026-09-10: the ADX
+# ceiling (EDGE_FINDINGS 188), the 3 x ATR volatility floor (190) and the
+# instrument block (192). Rolling windows average trading days from before
+# those builds, so the 30-day rate cannot show their effect for weeks. This
+# card row is the figure that can: realised PnL and per-day rate over
+# entries accepted since the builds only.
+_FILTER_EPOCH = "2026-09-10 17:00:00"
 _PNL = ("(CASE WHEN exit_time >= '" + _USD_BOOKING_FROM + "' "
         "AND realized_pnl IS NOT NULL THEN realized_pnl "
         "WHEN exit_price IS NOT NULL AND fill_price IS NOT NULL "
@@ -243,6 +250,17 @@ def _fetch(days) -> dict:
             HAVING trades >= 2
             ORDER BY pnl DESC
         """)
+        # Since the current filter set shipped — see _FILTER_EPOCH.
+        since_filters = _rows(cur, f"""
+            SELECT COUNT(*) AS trades,
+                   ROUND(SUM({_PNL}), 2) AS pnl,
+                   MIN(exit_time) AS "mn [TIMESTAMP]"
+            FROM spot_trades
+            WHERE accepted=1 AND realized_pnl IS NOT NULL AND exit_time IS NOT NULL
+              AND platform = 'capital_com'
+              {_MR_EXCL}
+              AND created_at >= '{_FILTER_EPOCH}'
+        """)
         # Full-period span for the projection tile (how many days the
         # realized PnL was earned over — the daily-rate denominator).
         span = _rows(cur, f"""
@@ -260,6 +278,7 @@ def _fetch(days) -> dict:
             "open": open_pos, "recent": recent,
             "by_strategy": by_strategy, "by_combo": by_combo,
             "span": span[0] if span else None,
+            "since_filters": since_filters[0] if since_filters else None,
         }
     finally:
         cur.close()
@@ -383,8 +402,28 @@ def _render_chart(series: list, width: int = 920, height: int = 340) -> str:
     return "".join(parts) + "".join(leg)
 
 
+def _since_filters_row(since: Optional[dict]) -> str:
+    """PnL since the current filter set shipped — see _FILTER_EPOCH. Rolling
+    windows cannot show it yet, so it is stated separately or not at all."""
+    if not since:
+        return ""
+    trades = int(since.get("trades") or 0)
+    epoch = datetime.strptime(_FILTER_EPOCH, "%Y-%m-%d %H:%M:%S")
+    days = max(1.0, (datetime.now() - epoch).total_seconds() / 86400.0)
+    if not trades:
+        return (f'<div class="row"><span>seit Filterstand '
+                f'{epoch:%d.%m.%Y} ({days:.1f} T.)</span>'
+                f'<b class="dim">noch kein Trade</b></div>')
+    pnl = float(since.get("pnl") or 0.0)
+    return (f'<div class="row"><span>seit Filterstand {epoch:%d.%m.%Y} '
+            f'({trades} Trades, {days:.1f} T.)</span>'
+            f'<b class="{_money_class(pnl)}">{_fmt_money(pnl)} '
+            f'({_fmt_money(pnl / days)}/T.)</b></div>')
+
+
 def _render_cards(summary: list, alltime: list, open_pos: list,
-                  period: str, retired: Optional[list] = None) -> str:
+                  period: str, retired: Optional[list] = None,
+                  since_filters: Optional[dict] = None) -> str:
     by_plat = {r["platform"]: r for r in summary}
     alltime_by = {r["platform"]: float(r["pnl"] or 0.0) for r in alltime}
     open_count: dict = {}
@@ -423,6 +462,7 @@ def _render_cards(summary: list, alltime: list, open_pos: list,
           <div class="row"><span>All-time (aktives Buch)</span>
             <b class="{_money_class(at)}">{_fmt_money(at)}</b></div>
           {retired_row}
+          {_since_filters_row(since_filters)}
         </div>""")
     return "".join(cards)
 
@@ -939,7 +979,8 @@ def _render_html(data: dict, days) -> str:
     }
     status = _render_status(stats)
     cards = _render_cards(data["summary"], data["alltime"], data["open"],
-                          period, data.get("retired"))
+                          period, data.get("retired"),
+                          data.get("since_filters"))
     open_rows = _render_open(data["open"])
     recent_rows = _render_recent(data["recent"])
     strategy_perf = _render_strategy_perf(
