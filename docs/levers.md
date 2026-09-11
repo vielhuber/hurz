@@ -4485,3 +4485,34 @@ the section numbers below point there.
 - **Decision:** verworfen, and the efficiency line is closed with it:
   run 20 measured the spread, run 21 refused on it, run 22 reranked on
   it. No code change, no restart. Section 215.
+
+## 2026-09-11 (twenty-third run) — the length of the active list
+
+- **Lever:** pair selection — the selector keeps the top N combinations,
+  live N=40, and the length itself had never been measured. Both
+  directions were arguable: a shorter list concentrates on the best
+  scores, a longer one buys throughput, which section 198 showed is what
+  the daily figure is bound by.
+- **Measurement:** walk-forward as in run 22 on the same cached bars,
+  24 out-of-sample blocks, 23 instruments, 32,063 signals, N in
+  5 / 10 / 20 / 40 / all, scored in USD per calendar day.
+
+  | N | pooled vs live 40 | t | trades |
+  |---|---|---|---|
+  | 5 | −0.1733 | −1.94 | 585 |
+  | 10 | −0.1283 | −1.76 | 1,249 |
+  | 20 | −0.0611 | −1.31 | 2,633 |
+  | **40 (live)** | — | — | **3,976** |
+  | all | ±0.0000 | — | 3,976 |
+
+- **Result:** every shorter list is worse, monotonically, and N=40 equals
+  N=all exactly — the eligible pool averages 31.1 per block, so the cut
+  never binds. Confirmed against production: the live list holds 55
+  combinations, 26 of them pins, leaving 29 ranked where the code asked
+  for 40. The ranking orders the list but selects nothing.
+- **Decision:** nothing changed — the parameter already sits at the best
+  available value. Shortening costs throughput, raising it does nothing.
+  No code change, no restart. Section 216. Left open for the next run:
+  because no cut binds, the live list carries combinations with a
+  negative score (down to −0.105). Whether removing those raises the
+  daily figure is a separate lever and was not measured here.

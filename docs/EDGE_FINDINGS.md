@@ -7326,3 +7326,60 @@ against the 3 USD budget stays where 211 and 212 put it — in the cap and
 in rounding the broker will not give back.
 
 **Decision: not built.** No code change, no restart.
+
+## 216. The length of the active list: the cut at 40 never binds, and every shorter list is worse
+
+The nightly selector ranks every (strategy, pair) combination by
+`eR * log1p(n) * pf` and keeps the top N. Live that N is 40. Across 215
+sections the ranking itself has been questioned repeatedly — what it
+scores (158), whether it transfers (130), whether it should be in dollars
+(215) — but the length of the list never was.
+
+Same walk-forward as 215 on the same cached bars: rank on the trailing
+365 days, trade the following 90 with N combinations only, 24
+out-of-sample blocks, 23 instruments, 32,063 gated and sized signals.
+
+| sample | N=5 | N=10 | N=20 | **N=40 (live)** | N=all |
+|---|---|---|---|---|---|
+| 0–365 d | +0.0582 | +0.1491 | +0.0668 | **+0.0900** | +0.0900 |
+| 366–1095 d | +0.0151 | +0.0137 | +0.1607 | **+0.1467** | +0.1467 |
+| 1096–1825 d | −0.0689 | +0.0036 | +0.0900 | **+0.2066** | +0.2066 |
+| 1826–2555 d | +0.1662 | +0.2186 | +0.2005 | **+0.3604** | +0.3604 |
+| pooled diff | −0.1733 | −0.1283 | −0.0611 | — | ±0.0000 |
+| paired t | −1.94 | −1.76 | −1.31 | — | — |
+| trades | 585 | 1,249 | 2,633 | 3,976 | 3,976 |
+
+Shortening the list is monotonically worse: −0.061, −0.128 and −0.173 USD
+per day at 20, 10 and 5. None of those reaches the significance bar in
+isolation, but the sign is the same at every length on almost every
+sample, and the mechanism is section 198's — the daily figure is
+throughput-bound, the expectancy comes from time in the market, and the
+concurrent cap of 8 is rarely what binds.
+
+**The part that matters: N=40 and N=all are the same column.** Not
+approximately — identically, 3,976 trades and the same figure on every
+sample. The eligible pool averages 31.1 combinations per block (min 19,
+max 40), so the cut at 40 never removes anything.
+
+This is not an artifact of the harness's smaller universe. The live list
+persisted on 2026-09-11 holds 55 combinations, 26 of them operator pins,
+which leaves **29 ranked** — `persist_active_pairs` took `ranked[:40]`
+and got 29, because that is all there were. The live cut does not bind
+either, and the harness reproduced the live pool size (31.1 against 29)
+from an entirely different direction.
+
+So the ranking orders the list but selects nothing. What actually decides
+the active list is the eligibility filter inside the scorer and the 26
+pins, which are nearly half of it. One consequence is visible in the
+persisted file: the ranked entries run from a score of 6.18 down to
+**−0.105**. A negative composite score means negative expectancy in the
+ranking window, and it stays in the list because there is no cut to
+remove it.
+
+**Decision: not built — the parameter is already at its best available
+value**, and every tested alternative is worse. Lowering 40 costs
+throughput; raising it changes nothing at all. The follow-up this opens
+is a different lever and is not measured here: the harness required
+`eR > 0` and `pf >= 1` to be eligible at all, which live does not, so
+whether dropping the negative-score combinations helps remains an open
+question for the next run.

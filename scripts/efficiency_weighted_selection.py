@@ -306,4 +306,6 @@ async def main():
     thr=counts[True]/max(1,counts[False])-1
     print(f"(c) throughput within -10 %:    {'YES' if thr>=-0.10 else 'NO'} ({thr:+.1%})")
 
-asyncio.run(main())
+
+if __name__ == "__main__":
+    asyncio.run(main())
