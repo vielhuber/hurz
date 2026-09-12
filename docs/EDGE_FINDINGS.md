@@ -8014,3 +8014,64 @@ defect without knowing the size of what it removed. It removed a
 doubling of per-instrument exposure that would have doubled the measured
 daily figure and looked, on every statistic except the one that mattered,
 like the best lever ever found here.
+
+## 228. The leash as throughput: halving it costs more than the slots are worth, and the gradient points the other way
+
+Section 227 established that instrument slots, not signals, are the
+binding resource, and that the only honest way to add frequency is to
+return a slot sooner rather than to hold two at once. A holding leash is
+precisely how long one slot stays occupied, so halving it is the clean
+version of the lever section 227 rejected: same size, same stop, same
+concurrent cap, second trade starting only after the first has closed.
+
+Run 13 swept the leash in E[R] on ten instruments with no occupancy
+model — every signal was booked, so a shorter leash could only change
+what a trade earned, never how many the book could take. This prices it
+in USD per calendar day with the slot mechanism in place. Candidate
+fixed beforehand at 12 bars; 18 / 36 / 48 run as diagnostics.
+
+| hold | trades | vs live | E[R] | mean occupancy | USD/day |
+|---|---|---|---|---|---|
+| 12 (candidate) | 5,236 | +18.6 % | +0.0071 | 2.28 | +0.0574 |
+| 18 | 4,704 | +6.6 % | +0.0154 | 2.93 | +0.1110 |
+| **24 (live)** | **4,414** | — | **+0.0240** | **3.48** | **+0.1558** |
+| 36 | 3,720 | −15.7 % | **+0.0414** | 4.07 | **+0.2395** |
+| 48 | 3,456 | −21.7 % | +0.0381 | 4.68 | +0.2057 |
+
+**The candidate fails on all four samples** (−0.106 / −0.106 / −0.081 /
+−0.116), pooled −0.0984 USD/day at t −1.44. Clause (c) passes — occupancy
+drops from 3.48 to 2.28, so this really was throughput and not scaling —
+and that is exactly why it fails: the extra 18.6 % of trades arrive at
++0.0071 R against +0.0240. Slots returned sooner are worth less than what
+gets cut short to return them.
+
+**The gradient is monotone and it points the other way.** E[R] rises with
+every step from 12 to 36 — +0.0071, +0.0154, +0.0240, +0.0414 — and the
+daily figure with it, peaking at 36 bars at +0.2395 against the live
++0.1558. That is +54 %, the largest positive reading in this document,
+and it comes from a direction run 13 measured as flat-to-negative on its
+recent sample.
+
+The mechanism is not mysterious: losers hit the 2-ATR stop early and the
+leash does not bind on them, while winners need time to reach 1.5 R. A
+short leash therefore truncates the right tail and leaves the left one
+untouched. Trades fall 15.7 % and expectancy rises 72 %.
+
+**It is a diagnostic, not a result.** 36 was not the preregistered
+candidate, and picking the best cell of a five-point sweep after seeing
+it is how sections 40 to 45 produced findings that did not survive
+contact with an independent sample. Two things have to be checked before
+it can be believed, and neither can be checked on the four samples it
+was found on:
+
+1. **Occupancy rises with it** — 4.07 against 3.48, 17 % more open risk
+   at any moment. Part of the +54 % is section 227's scaling again. Per
+   unit of occupancy the gain is +31 %, not +54 %, and only that part is
+   free.
+2. **The sweep selected on the same four samples** that would judge it.
+
+**Decision: 12 bars not built in, the leash stays at 24.** No code
+change, no restart. The 36-bar reading is preregistered for the next run
+against data it was not selected on: the excluded instruments, and the
+live journal's own leash-exits replayed forward through the history that
+already exists.

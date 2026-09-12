@@ -4870,3 +4870,43 @@ the section numbers below point there.
   removed a doubling of per-instrument exposure that would have doubled
   the measured daily figure and looked like the best lever ever found
   here on every statistic except the one that mattered.
+
+## 2026-09-12 (thirty-fifth run) — the leash priced as throughput
+
+- **Lever:** exit logic — the 24-bar holding leash, re-read as an
+  occupancy lever rather than an expectancy one. Section 227 showed slots
+  are the binding resource and that returning one sooner is the only
+  added frequency that is not disguised leverage; a leash is how long a
+  slot stays occupied. Run 13 swept it in E[R] with every signal booked
+  and no slot mechanism, so USD/day was never the measure.
+- **Measurement:** `scripts/leash_throughput.py` — walk-forward as in
+  runs 22–34, 22,310 gated signals, 24 out-of-sample blocks, occupancy
+  tracked in position-hours. Candidate fixed at 12 bars; 18 / 36 / 48 as
+  diagnostics with no standing to qualify.
+
+  | hold | trades | vs live | E[R] | occupancy | USD/day |
+  |---|---|---|---|---|---|
+  | 12 (candidate) | 5,236 | +18.6 % | +0.0071 | 2.28 | +0.0574 |
+  | **24 (live)** | **4,414** | — | **+0.0240** | **3.48** | **+0.1558** |
+  | 36 (diagnostic) | 3,720 | −15.7 % | +0.0414 | 4.07 | **+0.2395** |
+  | 48 (diagnostic) | 3,456 | −21.7 % | +0.0381 | 4.68 | +0.2057 |
+
+- **Result:** the candidate loses on all four samples, pooled −0.0984
+  USD/day at t −1.44. Clause (c) passes — occupancy falls 3.48 → 2.28, so
+  this was genuine throughput — and that is why it fails: the extra
+  18.6 % of trades arrive at +0.0071 R against +0.0240. Slots returned
+  sooner are worth less than what is cut short to return them.
+- **The finding is in the diagnostics:** E[R] rises monotonically from 12
+  to 36 (+0.0071 → +0.0414) and the daily figure peaks at 36 bars at
+  +0.2395 against live +0.1558 — **+54 %**, the largest positive reading
+  in the log. Losers hit the 2-ATR stop early and never reach the leash;
+  winners need time to travel 1.5 R, so a short leash truncates the right
+  tail only.
+- **Decision:** verworfen for the candidate — the leash stays at 24, no
+  code change, no restart. Section 228. The 36-bar reading is a
+  diagnostic picked after the fact out of a five-point sweep, and its
+  occupancy is 17 % above live, so part of it is section 227's scaling
+  (per unit of occupancy the gain is +31 %). **Preregistered for the next
+  run:** 36 bars tested against data it was not selected on — the
+  excluded instruments and the live journal's leash-exits replayed
+  forward.
