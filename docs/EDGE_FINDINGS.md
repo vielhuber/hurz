@@ -8185,3 +8185,53 @@ sign-flip that has retired a dozen candidates in this document.
 threshold at the floor, not a gradient above it — which is the best case
 a floor can have, because it means 3.0 is not leaving an ordering on the
 table. No code change, no restart.
+
+## 231. How much history the selector ranks on: the samples disagree again
+
+Sections 216 to 218 measured how many combinations the selector keeps
+and how strictly it filters them. Neither touched the third number in
+the same decision: how much history it judges them on. Every run in this
+series ranks on the trailing 365 days, and the live scheduler inherits
+the same figure — `spot_backtest.py` defaults to 365 and the nightly job
+passes no `--days`. It had never been varied anywhere.
+
+There was a directional reason to expect something. Section 130 found
+in-sample expectancy does not transfer between samples and section 217
+found every tightening of the selection thresholds loses; both say the
+ranking signal is largely noise, and the remedy for a noisy estimator is
+a longer window rather than a stricter cut-off. Candidate fixed at 730
+days; 180 as a diagnostic. Blocks are pinned by the longest window so
+all three variants trade identical calendar days and differ only in what
+they looked back over.
+
+| rank window | trades | vs live | USD/day |
+|---|---|---|---|
+| 180 | 3,371 | −9.8 % | +0.1701 |
+| **365 (live)** | **3,736** | — | **+0.1906** |
+| 730 | 3,718 | −0.5 % | **+0.2154** |
+
+| sample | 180 | live (365) | 730 | 730 − live |
+|---|---|---|---|---|
+| 0–365 d | +0.0716 | **+0.2364** | +0.2013 | −0.0351 |
+| 366–1095 d | +0.1388 | **+0.1997** | +0.1482 | −0.0515 |
+| 1096–1825 d | +0.2530 | +0.1601 | **+0.2944** | +0.1343 |
+| pooled | — | — | — | +0.0249 (t +0.54) |
+
+**The candidate fails clause (a).** 730 is ahead pooled and ahead by a
+wide margin on the oldest sample available, and behind on both recent
+ones. That is the same shape as the ADX ceiling in section 202 and the
+4h pins in section 225: a preference that reverses with the sample.
+Throughput is untouched (−0.5 %), so clause (c) is not what kills it —
+the direction simply is not stable.
+
+The 180-day diagnostic is the more useful half of the table. It loses
+9.8 % of trades and 11 % of the daily figure, and it is worst exactly
+where 730 is best, which confirms the noise reading: a shorter window
+ranks on less evidence and a longer one on evidence that has gone stale.
+365 is not optimal on any single sample here and is never the worst,
+which is the same defence section 202 ended up giving the ADX ceiling.
+
+**Decision: not built in — 365 stays.** No code change to the trading
+path, no restart. One stale comment in `scheduler.py` claiming a
+"180-day backtest window" was corrected: the job has always used the
+365-day default, so the comment described a window the bot never ran.

@@ -60,7 +60,9 @@ _NIGHTLY_STRATEGIES = [
 # the same event loop, and is immune to GC, host suspend and clock jumps.
 _POLL_SECONDS = 60
 # Generous against the ~5 min a single strategy needs over the full
-# instrument list at the 180-day backtest window.
+# instrument list. The window is `spot_backtest.py`'s 365-day default —
+# this job passes no --days. Measured at 180 / 365 / 730 in section 231:
+# the samples disagree and 365 stays.
 _BACKTEST_TIMEOUT_SECONDS = 1800
 
 

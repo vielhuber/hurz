@@ -4984,3 +4984,34 @@ the section numbers below point there.
   stays where section 221 left it, about one standard error.
 - **Decision:** verworfen — nothing built, no code change, no restart.
   Section 230.
+
+## 2026-09-12 (thirty-eighth run) — the selector's ranking window
+
+- **Lever:** pair selection — how much history the selector ranks on.
+  Sections 216–218 measured how many combinations to keep and how
+  strictly to filter them; the window itself had never been varied, here
+  or live (`spot_backtest.py` defaults to 365 and the nightly job passes
+  no `--days`). Sections 130 and 217 both say the ranking signal is
+  largely noise, and the remedy for a noisy estimator is a longer window,
+  so the candidate was fixed at 730 days; 180 as a diagnostic.
+- **Measurement:** `scripts/rank_window.py` — blocks pinned by the
+  longest window so all three variants trade identical calendar days,
+  20 out-of-sample blocks, signals booked once and reused.
+
+  | rank window | trades | vs live | USD/day |
+  |---|---|---|---|
+  | 180 | 3,371 | −9.8 % | +0.1701 |
+  | **365 (live)** | **3,736** | — | **+0.1906** |
+  | 730 | 3,718 | −0.5 % | +0.2154 |
+
+  Per sample, 730 − live: −0.0351 / −0.0515 / **+0.1343**; pooled
+  +0.0249 USD/day at t +0.54.
+- **Result:** clause (a) fails. 730 is ahead pooled and far ahead on the
+  oldest sample, behind on both recent ones — the sample-reversing shape
+  of sections 202 and 225. Throughput is untouched (−0.5 %), so it is the
+  direction that is unstable, not the cost. The 180 diagnostic confirms
+  the noise reading: worst exactly where 730 is best.
+- **Decision:** verworfen — 365 stays, no change to the trading path, no
+  restart. Section 231. A stale comment in `scheduler.py` claiming a
+  "180-day backtest window" was corrected; the job has always used the
+  365-day default, so it described a window the bot never ran.
