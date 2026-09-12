@@ -5177,3 +5177,36 @@ the section numbers below point there.
   no restart. Section 236. The `scheduler.py` comment stands as written
   and now rests on a measurement rather than on two instruments observed
   on one afternoon.
+
+## 2026-09-12 (forty-fourth run) — the router's trend floor
+
+- **Lever:** regime filter — the ADX trend floor of 30. Section 202 swept
+  the ceiling on the merged book and held the floor fixed; the floor is
+  the larger gate by volume and had never been read in USD per calendar
+  day. Section 114's reversed 4h-ADX finding points down, so the
+  candidate was 25; 20 / 35 / 40 as diagnostics.
+- **Measurement:** `scripts/router_floor_sweep.py` — walk-forward as in
+  runs 22–43, 24 blocks, occupancy tracked, floor set through
+  `HURZ_REGIME_ADX_TREND` and `..._CORE`.
+
+  | floor | signals | trades | vs live | occupancy | USD/day |
+  |---|---|---|---|---|---|
+  | 20 | 50,636 | 8,708 | +97.3 % | 6.76 | +0.0971 |
+  | 25 | 34,868 | 6,425 | +45.6 % | 5.03 | +0.1144 |
+  | **30 (live)** | **22,310** | **4,414** | — | **3.51** | **+0.1572** |
+  | 35 | 12,848 | 2,403 | −45.6 % | 1.92 | +0.1194 |
+  | 40 | 6,440 | 1,299 | −70.6 % | 1.03 | +0.0359 |
+
+  Candidate pooled −0.0428 USD/day at t −0.64; occupancy +43 % and return
+  per unit of occupancy halved (0.0227 vs 0.0448). All three clauses fail.
+- **Result:** the diagnostics carry it. The daily figure is **unimodal in
+  the floor and peaks exactly at the live 30** — 0.097, 0.114, 0.157,
+  0.119, 0.036 — and return per unit of occupancy peaks there too. After
+  eleven levers this session and a hundred-odd before, this is the first
+  parameter whose sweep gives a clean single peak with the live value on
+  it. Opposite in kind to the ceiling one gate away (section 202: four
+  samples, four preferred values): the floor separates trend from noise,
+  which every regime agrees about; the ceiling tries to separate strong
+  trend from exhausted trend, which they do not.
+- **Decision:** verworfen — floor stays at 30, no code change, no
+  restart. Section 237. Section 114's downward prior is refuted here.

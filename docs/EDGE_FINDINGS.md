@@ -8494,3 +8494,50 @@ also the only condition under which adding one could ever have helped.
 change, no restart. The comment in `scheduler.py` stands as written and
 now rests on a measurement rather than on two instruments observed on
 one afternoon.
+
+## 237. The router's trend floor is a genuine optimum — the first parameter in this series that is
+
+Section 202 swept the ADX ceiling on the merged book and found four
+samples preferring four different values, leaving 50 in place as the
+value that loses least when regimes disagree. It held the floor fixed at
+30. The floor is the larger of the two gates by volume — the live log
+vetoes against it continuously — and it had never been read here, or in
+USD per calendar day with occupancy resolved.
+
+Section 114 supplied the direction: testing a 4h-ADX gate it found the
+hypothesis reversed, with 1h breakouts firing into a *not yet* trending
+higher timeframe as the profitable side at t −3.23 and −4.21. Section 115
+could not reproduce that outside its 26 instruments, so it is a prior and
+not a result — but it points down, so the candidate was 25.
+
+| floor | signals | trades | vs live | occupancy | USD/day |
+|---|---|---|---|---|---|
+| 20 | 50,636 | 8,708 | +97.3 % | 6.76 | +0.0971 |
+| 25 | 34,868 | 6,425 | +45.6 % | 5.03 | +0.1144 |
+| **30 (live)** | **22,310** | **4,414** | — | **3.51** | **+0.1572** |
+| 35 | 12,848 | 2,403 | −45.6 % | 1.92 | +0.1194 |
+| 40 | 6,440 | 1,299 | −70.6 % | 1.03 | +0.0359 |
+
+The candidate loses: pooled −0.0428 USD/day at t −0.64, better on two
+samples and worse on two, and occupancy rises 43 % while return per unit
+of occupancy halves, 0.0227 against 0.0448. All three clauses fail.
+
+**The diagnostic column is the result.** The daily figure is unimodal in
+the floor and peaks exactly at the live 30, falling away symmetrically —
+0.097, 0.114, **0.157**, 0.119, 0.036. Return per unit of occupancy peaks
+there too. After eleven levers in this session and a hundred-odd before
+it, this is the first parameter whose sweep produces a clean single peak
+with the live value sitting on it.
+
+That is worth stating plainly because it is the opposite of section 202's
+finding one gate away. The ceiling has four samples wanting four values
+and survives as a compromise; the floor has one shape and one peak. The
+router's two thresholds are not the same kind of parameter at all — the
+floor separates trend from noise, which every regime agrees about, while
+the ceiling tries to separate strong trend from exhausted trend, which
+they do not.
+
+**Decision: nothing built, the floor stays at 30.** No code change, no
+restart. Section 114's downward prior is refuted on this axis: lowering
+the floor to 25 doubles nothing useful and buys 45 % more trades at half
+the return per unit of exposure.
