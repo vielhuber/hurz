@@ -9133,3 +9133,52 @@ conclusion that the objective sits two orders of magnitude away is not
 changed by this.
 
 The module now reads the scheduler's list, with a comment pointing here.
+
+## 248. Longer breakout channels: two leanings on a retired system, reversed on this one
+
+`donchian_breakout` looks back 20 bars and `turtle_breakout` 55. Both
+lengths were swept once, on 2026-09-07, and both sweeps leaned the same
+way — the longer channel better on both disjoint samples, short of the
+bar only on t (donchian 80: +0.0106 / +0.0311 R; turtle 110: +0.0206 /
++0.0251 R).
+
+Neither sweep describes today's book. Donchian was measured at a 1-ATR
+stop before section 11 doubled it; both ran on ten instruments, pooled
+in R, before the ADX ceiling, the 3×ATR floor, dollar sizing, the
+consistency block, the merged cluster map, the live selector and the
+27-instrument universe. Two same-signed readings on a retired system are
+a reason to ask once properly, not a result — and unlike sections 245
+and 246 this lever touches every trade of the two strategies behind 48
+of the 55 live combinations, so a null here cannot be a null of exposure.
+
+`scripts/channel_length_live_book.py`, on the harness as corrected in
+section 247: live strategy mix, 27 instruments, the scheduler's selector
+(top 40, pf ≥ 0.8, eR ≥ -0.2), 24 out-of-sample blocks. One candidate
+fixed beforehand from the earlier readings — donchian 80 and turtle 110
+together — each alone printed without standing.
+
+| variant | signals | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **live 20 / 55** | 28,714 | **5,488** | **+0.0478** | **+0.1754** | — | — | — |
+| candidate 80 / 110 | 21,846 | 3,953 | +0.0417 | +0.1102 | **-0.0652** | -1.11 | **0/4** |
+| donchian 80 only | 24,281 | 4,474 | +0.0506 | +0.1519 | -0.0243 | -0.48 | 1/4 |
+| turtle 110 only | 26,279 | 5,537 | +0.0448 | +0.1668 | -0.0096 | -0.42 | 1/4 |
+
+Candidate per sample: -0.0931 / -0.0535 / -0.0058 / -0.0257. All three
+clauses fail — worse on every sample, t -1.11, and USD per trade falls
+rather than rises, so the loss is not merely the 28 % fewer trades.
+
+**Why the old reading reversed.** The 2026-09-07 sweeps scored every
+signal equally. The book today admits a signal only after the ADX router
+has refused exhausted trends (ceiling) and the selector has ranked the
+combination on its trailing year. A longer channel fires later into a
+move, which is exactly what the ceiling already removes from the short
+channel — so the router had taken most of the long channel's advantage
+before this measurement began, and what the long channel adds on top is
+fewer, later entries. Donchian 80 alone does raise USD per trade
+(+0.0506 against +0.0478) and still loses dollars, which is section 220's
+constraint once more: per-trade quality that costs frequency is not a
+daily-figure lever in this book.
+
+The live 20 / 55 is the best of the four on the system that trades. The
+channel-length axis is closed on the current configuration.

@@ -5576,3 +5576,36 @@ the section numbers below point there.
   describe a portfolio the bot never ran. Section 247.
 - **Fixed:** the module now reads the scheduler's list. Analysis code
   only, no production change, no restart.
+
+## 2026-09-12 (fifty-fourth run) — longer breakout channels on the live book
+
+- **Lever:** strategy parameters — the channel lengths of
+  `donchian_breakout` (20) and `turtle_breakout` (55). Both were swept on
+  2026-09-07 (runs 9 and 14) and both leaned the same way: the longer
+  channel better on both samples, short only on t (donchian 80 +0.011 /
+  +0.031 R, turtle 110 +0.021 / +0.025 R). Those sweeps ran at a 1-ATR
+  stop (donchian) on ten instruments, before the ADX ceiling, the 3×ATR
+  floor, dollar sizing, the live selector and today's universe — a
+  retired system. Asked once properly, with the candidate fixed from the
+  old readings, and on a lever that touches every trade of the two
+  strategies behind 48 of 55 live combinations.
+- **Measurement:** `scripts/channel_length_live_book.py`, harness as
+  corrected in the entry above (live mix, 27 instruments, top 40 with
+  pf ≥ 0.8 / eR ≥ -0.2), 24 out-of-sample blocks.
+
+  | variant | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live 20 / 55** | **5,488** | **+0.0478** | **+0.1754** | — | — | — |
+  | candidate 80 / 110 | 3,953 | +0.0417 | +0.1102 | -0.0652 | -1.11 | 0/4 |
+  | donchian 80 only (diag) | 4,474 | +0.0506 | +0.1519 | -0.0243 | -0.48 | 1/4 |
+  | turtle 110 only (diag) | 5,537 | +0.0448 | +0.1668 | -0.0096 | -0.42 | 1/4 |
+
+- **Result:** all three clauses fail — worse on every sample
+  (-0.093 / -0.054 / -0.006 / -0.026), t -1.11, and USD per trade *falls*,
+  so it is not just 28 % fewer trades. The old leaning reversed: a longer
+  channel enters later into a move, which the ADX ceiling already strips
+  from the short channel, so what remains of the long channel's
+  advantage is fewer, later entries. Donchian 80 alone raises USD per
+  trade and still loses dollars — section 220's constraint again.
+- **Decision:** verworfen — 20 / 55 stay, no code change, no restart.
+  Section 248. The channel-length axis is closed on the current system.
