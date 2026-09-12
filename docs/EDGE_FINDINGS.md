@@ -8075,3 +8075,63 @@ change, no restart. The 36-bar reading is preregistered for the next run
 against data it was not selected on: the excluded instruments, and the
 live journal's own leash-exits replayed forward through the history that
 already exists.
+
+## 229. The 36-bar leash does not exist outside the sample it was found in
+
+Section 228's diagnostic column was the largest positive reading in this
+document: the daily figure rising monotonically to +0.2395 USD/day at a
+36-bar leash against the live +0.1558, a gain of 54 %, with a mechanism
+that sounded right — losers hit the 2-ATR stop early and never reach the
+leash, winners need time to travel 1.5 R, so a short leash truncates the
+right tail only. It was also a cell picked after the fact out of five, on
+the four samples that would have judged it. Section 115's rule applies:
+read it on the excluded instruments and on the journal first.
+
+**(A) Eight instruments outside the harness universe**, USD-quoted, with
+history already on disk from the structural-signal download, costs
+charged from that download's audited spreads without the ceiling skip:
+
+| hold | trades | occupancy | USD/day | per unit occupancy |
+|---|---|---|---|---|
+| **24 (live)** | 158 | 1.20 | **−0.1008** | −0.0842 |
+| 36 | 112 | 1.26 | −0.1065 | −0.0848 |
+
+Slightly worse, on the raw figure and after normalising for occupancy.
+The 54 % does not appear here in any form.
+
+**(B) The live journal's own leash exits** — 127 trades closed by the
+24-hour leash since 2026-05-15, replayed 12 bars further against the
+same stop and target the bot actually placed:
+
+| what the extra 12 bars brought | count |
+|---|---|
+| target reached | 20 |
+| **stop reached** | **30** |
+| still open at bar 36 | 77 |
+
+Mean R gained +0.0426, median +0.0146, **t +0.79**. Positive but nowhere
+near the bar — and the resolution column refutes the mechanism outright.
+In the twelve hours after the leash fires, real positions hit their stop
+one and a half times as often as their target. The claim that a short
+leash truncates the right tail only is false on actual fills: it
+truncates both tails, and the left one more.
+
+**So what produced the monotone sweep?** Occupancy selection. A longer
+leash holds each slot longer, so fewer signals are taken and the ones
+that are taken are a different, thinner set — the ones arriving first
+after a slot frees. That reshuffling moves measured E[R] without any
+trade behaving differently. The direct effect, which is all a live
+change could deliver, is the +0.0426 R of test (B), and it does not
+survive its own standard error.
+
+**Decision: not built in — all three clauses failed.** The leash stays at
+24 bars. No code change, no restart.
+
+**The methodological finding is worth more than the lever.** The
+occupancy walk-forward — the harness every run since section 216 has used
+— produces a spurious ordering when the variant changes how long a
+position occupies its slot. Lever families that change holding time
+cannot be read off its E[R] column at all; only the USD/day column is
+meaningful, and even that one mixes throughput with selection. Sections
+227 and 229 are the same trap seen twice: 227 where extra trades were
+extra risk, 229 where fewer trades were a better-looking average.

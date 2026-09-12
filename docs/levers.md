@@ -4910,3 +4910,40 @@ the section numbers below point there.
   run:** 36 bars tested against data it was not selected on — the
   excluded instruments and the live journal's leash-exits replayed
   forward.
+
+## 2026-09-12 (thirty-sixth run) — the 36-bar leash on data that did not select it
+
+- **Lever:** exit logic — the 36-bar leash, section 228's diagnostic and
+  the largest positive reading in this log (+0.2395 vs +0.1558 USD/day,
+  +54 %). It was picked after the fact out of a five-point sweep on the
+  same four samples that would judge it, so section 115's rule applies:
+  read it on the excluded instruments and on the journal first.
+- **Measurement:** `scripts/leash_36_second_look.py`, two samples neither
+  of which selected the 36, no API calls.
+
+  | (A) excluded instruments | trades | occupancy | USD/day | per occ |
+  |---|---|---|---|---|
+  | **24 (live)** | 158 | 1.20 | **−0.1008** | −0.0842 |
+  | 36 | 112 | 1.26 | −0.1065 | −0.0848 |
+
+  (B) 127 journal leash-exits held 12 bars longer against the stop and
+  target the bot actually placed: **20 reached target, 30 reached stop**,
+  77 still open. Mean R gained +0.0426, median +0.0146, t +0.79.
+- **Result:** all three clauses fail. On the excluded instruments 36 is
+  slightly worse raw and worse per unit of occupancy; on real fills the
+  gain is a fifth of its own standard error. The resolution column
+  refutes the mechanism: in the twelve hours after the leash fires,
+  positions hit their stop one and a half times as often as their target,
+  so a short leash truncates both tails and the left one more.
+- **What produced the monotone sweep:** occupancy selection. A longer
+  leash holds each slot longer, fewer signals are taken, and the ones
+  taken are the ones arriving first after a slot frees. The average moves
+  without any trade behaving differently.
+- **Decision:** verworfen — the leash stays at 24, no code change, no
+  restart. Section 229. **Rule added for the log:** the occupancy
+  walk-forward produces a spurious ordering for any variant that changes
+  how long a position holds its slot; its E[R] column cannot be read for
+  such levers at all, and its USD/day column mixes throughput with
+  selection. Sections 227 and 229 are that trap seen twice — once where
+  extra trades were extra risk, once where fewer trades were a
+  better-looking average.
