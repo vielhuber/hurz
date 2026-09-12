@@ -5142,3 +5142,38 @@ the section numbers below point there.
   is the strongest retrospective support the 2026-09-10 floor has:
   measured as an adjustment instead of a refusal, the same signals cost
   0.13 USD a day.
+
+## 2026-09-12 (forty-third run) — a fourth strategy in the nightly mix
+
+- **Lever:** strategy parameters — add `keltner_breakout` to
+  `_NIGHTLY_STRATEGIES`. Section 224 measured the mix only by dropping;
+  keltner is registered, classified trend-following, and excluded on a
+  prediction ("would steal entries from the proven book") that was never
+  measured — and that sections 224 and 227 appeared to undercut.
+- **Measurement:** `scripts/add_keltner.py` — walk-forward as in runs
+  22–42, 24 blocks, everything else unchanged.
+
+  | variant | signals | trades | occupancy | USD/day | per occ |
+  |---|---|---|---|---|---|
+  | **live three** | 22,310 | **4,414** | 3.93 | **+0.1763** | +0.0448 |
+  | plus keltner | 32,775 | 4,708 (+6.7 %) | 4.16 | +0.2132 | +0.0513 |
+
+  Per sample: −0.0469 / −0.0281 / +0.1210 / +0.0896; pooled +0.0368
+  USD/day at t +0.75.
+- **Result:** clause (c) passes (better per unit of occupancy, so not
+  concentration) but (a) and (b) fail on the usual split — loses both
+  recent samples, wins both old ones. **The trade composition vindicates
+  the excluded comment:** keltner takes 1,529 of 4,708 trades while the
+  book grows by only 294, displacing ~1,235 entries from the established
+  strategies.
+- **Why this differs from run 31:** donchian and turtle read the same
+  channel on the same bars, so the second arrives while the first holds
+  the instrument, queues and expires — 43 % of signals for 3.7 % of
+  trades. Keltner fires on *different* bars, so when it takes a slot it
+  takes it exclusively and displaces the later donchian signal.
+  Displacement needs the strategies to disagree about timing, which is
+  also the only way adding one could ever have helped.
+- **Decision:** verworfen — nightly mix stays at three, no code change,
+  no restart. Section 236. The `scheduler.py` comment stands as written
+  and now rests on a measurement rather than on two instruments observed
+  on one afternoon.

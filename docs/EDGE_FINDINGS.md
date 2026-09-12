@@ -8430,3 +8430,67 @@ minimum)` with the 3-ATR floor refusing what it refuses. No code change,
 no restart. This is the strongest retrospective support the 2026-09-10
 floor has: measured as an adjustment rather than a refusal, the same
 signals cost 0.13 USD a day.
+
+## 236. A fourth strategy: the prediction in scheduler.py was right, for a reason nobody had measured
+
+Section 224 measured the strategy mix by dropping one at a time. It never
+measured the other direction, and there is a candidate waiting:
+`keltner_breakout` is registered, classified as trend-following, and
+deliberately kept out of the nightly allow-list. The reason on file is a
+prediction:
+
+> the selector would organically place it on pairs the donchian book
+> holds and the one-position-per-pair guard would let it steal entries
+> from the proven book.
+
+Two later measurements seemed to undercut it. Section 224 found that
+deleting turtle removes 43 % of signals and 3.7 % of trades — breakout
+systems queue behind one book rather than replacing each other. Section
+227 found only 119 of 2,968 stacked signals in seven years even point
+the other way. On that basis strategies do not steal from one another.
+
+| variant | signals | trades | vs live | occupancy | USD/day | per occupancy |
+|---|---|---|---|---|---|---|
+| **live three** | 22,310 | **4,414** | — | **3.93** | **+0.1763** | +0.0448 |
+| plus keltner | 32,775 | 4,708 | +6.7 % | 4.16 | +0.2132 | **+0.0513** |
+
+| sample | live three | plus keltner | diff |
+|---|---|---|---|
+| 0–365 d | **+0.1922** | +0.1454 | −0.0469 |
+| 366–1095 d | **+0.1975** | +0.1694 | −0.0281 |
+| 1096–1825 d | +0.1024 | **+0.2234** | +0.1210 |
+| 1826–2555 d | +0.2637 | **+0.3533** | +0.0896 |
+
+Pooled +0.0368 USD/day at t +0.75. Clause (c) passes — the candidate is
+better per unit of occupancy, so this is not concentration — but (a) and
+(b) fail on the usual split: it loses both recent samples and wins both
+old ones.
+
+**The trade composition is the finding, and it vindicates the comment.**
+
+| strategy | trades in the candidate book |
+|---|---|
+| donchian_breakout | 2,802 |
+| **keltner_breakout** | **1,529** |
+| turtle_breakout | 332 |
+| momentum | 45 |
+
+Keltner takes 1,529 trades — a third of the book — while the book grows
+by only 294. It displaces roughly 1,235 entries from the established
+strategies. That is precisely "stealing entries from the proven book",
+and it is the opposite of what sections 224 and 227 found for turtle and
+donchian.
+
+The two cases differ in a way neither earlier section could see.
+Donchian and turtle read the same channel and fire on the same bars, so
+the second one arrives while the first already holds the instrument and
+is refused — it queues and mostly expires. Keltner fires on *different*
+bars, so when it takes a slot it takes it exclusively, and the donchian
+signal that would have arrived later finds the instrument occupied.
+Displacement requires the strategies to disagree about timing, which is
+also the only condition under which adding one could ever have helped.
+
+**Decision: nothing built, the nightly mix stays at three.** No code
+change, no restart. The comment in `scheduler.py` stands as written and
+now rests on a measurement rather than on two instruments observed on
+one afternoon.
