@@ -8282,3 +8282,56 @@ the three entry gates** — n ≥ 10, pf ≥ 0.8, eR ≥ −0.2.
 **Decision: nothing built, the live score stays.** No code change, no
 restart. Any further work on this axis has to move a gate, not an
 ordering — and section 217 measured the gates in one direction only.
+
+## 233. The entry gates are a maximum, not an edge — loosening loses too
+
+Section 232 showed the book is decided entirely by three gates: at least
+10 trades in the ranking window, profit factor ≥ 0.8, expectancy ≥ −0.2 R.
+Section 217 measured those gates in one direction only — 0.9/−0.1,
+1.0/0.0 and 1.1/+0.05, every one stricter than live, every one losing on
+all four samples at −0.034, −0.042 and −0.074 USD/day. It concluded that
+tightening removes combinations by in-sample expectancy, which does not
+transfer, and pays certain throughput for uncertain quality, and it left
+a standing instruction in `scheduler.py`: do not narrow these.
+
+That explanation has a direction attached. If throughput is what pays,
+the gradient continues below the live setting. It does not.
+
+| variant | pool (median) | trades | vs live | USD/day |
+|---|---|---|---|---|
+| **live** (0.8 / −0.2 / 10) | 29 | **4,414** | — | **+0.1755** |
+| loose (0.6 / −0.4 / 10) | 38 | 5,242 | +18.8 % | +0.1614 |
+| looser (0.4 / −0.6 / 10) | 40 | 5,339 | +21.0 % | +0.1623 |
+| n5 (live thresholds, n ≥ 5) | 36 | 4,239 | −4.0 % | +0.1950 |
+
+| sample | live | loose | looser | n5 |
+|---|---|---|---|---|
+| 0–365 d | **+0.1890** | +0.0986 | +0.1647 | +0.2309 |
+| 366–1095 d | +0.2034 | +0.1907 | +0.1884 | **+0.2339** |
+| 1096–1825 d | +0.0984 | +0.1125 | +0.0389 | **+0.1216** |
+| 1826–2555 d | +0.2648 | +0.2646 | **+0.3595** | +0.2329 |
+
+The candidate loses on three of four samples, pooled −0.0141 USD/day at
+t −0.44. Loosening buys 18.8 % more trades and gives back more than they
+bring — the mirror of what tightening does, from the other side.
+
+**So 0.8 / −0.2 is a maximum, not the edge of a monotone gradient.**
+Section 217's instruction survives as a rule but not as a reason: the
+gates should not be narrowed, and they should not be widened either, and
+the one-sided explanation it gave — throughput pays, quality does not
+transfer — is refuted by the fact that buying throughput at these gates
+loses. Both quality and throughput are being traded at their best
+available rate already.
+
+The `n5` diagnostic is the one cell worth noting: admitting combinations
+with as few as five trades beats live on three samples and gives up the
+oldest. It was not the preregistered candidate and does not qualify. It
+is also the opposite of what a noise argument predicts — it *lowers* the
+evidence bar and wins on the recent samples — which is one more reading
+against the idea that anything in this ranking data is signal.
+
+**Decision: nothing built.** The gates stay at 0.8 / −0.2 / 10. No code
+change, no restart. With sections 232 and 233 the pair-selection axis is
+closed in both directions at every point it exposes: the ordering is
+inert, the length is a plateau, the window is unstable, and the gates
+sit on a local maximum.

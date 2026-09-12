@@ -5046,3 +5046,35 @@ the section numbers below point there.
 - **Decision:** verworfen — live score stays, no code change, no restart.
   Section 232. Further work on this axis must move a gate, not an
   ordering, and run 217 measured the gates in one direction only.
+
+## 2026-09-12 (fortieth run) — loosening the entry gates
+
+- **Lever:** pair selection — the three gates section 232 identified as
+  the only thing that decides the book (n ≥ 10, pf ≥ 0.8, eR ≥ −0.2).
+  Run 217 measured them in one direction only, all stricter, all losing,
+  and explained it as throughput paying and in-sample quality not
+  transferring. That explanation implies the gradient continues below the
+  live setting. Nobody had walked it.
+- **Measurement:** `scripts/entry_filter_relax.py` — walk-forward as in
+  runs 22–39, 24 blocks. Candidate `loose` (0.6 / −0.4 / 10), one step
+  down the gradient; `looser` and `n5` as diagnostics.
+
+  | variant | pool | trades | vs live | USD/day |
+  |---|---|---|---|---|
+  | **live** | 29 | **4,414** | — | **+0.1755** |
+  | loose | 38 | 5,242 | +18.8 % | +0.1614 |
+  | looser | 40 | 5,339 | +21.0 % | +0.1623 |
+  | n5 | 36 | 4,239 | −4.0 % | +0.1950 |
+
+  Candidate per sample: −0.0904 / −0.0127 / +0.0140 / −0.0002; pooled
+  −0.0141 USD/day at t −0.44.
+- **Result:** the candidate loses on three of four. Loosening buys 18.8 %
+  more trades and gives back more than they bring — the mirror of
+  tightening, from the other side. **0.8 / −0.2 is a local maximum, not
+  the edge of a gradient.** Run 217's instruction survives as a rule but
+  not as a reason: its one-sided explanation is refuted by the fact that
+  buying throughput at these gates loses.
+- **Decision:** verworfen — gates unchanged, no code change, no restart.
+  Section 233. With sections 232 and 233 the pair-selection axis is closed
+  in both directions at every point it exposes: ordering inert, length a
+  plateau, window unstable, gates at a maximum.
