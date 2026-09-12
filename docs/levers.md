@@ -5427,3 +5427,37 @@ the section numbers below point there.
   counts as exposure-neutral while factor-aligned, verified case by case,
   and (c') pooled USD/day does not fall with at least three of four
   samples improving.
+
+## 2026-09-12 (fifty-first run) — the signed cap, checked on the live universe
+
+- **Lever:** position sizing / risk guard — the signed cluster cap from
+  run 50, which passed (b') at 0 violations over 148 direction
+  combinations and (c') at +0.0254 USD/day with three of four samples up.
+  The remaining check was clause (a) on the instruments the harness does
+  not carry.
+- **Measurement:** `scripts/cluster_parity_full.py`. The harness clusters
+  23 instruments; the live book clusters 27. The five missing — AU200,
+  CADJPY, EURJPY, GBPJPY, USDJPY — were fetched rather than assumed,
+  because USDJPY is a USD-base pair like the inverted USDCHF.
+
+  | window | members | edges | contradictions |
+  |---|---|---|---|
+  | A | 27 | 66 | **1** — USDCHF / USDJPY |
+  | B | 27 | 63 | **2** — NZDUSD / US500, EURAUD / NZDUSD |
+
+  Signs also stop being window-stable: EURUSD and NZDUSD flip between A
+  and B.
+- **Result:** clause (a) fails on the full set. A contradiction is a cycle
+  whose negative edges do not multiply to +1 — proof that no single
+  factor explains `risk_on`, however well a subset behaves. Run 50's
+  clean result was an artefact of a universe smaller than the one the bot
+  trades.
+- **Decision:** verworfen — gross counting stays, no code change, no
+  restart. Section 244. The 214 mispriced double bets remain a known open
+  cost, not a fixable one at this cluster granularity.
+- **Rule added for the log:** the harness carries 23 instruments, the bot
+  clusters 27. Verdicts comparing *variants* under identical conditions
+  are unaffected by that gap; verdicts about *structure* — what
+  correlates with what, whether a factor model holds — must be re-read on
+  the live universe before they are believed. Sections 239–243 were all
+  drawn on the smaller set.

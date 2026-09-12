@@ -8881,3 +8881,55 @@ contradiction and window-stably — already shown — (b') no position is
 counted as exposure-neutral while being factor-aligned, verified case by
 case on the three negatively correlated pairs, and (c') pooled USD per
 calendar day does not fall and at least three of four samples improve.
+
+## 244. The signed cap dies on the five instruments the harness does not carry
+
+Section 243 was one verification from shipping. Parity resolved the
+cluster signs with zero contradictions on both audited windows, EURAUD
+and USDCHF inverted on each; clause (b') came back clean at 0 violations
+over 148 direction combinations; clause (c') held at +0.0254 USD/day with
+three of four samples improving. The table was unambiguous about why it
+mattered:
+
+| the three negatively correlated pairs | gross count | signed net | truth |
+|---|---|---|---|
+| EURUSD long + USDCHF long | "same" → refused | 0 | hedge |
+| EURUSD long + USDCHF short | "opposite" → allowed | ±2 | **double bet** |
+
+Gross counting has it exactly backwards on these pairs: it refuses the
+hedges and waves through the double bets — 214 of them in 3,792 trades
+against 21 hedges wrongly refused.
+
+**All of it was measured on 23 instruments. The live book clusters 27.**
+
+The five the harness does not carry — AU200, CADJPY, EURJPY, GBPJPY,
+USDJPY — were fetched for this check rather than assumed, because USDJPY
+is a USD-base pair like the inverted USDCHF and a wrong sign there would
+open precisely the hole the signed rule exists to close.
+
+| window | members | edges | contradictions |
+|---|---|---|---|
+| A (2,555–1,826 d) | 27 | 66 | **1** — USDCHF / USDJPY |
+| B (1,825–1,096 d) | 27 | 63 | **2** — NZDUSD / US500, EURAUD / NZDUSD |
+
+And the signs stop being window-stable: EURUSD and NZDUSD flip between A
+and B. A contradiction is a cycle whose negative edges do not multiply to
++1 — direct proof that no single factor explains the cluster, however
+well a subset of it behaves. USDCHF and USDJPY are both USD-base pairs
+and should share a sign; the measured edge says +1 while propagation
+through the rest of the cluster demands −1.
+
+**Clause (a) fails on the full set, so nothing is built.** Gross counting
+stays. It needs no signs, and it is the conservative reading when none
+can be assigned — the 214 double bets remain mispriced, and that is a
+known open cost rather than a fixable one at this cluster granularity.
+
+**The methodological finding outlasts the lever.** The walk-forward
+harness carries 23 instruments; the bot clusters 27. Every risk-structure
+conclusion in sections 239 to 243 was drawn on the smaller set, and this
+one reversed completely when the missing five were added. Verdicts about
+*variants* compared under identical conditions are unaffected. Verdicts
+about *structure* — what correlates with what, and whether a factor model
+holds — are not, and must be re-read on the live universe before they are
+believed. Section 242's original conclusion was right after all, for a
+reason it could not state.
