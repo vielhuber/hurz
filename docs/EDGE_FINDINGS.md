@@ -9232,5 +9232,5 @@ Nothing here argues for a softer version. The router-gated diagnostic,
 which cuts 12.5 % of the book instead of 30 %, is negative on its cut
 trades in all four samples (-0.006 / -0.010 / -0.008 / -0.039 R). The
 exit-on-information family now reads the same from three sides:
-section 182 (the confirmation bar), section 186's losers' time stop, and
+section 182 (the confirmation bar), section 132's losers' time stop, and
 this one — the live leash books a better price than any earlier signal.

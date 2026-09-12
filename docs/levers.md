@@ -5638,5 +5638,5 @@ the section numbers below point there.
   move, and the leash or stop later books a slightly better price. Freed
   slots then admit 4.8 % more trades and USD per trade halves.
 - **Decision:** verworfen — no exit rule added, no restart. Section 249.
-  With section 182 and the losers' time stop this is the third early
+  With sections 182 and 132 (the losers' time stop) this is the third early
   exit on information that the live leash beats on price.
