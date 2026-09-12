@@ -8704,3 +8704,68 @@ candidate that survives its time sample: the map is re-derived on a
 second, disjoint correlation window and the two are compared. A map that
 reproduces is a structure; one that does not is this window's noise, and
 the +0.0170 goes with it.
+
+## 241. The cluster map breached its own criterion — FIXED
+
+Section 240 asked whether a measured cluster map earns more than the
+curated one and got +0.0170 USD/day at t +0.62, short of the bar. That
+was the wrong question. The right one is whether the map in production
+does what the guard above it claims, and `autotrade.py` states the
+criterion in its own comment: pairs cluster at median |corr| >= 0.5 on
+hourly returns, because "N same-direction breakouts across them are one
+concentrated bet disguised as N independent edges".
+
+Audited on **two disjoint multi-year windows** (days 2,555–1,826 and
+1,825–1,096), a violation counting only if it holds on both:
+
+| pair | window A | window B | production clusters |
+|---|---|---|---|
+| EURAUD / AUDJPY | **0.81** | **0.57** | *(singleton)* vs jpy_crosses |
+| EURAUD / NZDUSD | **0.66** | **0.51** | *(singleton)* vs usd_fx |
+| AUDJPY / J225 | **0.54** | **0.52** | jpy_crosses vs indices |
+
+Three pairs breach the map's own rule on both windows. The comment's
+claim that "EURAUD, AUDNZD and GBPCAD measured below 0.4 against every
+cluster" came from a single year and does not survive a second one.
+
+**What the defect allowed.** Three same-direction positions across
+EURUSD, DE40 and AUDJPY passed every guard — one per instrument, the
+concurrent cap, and a cluster cap that saw three separate clusters. On
+the measurement they are one risk-on bet at roughly triple size. This is
+section 227's finding at the portfolio level: there, two positions on one
+instrument were 0.39 % away from a doubled stake; here, three across
+correlated instruments are the same thing wearing three names.
+
+**The repair is merge-only.** Indices, USD crosses and yen crosses become
+one cluster, `risk_on`, and EURAUD joins it. No instrument was moved out
+of a cluster it already shared — COPPER stays with the metals although
+the same measurement makes it a singleton, because splitting it would
+loosen the guard. A merge can only refuse more entries than before, never
+fewer, so this cannot weaken a risk limit in any state of the data and
+does not need the forward-evidence gate section 211 applies to exposure
+increases.
+
+**Effect on the daily figure**, measured for the record rather than as
+the reason:
+
+| | trades | refused | USD/day |
+|---|---|---|---|
+| production map | 4,125 | 1,162 | +0.1453 |
+| **repaired map** | **3,792** | **2,237** | **+0.1623** |
+
+Better on **all four** samples (+0.0214 / +0.0277 / +0.0019 / +0.0202),
+pooled +0.0170 USD/day at t +0.62. It refuses 92 % more entries and takes
+8 % fewer trades while earning more — the refusals it adds are the ones
+the old map was missing.
+
+**Built in.** `_CORRELATION_CLUSTERS` merged, 303 tests green including
+three new ones that pin the audited breaches to a shared cluster and
+assert that the repair only merged. Two tests that asserted the old
+cluster *labels* were rewritten to assert the property instead. Hurz
+restarted on the fix.
+
+The precedent is section 223, where the duplicate-instrument guard was
+fixed on the evidence that it did not do its job, with a daily-figure
+effect that was not the point. The same holds here: the t-statistic is
++0.62 and the reason to ship is that a stated risk rule was not being
+enforced.

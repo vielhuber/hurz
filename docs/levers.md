@@ -5318,3 +5318,43 @@ the section numbers below point there.
   **Preregistered for the next run** per section 115: re-derive the map
   on a second disjoint correlation window and compare. A map that
   reproduces is structure; one that does not is this window's noise.
+
+## 2026-09-12 (forty-eighth run) — the cluster map breached its own rule — BUILT IN
+
+- **Not a lever but a defect**, following run 47. That run asked whether a
+  measured cluster map earns more (+0.0170 USD/day, t +0.62 — short of
+  the bar). The right question is whether the production map enforces the
+  criterion `autotrade.py` states in its own comment: median |corr| ≥ 0.5
+  clusters, because N same-direction breakouts across such pairs are one
+  concentrated bet.
+- **Audit:** `scripts/cluster_map_audit.py`, two disjoint multi-year
+  windows (days 2,555–1,826 and 1,825–1,096), a breach counting only if
+  it holds on both.
+
+  | pair | window A | window B | production clusters |
+  |---|---|---|---|
+  | EURAUD / AUDJPY | **0.81** | **0.57** | singleton vs jpy_crosses |
+  | EURAUD / NZDUSD | **0.66** | **0.51** | singleton vs usd_fx |
+  | AUDJPY / J225 | **0.54** | **0.52** | jpy_crosses vs indices |
+
+- **What it allowed:** three same-direction positions across EURUSD, DE40
+  and AUDJPY passed every guard while being one risk-on bet at roughly
+  triple size — section 227's finding at portfolio level. The comment's
+  claim that EURAUD sits below 0.4 against every cluster came from a
+  single year and does not survive a second.
+- **Fixed, merge-only:** indices, USD crosses and yen crosses become
+  `risk_on` and EURAUD joins it. Nothing was moved *out* of a cluster it
+  already shared — COPPER stays with the metals although the measurement
+  makes it a singleton, since splitting would loosen the guard. A merge
+  can only refuse more entries, so it cannot weaken a risk limit in any
+  state of the data and needs no forward-evidence gate.
+- **Effect on the daily figure** (for the record, not the reason):
+  4,125 → 3,792 trades, 1,162 → 2,237 refusals, **+0.1453 → +0.1623
+  USD/day**, better on all four samples (+0.0214 / +0.0277 / +0.0019 /
+  +0.0202), pooled +0.0170 at t +0.62.
+- **Decision:** eingebaut. Section 241. 303 tests green including three
+  new ones pinning the audited breaches to a shared cluster and asserting
+  the repair only merged; two tests that asserted old cluster *labels*
+  now assert the property. Hurz restarted on the fix. Precedent is
+  section 223 — a stated risk rule was not being enforced, and that is
+  the reason to ship, not the t-statistic.

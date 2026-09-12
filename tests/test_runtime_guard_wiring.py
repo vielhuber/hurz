@@ -254,10 +254,13 @@ class RuntimeGuardWiringTest(IsolatedAsyncioTestCase):
         self.assertEqual(2, record.call_count)
 
     def test_usd_chf_is_covered_by_the_usd_cluster(self):
-        self.assertEqual(
-            "usd_fx",
-            autotrade._CORRELATION_CLUSTERS["USDCHF"],
-        )
+        """Asserts the property, not the label: the cluster was renamed to
+        `risk_on` when EDGE_FINDINGS 241 merged the USD, index and yen
+        families, so pinning the string would break on a rename that
+        leaves the guard intact."""
+        clusters = autotrade._CORRELATION_CLUSTERS
+        self.assertIn("USDCHF", clusters)
+        self.assertEqual(clusters["USDCHF"], clusters["EURUSD"])
 
 
 if __name__ == "__main__":

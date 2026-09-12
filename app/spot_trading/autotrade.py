@@ -660,33 +660,45 @@ _TRAIL_ATR_MULT = float(os.getenv("HURZ_TRAIL_ATR_MULT", "2.0"))
 # indices), so N same-direction breakouts across them are one concentrated
 # bet disguised as N independent edges. _CLUSTER_DIR_CAP limits how many
 # same-direction positions may be open per cluster (env
-# HURZ_CLUSTER_DIRECTION_CAP). Pairs not listed are uncapped — crosses
-# such as EURAUD, AUDNZD and GBPCAD measured below 0.4 against every
-# cluster on a year of hourly returns and stay singletons; over-clustering
-# weakly-correlated pairs would falsely throttle the book. EU50 (0.93 with
-# DE40), COPPER (0.58 with the metals) and the yen crosses (0.60 with each
-# other) were mapped on that measurement — EDGE_FINDINGS 82.
+# HURZ_CLUSTER_DIRECTION_CAP). Pairs not listed are uncapped.
+#
+# The criterion is median |corr| >= 0.5 on hourly returns. EDGE_FINDINGS
+# 241 audited the map against it on two disjoint multi-year windows and
+# found three pairs breaching it on both: EURAUD/AUDJPY (0.81, 0.57),
+# EURAUD/NZDUSD (0.66, 0.51) and AUDJPY/J225 (0.54, 0.52). The original
+# reading that EURAUD sits below 0.4 against every cluster came from a
+# single year and does not survive.
+#
+# Indices, USD crosses and yen crosses are therefore one family, not
+# three — the risk-on/risk-off factor. They are merged into `risk_on`,
+# and EURAUD joins it. The repair is merge-only: no pair was moved out of
+# a cluster it already sat in, so it can only refuse more entries than
+# before, never fewer. COPPER stays with the metals although the same
+# measurement makes it a singleton — splitting it would loosen the guard.
+# EU50 (0.93 with DE40), COPPER (0.58 with the metals) and the yen
+# crosses (0.60 with each other) were mapped in EDGE_FINDINGS 82.
 _CORRELATION_CLUSTERS = {
     "BTCUSD": "crypto", "ETHUSD": "crypto", "SOLUSD": "crypto",
     "XRPUSD": "crypto", "ADAUSD": "crypto", "DOGEUSD": "crypto",
     "LTCUSD": "crypto", "LINKUSD": "crypto", "AVAXUSD": "crypto",
     "DOTUSD": "crypto", "AAVEUSD": "crypto", "ATOMUSD": "crypto",
     "ARBUSD": "crypto", "APTUSD": "crypto", "NEARUSD": "crypto",
-    "EURUSD": "usd_fx", "GBPUSD": "usd_fx", "AUDUSD": "usd_fx",
-    "NZDUSD": "usd_fx", "USDJPY": "usd_fx", "USDCAD": "usd_fx",
-    "USDCHF": "usd_fx",
-    "DE40": "indices", "FR40": "indices", "UK100": "indices",
-    "US30": "indices", "US500": "indices", "US100": "indices",
-    "HK50": "indices", "J225": "indices", "AU200": "indices",
-    "EU50": "indices",
+    # risk_on = the former usd_fx, indices and jpy_crosses, merged in
+    # EDGE_FINDINGS 241, plus EURAUD.
+    "EURUSD": "risk_on", "GBPUSD": "risk_on", "AUDUSD": "risk_on",
+    "NZDUSD": "risk_on", "USDJPY": "risk_on", "USDCAD": "risk_on",
+    "USDCHF": "risk_on", "EURAUD": "risk_on",
+    "DE40": "risk_on", "FR40": "risk_on", "UK100": "risk_on",
+    "US30": "risk_on", "US500": "risk_on", "US100": "risk_on",
+    "HK50": "risk_on", "J225": "risk_on", "AU200": "risk_on",
+    "EU50": "risk_on",
+    # EURJPY 0.77, GBPJPY 0.72, CADJPY 0.67 median |corr| with the yen
+    # crosses on a year of hourly returns (EDGE_FINDINGS 95).
+    "AUDJPY": "risk_on", "CHFJPY": "risk_on",
+    "EURJPY": "risk_on", "GBPJPY": "risk_on", "CADJPY": "risk_on",
     "GOLD": "metals", "SILVER": "metals", "PALLADIUM": "metals",
     "COPPER": "metals",
     "OIL_BRENT": "energy", "OIL_CRUDE": "energy",
-    "AUDJPY": "jpy_crosses", "CHFJPY": "jpy_crosses",
-    # EURJPY 0.77, GBPJPY 0.72, CADJPY 0.67 median |corr| with the yen
-    # crosses on a year of hourly returns (EDGE_FINDINGS 95). USDJPY sits
-    # at 0.50 with them and stays the USD leg it already is.
-    "EURJPY": "jpy_crosses", "GBPJPY": "jpy_crosses", "CADJPY": "jpy_crosses",
 }
 _CLUSTER_DIR_CAP = int(os.getenv("HURZ_CLUSTER_DIRECTION_CAP", "3"))
 
