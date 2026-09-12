@@ -5390,3 +5390,40 @@ the section numbers below point there.
   is a result in favour of the current code: gross counting is not a crude
   approximation of a better rule, it is the conservative reading of a
   correlation structure that does not admit a signed one.
+
+## 2026-09-12 (fiftieth run) — cluster signs by parity
+
+- **Lever:** position sizing / risk guard — resolve cluster signs by
+  union-find with parity instead of section 242's anchor heuristic.
+  Measured first, not assumed: of 3,792 accepted trades, **214 form a
+  double bet the cap does not see** (opposite side of a negatively
+  correlated same-cluster pair) against **21** hedges wrongly refused.
+- **Measurement:** `scripts/signed_cluster_parity.py`.
+
+  | window | edges | contradictions | inverted |
+  |---|---|---|---|
+  | A | 45 | **0** | EURAUD, USDCHF |
+  | B | 41 | **0** | EURAUD, USDCHF |
+
+  | counting | trades | refused | double bets | USD/day |
+  |---|---|---|---|---|
+  | **gross (live)** | **3,792** | **2,237** | **214** | **+0.1627** |
+  | signed | 3,817 | 2,156 | 184 | **+0.1882** |
+
+  Pooled +0.0254 USD/day, better on three of four, t +0.95.
+- **Section 242 is corrected:** the cluster *does* have a consistent
+  one-factor sign structure — zero contradictions on both windows, the
+  same two instruments inverted on each. The anchor heuristic could not
+  see it; parity can.
+- **Clause (b) fails, and the clause was my mistake.** It demanded unseen
+  double bets fall to zero. A net cap of 3 cannot do that: long EURUSD
+  plus short USDCHF scores net 2 under parity — correctly, and inside the
+  limit. The signed rule prices double bets rather than abolishing them,
+  which is what a cap is for.
+- **Decision:** verworfen — the bar was fixed beforehand and is not met as
+  written; a badly drafted clause is still the clause. No code change, no
+  restart. Section 243. **Preregistered for the next run:** build if (a)
+  parity resolves consistently and window-stably (shown), (b') no position
+  counts as exposure-neutral while factor-aligned, verified case by case,
+  and (c') pooled USD/day does not fall with at least three of four
+  samples improving.

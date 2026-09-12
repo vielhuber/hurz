@@ -8825,3 +8825,59 @@ would first require splitting `risk_on` into genuine single-factor
 sub-clusters — and section 241 established that splitting can only be
 done on evidence that it does not loosen the guard, which this
 measurement does not provide.
+
+## 243. Parity resolves the cluster signs — and my own acceptance clause was unsatisfiable
+
+Section 242 concluded that `risk_on` has no single-factor structure,
+because signs taken against the cluster's most connected member found
+only EURAUD inverted while EURUSD and USDCHF correlate at −0.79. That
+conclusion was wrong, and the method was the reason: an anchor cannot
+resolve signs among members that relate to the anchor weakly.
+
+Union-find with parity can. Every |corr| ≥ 0.5 edge is a constraint —
+positive means same orientation, negative means opposite — and
+propagating them either resolves the cluster or reports a contradiction.
+
+| window | edges | contradictions | inverted |
+|---|---|---|---|
+| A (days 2,555–1,826) | 45 | **0** | EURAUD, USDCHF |
+| B (days 1,825–1,096) | 41 | **0** | EURAUD, USDCHF |
+
+**Zero contradictions on both windows, and the same two instruments
+inverted on each.** The cluster does have a consistent one-factor sign
+structure; section 242's anchor heuristic simply could not see it. That
+correction stands on its own regardless of what follows.
+
+Why it matters was measured first, not assumed. Of 3,792 accepted trades
+under the live gross count, **214 form a double bet the cap does not
+see** — the opposite side of a negatively correlated same-cluster pair,
+which is one position of roughly double size — against **21** refusals
+where a hedge was miscounted as concentration. The hole is ten times more
+common than the over-strictness.
+
+| counting | trades | refused | double bets | occupancy | USD/day |
+|---|---|---|---|---|---|
+| **gross (live)** | **3,792** | **2,237** | **214** | **3.56** | **+0.1627** |
+| signed (parity) | 3,817 | 2,156 | 184 | 3.58 | **+0.1882** |
+
+Pooled +0.0254 USD/day, better on three of four samples, at t +0.95.
+
+**Clause (b) fails, and it was my own mistake.** It demanded that unseen
+double bets fall to zero. A net-exposure cap of 3 cannot deliver that and
+never could: a long in EURUSD and a short in USDCHF score +1 and +1 under
+parity, so the pair counts as net 2 — correctly, and within the limit. The
+signed rule does not abolish double bets, it *prices* them, which is
+exactly what a cap is for. Demanding zero was asking a counting rule to
+be a prohibition.
+
+**Decision: not built.** The bar was fixed before the data were seen and
+it is not met as written; rewriting it now against a result already in
+hand is the move sections 40 to 45 exist to prevent, and the fact that
+the clause was badly drafted does not change who drafted it.
+
+**Preregistered for the next run**, stated in full before the next
+measurement: the signed rule is built if (a) parity resolves without
+contradiction and window-stably — already shown — (b') no position is
+counted as exposure-neutral while being factor-aligned, verified case by
+case on the three negatively correlated pairs, and (c') pooled USD per
+calendar day does not fall and at least three of four samples improve.
