@@ -4831,3 +4831,42 @@ the section numbers below point there.
   the preregistration's fallback prescribes. The download ran while the
   bot was disconnected for the 2026-09-12 bank holiday, so it added no
   API load to a trading cycle.
+
+## 2026-09-12 (thirty-fourth run) — two positions per instrument
+
+- **Lever:** position sizing / frequency — the one-position-per-instrument
+  rule, the binding half of section 222's 4.7× frequency bound. That
+  bound was computed as a bound and dismissed as unimplementable in one
+  line; this measures the smallest loosening the bot could actually run,
+  two concurrent positions per name, every other guard untouched.
+- **Measurement:** `scripts/positions_per_pair.py` — walk-forward as in
+  runs 22–33, 22,310 gated signals, 24 out-of-sample blocks, concurrent
+  cap 8, three live trend strategies, 23 instruments. Three-per-instrument
+  printed as a diagnostic with no standing to qualify.
+
+  | per instrument | trades | vs live | stacked | same direction | USD/day |
+  |---|---|---|---|---|---|
+  | **1 (live)** | **4,414** | — | 0 | — | **+0.1773** |
+  | 2 (candidate) | 6,707 | +51.9 % | 2,968 | **96 %** | +0.3560 |
+  | 3 (diagnostic) | 7,393 | +67.5 % | 4,016 | 93 % | — |
+
+  Better on all four samples (+0.071 / +0.273 / +0.075 / +0.286), pooled
+  +0.1787 USD/day at t +2.40.
+- **Result:** clauses (a) and (b) pass and the daily figure doubles — the
+  strongest numbers in this log. Clause (c), fixed beforehand, fails at
+  96 %: of 2,968 stacked entries only 119 in seven years fire against a
+  position already open on that name. The three strategies are breakout
+  systems reading the same channel on the same bars. The arithmetic
+  closes it — doubling risk per trade under the live rule earns
+  0.1773 × 2 = 0.3546 USD/day against the variant's 0.3560, a difference
+  of 0.39 %. It is a risk doubling spelled as throughput.
+- **The correction this forces:** section 222 multiplied 12.57 trades a
+  day by the full 3.00 USD risk as if frequency and size were independent
+  factors. 96 % of the frequency headroom *is* size. The ceiling at
+  constant risk sits well below 0.889 USD/day and the 61×-short figure
+  was generous. Frequency was never the wide axis.
+- **Decision:** verworfen — one position per instrument stays, no code
+  change, no restart. Section 227. It also prices run 30's defect fix: it
+  removed a doubling of per-instrument exposure that would have doubled
+  the measured daily figure and looked like the best lever ever found
+  here on every statistic except the one that mattered.

@@ -7939,3 +7939,78 @@ figure needs materially more capital, a different strategy family, or a
 lower objective. This was the pre-committed attempt at the second of those
 three, and it is a clean negative — which removes it as an explanation and
 leaves capital and the objective standing where run 29 left them.
+
+## 227. The per-instrument rule is not a throughput limit — it is the risk limit, and lifting it doubles the bet
+
+Section 222 decomposed the daily figure into frequency × expectancy ×
+size and found frequency the widest axis by far: 2.7 trades a day in the
+book against a bound of 12.57 with every constraint removed. That 4.7×
+was computed as a bound and set aside in one line as unimplementable. It
+was never measured as a setting the bot could run, and it has been
+sitting in the arithmetic of every ceiling estimate since.
+
+The binding half of it is the one-position-per-instrument rule. Section
+224 found deleting turtle removes 43 % of signals and 3.7 % of trades;
+section 218 found a longer list swaps entries rather than adding them.
+Both say signals are not scarce — instrument slots are. So the candidate
+is the smallest available loosening: two concurrent positions per name,
+every other guard untouched, the concurrent cap still 8.
+
+The acceptance bar was fixed beforehand with a third clause the earlier
+frequency work did not have: **fewer than half of the stacked entries may
+be same-direction against a position still open on that instrument.**
+A second entry in the same direction on the same name is one position of
+twice the size. That is risk scaling, which sections 211 and 212 gate on
+forward evidence and do not open on a backtest.
+
+| per instrument | trades | vs live | stacked entries | same direction | peak book |
+|---|---|---|---|---|---|
+| **1 (live)** | **4,414** | — | 0 | — | 8 |
+| 2 (candidate) | 6,707 | +51.9 % | 2,968 | **96 %** | 8 |
+| 3 (diagnostic) | 7,393 | +67.5 % | 4,016 | 93 % | 8 |
+
+| sample | live (1) | two | three | two − live |
+|---|---|---|---|---|
+| 0–365 d | +0.1956 | **+0.2666** | +0.3199 | +0.0710 |
+| 366–1095 d | +0.1994 | **+0.4719** | +0.6436 | +0.2725 |
+| 1096–1825 d | +0.1013 | **+0.1760** | +0.1292 | +0.0747 |
+| 1826–2555 d | +0.2681 | **+0.5540** | +0.5940 | +0.2859 |
+| pooled | +0.1773 | **+0.3560** | — | +0.1787 (t +2.40) |
+
+**Clauses (a) and (b) both pass, and they are the most convincing numbers
+this series has produced.** Better on all four samples, no sample
+disagreeing, t +2.40, and the daily figure doubles — against a ledger of
+two hundred–odd levers where nothing ever moved more than a hundredth of
+a dollar. Taken alone this is the best result in the log.
+
+**Clause (c) fails at 96 %, and that single number explains the other
+two.** Of 2,968 stacked entries, 2,849 fire in the same direction as a
+position already open on that instrument. Across seven years, 119 are
+genuinely opposed. The three strategies are all breakout systems reading
+the same channel on the same bars; when one fires, the others are firing
+too, the same way, on the same name.
+
+The arithmetic settles it. Doubling risk per trade under the live rule
+would earn 0.1773 × 2 = **0.3546** USD/day. The two-per-instrument book
+earns **0.3560**. The difference is 0.39 %, which is noise. The variant
+is not a throughput change that happens to add risk; it is a risk
+doubling that happens to be spelled as throughput. There is no separate
+frequency edge inside it to keep.
+
+**This corrects section 222's ceiling.** The 0.889 USD/day bound
+multiplied 12.57 trades a day by the full 3.00 USD risk as if frequency
+and size were independent factors. They are not: 96 % of the frequency
+headroom above the book *is* size, the same signal booked again. The
+honest reading of section 222 is that the ceiling at constant risk sits
+far below 0.889, and that the "61× short" figure was, if anything,
+generous to the strategy family. Frequency was never the wide axis. It
+was size in disguise, and size was already measured at 1.36× in section
+222 and gated on forward evidence in sections 211 and 212.
+
+**Decision: not built in — clause (c) failed.** One position per
+instrument stays. No code change, no restart. This also settles what
+section 223 was worth: that run fixed the duplicate-instrument guard as a
+defect without knowing the size of what it removed. It removed a
+doubling of per-instrument exposure that would have doubled the measured
+daily figure and looked, on every statistic except the one that mattered,
+like the best lever ever found here.
