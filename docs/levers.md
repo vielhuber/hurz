@@ -5283,3 +5283,38 @@ the section numbers below point there.
 - **Decision:** verworfen — cap stays at 3, no code change, no restart.
   Section 239. The harness now carries the guard so future baselines are
   the live book.
+
+## 2026-09-12 (forty-seventh run) — the cluster map, measured instead of curated
+
+- **Lever:** position sizing / risk guard — the correlation map behind
+  the cluster cap. Section 239 made that cap the most expensive guard in
+  the system and showed it must not be loosened; applying it *accurately*
+  is the remaining option. The hand map was built from sections 82 and 95
+  on a stated criterion (median |corr| ≥ 0.5) and never checked against
+  it systematically.
+- **Measurement:** `scripts/cluster_map_measured.py` — correlations on
+  the oldest window only (days 1,826–2,555, outside every scored sample),
+  clusters as connected components of the |corr| ≥ 0.5 graph.
+
+  | | trades | refused | USD/day |
+  |---|---|---|---|
+  | hand | 4,125 | 1,162 | +0.1453 |
+  | **measured** | 3,792 | **2,237** | **+0.1623** |
+
+  Per sample: +0.0214 / +0.0277 / +0.0019; pooled +0.0170 at t +0.62.
+- **The map is stricter, not looser.** Indices, USD crosses and yen
+  crosses collapse into one fifteen-instrument cluster — the
+  risk-on/risk-off factor — and COPPER leaves the metals. It refuses
+  92 % more entries, takes 8 % fewer trades, and earns more: the refusals
+  it adds are ones the hand map missed, the trades it frees are real
+  diversification the hand map was blocking.
+- **Result:** clauses (a) and (c) pass — better on all three
+  out-of-sample windows, no correlated pair split — and (b) fails at
+  t +0.62. No candidate this session has passed (a) except section 227's
+  risk doubling.
+- **Decision:** not built — the bar was fixed beforehand and t +0.62 is
+  not t > 2; moving it now is the after-the-fact relaxation runs 40–45
+  exist to prevent. No code change, no restart. Section 240.
+  **Preregistered for the next run** per section 115: re-derive the map
+  on a second disjoint correlation window and compare. A map that
+  reproduces is structure; one that does not is this window's noise.

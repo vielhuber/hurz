@@ -8646,3 +8646,61 @@ measure, not evidence for loosening.
 **Decision: nothing built, the cap stays at 3.** No code change, no
 restart. The harness gains the guard so that future baselines are the
 live book rather than a freer one.
+
+## 240. The cluster map measured instead of curated: one cluster, not six — better on all three samples, short of significance
+
+Section 239 made the cluster cap the most expensive guard in the system
+at 0.0395 USD/day and showed it must not be loosened. That leaves one way
+to make an expensive guard cheaper without weakening it: apply it
+accurately. The map in `autotrade.py` was built by hand from sections 82
+and 95 using a stated criterion — median |corr| ≥ 0.5 on hourly returns —
+and then extended instrument by instrument. The finished map had never
+been checked against that criterion systematically.
+
+Correlations measured on the oldest window only (days 1,826–2,555), which
+is outside every sample the variant is then scored on, and clusters built
+as connected components of the |corr| ≥ 0.5 graph.
+
+| | hand-built | measured |
+|---|---|---|
+| crypto | BTCUSD, ETHUSD | **m1**: BTCUSD, ETHUSD |
+| energy | OIL_BRENT, OIL_CRUDE | **m2**: OIL_BRENT, OIL_CRUDE |
+| metals | COPPER, GOLD, SILVER | **m3**: GOLD, SILVER — COPPER a singleton |
+| indices | DE40, EU50, FR40, HK50, J225, UK100, US100, US30, US500 | |
+| usd_fx | EURUSD, NZDUSD, USDCHF | **m0**: all of indices + usd_fx + jpy_crosses |
+| jpy_crosses | AUDJPY, CHFJPY | + EURAUD — fifteen instruments |
+
+The measured map is **stricter, not looser**: 2,237 refusals against
+1,162. Indices, USD crosses and yen crosses are not three co-moving
+families but one, which is the risk-on/risk-off factor showing up exactly
+where a correlation matrix would put it. COPPER leaves the metals.
+
+| sample | hand | measured | diff |
+|---|---|---|---|
+| 0–365 d | +0.1723 | **+0.1936** | +0.0214 |
+| 366–1095 d | +0.1949 | **+0.2226** | +0.0277 |
+| 1096–1825 d | +0.0218 | **+0.0237** | +0.0019 |
+| pooled | +0.1453 | **+0.1623** | +0.0170 (t +0.62) |
+
+| | trades | refused | USD/day |
+|---|---|---|---|
+| hand | 4,125 | 1,162 | +0.1453 |
+| measured | 3,792 | 2,237 | **+0.1623** |
+
+**Clause (a) passes and clause (c) passes; clause (b) fails at t +0.62.**
+Better on all three out-of-sample windows — which no candidate in this
+session has managed except the risk doubling of section 227 — while
+refusing 92 % more entries and taking 8 % fewer trades. Strictly less
+concentration and a higher daily figure at the same time, because the
+refusals it adds are the ones the hand map was missing and the trades it
+frees are real diversification the hand map was blocking.
+
+**Not built: the bar was fixed beforehand and t +0.62 is not t > 2.**
+Moving it now would be exactly the after-the-fact relaxation sections 40
+to 45 exist to prevent.
+
+**Preregistered for the next run**, following section 115's rule for a
+candidate that survives its time sample: the map is re-derived on a
+second, disjoint correlation window and the two are compared. A map that
+reproduces is a structure; one that does not is this window's noise, and
+the +0.0170 goes with it.
