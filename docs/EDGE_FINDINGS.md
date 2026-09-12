@@ -8335,3 +8335,42 @@ change, no restart. With sections 232 and 233 the pair-selection axis is
 closed in both directions at every point it exposes: the ordering is
 inert, the length is a plateau, the window is unstable, and the gates
 sit on a local maximum.
+
+## 234. The cost ceiling no longer binds — it is a backstop that never fires
+
+The 10 % cost ceiling came from section 3, read on the live journal;
+sections 11 and 24 showed the relationship it rested on was an artefact
+of a few expensive instruments, and it was kept as a backstop rather
+than as a tuned value. It had never been swept in this harness, and
+section 221's decomposition — costs taking 30 % of a +0.0391 R gross
+edge — gave a reason to ask whether a tighter one would keep more of
+that edge than it gave up in trades.
+
+| ceiling | trades | vs live | USD/day |
+|---|---|---|---|
+| 0.05 | 4,401 | −0.3 % | +0.1828 |
+| **0.10 (live)** | **4,414** | — | **+0.1850** |
+| 0.15 | 4,414 | +0.0 % | +0.1850 |
+| 0.20 | 4,414 | +0.0 % | +0.1850 |
+
+**0.10, 0.15 and 0.20 produce the identical book** — same signal count,
+same trade count, same daily figure to four decimals. Not one signal in
+the tradeable universe costs more than 10 % of its planned risk after
+the venue stop expansion. The ceiling has nothing left to refuse.
+
+That is section 24 confirmed rather than contradicted: the cost blocklist
+removed the instruments whose spreads could not clear the ceiling, so the
+ceiling itself became redundant the moment the blocklist shipped. It
+remains correct to keep — a backstop that never fires is doing its job as
+long as the blocklist is what stands in front of it — but it is not a
+parameter with a value to find.
+
+The 5 % cell is the only one that binds, removing 13 trades of 4,414, and
+it loses: −0.055 on the recent year against small gains on two older
+samples, pooled −0.0022 USD/day at t −0.30.
+
+**Decision: nothing built, the ceiling stays at 10 %.** No code change,
+no restart. With this the cost axis is closed at every point it exposes:
+section 221 priced the axis whole at a 0.06 USD/day bound, section 179
+priced the hour-dependent correction at half a percent of risk, and the
+ceiling turns out not to be live at all.

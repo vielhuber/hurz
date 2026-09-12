@@ -5078,3 +5078,31 @@ the section numbers below point there.
   Section 233. With sections 232 and 233 the pair-selection axis is closed
   in both directions at every point it exposes: ordering inert, length a
   plateau, window unstable, gates at a maximum.
+
+## 2026-09-12 (forty-first run) — the cost ceiling, swept in dollars
+
+- **Lever:** cost filter — the 10 % cost/risk ceiling, never swept in
+  this harness. Section 221 priced costs at 30 % of the gross edge, and a
+  ceiling is the one instrument that acts on that share directly, so the
+  candidate was fixed at the tighter 5 %; 15 % and 20 % as diagnostics.
+- **Measurement:** `scripts/cost_ceiling_sweep.py` — walk-forward as in
+  runs 22–40, 24 blocks, ceiling parameterised through the sizing path.
+
+  | ceiling | trades | vs live | USD/day |
+  |---|---|---|---|
+  | 0.05 | 4,401 | −0.3 % | +0.1828 |
+  | **0.10 (live)** | **4,414** | — | **+0.1850** |
+  | 0.15 | 4,414 | +0.0 % | +0.1850 |
+  | 0.20 | 4,414 | +0.0 % | +0.1850 |
+
+- **Result:** the candidate loses (pooled −0.0022 USD/day, t −0.30), and
+  the diagnostics carry the finding: **0.10, 0.15 and 0.20 produce the
+  identical book**. Not one signal in the tradeable universe costs more
+  than 10 % of planned risk after the venue stop expansion. The ceiling
+  has nothing left to refuse — section 24's cost blocklist removed the
+  instruments it existed for, so it became a backstop that never fires.
+- **Decision:** verworfen — ceiling stays at 10 %, no code change, no
+  restart. Section 234. The cost axis is now closed at every point it
+  exposes: the axis priced whole (221, bound 0.06 USD/day), the
+  hour-dependent correction (179, half a percent of risk), and the
+  ceiling itself not binding.
