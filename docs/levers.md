@@ -5640,3 +5640,35 @@ the section numbers below point there.
 - **Decision:** verworfen — no exit rule added, no restart. Section 249.
   With sections 182 and 132 (the losers' time stop) this is the third early
   exit on information that the live leash beats on price.
+
+## 2026-09-13 — letting only the winners run past the leash
+
+- **Lever:** exit logic — extend the 24-bar leash to 48 bars only for
+  positions whose close at bar 24 is in profit; losers close at 24 as
+  live, stop and target untouched. Runs 35/36 and section 229 moved the
+  leash for every trade and failed, and 229's journal replay (30 stops
+  for 20 targets) never split by the open result at the leash — the
+  split trend following says matters. Stated risk change: extended
+  positions are held longer, never with more than the 1 R stop.
+- **Measurement:** `scripts/winner_leash_extension.py`, booking verified
+  against the harness on 3,200 EURUSD trades (0 mismatches), live-selector
+  walk-forward on the run-54 harness, 24 out-of-sample blocks.
+
+  | variant | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live, 24 bars** | **5,488** | **+0.0478** | **+0.1681** | — | — | — |
+  | in profit → 48 | 4,449 | +0.0593 | +0.1689 | +0.0007 | +0.01 | 2/4 |
+  | above +0.5 R → 48 (diag) | 5,005 | +0.0544 | +0.1815 | +0.0066 | +0.11 | 2/4 |
+  | in profit → 36 (diag) | 4,713 | +0.0543 | +0.1660 | -0.0044 | -0.07 | 2/4 |
+
+- **Result:** (a) and (b) fail; (c) passes only on its letter — the 1,930
+  extended trades gain **+0.0016 R at t +0.11**, three of four samples
+  slightly negative. Of the extensions, 17 % reach the target, 6 % the
+  stop and 78 % are still open at bar 48. A winning position at bar 24 is
+  as likely to give back as to run; the open result at the leash carries
+  no information about the next 24 bars. USD per trade rises because
+  extended positions refuse 19 % of later entries — occupancy, not edge.
+- **Decision:** verworfen — leash stays at 24 for every trade, no code
+  change, no restart. Section 250. The exit is now measured early and
+  late on every signal the book carries (confirmation bar, open loss,
+  opposite breakout, open profit); none beats the fixed 24-bar leash.

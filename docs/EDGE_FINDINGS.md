@@ -9234,3 +9234,55 @@ trades in all four samples (-0.006 / -0.010 / -0.008 / -0.039 R). The
 exit-on-information family now reads the same from three sides:
 section 182 (the confirmation bar), section 132's losers' time stop, and
 this one — the live leash books a better price than any earlier signal.
+
+## 250. Letting only the winners run: the open result at the leash carries nothing
+
+Sections 198, 228 and 229 moved the 24-bar leash for every trade at once.
+Shorter was worse; 36 looked better only in the sample that selected it;
+and section 229's journal replay refuted the mechanism — twelve bars more
+brought 30 stops for 20 targets. That replay never split the trades by
+where they stood when the leash fired, and trend following says the split
+is the point: a position under water after 24 hours has had its chance,
+one in profit is the only kind that can still travel to the target.
+
+`scripts/winner_leash_extension.py` keeps the leash for losers exactly as
+live and extends only positions whose close at bar 24 is in profit, stop
+and target untouched. The booking was checked first against the
+harness's own on 3,200 EURUSD trades: zero mismatches without the
+extension, and non-extended trades identical under it. Live-selector
+walk-forward, section 247's harness, 24 out-of-sample blocks.
+
+| variant | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **live, 24 bars** | **5,488** | **+0.0478** | **+0.1681** | — | — | — |
+| **in profit → 48 bars** | 4,449 | +0.0593 | +0.1689 | **+0.0007** | **+0.01** | 2/4 |
+| above +0.5 R → 48 (diag) | 5,005 | +0.0544 | +0.1815 | +0.0066 | +0.11 | 2/4 |
+| in profit → 36 (diag) | 4,713 | +0.0543 | +0.1660 | -0.0044 | -0.07 | 2/4 |
+
+Candidate per sample: +0.1069 / -0.0698 / +0.0205 / -0.0001. Clauses (a)
+and (b) fail. Clause (c) passes only as written:
+
+| extended trades in the book | extended R | live R, same trades | paired | t |
+|---|---|---|---|---|
+| 1,930 (43 %) | +0.4014 | +0.3998 | +0.0016 | +0.11 |
+
+Paired per sample: -0.0006 / -0.0109 / +0.0184 / -0.0030. That is zero,
+and the outcome column says why: of the extended trades 17 % go on to
+the target, 6 % to the stop, and 78 % are still open at bar 48 having
+gone nowhere in particular. The +0.5 R diagnostic, which extends only
+clear winners, reads -0.0104 R paired; the 36-bar one -0.0087.
+
+**The finding is the zero.** Section 229 showed that the average
+position gains nothing from more time. This shows the same holds for the
+half that is winning: a profitable open position at bar 24 is as likely
+to give it back as to extend it. The open result at the leash carries no
+information about the next 24 bars, which is what a momentum edge would
+have to supply and does not. The dollar table's swings are occupancy —
+extended positions refuse 19 % of later entries, USD per trade rises and
+the day does not.
+
+With sections 182, 132 and 249 on the early side and 228, 229 and this
+one on the late side, the exit is now measured in both directions and on
+every form of information the book carries — the confirmation bar, the
+open loss, an opposite breakout, the open profit. None beats a fixed
+24-bar leash.
