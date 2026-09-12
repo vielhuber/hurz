@@ -5358,3 +5358,35 @@ the section numbers below point there.
   now assert the property. Hurz restarted on the fix. Precedent is
   section 223 — a stated risk rule was not being enforced, and that is
   the reason to ship, not the t-statistic.
+
+## 2026-09-12 (forty-ninth run) — signed cluster exposure
+
+- **Lever:** position sizing / risk guard — the cap counts positions by
+  nominal side, but section 241's merged `risk_on` contains pairs that
+  correlate at −0.79 (EURUSD/USDCHF), −0.81 (EURAUD/AUDJPY) and −0.66
+  (EURAUD/NZDUSD) on both audited windows. A long in each of a
+  negatively correlated pair hedges; the cap calls it concentration and
+  refuses the third entry. Candidate: sign each instrument against its
+  cluster's most connected member and cap the *net* exposure at the same 3.
+- **Measurement:** `scripts/signed_cluster_exposure.py`, signs derived on
+  the oldest window (outside every scored sample), walk-forward as in
+  runs 22–48.
+
+  | counting | trades | refused | occupancy | peak net expo | USD/day |
+  |---|---|---|---|---|---|
+  | **gross (live)** | **3,792** | **2,237** | **3.56** | **4** | **+0.1629** |
+  | net | 3,912 | 1,846 | 3.67 | 5 | +0.1619 |
+
+  Pooled −0.0010 USD/day at t −0.04; three of four samples worse.
+- **The diagnostic is the finding.** Only **one** instrument (EURAUD)
+  comes out oriented against the cluster factor, yet EURUSD and USDCHF
+  correlate at −0.79. Both can only share a sign against a common anchor
+  if their correlations to it are weak — which is the case: `risk_on` has
+  no clean single-factor structure. A sign is well defined only when one
+  factor explains the cluster; here it is not, and signed counting
+  permits a peak net exposure of 5 against gross counting's 4 — *more*
+  concentration on the very measure it was meant to control.
+- **Decision:** verworfen — no code change, no restart. Section 242. This
+  is a result in favour of the current code: gross counting is not a crude
+  approximation of a better rule, it is the conservative reading of a
+  correlation structure that does not admit a signed one.

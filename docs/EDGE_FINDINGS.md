@@ -8769,3 +8769,59 @@ fixed on the evidence that it did not do its job, with a daily-figure
 effect that was not the point. The same holds here: the t-statistic is
 +0.62 and the reason to ship is that a stated risk rule was not being
 enforced.
+
+## 242. Signed cluster exposure: the merged cluster is not a one-factor object, and gross counting is the conservative reading
+
+Section 241 merged indices, USD crosses and yen crosses into `risk_on` on
+the map's own |corr| ≥ 0.5 criterion. The absolute value is right for
+deciding what co-moves, but the cap on top of it counts positions by
+their nominal side, and those two do not compose. Inside `risk_on`, four
+pairs correlate at or below −0.5 on both audited windows:
+
+| pair | window A | window B |
+|---|---|---|
+| EURUSD / USDCHF | **−0.79** | **−0.71** |
+| EURAUD / AUDJPY | **−0.81** | **−0.57** |
+| EURAUD / NZDUSD | **−0.66** | **−0.51** |
+| USDCHF / CHFJPY | −0.51 | — |
+| USDCHF / NZDUSD | — | −0.60 |
+
+A long in EURUSD and a long in USDCHF are opposite bets on the same
+factor. They hedge, and the cap counts them as two same-direction
+positions — the mirror of section 241's defect: there the guard was blind
+to concentration, here it invents it. The candidate assigned each
+instrument a sign against its cluster's most connected member and capped
+the *net* signed exposure at the same 3.
+
+| counting | trades | refused | occupancy | peak net exposure | USD/day |
+|---|---|---|---|---|---|
+| **gross (live)** | **3,792** | **2,237** | **3.56** | **4** | **+0.1629** |
+| net (candidate) | 3,912 | 1,846 | 3.67 | 5 | +0.1619 |
+
+Pooled −0.0010 USD/day at t −0.04. Three of four samples worse, one
+better, and the two readings are indistinguishable.
+
+**The diagnostic explains why, and it matters more than the lever.** Only
+**one** instrument — EURAUD — comes out oriented against the cluster
+factor. Yet EURUSD and USDCHF correlate at −0.79. Both cannot hold the
+same sign against a common anchor unless their correlations *to that
+anchor* are weak and noisy, which is exactly what happens: `risk_on` has
+no clean single-factor structure. It is a set of instruments that co-move
+pairwise above 0.5 in places and anti-move above 0.5 in others, which is
+what a merged multi-family cluster looks like.
+
+A sign is only well defined when one factor explains the cluster. Here it
+is not, so signed counting has nothing solid to count, and its peak net
+exposure comes out at 5 against gross counting's 4 — it permits *more*
+concentration on the measure it was supposed to control.
+
+**That is a result in favour of the current code.** Gross counting is not
+an approximation to a better rule that nobody implemented; it is the
+conservative reading of a correlation structure that does not admit a
+signed one. Section 241's merge stands and so does the way the cap counts.
+
+**Decision: nothing built.** No code change, no restart. A signed cap
+would first require splitting `risk_on` into genuine single-factor
+sub-clusters — and section 241 established that splitting can only be
+done on evidence that it does not loosen the guard, which this
+measurement does not provide.
