@@ -9182,3 +9182,55 @@ daily-figure lever in this book.
 
 The live 20 / 55 is the best of the four on the system that trades. The
 channel-length axis is closed on the current configuration.
+
+## 249. The opposite breakout as an exit: it sells the extreme
+
+The live loop holds one position per instrument and ignores every signal
+on a name it already holds. Section 83 counted 83 % of signals arriving
+into an open position and 20 % of those pointing the other way. No exit
+reads them: the regime flip-exit closes mean-reversion positions only,
+and section 182's failed-breakout exit looked at the single bar after
+the signal. An opposite breakout is a stronger invalidation than either
+— price has crossed the whole channel against the position.
+
+`scripts/opposite_breakout_exit.py`: while a position is open, if any of
+the scheduler's three strategies fires the opposite way on that
+instrument, close at that bar's close. Stop and target keep priority
+inside the bar, so the rule can only exit earlier than the live one and
+never loses more than 1 R; it does not reverse into the new signal. Both
+books through the live-selector walk-forward (section 247's harness),
+each ranking on its own R.
+
+| | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **live** | **5,488** | **+0.0478** | **+0.1717** | — | — | — |
+| exit on any opposite signal | 5,749 | +0.0237 | +0.0892 | **-0.0825** | -1.74 | 1/4 |
+| exit on router-passed opposite (diag) | 5,781 | +0.0286 | +0.1095 | -0.0644 | -1.55 | 1/4 |
+
+Per sample: +0.0467 / -0.0101 / -0.1122 / -0.0722. All three clauses
+fail, and clause (c) fails with a significant sign:
+
+| trades cut in the book | cut R | live R, same trades | paired | t | ended positive under live |
+|---|---|---|---|---|---|
+| 1,730 (30.1 %) | -0.4783 | -0.4607 | **-0.0176** | **-2.24** | 11 % |
+
+**The cut trades are losers, and cutting them makes them lose more.**
+This is not section 182's failure — there a third of the cut trades
+would have recovered; here only 11 % would. The trades the rule
+identifies really are the bad ones. The problem is the exit price: an
+opposite breakout closes at the far edge of the channel, which is where
+a 1h move against the position is most extended, and the price the live
+rule books later — at the leash or the stop — is on average slightly
+better. The rule identifies the loser correctly and then sells its low.
+
+The dollar figure falls further than the per-trade saving would suggest,
+because the cuts free slots: the book takes 4.8 % more trades and USD
+per trade halves. Section 220's constraint once more — freed capacity
+admits marginal entries worth about nothing.
+
+Nothing here argues for a softer version. The router-gated diagnostic,
+which cuts 12.5 % of the book instead of 30 %, is negative on its cut
+trades in all four samples (-0.006 / -0.010 / -0.008 / -0.039 R). The
+exit-on-information family now reads the same from three sides:
+section 182 (the confirmation bar), section 186's losers' time stop, and
+this one — the live leash books a better price than any earlier signal.

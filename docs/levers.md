@@ -5609,3 +5609,34 @@ the section numbers below point there.
   trade and still loses dollars — section 220's constraint again.
 - **Decision:** verworfen — 20 / 55 stay, no code change, no restart.
   Section 248. The channel-length axis is closed on the current system.
+
+## 2026-09-12 (fifty-fifth run) — the opposite breakout as an exit
+
+- **Lever:** exit logic — close a trend position when any of the three
+  scheduler strategies breaks out the other way on the same instrument.
+  Never tested: the regime flip-exit touches mean-reversion positions
+  only, and run 7 of 2026-09-10 (section 182) looked at the one bar
+  after the signal. Section 83 counted 20 % of signals that meet an open
+  position pointing against it — information the bot ignores today.
+  Stop and target keep priority inside the bar, so the rule can only
+  exit earlier and never loses more than 1 R; it does not reverse.
+- **Measurement:** `scripts/opposite_breakout_exit.py`, harness as
+  corrected in run 54 (live mix, 27 instruments, top 40 with pf ≥ 0.8 /
+  eR ≥ -0.2), 24 out-of-sample blocks, each arm ranking on its own R.
+
+  | | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,488** | **+0.0478** | **+0.1717** | — | — | — |
+  | any opposite signal | 5,749 | +0.0237 | +0.0892 | -0.0825 | -1.74 | 1/4 |
+  | router-passed opposite (diag) | 5,781 | +0.0286 | +0.1095 | -0.0644 | -1.55 | 1/4 |
+
+- **Result:** all three clauses fail. The 1,730 cut trades (30 % of the
+  book) are genuine losers — -0.46 R under the live rule, only 11 %
+  would have recovered — but the cut books **-0.48 R**, paired **-0.0176
+  R at t -2.24**. The rule picks the right trades and sells their low:
+  an opposite breakout closes at the most extended point of the adverse
+  move, and the leash or stop later books a slightly better price. Freed
+  slots then admit 4.8 % more trades and USD per trade halves.
+- **Decision:** verworfen — no exit rule added, no restart. Section 249.
+  With section 182 and the losers' time stop this is the third early
+  exit on information that the live leash beats on price.
