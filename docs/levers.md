@@ -4947,3 +4947,40 @@ the section numbers below point there.
   selection. Sections 227 and 229 are that trap seen twice — once where
   extra trades were extra risk, once where fewer trades were a
   better-looking average.
+
+## 2026-09-12 (thirty-seventh run) — stop distance in ATR above the floor
+
+- **Lever:** regime filter / pair selection — stop distance in ATR as an
+  ordering quantity above the 3-ATR floor. Motivated by localising the
+  live/harness stop-rate gap: reconstructing ATR(14) at each journalled
+  signal bar splits 230 live trades since 2026-07-01 into 137 below the
+  floor stopping out at 45 % and 93 at or above it at 15 % — and 15 % is
+  the harness's own 13.6 %. The quantity separates stop rate better than
+  anything else measured here, and the selector does not price it.
+- **Measurement:** `scripts/stop_atr_buckets.py` — 22,310 gated signals,
+  quartile edges fixed on the recent year and applied unchanged to the
+  older sample, the same bar as runs 40–43 (blocked only if t < −2 on
+  both samples and |t| > 2 for the difference with the same sign).
+
+  | stop in ATR | recent n / E[R] / t_diff | older n / E[R] / t_diff |
+  |---|---|---|
+  | below 4.34 | 776 / +0.059 / **+2.15** | 1,794 / −0.005 / −0.54 |
+  | 4.34–6.22 | 777 / −0.020 / −1.16 | 2,127 / +0.024 / +1.65 |
+  | 6.22–8.83 | 776 / −0.011 / −0.95 | 1,779 / +0.003 / −0.07 |
+  | above 8.83 | 778 / −0.008 / −0.89 | 1,286 / −0.016 / −1.68 |
+
+- **Result:** no quartile qualifies. The tightest bucket is the best of
+  the four on the recent year and flat on the older — the sign flip that
+  has retired a dozen candidates. The effect is a threshold at the floor,
+  not a gradient above it, which is the best case a floor can have: 3.0
+  leaves no ordering on the table.
+- **The finding is about the floor itself.** In dollars the two live
+  groups are indistinguishable (−0.0367 vs −0.1300 USD/trade, **t
+  +0.26**); what separates them is dispersion, **sd 3.67 against 1.73**.
+  A tighter stop buys a larger position for the same 3 USD, so the same
+  move arrives magnified. The 3-ATR floor is a **variance filter, not an
+  earnings filter** — a good reason to keep it, and not a reason to
+  expect the daily figure to rise now that it is in. The live/harness gap
+  stays where section 221 left it, about one standard error.
+- **Decision:** verworfen — nothing built, no code change, no restart.
+  Section 230.

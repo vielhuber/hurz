@@ -8135,3 +8135,53 @@ cannot be read off its E[R] column at all; only the USD/day column is
 meaningful, and even that one mixes throughput with selection. Sections
 227 and 229 are the same trap seen twice: 227 where extra trades were
 extra risk, 229 where fewer trades were a better-looking average.
+
+## 230. Stop distance in ATR: a hard edge at the floor, no ordering above it — and the floor turns out to be a variance filter
+
+The live book stops out roughly twice as often as the harness books it —
+26 % since 2026-08-24 against 13.6 % over 22,310 gated signals. That gap
+had never been localised. Reconstructing ATR(14) at each journalled
+signal bar localises it in one cut:
+
+| live trades since 2026-07-01 | n | stop rate | USD/trade | sd |
+|---|---|---|---|---|
+| stop under 3 ATR | 137 | **45 %** | −0.0367 | **3.670** |
+| stop at or above 3 ATR | 93 | **15 %** | −0.1300 | **1.728** |
+
+The compliant group's 15 % is the harness's 13.6 %: the harness books
+only signals its floor admits, so its stop rate was never comparable to a
+live book that, until commit 09254f9 on 2026-09-10, took both.
+
+**But the dollars do not follow the stop rate.** The sub-floor group
+loses *less* per trade, and the difference is t +0.26 — noise in both
+directions. What separates the groups by more than four to one in
+variance is dispersion: sd 3.67 against 1.73. A tighter stop buys a
+larger position for the same 3 USD, so the same move arrives magnified;
+the trades stop out more often and the survivors swing wider.
+
+**That reclassifies what the 3-ATR floor does.** It is a variance filter,
+not an earnings filter. It halves per-trade dispersion at an expectancy
+difference nobody can measure. That is a good reason to keep it — and it
+is not a reason to expect the daily figure to rise now that it is in.
+The live/harness gap stays where section 221 left it: about one standard
+error, not yet distinguishable.
+
+**Above the floor the quantity stops ordering anything.** Quartiles cut
+on the recent year and applied unchanged to the older sample:
+
+| stop distance in ATR | recent n / E[R] / t / t_diff | older n / E[R] / t / t_diff |
+|---|---|---|
+| below 4.34 | 776 / **+0.059** / +1.87 / **+2.15** | 1,794 / −0.005 / −0.25 / −0.54 |
+| 4.34–6.22 | 777 / −0.020 / −0.78 / −1.16 | 2,127 / +0.024 / +1.62 / +1.65 |
+| 6.22–8.83 | 776 / −0.011 / −0.63 / −0.95 | 1,779 / +0.003 / +0.22 / −0.07 |
+| above 8.83 | 778 / −0.008 / −0.63 / −0.89 | 1,286 / −0.016 / −1.47 / −1.68 |
+
+No quartile is significantly negative on both samples and no difference
+holds with the same sign; the tightest bucket is the best of the four on
+the recent year at t_diff +2.15 and flat on the older one, which is the
+sign-flip that has retired a dozen candidates in this document.
+
+**Decision: nothing built.** The effect of stop distance in ATR is a
+threshold at the floor, not a gradient above it — which is the best case
+a floor can have, because it means 3.0 is not leaving an ordering on the
+table. No code change, no restart.
