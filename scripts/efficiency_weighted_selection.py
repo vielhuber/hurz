@@ -55,8 +55,15 @@ from app.spot_trading.regime import gate
 from scripts.spot_backtest import _fee_for
 from scripts.walk_forward import _bars_to_df
 
+# The list is the live book's, not a subset of it. CADJPY, EURJPY,
+# GBPJPY and USDJPY were added 2026-09-12 (section 245): they sit in
+# `data/active_pairs.capital_com.json` and the bot trades them, but no
+# harness run before that date could see them, so every verdict about
+# structure was drawn on a universe smaller than the traded one —
+# section 244's rule.
 PAIRS=[p for p in ["BTCUSD","ETHUSD",
        "EURUSD","AUDUSD","USDCHF","AUDNZD","EURAUD","GBPUSD","NZDUSD","GBPCAD","AUDJPY","CHFJPY",
+       "CADJPY","EURJPY","GBPJPY","USDJPY",
        "DE40","US500","US30","FR40","UK100","EU50","US100","HK50","J225",
        "OIL_CRUDE","OIL_BRENT","GOLD","SILVER","COPPER"] if p not in BLOCKED_PAIRS]
 STRATS=["donchian_breakout","turtle_breakout","keltner_breakout"]

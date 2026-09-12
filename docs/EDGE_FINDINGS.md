@@ -8933,3 +8933,69 @@ about *structure* — what correlates with what, and whether a factor model
 holds — are not, and must be re-read on the live universe before they are
 believed. Section 242's original conclusion was right after all, for a
 reason it could not state.
+
+## 245. The four live instruments the harness never scored are not a drag
+
+Section 244 closed with a rule: the harness carries 23 instruments, the
+bot clusters 27, and verdicts about *structure* must be re-read on the
+live universe before they are believed. The rule bites hardest not on
+correlation structure but on the selection rules themselves.
+`data/active_pairs.capital_com.json` of 2026-09-11 holds 25 instruments,
+among them CADJPY, EURJPY, GBPJPY and USDJPY. The ADX ceiling, the
+3×ATR floor, the cost ceiling, dollar sizing and the consistency block
+of section 192 were all derived without them. Section 192 flagged three
+of *24*; these four were never eligible to be flagged, and the bot has
+traded them throughout.
+
+Section 96 did measure the yen group against random entries, but that
+was before the ceiling, the floor and dollar sizing existed. It is not
+the system now running.
+
+`scripts/unscored_live_instruments.py` applies section 192's rule in its
+original form to the instruments it could not see: three disjoint
+training samples must all read negative, the most recent year held out,
+the held-out year deciding alone. History for the four is the section-244
+fetch (days 2,555–1,096) plus a paced fetch of the remaining 1,100 days;
+27 instruments, 41,089 gated, sized and booked signals over seven years.
+
+| pair | 366–1,095 d | 1,096–1,825 d | 1,826–2,555 d | flag |
+|---|---|---|---|---|
+| CADJPY | -0.0221 (601) | +0.0774 (751) | +0.0431 (775) | — |
+| EURJPY | -0.0334 (599) | -0.0163 (658) | +0.0096 (629) | — |
+| GBPJPY | +0.0149 (569) | +0.0830 (665) | -0.0848 (617) | — |
+| USDJPY | -0.0392 (611) | +0.0068 (679) | +0.0489 (680) | — |
+| (other 23) | +0.0054 | +0.0223 | +0.0187 | |
+
+None reads negative on all three, so the rule produces no block, and on
+the held-out year the four read **+0.0160 R** against **-0.0094 R** for
+the other 23 — the never-scored instruments are the better half of the
+book on the one sample nothing was fitted to.
+
+The dollar question was answered too, against a bar fixed before the
+numbers were seen (better on all four year-samples, t > +2). Dropping
+all four from the walk-forward:
+
+| sample | full universe | four dropped | diff |
+|---|---|---|---|
+| 0–365 d | +0.0833 | +0.0833 | 0.0000 |
+| 366–1,095 d | +0.0095 | +0.0094 | -0.0001 |
+| 1,096–1,825 d | -0.0103 | +0.0026 | +0.0129 |
+| 1,826–2,555 d | +0.0684 | +0.0684 | 0.0000 |
+
+1 of 4 samples up, pooled +0.0123 USD/day at t +0.30 — fail.
+
+Two of the four samples are *identical to four decimals*, and that is
+the finding underneath the finding. Over 24 out-of-sample blocks the
+four contribute 40 of 1,289 trades: at TOP_N = 10 they almost never
+reach the active list, so the harness can barely see them however long
+it runs. Live, `top_n` is 40 and the list holds 55 combinations. The
+harness models a book roughly four times more selective than the one
+trading, which is a caveat on every throughput verdict drawn from it —
+sections 23, 25 and 27 measured list length *inside* the harness and are
+unaffected as comparisons, but the absolute trade counts do not
+transfer.
+
+What ships is the universe: `PAIRS` in the walk-forward harness is now
+the live book's list rather than a subset, so section 244's rule is
+satisfied by construction for every future run instead of by
+remembering to check.

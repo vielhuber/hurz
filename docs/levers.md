@@ -5461,3 +5461,46 @@ the section numbers below point there.
   correlates with what, whether a factor model holds — must be re-read on
   the live universe before they are believed. Sections 239–243 were all
   drawn on the smaller set.
+
+## 2026-09-12 (fifty-second run) — the four live instruments the harness never scored
+
+- **Lever:** pair selection — CADJPY, EURJPY, GBPJPY and USDJPY sit in
+  the live active list and the bot trades them, but no walk-forward run
+  before today could see them. Section 192 flagged three of *24*
+  instruments on measured expectancy; these four were never eligible.
+  Candidate: apply that rule in its original form — three disjoint
+  training samples all negative, most recent year held out, the held-out
+  year deciding alone — and block whatever it flags.
+- **Measurement:** `scripts/unscored_live_instruments.py`, 27
+  instruments, 41,089 gated / sized / booked signals over seven years.
+  History is section 244's fetch plus a paced fetch of the remaining
+  1,100 days.
+
+  | pair | 366–1,095 d | 1,096–1,825 d | 1,826–2,555 d | flag |
+  |---|---|---|---|---|
+  | CADJPY | -0.0221 | +0.0774 | +0.0431 | — |
+  | EURJPY | -0.0334 | -0.0163 | +0.0096 | — |
+  | GBPJPY | +0.0149 | +0.0830 | -0.0848 | — |
+  | USDJPY | -0.0392 | +0.0068 | +0.0489 | — |
+
+  Clause (a) fails: nothing flags. On the held-out year the four read
+  **+0.0160 R** against **-0.0094 R** for the other 23.
+- **The dollar question, on a bar fixed before it was seen** (better on
+  all four samples and t > +2): dropping all four gives 1 of 4 samples
+  up, pooled **+0.0123 USD/day at t +0.30** — fail. Per sample
+  +0.0000 / -0.0001 / +0.0129 / +0.0000.
+- **Decision:** verworfen — no block, no production change, no restart.
+  The four are not a drag; on the one sample nothing was fitted to they
+  are the better half of the book. Section 245.
+- **Built anyway, because it is measurement infrastructure rather than a
+  lever:** the harness's `PAIRS` is now the live book's list instead of
+  a subset, so section 244's rule ("verdicts about structure must be
+  re-read on the live universe") holds by construction from here on.
+  303 tests green.
+- **Caveat this run surfaced, for the next one:** two of the four
+  samples are identical to four decimals because the four contribute
+  40 of 1,289 trades — at TOP_N = 10 they barely reach the harness's
+  active list, while live `top_n` is 40 over 55 combinations. The
+  harness models a book about four times more selective than the one
+  trading. Comparisons between variants are unaffected; absolute trade
+  counts and throughput claims do not transfer.
