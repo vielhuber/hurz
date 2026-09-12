@@ -4787,3 +4787,47 @@ the section numbers below point there.
   scale — 122 signals in seven years, 51 trades, 0.7 % of the book.
 - **Decision:** pins stay, nothing built, no restart. Section 225. Every
   dimension of the active list the code exposes is now measured.
+
+## 2026-09-12 (thirty-third run) — the preregistered structural signals
+
+- **Lever:** new signal sources — the eighteen rules fixed in
+  `docs/STRUCTURAL_SIGNAL_PREREGISTRATION.md` on 2026-08-24 and never
+  run. Run 29 closed the channel family and named a different family as
+  one of three remaining directions; this is the pre-committed attempt
+  at it, so it is the one lever that does not repeat an earlier test.
+- **Measurement:** development window only — entries 2023-11-30 to
+  2026-02-01, 794 days, 14 audited instruments, 1h bars downloaded for
+  this purpose. One fixed execution profile for all variants, 145,991
+  signals and 24,252 executable trades across the eighteen rules,
+  week-clustered errors, Bonferroni over 18. Each family freezes the
+  variant with the greatest corrected lower bound:
+
+  | family | frozen champion | n | E[R] | t | corrected LCB |
+  |---|---|---|---|---|---|
+  | cross-asset leadership | lead_btc_4h_z125 | 376 | +0.0882 | +1.45 | −0.0841 |
+  | volatility regime | vol_squeeze_q20_break20 | 2130 | −0.0058 | −0.29 | −0.0625 |
+  | multi-timeframe | mtf_break20_4h_ema20 | 2968 | −0.0167 | −0.93 | −0.0673 |
+  | relative strength | relative_24h_rebalance12h | 1558 | −0.0312 | −1.65 | −0.0848 |
+
+- **Result:** 0 of 18 pass. No corrected lower bound reaches zero, the
+  best t is +1.45, and five of eighteen have a positive point estimate.
+  The holdout was deliberately left sealed: the bar is conjunctive, so
+  no champion can still qualify and opening it would spend an untouched
+  sample on a decision already made.
+- **Three findings inside the result:** the only family leaning positive
+  is the one costs destroy — the leadership variants skip 88–90 % of
+  their signals at the cost ceiling against 44–51 % elsewhere, because
+  the rule fires exactly when the altcoin spread is widest. Relative
+  strength fails a fourth time, now with power: four variants, all
+  negative, one at t −2.82. And the best variant taken at face value,
+  unpenalised for being picked out of eighteen, earns +0.114 USD/day —
+  below the +0.15 the live configuration already measures.
+- **Decision:** nothing built, no restart. Section 226. Of the three
+  directions run 29 left open, the "different strategy family" one has
+  now had its pre-committed shot and returned a clean negative. Capital
+  and the objective are what remain.
+- **Operational note:** production spread audits were not modified; the
+  missing USDJPY/USDCAD quotes were taken into a copy under `/tmp` as
+  the preregistration's fallback prescribes. The download ran while the
+  bot was disconnected for the 2026-09-12 bank holiday, so it added no
+  API load to a trading cycle.

@@ -7871,3 +7871,71 @@ can take — which strategies, which resolutions, which half, how many, how
 ranked, how filtered — has been measured against the same walk-forward,
 and none of them moves the daily figure by more than a hundredth of a
 dollar.
+
+## 226. Eighteen structural signals, preregistered in August and opened now: none survives
+
+Section 222 closed the search inside the channel family and named the only
+remaining direction: a different strategy family. One had been waiting
+since 2026-08-24 — eighteen rules across four structural sources, fixed in
+`STRUCTURAL_SIGNAL_PREREGISTRATION.md` before any of the data were seen,
+with a development/holdout split, one execution profile for all variants,
+week-clustered standard errors and a Bonferroni-corrected bar. The
+preregistration was written and then never run. This opens it.
+
+The development window takes entries from 2023-11-30 to 2026-02-01, 794
+days over the 14-instrument audited basket, 1h Capital.com mid bars
+downloaded for this purpose. `USDJPY` and `USDCAD` are absent from both
+spread audits, so the preregistered fallback applies: the latest available
+quote, here the Friday 2026-09-11 22:59 UTC close carried by the venue
+over the weekend. Production audit files were not modified; the run used a
+copy.
+
+| variant | n | E[R] | t | corrected LCB | segments | USD/day | cost-skip |
+|---|---|---|---|---|---|---|---|
+| lead_btc_4h_z125 | 376 | **+0.0882** | +1.45 | −0.0841 | 3/5 | +0.114 | 90 % |
+| lead_btc_1h_z125 | 478 | +0.0439 | +0.81 | −0.1102 | **5/5** | +0.064 | 89 % |
+| lead_btc_4h_z075 | 756 | +0.0091 | +0.22 | −0.1085 | 3/5 | +0.022 | 88 % |
+| vol_atr_q75_break55 | 1118 | +0.0037 | +0.11 | −0.0878 | 3/5 | +0.014 | 47 % |
+| vol_squeeze_q10_break20 | 1433 | +0.0007 | +0.03 | −0.0647 | 2/5 | +0.004 | 48 % |
+| *(thirteen more)* | | −0.000 to −0.065 | to −2.82 | | | | |
+| relative_24h_rebalance24h | 957 | −0.0648 | −2.82 | −0.1298 | 1/5 | −0.178 | 47 % |
+
+**Zero of eighteen pass.** No variant's corrected lower bound reaches zero;
+the best t is +1.45. Five of eighteen have a positive point estimate and
+three of those five are the same family.
+
+**The holdout stays sealed.** The deployment condition is conjunctive —
+development *and* holdout — so no champion can still qualify, and running
+the holdout would spend an untouched sample on a decision that is already
+made. The four frozen champions are recorded in `development_results.json`
+for whoever opens it against a rule that earns it.
+
+Three readings worth keeping:
+
+**The one family that leans positive is the one costs destroy.** All three
+positive leadership variants skip 88–90 % of their signals at the cost
+ceiling, against 44–51 % everywhere else. The rule fires when BTC has just
+moved more than 1.25 standard deviations and a target has not followed —
+which is exactly when the altcoin spread is widest. What survives the
+filter is 376 trades in 794 days, too few to separate +0.088 R from zero.
+Section 221 priced the cost axis at 0.06 USD/day for the channel family;
+here costs are not a tax on the edge but the reason there is no sample.
+
+**Relative strength fails again, and this time with power.** Four variants,
+all negative, three at t below −1.6 and one at −2.82. Sections 31 and 33
+rejected cross-sectional relative strength on one year; this adds two
+years, a preregistered form and clustered errors, and the sign does not
+move. Ranking a basket by trailing return and buying the top is a losing
+rule on this universe, not a null one.
+
+**The best case is still below the book.** Take `lead_btc_4h_z125` at face
+value, ignore that it fails its own bar, and it earns +0.114 USD/day —
+under the +0.15 the live configuration already measures in section 221.
+The strongest of eighteen structurally different signals, unpenalised for
+having been picked out of eighteen, would not raise the daily figure.
+
+**Decision: nothing built, no restart.** Section 222 said moving the daily
+figure needs materially more capital, a different strategy family, or a
+lower objective. This was the pre-committed attempt at the second of those
+three, and it is a clean negative — which removes it as an explanation and
+leaves capital and the objective standing where run 29 left them.
