@@ -5015,3 +5015,34 @@ the section numbers below point there.
   restart. Section 231. A stale comment in `scheduler.py` claiming a
   "180-day backtest window" was corrected; the job has always used the
   365-day default, so it described a window the bot never ran.
+
+## 2026-09-12 (thirty-ninth run) — ranking by reliability instead of level
+
+- **Lever:** pair selection — replace the live score `eR * log1p(n) * pf`
+  with the t-statistic, `eR / SE(eR)`. Sections 130 and 217 both say the
+  ranking signal is noise; `log1p(n)` is an ad-hoc nod to sample size
+  that does not know how scattered the trades were, and the t-statistic
+  is the stated version of the same intention. Never tried here.
+- **Measurement:** `scripts/rank_by_tstat.py` — walk-forward as in runs
+  22–38, 22,310 signals, 24 blocks, list length and gates unchanged.
+
+  | ranking | trades | vs live | USD/day |
+  |---|---|---|---|
+  | **live score** | **4,414** | — | **+0.1853** |
+  | t-statistic | 4,395 | −0.4 % | +0.1862 |
+  | t-statistic × pf | 4,395 | −0.4 % | +0.1862 |
+
+  Pooled +0.0009 USD/day at t +0.31; three of four samples identical to
+  four decimals. **Mean overlap of the two top-40 lists: 100 %.**
+- **Result:** the orderings cannot disagree. The eligible pool holds a
+  median of **29** combinations (mean 31.0, max 41) against a top-40 cut
+  that binds in **1 block of 24**, and never by more than one. The
+  selector takes essentially the whole pool every time.
+- **What this retires:** section 215 (efficiency ranking changes
+  nothing), 218 (length plateau above 40), 231 (window barely matters)
+  and this run are one fact, not four — the ranking machinery is inert.
+  What decides the book is the three entry gates alone: n ≥ 10,
+  pf ≥ 0.8, eR ≥ −0.2.
+- **Decision:** verworfen — live score stays, no code change, no restart.
+  Section 232. Further work on this axis must move a gate, not an
+  ordering, and run 217 measured the gates in one direction only.

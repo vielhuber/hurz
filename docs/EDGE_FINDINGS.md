@@ -8235,3 +8235,50 @@ which is the same defence section 202 ended up giving the ADX ceiling.
 path, no restart. One stale comment in `scheduler.py` claiming a
 "180-day backtest window" was corrected: the job has always used the
 365-day default, so the comment described a window the bot never ran.
+
+## 232. The selector does not rank: the cut binds in one block out of twenty-four
+
+The live score is `eR * log1p(n) * pf`. Section 130 showed its head term
+does not transfer between samples and section 217 showed tightening the
+thresholds around it loses, so the ranking signal is largely noise. The
+statistically stated remedy is to rank by the t-statistic — expectancy
+over its own standard error, preferring +0.05 R across 200 trades to
++0.15 R across twelve. Nothing here had ever tried it.
+
+| ranking | trades | vs live | USD/day |
+|---|---|---|---|
+| **live score** | **4,414** | — | **+0.1853** |
+| t-statistic | 4,395 | −0.4 % | +0.1862 |
+| t-statistic × pf | 4,395 | −0.4 % | +0.1862 |
+
+Pooled difference +0.0009 USD/day at t +0.31, and three of the four
+samples are identical to four decimal places. **The mean overlap of the
+two top-40 lists is 100 %.**
+
+That number is the finding. The two orderings cannot disagree, because
+there is nothing for them to disagree about:
+
+| eligible combinations per ranking block | |
+|---|---|
+| median | **29** |
+| mean | 31.0 |
+| max | 41 |
+| blocks where the top-40 cut binds | **1 of 24** |
+| blocks where it binds by more than 2 | **0** |
+
+The selector ranks a median of 29 candidates and keeps the best 40. It
+takes the entire pool in 23 of 24 blocks. There is no selection step in
+the selector — only three gates and a cut that never reaches them.
+
+**This retires four earlier results by giving them one shared cause.**
+Section 215 found efficiency-weighted ranking changed nothing and wrote
+"there is nothing for efficiency to reorder" without knowing how literal
+that was. Section 218 found list length sits on a plateau from 40 upward.
+Section 231 found the ranking window barely matters. Section 232 finds
+the ordering rule itself does not matter. All four are the same fact:
+**the ranking machinery is inert, and what decides the book is entirely
+the three entry gates** — n ≥ 10, pf ≥ 0.8, eR ≥ −0.2.
+
+**Decision: nothing built, the live score stays.** No code change, no
+restart. Any further work on this axis has to move a gate, not an
+ordering — and section 217 measured the gates in one direction only.
