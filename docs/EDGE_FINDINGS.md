@@ -8590,3 +8590,59 @@ uncomfortable but well-measured place to be.
 
 **Decision: nothing built, the book stays at 1h.** No code change, no
 restart.
+
+## 239. The cluster cap: the harness never carried it, and it is the most expensive guard in the system
+
+Every measurement from section 216 to 238 replays the book with two
+guards — one position per instrument and a concurrent cap of 8. The live
+bot has a third. Same-direction positions inside a correlation cluster
+(crypto, usd_fx, indices, metals, energy, jpy_crosses) are capped at 3,
+because N same-direction breakouts across instruments correlating 0.6 to
+0.9 are one concentrated bet wearing N hats. The harness has never
+carried it. 87 % of all gated signals fall inside a mapped cluster, so
+this is not a rounding difference.
+
+| cap | trades | vs live | refused | occupancy | USD/day | per occupancy |
+|---|---|---|---|---|---|---|
+| 1 | 3,033 | −26.5 % | 4,685 | 2.80 | +0.0522 | +0.0186 |
+| 2 (candidate) | 3,794 | −8.0 % | 2,284 | 3.51 | +0.1112 | +0.0317 |
+| **3 (live)** | **4,125** | — | **1,162** | **3.84** | **+0.1444** | +0.0376 |
+| 4 | 4,300 | +4.2 % | 468 | 4.01 | +0.1552 | +0.0387 |
+| none (the old harness) | 4,414 | +7.0 % | 0 | 4.10 | +0.1838 | +0.0448 |
+
+The candidate fails: worse on three of four samples, pooled −0.0332
+USD/day at t −1.18. Tightening to 2 refuses twice as many entries and
+gives back a fifth of the daily figure.
+
+**Two findings, both larger than the lever.**
+
+**First: every baseline in this series was measured on a freer book than
+the live one.** The harness's 4,414 trades and +0.1838 USD/day are the
+no-cap row. With the guard the bot actually runs, the same configuration
+books 4,125 trades and +0.1444 USD/day. Sections 216 to 238 compared
+variants against each other under identical conditions, so their verdicts
+stand — but their absolute baseline was about 21 % too generous, and the
+live/harness gap is correspondingly smaller than sections 221 and 230
+stated.
+
+**Second: the cluster cap is the most expensive guard in the system.**
+It costs 0.0395 USD/day against no cap — 21 % of the daily figure, more
+than the entire cost axis is worth (section 221 bounded that at 0.06) and
+far more than any filter measured here has ever added. The monotone
+column says the same thing at every step: 0.052, 0.111, **0.144**, 0.155,
+0.184.
+
+**And it should stay exactly where it is.** The per-occupancy column
+rises monotonically too, which looks at first like the extra positions
+being genuinely good rather than merely more numerous. They are not:
+occupancy counts two same-direction crypto positions as two units when
+they are closer to one position of double size. That is section 227's
+illusion one level up — there it was two positions on one instrument at
+0.39 % from a doubled stake, here it is three across instruments
+correlating 0.6 to 0.9. Occupancy is the wrong denominator for
+concentration, so the rising per-unit figure is an artefact of the
+measure, not evidence for loosening.
+
+**Decision: nothing built, the cap stays at 3.** No code change, no
+restart. The harness gains the guard so that future baselines are the
+live book rather than a freer one.

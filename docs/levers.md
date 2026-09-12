@@ -5246,3 +5246,40 @@ the section numbers below point there.
   accidental in origin and correct in effect.
 - **Decision:** verworfen — book stays at 1h, no code change, no restart.
   Section 238.
+
+## 2026-09-12 (forty-sixth run) — the correlation-cluster cap
+
+- **Lever:** position sizing / risk guard — the cluster direction cap of
+  3, which the harness has never carried although 87 % of gated signals
+  fall inside a mapped cluster. Section 227 showed two same-direction
+  positions on one instrument are a risk doubling; the cluster cap is
+  that question one level up, so the candidate was the tighter 2.
+  Loosening ran as a diagnostic only and could not qualify.
+- **Measurement:** `scripts/cluster_cap_sweep.py` — walk-forward as in
+  runs 22–45 with the cluster cap added to the replay.
+
+  | cap | trades | refused | occupancy | USD/day | per occ |
+  |---|---|---|---|---|---|
+  | 1 | 3,033 | 4,685 | 2.80 | +0.0522 | +0.0186 |
+  | 2 (candidate) | 3,794 | 2,284 | 3.51 | +0.1112 | +0.0317 |
+  | **3 (live)** | **4,125** | **1,162** | **3.84** | **+0.1444** | +0.0376 |
+  | 4 | 4,300 | 468 | 4.01 | +0.1552 | +0.0387 |
+  | none (old harness) | 4,414 | 0 | 4.10 | +0.1838 | +0.0448 |
+
+  Candidate: worse on three of four, pooled −0.0332 USD/day at t −1.18.
+- **Two findings larger than the lever.** (1) **Every baseline in runs
+  22–45 was the no-cap row** — 4,414 trades and +0.1838 USD/day against
+  the live book's 4,125 and +0.1444. Those runs compared variants under
+  identical conditions so their verdicts stand, but the absolute baseline
+  was ~21 % too generous and the live/harness gap is smaller than
+  sections 221 and 230 stated. (2) **The cluster cap is the most
+  expensive guard in the system**, costing 0.0395 USD/day against no cap
+  — more than the whole cost axis is worth (bounded at 0.06 in 221).
+- **And it stays.** The per-occupancy column rises monotonically too, but
+  occupancy counts two same-direction crypto positions as two units when
+  they are nearer one position of double size. That is section 227's
+  illusion one level up, so the rising per-unit figure is an artefact of
+  the denominator, not a case for loosening.
+- **Decision:** verworfen — cap stays at 3, no code change, no restart.
+  Section 239. The harness now carries the guard so future baselines are
+  the live book.
