@@ -8999,3 +8999,85 @@ What ships is the universe: `PAIRS` in the walk-forward harness is now
 the live book's list rather than a subset, so section 244's rule is
 satisfied by construction for every future run instead of by
 remembering to check.
+
+## 246. The rollover hour is real, priced, and too small to matter
+
+Section 176 built the spread sampler on the heartbeat and left one
+sentence open: once enough hours exist, the simulator can charge the
+hour's spread instead of the audited daytime table. Four days of
+`data/spread_samples.jsonl` — 2,421 samples, 31 instruments, all 24 UTC
+hours — make that possible, and the profile is structure rather than
+noise. Each sample is normalised by its own instrument's median first,
+so a wide name cannot set the class profile:
+
+| class | hour 21 | hour 22 | hour 04 | hour 00 | all others |
+|---|---|---|---|---|---|
+| fx | **7.70×** (n=58) | 1.11× | — | — | 1.00× |
+| index | **2.23×** (n=32) | 1.49× | 1.32× | 1.16× | ≈1.00× |
+| commodity | 1.01× | 1.18× | — | — | 1.00× |
+| crypto | 1.00× | 1.00× | 1.00× | 1.00× | 1.00× |
+
+That is the daily rollover window, and crypto's flat line is the
+control: a 24/7 venue has no rollover, and it shows none.
+
+**What the bot does with it.** The live cost filter meets a wide quote
+by *widening the stop* — `_MAX_COST_STOP_WIDENING = 2.0`, R:R kept
+intact so the 1.5 R target moves out with it — and only refuses if the
+share is still above 10 %. An FX breakout whose cost share is 2 % by the
+table sits near 15 % at 21:00 and is taken with a ~54 % wider stop and a
+target 54 % further away. The bot does not skip the rollover hour; it
+reshapes the trade to fit through it.
+
+**The trades are bad.** `scripts/rollover_hour_cost_gate.py`, 27
+instruments, 41,063 gated and booked signals, both arms scored under the
+same hour-aware cost model so only the entry rule differs. The 432
+signals in a ≥2.0× hour read **-0.0957 R (-0.2153 USD) at t -3.26**, and
+— unusually for this log — the sign holds on all four disjoint samples:
+
+| sample | n | R, hour cost | t | R, flat table | rest of book |
+|---|---|---|---|---|---|
+| 0–365 d | 97 | -0.1667 | -3.46 | -0.1290 | -0.0023 |
+| 366–1,095 d | 111 | -0.0883 | -1.44 | -0.0581 | +0.0010 |
+| 1,096–1,825 d | 94 | -0.0683 | -1.11 | -0.0055 | +0.0263 |
+| 1,826–2,555 d | 126 | -0.0521 | -1.00 | -0.0142 | +0.0165 |
+
+The flat-table column is the control: charging the ordinary spread keeps
+the sign but shrinks the size, so roughly half the damage is the spread
+the hour actually carries and the rest is the hour itself. Every regime
+feature in sections 114, 173, 178 and 181 reversed between samples; this
+one does not. It is the rare stable conditional edge in this log.
+
+**And it does not matter.** Refusing them changes the book by 38 trades
+of 5,352 under the live selector (top 40, pf ≥ 0.8, eR ≥ -0.2):
+
+| sample | arm A | arm B | diff | t |
+|---|---|---|---|---|
+| 0–365 d | +0.0309 | +0.0449 | +0.0140 | +1.10 |
+| 366–1,095 d | +0.0469 | +0.0433 | -0.0035 | -0.19 |
+| 1,096–1,825 d | +0.1389 | +0.1209 | -0.0180 | -1.55 |
+| 1,826–2,555 d | +0.1358 | +0.1384 | +0.0026 | +0.39 |
+| pooled | +0.1643 | +0.1588 | **-0.0054** | -0.47 |
+
+2 of 4 samples up, pooled t -0.47. Clauses (a) and (b) fail; (c) passes.
+An hour is 1/24 of the day, the affected classes fire there rarely, and
+the concurrency guards absorb most of what is left — 0.7 % of the book
+cannot move a daily figure, however bad those trades are per unit.
+
+This is section 220 met from the other side. That run found the marginal
+*added* trade worth about zero; this one finds the marginal *removed*
+trade worth a great deal per trade and still nothing per day, because
+there are 38 of them in seven years.
+
+**Method note.** The first pass ran on the strict harness (TOP_N = 10,
+eR > 0, pf ≥ 1) and reached 15 of 432 affected signals — 3.5 %. It was
+not a failed test but an unpowered one, and the verdict above is from
+the live-faithful selector. Run 52's caveat is now a rule: a lever whose
+target is a small subset of entries must be measured under the live
+selector, or the harness answers a question about a book the bot does
+not trade.
+
+**Not adopted into the harness.** Charging the hour multiplier by
+default would reprice every future baseline off four days of samples
+with a median of three per class-hour cell. Only fx@21 (n=58) and
+index@21 (n=32) are well populated. The model stays in the script until
+the sampler has more weeks behind it.

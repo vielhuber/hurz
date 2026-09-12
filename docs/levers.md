@@ -5504,3 +5504,55 @@ the section numbers below point there.
   harness models a book about four times more selective than the one
   trading. Comparisons between variants are unaffected; absolute trade
   counts and throughput claims do not transfer.
+
+## 2026-09-12 (fifty-third run) — the rollover hour, charged and then refused
+
+- **Lever:** cost filter — section 176's open sentence. The heartbeat
+  spread sampler now covers all 24 UTC hours over four days, so the
+  hour's measured spread can replace the audited daytime table. The
+  profile is structure, not noise: **fx 7.70×** its own median
+  half-spread at 21:00 UTC (n=58), index 2.23× at 21:00, 1.49× at 22:00,
+  1.32× at 04:00 — and crypto flat at 1.00× in every hour, which is the
+  control a 24/7 venue provides.
+- **What the bot does there:** the live cost filter does not skip the
+  rollover hour, it *widens the stop* (`_MAX_COST_STOP_WIDENING = 2.0`,
+  R:R kept, so the 1.5 R target moves out with it). An FX breakout at
+  2 % cost share by the table sits near 15 % at 21:00 and is taken with
+  a ~54 % wider stop. The candidate refuses instead.
+- **Measurement:** `scripts/rollover_hour_cost_gate.py`, 27 instruments,
+  41,063 gated and booked signals, both arms under the same hour-aware
+  cost model so only the entry rule differs. Threshold 2.0 preregistered;
+  1.3 and 1.5 printed without standing.
+- **The refused entries are genuinely bad, and stable:** 432 signals at
+  **-0.0957 R / -0.2153 USD, t -3.26**, negative on all four disjoint
+  samples (-0.167 / -0.088 / -0.068 / -0.052 R against roughly zero for
+  the rest). Charged at the flat table instead they stay negative but
+  shrink, so about half the damage is the spread and the rest the hour.
+  Every regime feature in runs 44, 46, 57, 61 and 3 reversed between
+  samples; this one does not.
+- **And it changes nothing in dollars.** Under the live selector (top 40,
+  pf ≥ 0.8, eR ≥ -0.2) the gate removes 38 of 5,352 trades:
+
+  | sample | arm A | arm B | diff | t |
+  |---|---|---|---|---|
+  | 0–365 d | +0.0309 | +0.0449 | +0.0140 | +1.10 |
+  | 366–1,095 d | +0.0469 | +0.0433 | -0.0035 | -0.19 |
+  | 1,096–1,825 d | +0.1389 | +0.1209 | -0.0180 | -1.55 |
+  | 1,826–2,555 d | +0.1358 | +0.1384 | +0.0026 | +0.39 |
+  | **pooled** | **+0.1643** | **+0.1588** | **-0.0054** | **-0.47** |
+
+  Clause (a) fails at 2/4, clause (b) at t -0.47; clause (c) passes.
+- **Decision:** verworfen — no gate, no production change, no restart.
+  Section 246. This is section 220 from the other side: that run found
+  the marginal *added* trade worth about zero, this one finds the
+  marginal *removed* trade worth a lot per trade and still nothing per
+  day, because there are 38 of them in seven years.
+- **Method rule, now enforced by example:** the first pass ran on the
+  strict harness and reached 15 of 432 affected signals — unpowered, not
+  failed. A lever aimed at a small subset of entries must be measured
+  under the live selector. Run 52 logged this as a caveat; it is now a
+  rule.
+- **Left deliberately unbuilt:** charging the hour multiplier by default
+  would reprice every future baseline off four days of samples with a
+  median of three per class-hour cell. It stays in the script until the
+  sampler has weeks behind it.
