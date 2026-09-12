@@ -5556,3 +5556,23 @@ the section numbers below point there.
   would reprice every future baseline off four days of samples with a
   median of three per class-hour cell. It stays in the script until the
   sampler has weeks behind it.
+
+## 2026-09-12 (fifty-fourth run, found on the way) — the harness's strategy mix — FIXED
+
+- **Not a lever but a defect.** `efficiency_weighted_selection.STRATS`
+  read donchian / turtle / **keltner**; the scheduler runs donchian /
+  **momentum** / turtle. Section 236 showed keltner takes a third of a
+  book's trades by displacement, so every script taking `all_signals`
+  from that module measured a book the bot does not trade. The signal
+  counts give it away: 32,063 (keltner book) against 22,310 (live mix).
+- **Affected:** sections 215–222 (runs 22–29 of 2026-09-11) and my own
+  245 and 246. From section 224 on, scripts carried their own live-mix
+  list and are unaffected.
+- **Re-verified on the corrected module:** 245 stands (no flag; dropping
+  the four: 2/4, t +0.85). 246 stands and sharpens (refused signals
+  -0.1368 R at t -4.05; gate moves 13 of 5,472 trades; pooled -0.0064
+  USD/day at t -0.39). 215–222 were not re-run: their arms shared one
+  book, so the variant verdicts hold, but their absolute figures
+  describe a portfolio the bot never ran. Section 247.
+- **Fixed:** the module now reads the scheduler's list. Analysis code
+  only, no production change, no restart.

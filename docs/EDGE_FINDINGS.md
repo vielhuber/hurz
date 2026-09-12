@@ -9081,3 +9081,55 @@ default would reprice every future baseline off four days of samples
 with a median of three per class-hour cell. Only fx@21 (n=58) and
 index@21 (n=32) are well populated. The model stays in the script until
 the sampler has more weeks behind it.
+
+## 247. The harness traded keltner where the bot trades momentum — FIXED
+
+`scripts/efficiency_weighted_selection.py` is the module most later
+measurement scripts take `all_signals`, `trade_terms` and `load_history`
+from. Its strategy list read
+
+    STRATS=["donchian_breakout","turtle_breakout","keltner_breakout"]
+
+while the scheduler's `_NIGHTLY_STRATEGIES` — what the bot actually
+ranks and trades — is `donchian_breakout`, `momentum`, `turtle_breakout`.
+Section 236 is the reason this is not cosmetic: keltner fires on
+different bars from the channel strategies and takes a third of a book's
+trades by displacement, while momentum takes 0.4 %. A keltner book is a
+different book.
+
+The signal counts in the log show exactly which sections measured which
+book. Every script that took its signals from this module ran on
+**32,063** signals; from section 224 on, the scripts defined their own
+`HOUR_STRATS` with the live mix and ran on **22,310**.
+
+| drawn on the keltner book | drawn on the live mix |
+|---|---|
+| 215–222 (runs 22–29 of 2026-09-11), 245, 246 | 224–244 |
+
+**Re-verified on the live mix,** now that the module is corrected
+(27 instruments, 28,714 signals):
+
+*Section 245 stands.* No candidate flags; on the held-out year the four
+unscored instruments read +0.0262 R against +0.0062 for the rest.
+Dropping all four: 2 of 4 samples up, pooled +0.0317 USD/day at t +0.85
+— fails as before.
+
+*Section 246 stands, and sharpens.* The refused rollover-hour signals
+fall to 301 but read worse, **-0.1368 R at t -4.05**, negative on all
+four samples under the hour's cost (-0.196 / -0.109 / -0.069 / -0.149 R).
+Under the flat table one sample now reads +0.0039, so the claim that the
+sign holds without the spread is weakened to three of four. The gate
+moves 13 of 5,472 trades under the live selector, pooled -0.0064
+USD/day at t -0.39, 1 of 4 samples up — fails as before.
+
+*Sections 215–222 were not re-run.* Their comparisons were internally
+consistent — every arm ran on the same keltner book — so their verdicts
+about *variants* are the kind section 244 calls unaffected by a shared
+misspecification. Their absolute figures are not the live book's: the
++0.1501 USD/day of section 221 and the 0.889 USD/day ceiling of section
+222 describe a portfolio the bot never ran. The live-mix baseline from
+section 224 on (+0.16 to +0.18 USD/day) is of the same order, so the
+conclusion that the objective sits two orders of magnitude away is not
+changed by this.
+
+The module now reads the scheduler's list, with a comment pointing here.

@@ -66,7 +66,12 @@ PAIRS=[p for p in ["BTCUSD","ETHUSD",
        "CADJPY","EURJPY","GBPJPY","USDJPY",
        "DE40","US500","US30","FR40","UK100","EU50","US100","HK50","J225",
        "OIL_CRUDE","OIL_BRENT","GOLD","SILVER","COPPER"] if p not in BLOCKED_PAIRS]
-STRATS=["donchian_breakout","turtle_breakout","keltner_breakout"]
+# The scheduler's `_NIGHTLY_STRATEGIES`, not a guess at it. Until
+# 2026-09-12 this read keltner where the bot runs momentum; section 236
+# showed keltner takes a third of a book's trades by displacement, so
+# every script taking `all_signals` from here measured a different book
+# (section 247).
+STRATS=["donchian_breakout","momentum","turtle_breakout"]
 STOP_ATR=2.0; RR=1.5; HOLD=24; MAX_CONCURRENT=8; PLAT="capital_com"
 TOP_N=10; RANK_DAYS=365; TRADE_DAYS=90; MIN_RANK_TRADES=10
 SPAN=2555; PAGE_DAYS=35; PAGE_PAUSE=1.0
