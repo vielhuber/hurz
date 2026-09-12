@@ -5210,3 +5210,39 @@ the section numbers below point there.
   trend from exhausted trend, which they do not.
 - **Decision:** verworfen — floor stays at 30, no code change, no
   restart. Section 237. Section 114's downward prior is refuted here.
+
+## 2026-09-12 (forty-fifth run) — the book at 2h bars
+
+- **Lever:** strategy parameters — bar resolution for the whole book.
+  Section 29 rejected 15m, section 225 priced the 4h pins; 2h had never
+  been run. Preregistered reason: at 2h the ATR is larger, so the ATR
+  term should bind more often and the 3-ATR floor refuse less. Leash at
+  wall-clock parity (12 bars × 2h = the live 24 hours); 3h as diagnostic.
+- **Measurement:** `scripts/two_hour_book.py` — bars aggregated from the
+  cached 1h history, no API calls, walk-forward as in runs 22–44.
+
+  | res | signals | trades | occupancy | USD/day | per occ |
+  |---|---|---|---|---|---|
+  | **1h (live)** | **22,310** | **4,414** | 3.85 | **+0.1724** | **+0.0448** |
+  | 2h | 8,433 | 1,716 (−61.1 %) | 1.53 | −0.0233 | −0.0152 |
+  | 3h | 4,511 | 844 (−80.9 %) | 0.76 | −0.0394 | −0.0516 |
+
+  Worse on all four (−0.242 / −0.242 / −0.088 / −0.273), pooled −0.1957
+  USD/day at t −2.18, negative in absolute terms at both coarser
+  resolutions.
+- **The preregistered argument was backwards.** The floor is
+  `stop_d / ATR ≥ 3` and the stop is `max(2 × ATR, 1.05 % of price)`, so
+  when the venue minimum does not bind the ratio is exactly 2 and the
+  signal is refused by construction. Larger bars mean a larger ATR, the
+  venue minimum binds less often, and *more* signals fall to the floor —
+  hence 62 % fewer signals at 2h. The floor admits only what the venue's
+  fixed fraction has stretched to three ATR, which happens when
+  volatility is low.
+- **What it says about the live system:** the 2-ATR multiple is inert
+  (section 234) and the floor selects low-volatility setups exclusively —
+  an arithmetic consequence of two independently set rules, not a design
+  choice. Section 235 showed trading the refused population is worse and
+  section 226 put 3.0 at the only surviving threshold, so the selection is
+  accidental in origin and correct in effect.
+- **Decision:** verworfen — book stays at 1h, no code change, no restart.
+  Section 238.

@@ -8541,3 +8541,52 @@ they do not.
 restart. Section 114's downward prior is refuted on this axis: lowering
 the floor to 25 doubles nothing useful and buys 45 % more trades at half
 the return per unit of exposure.
+
+## 238. The book at 2h: the resolution is not free, and the floor's arithmetic runs the other way
+
+Section 29 rejected 15m, section 225 priced the six 4h pins. 2h for the
+whole book had never been run. The preregistered reason to expect
+something was geometric: section 234 showed every stop in the live book
+is the venue's 1.05 % minimum rather than the 2×ATR term, and section 230
+showed the 3-ATR floor then refuses 60 % of signals. At 2h a bar's ATR is
+larger, so — the argument went — the ATR term would bind more often, the
+floor would refuse less, and the stop would be set by volatility instead
+of by a fixed fraction of price. Leash held at wall-clock parity: 12 bars
+at 2h is the same 24 hours the live book holds.
+
+| resolution | signals | trades | vs live | occupancy | USD/day | per occupancy |
+|---|---|---|---|---|---|---|
+| **1h (live)** | **22,310** | **4,414** | — | **3.85** | **+0.1724** | **+0.0448** |
+| 2h | 8,433 | 1,716 | −61.1 % | 1.53 | −0.0233 | −0.0152 |
+| 3h | 4,511 | 844 | −80.9 % | 0.76 | −0.0394 | −0.0516 |
+
+Worse on all four samples (−0.242 / −0.242 / −0.088 / −0.273), pooled
+−0.1957 USD/day at t −2.18, and negative in absolute terms at both
+coarser resolutions. Every clause fails.
+
+**The preregistered argument was backwards, and the reason is worth
+recording.** Signals fall 62 % when bars double in length — far more than
+halving the decision points can explain. The floor is `stop_d / ATR ≥ 3`
+and the stop is `max(2 × ATR, 1.05 % of price)`. When the venue minimum
+does *not* bind, `stop_d / ATR` is exactly 2 and the signal is refused by
+construction. So the floor does not admit signals whose stop is wide in
+ATR terms because volatility is high — it admits **only** those where the
+venue's fixed fraction has stretched the stop to three ATR or more, which
+happens precisely when volatility is *low*.
+
+Larger bars mean a larger ATR, so the venue minimum binds less often, so
+*more* signals fall to the floor, not fewer. The arithmetic runs opposite
+to the intuition the run was built on.
+
+**What that says about the live system.** The 2-ATR stop multiple is
+inert (section 234) and the 3-ATR floor is not a volatility filter in the
+usual sense — together they select low-volatility setups exclusively, and
+that selection is an arithmetic consequence of two rules set
+independently, not a design choice anyone made. Section 235 already
+showed that trading the refused population at a wider stop is worse, and
+section 226's sweep put 3.0 at the only surviving threshold. The
+selection is accidental in origin and correct in effect, which is an
+uncomfortable but well-measured place to be.
+
+**Decision: nothing built, the book stays at 1h.** No code change, no
+restart.
