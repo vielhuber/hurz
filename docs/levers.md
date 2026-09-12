@@ -5106,3 +5106,39 @@ the section numbers below point there.
   exposes: the axis priced whole (221, bound 0.06 USD/day), the
   hour-dependent correction (179, half a percent of risk), and the
   ceiling itself not binding.
+
+## 2026-09-12 (forty-second run) — the volatility-adaptive stop
+
+- **Lever:** exit logic / regime filter — replace the 3-ATR floor's
+  refusal with an adjustment. Section 230 found the refused 60 % are not
+  worse in dollars, only more dispersed; section 234's sweep showed the
+  live stop is always the venue minimum and never the ATR term. Together
+  they say the floor is a refusal standing in for an adjustment. At
+  `max(4 × ATR, venue minimum)` the ATR term binds where volatility is
+  high and the floor refuses nothing. All risk limits unchanged.
+- **Measurement:** `scripts/adaptive_stop_width.py` — walk-forward as in
+  runs 22–41, 24 blocks, occupancy tracked. Candidate 4 × ATR; 3 and 5 as
+  diagnostics.
+
+  | variant | trades | vs live | occupancy | USD/day | per occ |
+  |---|---|---|---|---|---|
+  | **live** | **4,414** | — | **3.27** | **+0.1465** | **+0.0448** |
+  | 3 × ATR | 6,525 | +47.8 % | 4.41 | +0.0290 | +0.0066 |
+  | 4 × ATR | 6,389 | +44.7 % | 4.57 | +0.0152 | +0.0033 |
+  | 5 × ATR | 6,183 | +40.1 % | 4.59 | +0.0398 | +0.0087 |
+
+  Per sample: **+0.0730 / +0.0376** / −0.3196 / −0.2896; pooled −0.1313
+  USD/day at t −1.63. All three clauses fail.
+- **Result:** the candidate wins both recent samples clearly and loses
+  the two older ones by four times as much. Occupancy rises 40 % and
+  return per unit of occupancy falls thirteenfold. Lifting the floor
+  admits 55 % more signals (22,310 → 34,686) and turns two of four
+  samples negative. **The refused population is not merely more
+  dispersed — it is outright negative in two regimes out of four.**
+  Section 230's dollar-indistinguishability held over 230 journal trades
+  in four months; it does not hold over seven years.
+- **Decision:** verworfen — stop stays at `max(2 × ATR, venue minimum)`
+  with the floor refusing, no code change, no restart. Section 235. This
+  is the strongest retrospective support the 2026-09-10 floor has:
+  measured as an adjustment instead of a refusal, the same signals cost
+  0.13 USD a day.

@@ -8374,3 +8374,59 @@ no restart. With this the cost axis is closed at every point it exposes:
 section 221 priced the axis whole at a 0.06 USD/day bound, section 179
 priced the hour-dependent correction at half a percent of risk, and the
 ceiling turns out not to be live at all.
+
+## 235. The floor is better as a refusal than as an adjustment
+
+Two facts from this session had never been put together. Section 230:
+the 3-ATR floor refuses 60 % of live signals, and those signals are not
+worse in dollars (t +0.26) — only more dispersed, 3.67 against 1.73,
+because a stop tight relative to volatility buys a larger position for
+the same 3 USD. Section 234's sweep: the live stop is
+`max(2 × ATR, 1.05 % of price)` and the median booked stop is 5.71 ATR,
+so the ATR term never binds. Every stop in the book is the venue
+minimum, a fixed fraction of price that knows nothing about volatility.
+
+Put together they say the system does not size its stop to volatility
+and then trade — it sizes the stop to price and deletes every signal
+where that fixed fraction is too tight for the conditions. The floor is
+a refusal standing in for an adjustment.
+
+So make the adjustment instead. At `max(4 × ATR, venue minimum)` the ATR
+term binds wherever volatility is high, the floor is satisfied by
+construction and refuses nothing, and the signals section 230 measured
+as merely more dispersed get a stop that fits them. Risk per trade,
+notional cap, concurrent cap and one-position-per-instrument all unchanged.
+
+| variant | signals | trades | vs live | occupancy | USD/day | per occupancy |
+|---|---|---|---|---|---|---|
+| **live** | 22,310 | **4,414** | — | **3.27** | **+0.1465** | **+0.0448** |
+| 3 × ATR | — | 6,525 | +47.8 % | 4.41 | +0.0290 | +0.0066 |
+| 4 × ATR | 34,686 | 6,389 | +44.7 % | 4.57 | +0.0152 | +0.0033 |
+| 5 × ATR | 34,465 | 6,183 | +40.1 % | 4.59 | +0.0398 | +0.0087 |
+
+| sample | live | 3 × ATR | 4 × ATR | 5 × ATR |
+|---|---|---|---|---|
+| 0–365 d | +0.1635 | **+0.2846** | +0.2365 | +0.2006 |
+| 366–1095 d | +0.1709 | **+0.2367** | +0.2085 | +0.2165 |
+| 1096–1825 d | **+0.0822** | −0.2088 | −0.2374 | −0.1840 |
+| 1826–2555 d | **+0.2111** | −0.1365 | −0.0785 | −0.0066 |
+
+Pooled −0.1313 USD/day at t −1.63, and every clause fails. The candidate
+wins both recent samples by a clear margin and then loses the two older
+ones by four times as much. Occupancy rises 40 % and return per unit of
+occupancy falls by a factor of thirteen.
+
+**The refused signals are not merely more dispersed — they are a
+different population.** Lifting the floor admits 55 % more signals, and
+on the two older samples they turn the book from +0.08 and +0.21 into
+−0.24 and −0.08. Section 230's reading that the two live groups were
+indistinguishable in dollars held over 230 journal trades across four
+months; it does not hold over seven years. The floor's value is not the
+variance reduction section 230 could measure — it is the removal of a
+population that is outright negative in two regimes out of four.
+
+**Decision: nothing built.** The stop stays at `max(2 × ATR, venue
+minimum)` with the 3-ATR floor refusing what it refuses. No code change,
+no restart. This is the strongest retrospective support the 2026-09-10
+floor has: measured as an adjustment rather than a refusal, the same
+signals cost 0.13 USD a day.
