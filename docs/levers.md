@@ -5879,3 +5879,27 @@ the section numbers below point there.
   and section 248 had 80 worse everywhere, so not promoted.
 - **Decision:** verworfen — donchian stays at 20, no code change, no
   restart. Section 258.
+
+## 2026-09-13 (ninth run) — run 31's strategy drops, re-read on the live book
+
+- **Lever:** strategy mix — run 31 (section 224) measured dropping each
+  scheduler strategy on a harness without cluster cap, pins, vetoes or
+  the live universe; section 256's decomposition showed turtle's booked
+  trades negative on three of four samples. Re-read with run 31's clauses
+  unchanged, per section 244's rule, since booked P&L is not removal
+  effect.
+- **Measurement:** `scripts/strategy_mix_live_book.py`, live-faithful
+  book of section 255.
+
+  | variant | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,097** | **+0.0532** | **+0.1795** | — | — | — |
+  | without turtle | 4,951 | +0.0586 | +0.1920 | +0.0126 | +0.73 | 2/4 |
+  | without momentum (diag) | 5,090 | +0.0558 | +0.1877 | +0.0082 | +1.41 | 1/4 |
+
+- **Result:** (a) and (b) fail. Without turtle: +0.0409 (t +1.96) /
+  -0.0031 / +0.0157 / -0.0067 — the recent year gains, two older samples
+  give back. Turtle is 43 % of signals and 4.4 % of trades; donchian holds
+  the instrument first.
+- **Decision:** verworfen — section 224 stands, mix unchanged, no code
+  change, no restart. Section 259.

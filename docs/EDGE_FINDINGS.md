@@ -9622,3 +9622,33 @@ and section 248 showed 80 worse on every sample, so it is recorded and not
 promoted. What the sweep says as a whole: per-trade quality rises with the
 channel and throughput falls with it, the two cross near 20–30, and the
 recent year loses at every length tried.
+
+## 259. Run 31's strategy drops on the live book: section 224 stands
+
+Run 31 (section 224) dropped each scheduler strategy in turn on a harness
+with no cluster cap, no pins, no vetoes and 23 instruments; none
+qualified (without turtle +0.0092 USD/day, t +0.51; without momentum
++0.0059, t +0.81). Section 256's decomposition of the live-faithful book
+then showed turtle's own booked trades negative on three samples of four.
+Because a strategy's booked P&L is not the effect of removing it, the
+drops were re-read with run 31's clauses unchanged —
+`scripts/strategy_mix_live_book.py`, book of section 255.
+
+| variant | signals | trades (donchian / turtle / momentum) | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **live** | **28,714** | **4,858 / 224 / 15** | **+0.0532** | **+0.1795** | — | — | — |
+| without turtle | 16,422 | 4,934 / — / 17 | +0.0586 | +0.1920 | **+0.0126** | **+0.73** | **2/4** |
+| without momentum (diag) | 27,845 | 4,870 / 220 / — | +0.0558 | +0.1877 | +0.0082 | +1.41 | 1/4 |
+
+Without turtle, per sample: **+0.0409 (t +1.96)** / -0.0031 / +0.0157 /
+-0.0067. Clauses (a) and (b) fail.
+
+Section 224 stands on the corrected book. The re-read does sharpen what
+turtle is: 43 % of all signals and 4.4 % of the booked trades, because
+donchian's 20-bar channel fires first and holds the instrument; turtle's
+role is almost entirely in ranking and pins, where it adds 12,000 signals
+that rarely become trades. Removing it helps the recent year by +0.04
+USD/day, close to the bar on that sample alone, and gives back on two of
+the older three — the recent-versus-older split this document has now
+met on every lever of the weekend. Momentum contributes 15 trades in
+seven years and changes two samples not at all.
