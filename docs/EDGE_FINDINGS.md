@@ -9508,3 +9508,45 @@ over 41 trades, about one standard error from zero) and it is not a
 feature of any lever: every variant measured this weekend shares that
 recent-year weakness. The edge measured in sections 221 and 222 lives in
 the older samples.
+
+## 256. The consistency rule on the book: under a binding cap, a blocked loser's slot goes to another loser
+
+Section 192 blocked AUDUSD, GBPCAD and GBPUSD on a rule — three disjoint
+training samples all negative, the most recent year held out and deciding
+alone at paired t > 2 — derived on 24 instruments, in R, on gated signals.
+None of the corrections since (universe 245, strategy mix 247, cluster cap
+252, live list 255) existed then. Section 244's rule asks for the re-read,
+and `scripts/book_consistency_block.py` applies the rule unchanged to the
+trades the live-faithful walk-forward books, in USD.
+
+Disclosed before the run: a diagnostic decomposition read first showed
+each instrument's recent-year and pooled-older USD, so the test year was
+not blind. Section 192's method check — the rule reversed in time — was
+therefore run as well; its test sample had not been shown per sample.
+
+| rule | flagged | chance count | test sample: live → blocked | diff | t |
+|---|---|---|---|---|---|
+| **forward (preregistered)** | CHFJPY, EURUSD, UK100 | 3.2 | -0.0032 → -0.0290 | **-0.0259** | **-0.51** |
+| reversed (method check) | ETHUSD, EURUSD, UK100, USDJPY | 3.2 | +0.0757 → +0.0649 | -0.0108 | -0.52 |
+
+Both fail, and both flag exactly the chance count. The decision clause
+(t > +2) is not approached.
+
+**The mechanism is the finding.** The three forward-flagged instruments
+really do lose on the test year — -8.61 USD over 145 booked trades — and
+blocking them still makes that year worse, not better. They sit in
+`risk_on`, where the cluster cap refuses about four thousand entries: every
+slot a blocked instrument vacates is taken by the next same-direction
+`risk_on` signal, and over the last year that cluster as a whole loses
+(-0.0833 USD/day in the decomposition). Removing a loser from a
+full cluster does not remove the loss; it hands the slot to a substitute
+drawn from the same losing factor.
+
+Section 192's rule worked on gated signals because there each signal
+stands alone. On a book whose binding constraint is the cluster cap, an
+instrument's own P&L is not its marginal contribution — the displacement
+behind it is. Instrument-level blocking inside `risk_on` is a lever this
+book cannot use; only a change to the factor exposure itself could, and
+sections 239–244 closed that axis. Section 192's three existing blocks
+are not touched: they were measured on their own terms, and this run
+tests further flags, not those.

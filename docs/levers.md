@@ -5804,3 +5804,28 @@ the section numbers below point there.
   that recent-year weakness.
 - **Decision:** verworfen — pins unchanged, no code change, no restart.
   Section 255.
+
+## 2026-09-13 (sixth run) — section 192's consistency rule, re-read on the book
+
+- **Lever:** pair selection — section 192's instrument block (three
+  training samples negative, recent year held out, paired t > 2), derived
+  on gated-signal R before the universe, strategy-mix, cluster-cap and
+  live-list corrections. Re-read unchanged on the live-faithful book in
+  USD, per section 244's rule. Disclosed: a diagnostic had shown per-
+  instrument recent-year USD first, so the reversed-time check of section
+  192 also ran.
+- **Measurement:** `scripts/book_consistency_block.py`, harness of run
+  2026-09-13 (fifth): ranked + pins, vetoes, reservations, cluster cap.
+
+  | rule | flagged | test: live → blocked | diff | t |
+  |---|---|---|---|---|
+  | forward | CHFJPY, EURUSD, UK100 | -0.0032 → -0.0290 | -0.0259 | -0.51 |
+  | reversed | ETHUSD, EURUSD, UK100, USDJPY | +0.0757 → +0.0649 | -0.0108 | -0.52 |
+
+- **Result:** both fail at the chance count of flags (3 and 4 vs 3.2).
+  The flagged three lose -8.61 USD on the test year and blocking them
+  makes the year worse: their `risk_on` slots go to the next signals of a
+  cluster that loses as a whole over the last year. Under a binding cap an
+  instrument's P&L is not its marginal contribution.
+- **Decision:** verworfen — no new blocks, section 192's existing three
+  untouched, no code change, no restart. Section 256.
