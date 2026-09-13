@@ -9371,3 +9371,51 @@ entries or, like 251, holds positions longer, which the cap can only
 penalise further. Their variant comparisons shared one uncapped book, so
 they are internally consistent; their absolute figures overstate the
 live book by roughly a fifth.
+
+## 253. Rotating a full cluster's stalest position: the stale positions were the good ones
+
+The cluster direction cap refuses thousands of fully gated entries, and
+it must not be loosened. Refusal is not the only way to respect it.
+Section 198 put the book's expectancy in the full 24-bar hold and section
+250 found the open result carries no information, so a position late in
+its leash should be worth less than a fresh signal. When the cap binds,
+closing the stalest same-cluster, same-direction position and taking the
+new signal keeps the count at three and one stop per position; it costs
+one extra round trip.
+
+`scripts/cluster_slot_rotation.py`: when the cap refuses a signal and the
+oldest same-direction position in that cluster has been open at least 12
+bars, it is closed at the new signal's bar close and the signal is taken.
+Diagnostic at 18 bars. Checked first on a constructed case against
+`admit()`. Live-selector walk-forward on section 252's harness.
+
+| variant | trades | rotations | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **live** | **4,435** | — | **+0.0569** | **+0.1672** | — | — | — |
+| rotate at ≥ 12 bars | 5,178 | 1,303 | +0.0248 | +0.0852 | **-0.0820** | **-1.88** | **1/4** |
+| rotate at ≥ 18 bars (diag) | 4,804 | 797 | +0.0375 | +0.1200 | -0.0481 | -1.40 | 0/4 |
+
+Candidate per sample: +0.0417 / -0.0946 / -0.0627 / -0.0298. All three
+clauses fail:
+
+| per rotation | rotated + new R | closed position's live R | paired | t |
+|---|---|---|---|---|
+| 1,303 events | +0.2059 | +0.2399 | **-0.0340** | -1.81 |
+
+Paired per sample: -0.0120 / -0.0495 / -0.0256 / -0.0315 — negative on
+all four, and the 18-bar diagnostic is negative on all four as well.
+
+**The premise was wrong in a specific way.** The positions a full cluster
+rotates out were not stale: their live R is **+0.24**, five times the
+book's mean trade. A cluster fills with three same-direction positions
+during a broad risk-on or risk-off move, and the oldest of them is the one
+that caught it earliest. Section 250's finding — the open result says
+nothing about the next 24 bars — holds for the average position, not for
+one selected by a full cluster, which is selected by the move itself.
+Cutting it forfeits the rest of a winning path, and the fresh signal,
+arriving late into the same move with an extra spread, does not replace
+it. The freed capacity then admits 17 % more trades at half the dollars
+each.
+
+The cap stays a refusal. This is the fourth early exit in this document
+that the live leash beats (182, 132, 249, 253).

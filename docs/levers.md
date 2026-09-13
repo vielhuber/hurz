@@ -5721,3 +5721,30 @@ the section numbers below point there.
   2/4 — the cap makes renewal worse. The other five were not re-run:
   none reached clause (a), and the cap can only penalise rules that
   remove entries or lengthen holds. Section 252.
+
+## 2026-09-13 (third run) — rotating a full cluster's stalest position
+
+- **Lever:** position sizing / risk guard usage — when the cluster
+  direction cap refuses an entry, close the oldest same-direction
+  position in that cluster (if ≥ 12 bars old) and take the fresh signal.
+  Count, cap and one stop per position hold at every instant; costs one
+  extra round trip. Premise from sections 198 and 250: late positions
+  carry little of the 24-bar edge, fresh signals all of it.
+- **Measurement:** `scripts/cluster_slot_rotation.py`, first run on the
+  harness with the cluster cap (entry above), live selector, 24
+  out-of-sample blocks.
+
+  | variant | trades | rotations | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|---|
+  | **live** | **4,435** | — | **+0.0569** | **+0.1672** | — | — | — |
+  | rotate ≥ 12 bars | 5,178 | 1,303 | +0.0248 | +0.0852 | -0.0820 | -1.88 | 1/4 |
+  | rotate ≥ 18 bars (diag) | 4,804 | 797 | +0.0375 | +0.1200 | -0.0481 | -1.40 | 0/4 |
+
+- **Result:** all three clauses fail. Per rotation **-0.0340 R at t
+  -1.81**, negative on all four samples. The rotated-out positions sat at
+  **+0.24 R** under the live rule — five times the average trade. A
+  cluster fills during a broad move and its oldest member caught it
+  earliest; section 250's "the open result says nothing" holds for the
+  average position, not for one a full cluster selects.
+- **Decision:** verworfen — the cap stays a refusal, no code change, no
+  restart. Section 253.
