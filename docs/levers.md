@@ -5852,3 +5852,30 @@ the section numbers below point there.
   -0.108 USD/day for it.
 - **Decision:** verworfen — no lock, no code change, no restart.
   Section 257.
+
+## 2026-09-13 (eighth run) — a shorter donchian channel on the live book
+
+- **Lever:** strategy parameter — donchian 20 → 15. Section 248 found
+  longer channels worse because they enter late, where the ADX ceiling
+  already cuts; the mirror prediction is that a shorter channel enters
+  earlier, passes the router more often and sits earlier in the move.
+  Only prior reading: period 10 at a 1-ATR stop without ceiling or floor.
+  donchian carries nearly all the book's dollars, so exposure is total.
+- **Measurement:** `scripts/short_channel_live_book.py`, live-faithful
+  book (ranked + pins, vetoes, reservations, all guards), each arm
+  ranking on its own signals.
+
+  | donchian | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | 10 (diag) | 6,288 | +0.0321 | +0.1272 | -0.0439 | -0.70 | 0/4 |
+  | 15 (candidate) | 5,595 | +0.0450 | +0.1620 | -0.0126 | -0.29 | 1/4 |
+  | **20 (live)** | **5,097** | **+0.0532** | **+0.1746** | — | — | — |
+  | 30 (diag) | 4,605 | +0.0647 | +0.1951 | +0.0174 | +0.41 | 3/4 |
+
+- **Result:** (a) and (b) fail. Shorter channels do pass the router more
+  often, but USD per trade falls monotonically with the length — the
+  extra early breakouts are noise. Donchian 30 is better on the three
+  older samples and loses the recent year; a diagnostic without standing,
+  and section 248 had 80 worse everywhere, so not promoted.
+- **Decision:** verworfen — donchian stays at 20, no code change, no
+  restart. Section 258.

@@ -9584,3 +9584,41 @@ as noise around a smaller figure, with the 1,096–1,825 sample paying for
 it. Opposite breakouts inside one factor are not the dispersion regime
 the rule assumed — or if they are, that regime is not where the book
 loses.
+
+## 258. A shorter donchian channel: earlier entries are not better ones, and 20 sits between two worse neighbours
+
+Section 248 explained why longer channels lose on the current system: they
+fire later into a move, and the ADX ceiling already removes late,
+exhausted trends. Run in reverse, the same reasoning predicts a shorter
+channel fires earlier, while ADX is still below the ceiling, so more of
+its entries pass the router and sit earlier in the move. The only earlier
+reading of a shorter channel was run 9 of 2026-09-07 (period 10, 1-ATR
+stop, no ceiling, no floor).
+
+`scripts/short_channel_live_book.py`, live-faithful book of section 255,
+each arm ranking on its own signals. Candidate donchian 15; 10 and 30 as
+diagnostics.
+
+| donchian | signals | trades | USD/trade | pooled USD/day | diff vs 20 | t | up |
+|---|---|---|---|---|---|---|---|
+| 10 (diag) | 34,911 | 6,288 | +0.0321 | +0.1272 | -0.0439 | -0.70 | 0/4 |
+| **15 (candidate)** | 30,933 | 5,595 | +0.0450 | +0.1620 | **-0.0126** | **-0.29** | **1/4** |
+| **20 (live)** | **28,714** | **5,097** | **+0.0532** | **+0.1746** | — | — | — |
+| 30 (diag) | 26,786 | 4,605 | +0.0647 | +0.1951 | +0.0174 | +0.41 | 3/4 |
+
+Candidate per sample: -0.0409 / +0.0290 / -0.0333 / -0.0073. Clauses (a)
+and (b) fail.
+
+The prediction was half right. A shorter channel does pass the router more
+often — 8 % more signals at 15, 22 % more at 10 — but the extra entries
+are worse ones, and USD per trade falls monotonically as the channel
+shortens (+0.0532 → +0.0450 → +0.0321). An earlier breakout of a shorter
+range is more often noise than the start of a move, and the ceiling
+cannot tell the two apart.
+
+Donchian 30 reads better on three samples and loses the recent year
+(-0.0394 USD/day). It was a diagnostic, it fails clause (a) as written,
+and section 248 showed 80 worse on every sample, so it is recorded and not
+promoted. What the sweep says as a whole: per-trade quality rises with the
+channel and throughput falls with it, the two cross near 20–30, and the
+recent year loses at every length tried.
