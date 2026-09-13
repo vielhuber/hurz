@@ -47,7 +47,9 @@ from app.platforms import get_platform
 from app.platforms.registry import clear_cache
 from app.strategies import get_strategy, add_indicators
 from app.spot_trading.trading_blocks import direction_blocked, BLOCKED_PAIRS
-from app.spot_trading.autotrade import _min_stop_atr_multiple
+from app.spot_trading.autotrade import (
+    _min_stop_atr_multiple, _CORRELATION_CLUSTERS, _CLUSTER_DIR_CAP,
+)
 from app.spot_trading.position_sizing import (
     calculate_position_size, DEFAULT_TARGET_RISK_USD, DEFAULT_NOTIONAL_CAP_USD,
 )
@@ -139,7 +141,7 @@ def all_signals(frames, atr_floor, meta):
                 entry,stop_d,cost_r,risk_usd=terms
                 r,xb=book(O,H,L,C,x.index,x.direction,entry,stop_d,cost_r,n)
                 if r is None: continue
-                out.append({"ts":ts[x.index],"exit_ts":ts[xb],"pair":pair,
+                out.append({"ts":ts[x.index],"exit_ts":ts[xb],"pair":pair,"dir":x.direction,
                             "strat":s,"r":r,"usd":r*risk_usd,"risk":risk_usd})
     out.sort(key=lambda z: z["ts"])
     return out
@@ -173,20 +175,38 @@ def rank(window, weighted):
     return {k for _,k in rows[:TOP_N]}
 
 
-def trade(window, active):
-    """Replay one out-of-sample block with the live concurrency guards."""
-    open_until={}; per_day={}; n=0
+def admit(window, active):
+    """The trades the live entry guards let through, in order.
+
+    One position per instrument, the concurrent cap and the
+    correlation-cluster direction cap. Until 2026-09-13 the cluster cap
+    lived only in the scripts that swept it, although section 239 found
+    it the most expensive guard in the system (section 252)."""
+    open_pos={}; out=[]
     for t in window:
         if (t["strat"],t["pair"]) not in active: continue
-        for p_ in [p_ for p_,u in open_until.items() if u<=t["ts"]]:
-            del open_until[p_]
-        if t["pair"] in open_until: continue
-        if len(open_until)>=MAX_CONCURRENT: continue
-        open_until[t["pair"]]=t["exit_ts"]
+        for p_ in [p_ for p_,o in open_pos.items() if o[0]<=t["ts"]]:
+            del open_pos[p_]
+        if t["pair"] in open_pos: continue
+        if len(open_pos)>=MAX_CONCURRENT: continue
+        cluster=_CORRELATION_CLUSTERS.get(t["pair"])
+        if cluster is not None and sum(
+                1 for p_,o in open_pos.items()
+                if _CORRELATION_CLUSTERS.get(p_)==cluster and o[1]==t["dir"]
+        )>=_CLUSTER_DIR_CAP:
+            continue
+        open_pos[t["pair"]]=(t["exit_ts"],t["dir"])
+        out.append(t)
+    return out
+
+
+def trade(window, active):
+    """Replay one out-of-sample block with the live entry guards."""
+    per_day={}; taken=admit(window, active)
+    for t in taken:
         day=str(np.datetime64(t["exit_ts"],'D'))
         per_day[day]=per_day.get(day,0.0)+t["usd"]
-        n+=1
-    return per_day, n
+    return per_day, len(taken)
 
 
 async def fetch_paced(p, pair, days_from, days_to):

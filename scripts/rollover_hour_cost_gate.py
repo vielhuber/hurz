@@ -141,7 +141,7 @@ def all_signals(frames, atr_floor, meta, mults):
                 entry, stop_d, cost_r, risk_usd = terms
                 r, xb = book(O, H, L, C, x.index, x.direction, entry, stop_d, cost_r, n)
                 if r is None: continue
-                out.append({"ts": ts[x.index], "exit_ts": ts[xb], "pair": pair,
+                out.append({"ts": ts[x.index], "exit_ts": ts[xb], "pair": pair, "dir": x.direction,
                             "strat": s, "r": r, "usd": r * risk_usd,
                             "risk": risk_usd, "mult": mult})
     out.sort(key=lambda z: z["ts"])
@@ -305,4 +305,5 @@ async def main():
         print(f"clause (c): refused mean {usd.mean():+.4f} USD — "
               f"{'PASS' if usd.mean() <= 0 else 'FAIL'}")
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

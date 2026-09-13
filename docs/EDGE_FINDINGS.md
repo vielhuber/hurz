@@ -9334,3 +9334,40 @@ keltner and every regime feature before it.
 The cap-48 diagnostic reads better on the day (+0.0335) and has no
 standing; it shares the same recent-year loss. Nothing here should be
 revisited on the older samples' strength alone.
+
+## 252. The shared harness had no cluster cap — FIXED
+
+Section 239 added the correlation-cluster direction cap to *its own*
+replay and wrote that "the harness now carries the guard". The shared
+module did not: `efficiency_weighted_selection.trade()` still enforced
+only one position per instrument and the concurrent cap of 8. Every
+script taking `trade()` from there measured a book without the most
+expensive guard in the system — sections 215–222 (already flagged in 239
+as no-cap baselines) and my own 245, 246, 248, 249, 250 and 251.
+
+**Fixed.** The module now has `admit(window, active)`, the one
+implementation of the live entry guards — one position per instrument,
+the concurrent cap, and the cluster cap from `autotrade`'s
+`_CORRELATION_CLUSTERS` and `_CLUSTER_DIR_CAP` — and `trade()` books
+what it admits. Signals carry their direction. My scripts since section
+245 use `admit` instead of local copies, and every one of them now runs
+its `main()` only under `__main__`, after two runs in which importing a
+sibling script silently started that script's own measurement.
+
+On the corrected harness the live book is **4,435 trades and +0.1680
+USD/day pooled**, against 5,488 trades without the cap — the same order
+as section 239's 4,125 on the smaller universe.
+
+**Re-verified: section 251**, the nearest of the six to a pass (the
+uncapped candidate read +0.0072 USD/day, 2 of 4). Under the cap renewal
+reads **-0.0354 USD/day at t -0.64**, still 2 of 4, per renewed trade
++0.0074 R at t +0.82 with the recent year negative again. Longer holds
+occupy cluster slots and refuse later entries, so the cap makes the rule
+worse, not better. The verdict stands.
+
+**Not re-run:** 245, 246, 248, 249 and 250. None came within reach of
+clause (a) — the best was 2 of 4 at t +0.85 — and each either removes
+entries or, like 251, holds positions longer, which the cap can only
+penalise further. Their variant comparisons shared one uncapped book, so
+they are internally consistent; their absolute figures overstate the
+live book by roughly a fifth.

@@ -50,7 +50,7 @@ from app.spot_trading.regime import gate
 from app.spot_trading.trading_blocks import direction_blocked
 from app.spot_trading.autotrade import _min_stop_atr_multiple
 from scripts.efficiency_weighted_selection import (
-    load_history, to_frame, t_stat, trade_terms, book, trade,
+    load_history, to_frame, t_stat, trade_terms, book, trade, admit,
     RANK_DAYS, TRADE_DAYS, META_CACHE, STRATS,
 )
 
@@ -81,7 +81,7 @@ def signals(frames, atr_floor, meta, periods):
                 entry, stop_d, cost_r, risk_usd = terms
                 r, xb = book(O, H, L, C, x.index, x.direction, entry, stop_d, cost_r, n)
                 if r is None: continue
-                out.append({"ts": ts[x.index], "exit_ts": ts[xb], "pair": pair,
+                out.append({"ts": ts[x.index], "exit_ts": ts[xb], "pair": pair, "dir": x.direction,
                             "strat": s, "r": r, "usd": r * risk_usd})
     out.sort(key=lambda z: z["ts"])
     return out
@@ -114,15 +114,7 @@ def walk_forward(sig, blocks):
         per_day, _ = trade(tw, active)
         for d, v in per_day.items():
             daily[d] = daily.get(d, 0.0) + v
-        # the trade() replay does not return the admitted trades, so
-        # re-derive them under the same guards for the per-trade figure
-        open_until = {}
-        for t in tw:
-            if (t["strat"], t["pair"]) not in active: continue
-            for p_ in [p_ for p_, u in open_until.items() if u <= t["ts"]]:
-                del open_until[p_]
-            if t["pair"] in open_until or len(open_until) >= 8: continue
-            open_until[t["pair"]] = t["exit_ts"]; usd.append(t["usd"])
+        usd.extend(t["usd"] for t in admit(tw, active))
     return daily, np.array(usd)
 
 
@@ -184,4 +176,5 @@ async def main():
             print(f"clause (c): USD/trade {base_usd.mean():+.4f} -> {usd.mean():+.4f} — "
                   f"{'PASS' if usd.mean() > base_usd.mean() else 'FAIL'}")
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

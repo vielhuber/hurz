@@ -5705,3 +5705,19 @@ the section numbers below point there.
   +0.005 / +0.023 / +0.033, so the recent year pays for it.
 - **Decision:** verworfen — same-direction signals stay refused, leash
   stays counted from entry, no code change, no restart. Section 251.
+
+## 2026-09-13 (third run, found on the way) — the harness's missing cluster cap — FIXED
+
+- **Not a lever but a defect.** Section 239 put the cluster direction cap
+  into its own replay; the shared `efficiency_weighted_selection.trade()`
+  never got it. Sections 215–222 and my 245, 246, 248–251 measured books
+  without the most expensive guard in the system.
+- **Fixed:** one shared `admit()` with all live entry guards including
+  the cluster cap, `trade()` built on it, direction on every signal. My
+  scripts since 245 use it instead of local copies and are guarded by
+  `__main__`. Live book on the corrected harness: 4,435 trades,
+  +0.1680 USD/day pooled.
+- **Re-verified 251** (closest to passing): -0.0354 USD/day at t -0.64,
+  2/4 — the cap makes renewal worse. The other five were not re-run:
+  none reached clause (a), and the cap can only penalise rules that
+  remove entries or lengthen holds. Section 252.

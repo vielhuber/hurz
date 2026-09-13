@@ -50,7 +50,7 @@ from app.spot_trading.regime import gate
 from app.spot_trading.trading_blocks import direction_blocked
 from app.spot_trading.autotrade import _min_stop_atr_multiple
 from scripts.efficiency_weighted_selection import (
-    load_history, to_frame, t_stat, trade_terms, trade,
+    load_history, to_frame, t_stat, trade_terms, trade, admit,
     RANK_DAYS, TRADE_DAYS, META_CACHE, STRATS, RR, HOLD,
 )
 
@@ -76,18 +76,6 @@ def rank_live(window):
         rows.append((eR * math.log1p(len(ts)) * min(5.0, pf), key))
     rows.sort(reverse=True)
     return {k for _, k in rows[:LIVE_N]}
-
-
-def admitted(tw, active):
-    """The trades `trade()` admits, in order — for the per-trade clause."""
-    open_until = {}; out = []
-    for t in tw:
-        if (t["strat"], t["pair"]) not in active: continue
-        for p_ in [p_ for p_, u in open_until.items() if u <= t["ts"]]:
-            del open_until[p_]
-        if t["pair"] in open_until or len(open_until) >= 8: continue
-        open_until[t["pair"]] = t["exit_ts"]; out.append(t)
-    return out
 
 
 def book(O, H, L, C, e, d, entry, stop_d, cost_r, n, renew, cap):
@@ -139,7 +127,7 @@ def signals(frames, atr_floor, meta):
             booked = {arm: book(*args, cap) for arm, cap in ARMS.items()}
             if any(v[0] is None for v in booked.values()): continue
             r0 = booked["live"][0]
-            base = {"ts": ts[x.index], "pair": pair, "strat": s}
+            base = {"ts": ts[x.index], "pair": pair, "strat": s, "dir": x.direction}
             out.append({arm: dict(base, exit_ts=ts[bx], r=r, usd=r * risk_usd,
                                   renewed=rn, r_live=r0,
                                   bars=int(bx - x.index))
@@ -158,7 +146,7 @@ def walk_forward(sig, blocks):
         per_day, _ = trade(tw, active)
         for d, v in per_day.items():
             daily[d] = daily.get(d, 0.0) + v
-        taken.extend(admitted(tw, active))
+        taken.extend(admit(tw, active))
     return daily, taken
 
 

@@ -257,4 +257,5 @@ async def main():
               f"{t_stat(pooled):+.2f} — "
               f"{'PASS' if better == samples and t_stat(pooled) > 2 else 'FAIL'}")
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
