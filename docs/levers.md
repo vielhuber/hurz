@@ -5748,3 +5748,29 @@ the section numbers below point there.
   average position, not for one a full cluster selects.
 - **Decision:** verworfen — the cap stays a refusal, no code change, no
   restart. Section 253.
+
+## 2026-09-13 (fourth run) — the cluster cap in the small clusters
+
+- **Lever:** risk guard — the cap of 3 cannot bind in clusters with at
+  most three tradeable members (crypto 2, energy 2, metals 3), so two
+  same-direction oils, the case the map's comment describes, pass
+  unrefused. Rule fixed beforehand: a cluster's cap never exceeds its
+  member count minus one — crypto 1, energy 1, metals 2, risk_on 3.
+  Refusal-only.
+- **Measurement:** `scripts/small_cluster_caps.py`, harness with the
+  cluster cap (run of 2026-09-13 third), live selector, 24 blocks.
+
+  | variant | trades | extra refusals | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live, 3 everywhere** | **4,435** | — | **+0.1727** | — | — | — |
+  | members − 1 | 4,424 | energy 29 | +0.1754 | +0.0027 | +0.48 | 1/4 |
+
+- **Result:** (a) and (b) fail on no exposure — three samples identical,
+  11 trades removed in seven years, crypto and metals refuse nothing.
+  Daily sd 3.120 → 3.101 USD, worst day unchanged. The doubled positions
+  the rule would prevent barely occur: the short block leaves these
+  clusters long-only and the 3×ATR floor removed most crypto signals.
+  Pins are outside the harness, so live doubles may be somewhat more
+  frequent — noted, not material at this size.
+- **Decision:** verworfen — caps unchanged, no code change, no restart.
+  Section 254.

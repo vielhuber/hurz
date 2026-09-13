@@ -9419,3 +9419,43 @@ each.
 
 The cap stays a refusal. This is the fourth early exit in this document
 that the live leash beats (182, 132, 249, 253).
+
+## 254. The cap is inert in the small clusters — and so is what it would refuse
+
+`_CLUSTER_DIR_CAP` allows three same-direction positions per correlation
+cluster, so it can only bind in a cluster with more than three tradeable
+members. After the cost and expectancy blocks three clusters have fewer:
+crypto (BTCUSD, ETHUSD), energy (OIL_BRENT, OIL_CRUDE) and metals (GOLD,
+SILVER, COPPER). A Brent long beside a Crude long is, by the map's own
+reasoning, one oil position at twice the size, and nothing refuses it.
+
+`scripts/small_cluster_caps.py` applies a rule fixed beforehand — a
+cluster's cap never exceeds its tradeable member count minus one — giving
+crypto 1, energy 1, metals 2, `risk_on` 3. It can only refuse. Checked on
+a constructed case against the shared `admit()`; live-selector
+walk-forward on section 252's harness.
+
+| variant | trades | refused (cluster) | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **live, 3 everywhere** | **4,435** | risk_on 4,087 | **+0.0569** | **+0.1727** | — | — | — |
+| members − 1 | 4,424 | + energy 29 | +0.0579 | +0.1754 | +0.0027 | +0.48 | 1/4 |
+
+Per sample: 0.0000 / +0.0054 / 0.0000 / 0.0000 — three of four identical.
+Clauses (a) and (b) fail. The diagnostic without the metals change is the
+same book to the trade, because metals refuse nothing either.
+
+**The guard is inert and so is its target.** In seven years the rule
+refuses 29 energy entries, which removes 11 trades from the book (mean
+-0.36 USD, t -0.47); crypto and metals refuse none. The daily standard
+deviation moves from 3.120 to 3.101 USD and the worst day is unchanged.
+Doubled positions in the small clusters are not a risk this book runs:
+the commodity short block leaves those clusters long-only, the 3×ATR
+floor already removed most crypto signals (section 203), and the
+selector rarely holds both members of a pair at once.
+
+**One limitation stated.** The harness does not carry operator pins, and
+the live list pins both OIL_BRENT strategies, SILVER, COPPER and ETHUSD
+beside a ranked BTCUSD. Live doubles in these clusters may therefore be
+somewhat more frequent than 11 in seven years. That is a question for
+the journal, not this harness, and does not change a result whose whole
+size is +0.003 USD/day.
