@@ -5672,3 +5672,36 @@ the section numbers below point there.
   change, no restart. Section 250. The exit is now measured early and
   late on every signal the book carries (confirmation bar, open loss,
   opposite breakout, open profit); none beats the fixed 24-bar leash.
+
+## 2026-09-13 (second run) — renewing the leash on a same-direction signal
+
+- **Operational note:** the bank-holiday guard is still holding the bot
+  on Sunday 2026-09-13. `holidays` 0.95 dates Knabenschiessen (CH-ZH) on
+  the Saturday and Sunday of the second September weekend in every year
+  2024–2027, so the guard suspended two weekend days on which FX, indices
+  and commodities are closed anyway; only crypto weekend trading is lost.
+  It releases at Monday 00:00 local (Sunday 22:00 UTC), at the FX open.
+  Not a blocker, not changed.
+- **Lever:** exit logic — 80 % of signals that meet an open position point
+  the same way and are refused (section 83). Run 34 admitted them as
+  second positions (a risk doubling). Untested: use them without size —
+  a same-direction signal passing every entry filter restarts the 24-bar
+  leash, total hold capped at 96 bars, stop and target unchanged. Stated
+  risk change: longer holds, never more than the original 1 R at risk.
+- **Measurement:** `scripts/leash_renewal.py`, booking verified against
+  the harness on 3,200 EURUSD trades (0 mismatches), live-selector
+  walk-forward on the run-54 harness, 24 out-of-sample blocks.
+
+  | variant | trades | USD/trade | hold | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|---|
+  | **live** | **5,488** | **+0.0478** | 22.0 | **+0.1731** | — | — | — |
+  | renew, cap 96 | 4,613 | +0.0593 | 27.4 | +0.1804 | +0.0072 | +0.12 | 2/4 |
+  | renew, cap 48 (diag) | 4,707 | +0.0665 | 26.8 | +0.2066 | +0.0335 | +0.56 | 2/4 |
+
+- **Result:** (a) and (b) fail; loses both recent samples (-0.054 /
+  -0.046, then +0.048 / +0.038). (c) passes on its letter: renewed trades
+  gain **+0.0100 R at t +1.18** — the first hold extension with a sign
+  after sections 229 and 250 found zero — but per sample **-0.0485** /
+  +0.005 / +0.023 / +0.033, so the recent year pays for it.
+- **Decision:** verworfen — same-direction signals stay refused, leash
+  stays counted from entry, no code change, no restart. Section 251.

@@ -9286,3 +9286,51 @@ one on the late side, the exit is now measured in both directions and on
 every form of information the book carries — the confirmation bar, the
 open loss, an opposite breakout, the open profit. None beats a fixed
 24-bar leash.
+
+## 251. Renewing the leash on a same-direction signal: the first time-extension with a sign, and it is the wrong year's
+
+Section 83: 83 % of signals arrive into an instrument the book holds, 80 %
+of those pointing the same way, and `_has_open_position` refuses all of
+them. Section 227 admitted them as second positions and doubled the daily
+figure — a doubling of risk, rightly refused. The option neither tried is
+to use them without size: a same-direction breakout on a held instrument
+is a fully gated entry the book would take if flat, so holding the
+existing position another 24 bars from that signal is economically that
+entry minus the second spread and minus any added exposure.
+
+`scripts/leash_renewal.py`: a same-direction signal that passes every
+entry filter (router gate, direction block, 3×ATR floor, cost ceiling,
+sizing) restarts the 24-bar leash, total hold capped at 96 bars; stop and
+target stay where they were, so money at risk never exceeds the original
+1 R. Stated risk change: positions are held longer. Booking verified
+against the harness on 3,200 EURUSD trades (0 mismatches). Live-selector
+walk-forward, section 247's harness.
+
+| variant | trades | USD/trade | mean hold | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **live** | **5,488** | **+0.0478** | 22.0 | **+0.1731** | — | — | — |
+| **renew, cap 96** | 4,613 | +0.0593 | 27.4 | +0.1804 | **+0.0072** | **+0.12** | **2/4** |
+| renew, cap 48 (diag) | 4,707 | +0.0665 | 26.8 | +0.2066 | +0.0335 | +0.56 | 2/4 |
+
+Candidate per sample: -0.0536 / -0.0458 / +0.0478 / +0.0382. Clauses (a)
+and (b) fail. Clause (c) passes as written:
+
+| renewed trades in the book | renewed R | live R, same trades | paired | t |
+|---|---|---|---|---|
+| 2,370 (51 %) | +0.2505 | +0.2405 | +0.0100 | +1.18 |
+
+Paired per sample: **-0.0485** / +0.0050 / +0.0233 / +0.0325.
+
+**This is the first extension of the hold with a sign.** Section 229 found
+time alone worth nothing on average, section 250 the open profit at the
+leash worth nothing either. Conditioning the extra time on a fresh entry
+signal does carry something — +0.01 R a renewed trade, three of four
+samples positive. It is not enough to pass, and the sample it fails on is
+the one that matters most: over the last year renewal costs 0.0485 R a
+trade and the day loses 0.0536 USD. The gradient runs from positive in
+the oldest sample to negative in the newest, the pattern of section 236's
+keltner and every regime feature before it.
+
+The cap-48 diagnostic reads better on the day (+0.0335) and has no
+standing; it shares the same recent-year loss. Nothing here should be
+revisited on the older samples' strength alone.
