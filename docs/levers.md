@@ -5774,3 +5774,33 @@ the section numbers below point there.
   frequent — noted, not material at this size.
 - **Decision:** verworfen — caps unchanged, no code change, no restart.
   Section 254.
+
+## 2026-09-13 (fifth run) — pins held to the eligibility filter
+
+- **Lever:** pair selection — nearly the whole `risk_on` cluster is pinned
+  for donchian and turtle, and pins bypass eligibility, so combinations
+  with trailing scores down to -0.33 hold contested cluster slots. Run 26
+  (section 219) measured pins without the cluster cap. Candidate: keep
+  every pin but require the scheduler's eligibility filter (≥ 10 trades,
+  pf ≥ 0.8, eR ≥ -0.2).
+- **Measurement:** `scripts/pin_eligibility.py` — first harness run with
+  the live list as the selector writes it: ranked top 40 + 1h pins, today's
+  vetoes, today's exclusive 4h reservations (a retired pin reserves
+  nothing). A first pass let retired pins reserve four pairs; corrected
+  before the verdict, same reading.
+
+  | variant | list | trades | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live: ranked + all pins** | **52.6** | **5,097** | **+0.1795** | — | — | — |
+  | ranked + eligible pins | 37.2 | 4,500 | +0.1718 | -0.0077 | -0.20 | 2/4 |
+  | ranked only (diag) | 36.2 | 4,426 | +0.1549 | -0.0245 | -0.60 | 2/4 |
+  | pins only (diag) | 39.0 | 4,086 | +0.1647 | -0.0144 | -0.33 | 2/4 |
+
+- **Result:** (a) and (b) fail; the live list is best pooled. Filtering
+  pins raises USD per trade and loses the same in throughput.
+- **Recorded:** on this most live-faithful baseline the samples read
+  **-0.0032** / +0.2078 / +0.0899 / +0.0757 USD/day — the last year earns
+  nothing, matching the forward window. Every lever this weekend shares
+  that recent-year weakness.
+- **Decision:** verworfen — pins unchanged, no code change, no restart.
+  Section 255.

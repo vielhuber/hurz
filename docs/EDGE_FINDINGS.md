@@ -9459,3 +9459,52 @@ beside a ranked BTCUSD. Live doubles in these clusters may therefore be
 somewhat more frequent than 11 in seven years. That is a question for
 the journal, not this harness, and does not change a result whose whole
 size is +0.003 USD/day.
+
+## 255. Pins held to the eligibility filter: no better — and the most faithful baseline yet says the last year earned nothing
+
+`data/pinned_pairs.json` pins 1h donchian and turtle on nearly every
+tradeable instrument of the merged `risk_on` cluster (DE40, FR40, HK50,
+J225, UK100, US30, US100, US500, EURUSD, USDCHF, NZDUSD, AUDJPY, CHFJPY,
+EURAUD) as well as the crypto, metals and oil names. A pin bypasses
+ranking, eligibility and the top-40 cut, so these combinations are in the
+list whatever their trailing year; the file of 2026-09-11 carries pins at
+scores down to -0.33. Section 219 found ranked, pinned and combined lists
+within 0.017 USD/day of each other, but without the cluster cap. With the
+cap, `risk_on` slots are contested, and an ineligible pin holds one as
+readily as an eligible ranked combination.
+
+`scripts/pin_eligibility.py` models the live list for the first time:
+ranked top 40 plus every 1h pin, today's live vetoes applied in every arm
+(both OIL_CRUDE combinations, the keltner and mean-reversion strategies),
+and the reservations of today's live exclusive 4h pins (CHFJPY, COPPER,
+HK50, NZDUSD, SILVER). A retired pin reserves nothing, as in
+`persist_active_pairs`. A first pass wrongly let the retired keltner and
+donchian_trail pins reserve DE40, EURUSD, US30 and US500; it was corrected
+before the verdict and read the same way (-0.0055, t -0.14).
+
+The candidate keeps every pin but requires it to pass the scheduler's
+eligibility filter (≥ 10 trades, pf ≥ 0.8, eR ≥ -0.2 on the trailing
+year); on average 15.4 of the 39 harness pins fail it per block.
+
+| variant | list | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **live: ranked + all pins** | **52.6** | **5,097** | **+0.0532** | **+0.1795** | — | — | — |
+| ranked + eligible pins | 37.2 | 4,500 | +0.0577 | +0.1718 | **-0.0077** | **-0.20** | **2/4** |
+| ranked only (diag) | 36.2 | 4,426 | +0.0529 | +0.1549 | -0.0245 | -0.60 | 2/4 |
+| pins only (diag) | 39.0 | 4,086 | +0.0611 | +0.1647 | -0.0144 | -0.33 | 2/4 |
+
+Candidate per sample: +0.0186 / -0.0213 / -0.0261 / +0.0201. Clauses (a)
+and (b) fail. Section 219's flatness survives the cap: filtering the pins
+raises USD per trade and costs as much in throughput, and none of the
+four lists beats the live one on the pooled figure.
+
+**The baseline is the finding worth keeping.** This is the closest the
+harness has come to the book the bot trades — its universe, strategy mix,
+entry guards including the cluster cap, and now its list with pins,
+vetoes and reservations. On it the four samples read **-0.0032 /
++0.2078 / +0.0899 / +0.0757 USD/day**. Over the last year the book earns
+nothing. That is consistent with the live forward window (-0.57 USD/day
+over 41 trades, about one standard error from zero) and it is not a
+feature of any lever: every variant measured this weekend shares that
+recent-year weakness. The edge measured in sections 221 and 222 lives in
+the older samples.
