@@ -5829,3 +5829,26 @@ the section numbers below point there.
   instrument's P&L is not its marginal contribution.
 - **Decision:** verworfen — no new blocks, section 192's existing three
   untouched, no code change, no restart. Section 256.
+
+## 2026-09-13 (seventh run) — no entry against a cluster's open direction
+
+- **Lever:** regime filter / risk guard — the cluster cap counts
+  directions separately, so `risk_on` can hold three longs and three
+  shorts at once. Rule: refuse an entry while its cluster holds a
+  position in the opposite nominal direction (dispersing factor, offset
+  positions, double spreads). Refusal only; never tested before.
+- **Measurement:** `scripts/cluster_direction_lock.py`, live-faithful book
+  (ranked + pins, vetoes, reservations, all guards), 24 blocks.
+
+  | variant | trades | refused | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,097** | — | **+0.1789** | — | — | — |
+  | lock at 1 opposite | 3,492 | 6,475 | +0.1382 | -0.0407 | -0.74 | 2/4 |
+  | lock at 2 (diag) | 4,070 | 4,020 | +0.1765 | -0.0019 | -0.04 | 3/4 |
+
+- **Result:** (a) and (b) fail. Refused signals read -0.02 USD at a lock
+  of one and +0.03 at two — a sign that turns with the threshold. The
+  lock mainly cuts throughput by 31 %, and the 1,096–1,825 d sample pays
+  -0.108 USD/day for it.
+- **Decision:** verworfen — no lock, no code change, no restart.
+  Section 257.

@@ -9550,3 +9550,37 @@ book cannot use; only a change to the factor exposure itself could, and
 sections 239–244 closed that axis. Section 192's three existing blocks
 are not touched: they were measured on their own terms, and this run
 tests further flags, not those.
+
+## 257. A cluster that breaks both ways is not a signal to stand aside
+
+The cluster cap counts same-direction positions, so `risk_on` can hold
+three longs and three shorts at once. Section 256 showed that cluster is
+the book's binding constraint and one factor bet; when its members break
+out in opposite directions simultaneously the factor is dispersing rather
+than trending, and the book pays spreads on positions that partly offset.
+
+`scripts/cluster_direction_lock.py` refuses an entry whenever its cluster
+already holds a position in the opposite nominal direction — the same
+direction the cap counts; sections 242–244 ruled out signing instruments
+by factor. Refusal only. Live-faithful book of section 255, constructed
+case checked against `admit()` first.
+
+| variant | trades | refused by the lock | their USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **live** | **5,097** | — | — | **+0.1789** | — | — | — |
+| lock at 1 opposite | 3,492 | 6,475 | -0.0215 (t -1.14) | +0.1382 | **-0.0407** | **-0.74** | **2/4** |
+| lock at 2 opposite (diag) | 4,070 | 4,020 | +0.0335 (t +1.40) | +0.1765 | -0.0019 | -0.04 | 3/4 |
+
+Candidate per sample: 0.0000 / +0.0383 / -0.1084 / -0.0082. Clauses (a)
+and (b) fail.
+
+The signals the lock refuses are mildly negative at a threshold of one
+(-0.02 USD, t -1.14) and mildly *positive* at two (+0.03, t +1.40) — the
+sign turns with the threshold, which is the shape of no effect. The one
+real consequence is throughput: a single open position in the other
+direction now blocks the whole cluster, and 31 % of the book goes. On a
+book whose marginal trade is worth about zero (section 220) that shows up
+as noise around a smaller figure, with the 1,096–1,825 sample paying for
+it. Opposite breakouts inside one factor are not the dispersion regime
+the rule assumed — or if they are, that regime is not where the book
+loses.
