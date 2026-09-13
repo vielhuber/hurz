@@ -5903,3 +5903,28 @@ the section numbers below point there.
   the instrument first.
 - **Decision:** verworfen — section 224 stands, mix unchanged, no code
   change, no restart. Section 259.
+
+## 2026-09-13 (tenth run) — the leash under a binding cluster cap
+
+- **Lever:** exit logic — shorter leash (20 bars). All earlier leash
+  sweeps ran without the cluster cap, where a freed slot was worth nothing;
+  under the cap `risk_on` slots are contested and run 251 showed longer
+  holds turning worse. The mirror — shorter holds handing slots back —
+  was never measured. Nothing loosened: same stop, size and target, less
+  time.
+- **Measurement:** `scripts/leash_under_cluster_cap.py`, live-faithful
+  book, booking verified at 24 bars (0 mismatches on 1,753 trades).
+
+  | leash | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | 16 (diag) | 5,971 | +0.0217 | +0.0790 | -0.0867 | -1.49 | 1/4 |
+  | 20 (candidate) | 5,504 | +0.0366 | +0.1274 | -0.0441 | -0.89 | 2/4 |
+  | **24 (live)** | **5,097** | **+0.0532** | **+0.1715** | — | — | — |
+  | 30 (diag) | 4,584 | +0.0693 | +0.2008 | +0.0293 | +0.56 | 3/4 |
+
+- **Result:** (a) and (b) fail. 8 % more trades at 31 % less USD per trade
+  — section 198 holds under the cap. The 30-bar diagnostic is section
+  229's occupancy-selected family (36 bars refuted on excluded instruments
+  and the journal), not promoted.
+- **Decision:** verworfen — leash stays at 24, no code change, no restart.
+  Section 260.

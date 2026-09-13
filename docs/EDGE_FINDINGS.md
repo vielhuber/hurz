@@ -9652,3 +9652,43 @@ USD/day, close to the bar on that sample alone, and gives back on two of
 the older three — the recent-versus-older split this document has now
 met on every lever of the weekend. Momentum contributes 15 trades in
 seven years and changes two samples not at all.
+
+## 260. The leash under a binding cluster cap: freed slots are still not worth the time they cost
+
+Sections 198, 228 and 229 swept the leash on harnesses where capacity
+never bound (occupancy 3.2 of 8, section 220), so a freed slot was worth
+about nothing and shorter holds lost on expectancy alone. Section 252 put
+the cluster cap in; on the live list it refuses about four thousand
+`risk_on` entries, so a slot there is contested, and section 251 already
+showed a longer hold turning worse under the cap. The mirror question —
+does a shorter leash, handing contested slots back sooner, now pay — had
+not been asked.
+
+`scripts/leash_under_cluster_cap.py`, live-faithful book of section 255,
+each arm booking and ranking its own trades; booking verified against the
+shared harness at 24 bars on 1,753 GOLD trades (0 mismatches).
+
+| leash | trades | USD/trade | pooled USD/day | diff vs 24 | t | up |
+|---|---|---|---|---|---|---|
+| 16 (diag) | 5,971 | +0.0217 | +0.0790 | -0.0867 | -1.49 | 1/4 |
+| **20 (candidate)** | 5,504 | +0.0366 | +0.1274 | **-0.0441** | **-0.89** | **2/4** |
+| **24 (live)** | **5,097** | **+0.0532** | **+0.1715** | — | — | — |
+| 30 (diag) | 4,584 | +0.0693 | +0.2008 | +0.0293 | +0.56 | 3/4 |
+
+Candidate per sample: +0.0260 / +0.0021 / -0.0311 / -0.0674. Clauses (a)
+and (b) fail.
+
+The cap does raise what a slot is worth — at 20 bars the book takes 8 %
+more trades, where section 228's uncapped harness gained less — but USD
+per trade falls 31 %, and section 198's finding holds: the expectancy is
+in the time, and no amount of turnover inside a capped cluster buys it
+back. Shortening further to 16 makes both effects larger and the net
+worse.
+
+The 30-bar diagnostic reads better on three samples. It has no standing,
+and it is the family section 229 already took apart: 36 bars looked 54 %
+better in the harness and was flat on the excluded instruments and
+negative in the journal's own leash exits. The monotone rise in USD per
+trade with the leash is the occupancy selection that section named, and
+this table does not add evidence against that reading. The leash stays at
+24.
