@@ -6060,3 +6060,22 @@ the section numbers below point there.
 - **Decision:** verworfen — no block, no code change, no restart.
   Section 267.
 
+## 2026-09-15 (second run) — the ADX period behind the router
+
+- **Lever:** regime filter / strategy parameter — ADX(20) instead of
+  ADX(14) for the router's 30/50 thresholds (diag ADX(10)); the period
+  was never swept, only the thresholds.
+- **Measurement:** `scripts/adx_period_sweep.py`, live-faithful book,
+  selector on each arm's own signals.
+
+  | arm | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **ADX(14) live** | **5,097** | **+0.0533** | **+0.1745** | — | — | — |
+  | ADX(20) | 3,222 | +0.0579 | +0.1199 | -0.0546 | -0.76 | 3/4 |
+  | ADX(10) (diag) | 6,676 | -0.0102 | -0.0420 | -0.2086 | -2.75 | 1/4 |
+
+- **Result:** (a) and (b) fail; ADX(20) loses 366–1,095 d at t -2.82,
+  ADX(10) is significantly worse.
+- **Decision:** verworfen — period stays 14, no code change, no restart.
+  Section 268.
+

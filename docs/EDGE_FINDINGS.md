@@ -9913,3 +9913,27 @@ construction, clause (b) fails, and the journal disagrees in sign. Not
 built. The shape is worth recording: the gain sits almost entirely in the
 recent year and shrinks monotonically with age, which is what a bias of
 the selection sample looks like rather than a stable class effect.
+
+## 268. The ADX period behind the router: 14 sits between a worse faster and a no better slower reading
+
+Every router run moved the thresholds applied to ADX(14); the period itself
+was never swept. `scripts/adx_period_sweep.py` replaces `adx_14` for
+everything that reads it with ADX(20) (candidate) and ADX(10) (diagnostic),
+thresholds 30/50 and every guard unchanged, the selector ranking on each
+arm's own signals. Live-faithful book of section 255; clauses (a) all four
+year-samples up, (b) pooled paired t > +2.
+
+| arm | signals | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **ADX(14), live** | **28,713** | **5,097** | **+0.0533** | **+0.1745** | — | — | — |
+| ADX(20) | 16,947 | 3,222 | +0.0579 | +0.1199 | -0.0546 | -0.76 | 3/4 |
+| ADX(10) (diag) | 39,877 | 6,676 | -0.0102 | -0.0420 | -0.2086 | -2.75 | 1/4 |
+
+Per sample (ADX(20)): +0.0193 / **-0.2444 (t -2.82)** / +0.0649 / +0.0571.
+
+Both clauses fail. The slower ADX keeps per-trade value and cuts
+throughput by 37 %; it wins three samples and loses the strongest one
+significantly, so the pooled figure is lower. The faster ADX admits 39 %
+more signals whose trades lose money — a noisy trend reading lets range
+breakouts through, which is the router's whole job to stop. The period
+stays at 14.
