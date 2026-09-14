@@ -6171,3 +6171,22 @@ the section numbers below point there.
   gain sits in the recent year only.
 - **Decision:** verworfen — no code change, no restart. Section 273.
 
+## 2026-09-15 (eighth run) — an overnight long on the US indices
+
+- **Lever:** strategy / new signal source — `overnight_long` on US500,
+  US30, US100 (20:00 UTC close to 12:00 UTC close), book stop, target,
+  sizing and floor, 0.02 R financing per night; ranked by the selector,
+  competing for the risk_on long cap. Diag without financing.
+- **Measurement:** `scripts/overnight_index_drift.py`, live-faithful book.
+  Signals: 3,083 at -0.0129 R after financing (t -1.85).
+
+  | arm | trades | overnight (USD) | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,097** | — | **+0.1746** | — | — | — |
+  | + overnight | 5,878 | 995 (-0.0346) | +0.1795 | +0.0049 | +0.14 | 2/4 |
+  | + overnight, no financing (diag) | 6,181 | 1,401 (+0.0354) | +0.2216 | +0.0477 | +1.14 | 2/4 |
+
+- **Result:** (a) and (b) fail; financing takes the premium.
+- **Decision:** verworfen — no strategy added, no code change, no
+  restart. Section 274.
+

@@ -10081,3 +10081,32 @@ Both clauses fail. The whole effect sits in the recent year and is absent
 before it; the widened window, which a real flow effect should survive,
 turns negative. On a 24-hour breakout book the index shorts taken at the
 month boundary are no worse than any others.
+
+## 274. The overnight drift of the US indices: financing eats it, and what is left does not pass
+
+Most of the long-run return of US equity indices accrues between close and
+open. Neither the eighteen preregistered structural variants (time-of-day
+excluded there) nor the opening-range run measured it.
+`scripts/overnight_index_drift.py` adds `overnight_long` on US500, US30 and
+US100 — long at the close of the 20:00 UTC bar, out at the close of the
+next 12:00 UTC bar — with the book's stop, target, sizing, cost and 3-ATR
+floor, 0.02 R of financing per night held (diagnostic: none). The new
+combinations are ranked by the selector and compete for the `risk_on` long
+cap. Live-faithful book of section 255, clauses (a) all four year-samples
+up, (b) pooled paired t > +2.
+
+Signals passing the floor: 3,083 at **-0.0129 R** net of financing (t
+-1.85; US500 -0.012, US30 -0.023, US100 +0.004).
+
+| arm | trades | overnight trades (USD each) | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **live** | **5,097** | — | **+0.0533** | **+0.1746** | — | — | — |
+| + overnight, financing charged | 5,878 | 995 (-0.0346) | +0.0475 | +0.1795 | +0.0049 | +0.14 | 2/4 |
+| + overnight, no financing (diag) | 6,181 | 1,401 (+0.0354) | +0.0560 | +0.2216 | +0.0477 | +1.14 | 2/4 |
+
+Per sample (candidate): +0.0400 / +0.0446 / -0.0216 / -0.0349.
+
+Both clauses fail. The drift is there before financing and gone after it:
+on a CFD the overnight holder pays for the very night that earns, at about
+the size of the premium. The diagnostic is not a tradeable arm, and even
+free of financing it wins only the two recent samples.
