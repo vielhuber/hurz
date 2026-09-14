@@ -10110,3 +10110,37 @@ Both clauses fail. The drift is there before financing and gone after it:
 on a CFD the overnight holder pays for the very night that earns, at about
 the size of the premium. The diagnostic is not a tradeable arm, and even
 free of financing it wins only the two recent samples.
+
+## 275. The stop-out cooldown's length in dollars: 6 hours holds, and the harness had been running without it
+
+Run 16 of 2026-09-08 built the 6-hour stop-out cooldown on per-trade R over
+ten instruments. The live-faithful book of section 255 never modelled it,
+so sections 255–274 all scored a book without the cooldown the bot runs.
+`scripts/stop_out_cooldown_length.py` adds it to the admission (a stop-out
+is R <= -0.9 on a position the book held; entries on that instrument are
+refused until the window has passed) and scores the length: 24 hours
+(candidate), 0 and 72 hours (diagnostics), each against 6. Clauses (a)
+all four year-samples better than 6 hours, (b) pooled paired t > +2.
+
+| cooldown | trades | USD/trade | refused (USD each, t) | pooled USD/day | diff vs 6 h | t | up |
+|---|---|---|---|---|---|---|---|
+| 0 h (the harness so far) | 5,097 | +0.0533 | — | +0.1797 | -0.0115 | -0.77 | 1/4 |
+| **6 h (live)** | **5,061** | **+0.0571** | 161 (-0.0505, -0.34) | **+0.1913** | — | — | — |
+| 24 h | 5,029 | +0.0577 | 283 (+0.0514, +0.44) | +0.1921 | +0.0008 | +0.07 | 2/4 |
+| 72 h (diag) | 4,953 | +0.0448 | 615 (+0.2310, +2.94) | +0.1470 | -0.0445 | -2.06 | 1/4 |
+
+Per sample (24 h): +0.0528 (t +2.63) / -0.0082 / -0.0234 / +0.0069.
+
+The candidate fails both clauses; the length stays at 6 hours. The table
+brackets the choice from both sides: without the cooldown the book is
+worse on three samples, and from 24 hours on the refused re-entries turn
+profitable — at 72 hours they earn +0.23 USD each at t +2.94, so a longer
+wait turns away the breakouts that re-form and run. The immediate
+re-entry into the level that just failed is the only losing part, which
+is what run 16 found in R.
+
+**For the harness:** the 6-hour cooldown is worth +0.0115 USD a day on
+this book. No verdict of sections 255–274 is near enough to its threshold
+for that to change it, but a book meant to be live-faithful should carry
+it; `admit_cooldown` in this script is the reference for scripts from
+here on.

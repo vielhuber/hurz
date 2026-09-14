@@ -6190,3 +6190,24 @@ the section numbers below point there.
 - **Decision:** verworfen — no strategy added, no code change, no
   restart. Section 274.
 
+## 2026-09-15 (ninth run) — the stop-out cooldown's length in dollars
+
+- **Lever:** regime filter / risk guard parameter — the 6 h stop-out
+  cooldown was chosen on R over ten instruments (run 16 of 2026-09-08);
+  the live-faithful book never modelled it. Candidate 24 h, diag 0 h and
+  72 h, each against 6 h.
+- **Measurement:** `scripts/stop_out_cooldown_length.py`, live-faithful
+  book with the cooldown in the admission.
+
+  | cooldown | trades | refused (USD) | pooled USD/day | diff vs 6 h | t | up |
+  |---|---|---|---|---|---|---|
+  | 0 h (diag) | 5,097 | — | +0.1797 | -0.0115 | -0.77 | 1/4 |
+  | **6 h (live)** | **5,061** | 161 (-0.051) | **+0.1913** | — | — | — |
+  | 24 h | 5,029 | 283 (+0.051) | +0.1921 | +0.0008 | +0.07 | 2/4 |
+  | 72 h (diag) | 4,953 | 615 (+0.231) | +0.1470 | -0.0445 | -2.06 | 1/4 |
+
+- **Result:** (a) and (b) fail; 6 h is bracketed from both sides.
+- **Decision:** verworfen — cooldown stays at 6 h, no code change, no
+  restart. Found on the way: the harness ran without the cooldown
+  (+0.0115 USD/day); no earlier verdict changes. Section 275.
+
