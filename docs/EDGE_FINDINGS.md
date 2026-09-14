@@ -10027,3 +10027,31 @@ partial take-profit and section 270's climax exit: on this book a
 position in profit is worth more held than banked. The gap-through-target
 fill is a small upward correction to the shared booking (+0.002 USD a
 trade); it moves every arm alike and changes no verdict.
+
+## 272. Time-series momentum as a direction filter: the counter-quarter breakouts pay too
+
+The book's direction-aware reading stopped at the 1h EMA(200), about eight
+days (run 58 of 2026-09-09); section 222 rejected cross-sectional ranking
+by trailing return. `scripts/tsmom_direction_filter.py` measured the
+time-series form: refuse a breakout unless the instrument's own close 90
+calendar days earlier lies behind it in the signal's direction
+(diagnostic: 30 days). The selector never sees a refused signal.
+Live-faithful book of section 255, clauses (a) all four year-samples up,
+(b) pooled paired t > +2.
+
+| arm | signals | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **live** | **28,713** | **5,097** | **+0.0533** | **+0.1789** | — | — | — |
+| with the 90-day return | 17,864 | 3,478 | +0.0645 | +0.1478 | -0.0310 | -0.52 | 1/4 |
+| with the 30-day return (diag) | 18,910 | 3,640 | +0.0913 | +0.2186 | +0.0400 | +0.67 | 2/4 |
+
+Per sample (candidate): +0.0920 / -0.0350 / -0.0565 / -0.0156. In the live
+book, the 2,124 trades against their 90-day return earn +0.0291 USD each
+(t +0.83), the 1,938 against their 30-day return +0.0106 (t +0.30).
+
+Both clauses fail. The documented effect lives at a monthly holding
+period; a 24-hour breakout trade inherits almost none of it, and the
+counter-quarter breakouts — pullbacks breaking out against a slow trend —
+are profitable enough that refusing them costs the slots' dollars. The
+30-day diagnostic's per-trade jump (+0.0913) is what a third fewer trades
+at a higher mean looks like, and it wins only two samples.

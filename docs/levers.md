@@ -6133,3 +6133,22 @@ the section numbers below point there.
 - **Decision:** verworfen — target stays 1.5 R, no code change, no
   restart. Section 271.
 
+## 2026-09-15 (sixth run) — time-series momentum as a direction filter
+
+- **Lever:** regime filter — trade a breakout only in the direction of
+  the instrument's own 90-day return (diag 30 days). The longest horizon
+  read so far was the 1h EMA(200); section 222 rejected only the
+  cross-sectional form.
+- **Measurement:** `scripts/tsmom_direction_filter.py`, live-faithful
+  book.
+
+  | arm | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,097** | **+0.0533** | **+0.1789** | — | — | — |
+  | 90-day aligned | 3,478 | +0.0645 | +0.1478 | -0.0310 | -0.52 | 1/4 |
+  | 30-day aligned (diag) | 3,640 | +0.0913 | +0.2186 | +0.0400 | +0.67 | 2/4 |
+
+- **Result:** (a) and (b) fail; counter-trend trades earn +0.029 USD.
+- **Decision:** verworfen — no filter, no code change, no restart.
+  Section 272.
+
