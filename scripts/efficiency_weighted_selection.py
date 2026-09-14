@@ -77,7 +77,9 @@ STRATS=["donchian_breakout","momentum","turtle_breakout"]
 STOP_ATR=2.0; RR=1.5; HOLD=24; MAX_CONCURRENT=8; PLAT="capital_com"
 TOP_N=10; RANK_DAYS=365; TRADE_DAYS=90; MIN_RANK_TRADES=10
 SPAN=2555; PAGE_DAYS=35; PAGE_PAUSE=1.0
-BAR_CACHE="/tmp/eff_bars"; META_CACHE="/tmp/eff_meta.json"
+# /var/tmp, not /tmp: the host reboot of 2026-09-13 wiped /tmp and with it
+# seven years of hourly bars that take most of an hour to fetch again.
+BAR_CACHE="/var/tmp/hurz_eff_bars"; META_CACHE="/var/tmp/hurz_eff_meta.json"
 
 
 def book(O,H,L,C,e,d,entry,stop_d,cost_r,n):
