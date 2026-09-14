@@ -5976,3 +5976,26 @@ the section numbers below point there.
   no filter can cut a profitable population without costing dollars.
 - **Decision:** verworfen — no rule, no code change, no restart.
   Sections 262 and 263 close the add-to-winners/losers axis.
+
+## 2026-09-14 (third run) — four smaller risk_on slots at the same cluster risk
+
+- **Lever:** position sizing — `risk_on` cap 4 with every `risk_on`
+  position at 75 % of target risk and notional cap (same aggregate as
+  3 full slots), to take back the profitable additions sections 261/263
+  found the cap refusing, without loosening the factor exposure. Diag:
+  cap 6 at 50 %. Measured in this run, logged in the next (the run ended
+  before the entry was written).
+- **Measurement:** `scripts/risk_on_split_slots.py`, live-faithful book.
+
+  | arm | trades | USD/trade | daily sd | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|---|
+  | **cap 3 at 100 % (live)** | **5,097** | **+0.0533** | 3.408 | **+0.1790** | — | — | — |
+  | cap 4 at 75 % | 5,751 | +0.0450 | 2.789 | +0.1707 | -0.0083 | -0.25 | 2/4 |
+  | cap 6 at 50 % (diag) | 6,172 | +0.0380 | 2.206 | +0.1535 | -0.0241 | -0.51 | — |
+
+- **Result:** (a) and (b) fail. Same peak cluster risk (7.72 vs 7.79 USD),
+  a fifth less dispersion, but no more dollars: the extra slot's
+  additions dilute the full-size first positions.
+- **Decision:** verworfen — sizing unchanged, no code change, no restart.
+  Section 264.
+

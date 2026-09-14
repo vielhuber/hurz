@@ -9787,3 +9787,35 @@ negative subset; an ordering between two positive ones is not one. This is
 section 220's constraint in its sharpest form yet: the harness separated
 two populations at t > 3, and the separation is still no lever, because
 the worse population is profitable.
+
+## 264. Four smaller risk_on slots instead of three full ones: the cap's refused dollars do not come back at a smaller size
+
+Sections 261 and 263 showed the additions the cluster direction cap refuses
+are profitable. The cap must not be loosened (section 227: N positions in
+one factor are one bet of N times the size), but its purpose concerns the
+factor's aggregate, not the count. `scripts/risk_on_split_slots.py` keeps
+the aggregate and splits it: `risk_on` cap 4 with every `risk_on` position
+sized at 75 % of the 3.00 USD target risk and the 250 USD notional cap
+(4 x 187.50 = 3 x 250 USD), through the live `calculate_position_size` so
+broker increments still round down. Diagnostic: cap 6 at 50 %. Other
+clusters, the concurrent cap of 8 and every guard unchanged. Live-faithful
+book of section 255; clauses (a) all four year-samples up, (b) pooled
+paired t > +2, fixed before the data were seen.
+
+| arm | trades (risk_on) | USD/trade | peak same-dir risk_on target risk | daily sd | worst day | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|---|---|
+| **live, cap 3 at 100 %** | **5,097 (4,481)** | **+0.0533** | 7.79 | 3.408 | -16.22 | **+0.1790** | — | — | — |
+| candidate, cap 4 at 75 % | 5,751 (5,141) | +0.0450 | 7.72 | 2.789 | -15.58 | +0.1707 | -0.0083 | -0.25 | 2/4 |
+| diag, cap 6 at 50 % | 6,172 (5,578) | +0.0380 | 7.29 | 2.206 | -11.82 | +0.1535 | -0.0241 | -0.51 | — |
+
+Per sample (candidate): +0.0348 / -0.0333 / +0.0117 / -0.0116. At 50 %,
+793 signals fall below the minimum broker size.
+
+Both clauses fail. The split does what it promises on risk — the same peak
+cluster exposure, a fifth less daily dispersion — but not on dollars: the
+extra slot's trades are the refused additions, and adding them at a
+smaller size costs the first three positions a quarter of their size. The
+refused additions earn less than the admitted ones they dilute (+0.05 to
++0.08 against +0.0533 at full size on fewer, earlier entries), so the
+aggregate barely moves. A lower-variance book at equal USD is not a better
+daily gain; the sizing stays at three full slots.
