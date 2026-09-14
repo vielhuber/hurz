@@ -6211,3 +6211,22 @@ the section numbers below point there.
   restart. Found on the way: the harness ran without the cooldown
   (+0.0115 USD/day); no earlier verdict changes. Section 275.
 
+## 2026-09-15 (tenth run) — the commodity short block, re-read on the live book
+
+- **Lever:** regime filter, direction — remove `SHORT_BLOCKED_PAIRS`
+  (built 2026-09-08 on a retired simulator, never ablated since) so
+  commodity shorts can use the near-empty metals/energy capacity; diag
+  GOLD/COPPER shorts only.
+- **Measurement:** `scripts/commodity_short_block_ablation.py`,
+  live-faithful book with the 6 h cooldown.
+
+  | arm | trades | commodity shorts (USD) | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **block (live)** | **5,061** | — | **+0.1902** | — | — | — |
+  | shorts allowed | 5,268 | 222 (-0.247) | +0.1472 | -0.0430 | -1.74 | 2/4 |
+  | GOLD/COPPER (diag) | 5,220 | 169 (-0.328) | +0.1371 | -0.0533 | -2.68 | 1/4 |
+
+- **Result:** (a) and (b) fail; the refused shorts still lose.
+- **Decision:** verworfen — block stays, no code change, no restart.
+  Section 276.
+

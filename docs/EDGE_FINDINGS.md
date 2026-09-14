@@ -10144,3 +10144,30 @@ this book. No verdict of sections 255–274 is near enough to its threshold
 for that to change it, but a book meant to be live-faithful should carry
 it; `admit_cooldown` in this script is the reference for scripts from
 here on.
+
+## 276. The commodity short block on the live book: it still earns its place
+
+`SHORT_BLOCKED_PAIRS` was built on 2026-09-08 (run 39) on a 2-ATR-stop
+simulator, before the 3-ATR floor, the ADX ceiling, dollar sizing, the
+selector and the cluster caps; the filter ablation of 2026-09-11 held it in
+force throughout. `scripts/commodity_short_block_ablation.py` removes it on
+the live-faithful book of section 255 with section 275's 6-hour cooldown
+in the admission: all five commodities' shorts allowed (candidate), GOLD
+and COPPER only (diagnostic, the two flat in run 39). The metals and
+energy clusters are nearly empty, so admitted shorts mostly take free
+capacity. Clauses (a) all four year-samples up, (b) pooled paired t > +2.
+
+| arm | signals | trades | USD/trade | commodity shorts (USD each, t) | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|---|
+| **block (live)** | **28,713** | **5,061** | **+0.0571** | — | **+0.1902** | — | — | — |
+| shorts allowed | 29,503 | 5,268 | +0.0424 | 222 (-0.2472, -1.59) | +0.1472 | -0.0430 | -1.74 | 2/4 |
+| GOLD/COPPER shorts (diag) | 29,305 | 5,220 | +0.0399 | 169 (-0.3284, -2.00) | +0.1371 | -0.0533 | -2.68 | 1/4 |
+
+Per sample (candidate): +0.0200 / -0.0474 / **-0.0672 (t -2.21)** / +0.0205.
+
+Both clauses fail, and the direction is the block's: the shorts it
+refuses lose a quarter of a dollar each on today's book, and the metals
+alone are worse than all five together. The trades added are not only
+losers on their own; USD per trade across the book drops from +0.057 to
++0.042, so the selector's lists also shift toward the short combinations
+that ranked well in their trailing year and then failed. The block stays.
