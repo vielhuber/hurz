@@ -5928,3 +5928,27 @@ the section numbers below point there.
   and the journal), not promoted.
 - **Decision:** verworfen — leash stays at 24, no code change, no restart.
   Section 260.
+
+## 2026-09-14 — adding to a cluster's direction only while it wins
+
+- **Lever:** regime filter at factor level — admit a further
+  same-direction entry into a cluster only while the positions already
+  held in that direction have mean open R > 0 (section 253: the first
+  members of a filling cluster are the good positions). Refusal only.
+  Interrupted by the 2026-09-13 host reboot (bar cache under /tmp lost),
+  cache rebuilt under /var/tmp, run repeated unchanged.
+- **Measurement:** `scripts/cluster_add_to_winners.py`, live-faithful book.
+
+  | variant | trades | refused | their USD | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|---|
+  | **live** | **5,097** | — | — | **+0.1791** | — | — | — |
+  | mean open R > 0 | 4,263 | 4,177 | +0.0822 (t +3.39) | +0.1348 | -0.0442 | -0.94 | 1/4 |
+  | all > 0 (diag) | 3,998 | 6,371 | +0.0405 (t +2.06) | +0.0993 | -0.0793 | -1.60 | 1/4 |
+
+- **Result:** (a) and (b) fail, and the refused additions — entries while
+  the cluster's positions are losing — earn **+0.0822 USD at t +3.39**,
+  more than the book's mean trade. The hypothesis is reversed.
+- **Decision:** verworfen — no rule, no code change, no restart. Section
+  261. **Preregistered next:** the inverse (add only to losers) goes to
+  the walk-forward only if the live journal, which did not generate it,
+  shows losers-held entries beating winners-held entries too.
