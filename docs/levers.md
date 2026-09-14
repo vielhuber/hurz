@@ -6099,3 +6099,20 @@ the section numbers below point there.
 - **Decision:** verworfen — no filter, no code change, no restart.
   Section 269.
 
+## 2026-09-15 (fourth run) — closing at the ADX ceiling
+
+- **Lever:** exit logic — close an open position at the first bar whose
+  ADX(14) >= 50 (the router's entry ceiling), diag >= 60. Run 20 of
+  2026-09-07 tested only the falling-ADX exit.
+- **Measurement:** `scripts/adx_climax_exit.py`, live-faithful book.
+
+  | arm | trades | closes (R) | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,097** | — | **+0.1752** | — | — | — |
+  | ADX >= 50 | 5,491 | 992 (+0.407) | +0.1076 | -0.0675 | -1.49 | 1/4 |
+  | ADX >= 60 (diag) | 5,110 | 123 (+0.709) | +0.1947 | +0.0157 | +0.94 | 3/4 |
+
+- **Result:** (a) and (b) fail; the banked positions would have earned
+  more by running.
+- **Decision:** verworfen — no code change, no restart. Section 270.
+

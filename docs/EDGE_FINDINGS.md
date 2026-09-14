@@ -9974,3 +9974,28 @@ the gate asks for the sign and the sign disagrees. Not built. The
 harness effect is small (68 trades in seven years, 2 % of a dollar a
 day); the diagnostic's dilution to +0.0077 when the second bar is also
 refused says the effect, if real, is confined to the gap bar itself.
+
+## 270. Banking a position at the ADX ceiling: the climax is not the end of the move
+
+The router refuses entries at ADX >= 50; an open position was never asked
+the same question. Run 20 of 2026-09-07 closed trades when ADX *fell*
+and lost. `scripts/adx_climax_exit.py` closes at the first bar after entry
+whose ADX(14) is >= 50 (diagnostic >= 60), no extra cost, the selector
+ranking on each arm's own booking. Live-faithful book of section 255,
+clauses (a) all four year-samples up, (b) pooled paired t > +2.
+
+| arm | trades | USD/trade | climax closes (their R) | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **live** | **5,097** | **+0.0533** | — | **+0.1752** | — | — | — |
+| close at ADX >= 50 | 5,491 | +0.0304 | 992 (+0.407) | +0.1076 | -0.0675 | -1.49 | 1/4 |
+| close at ADX >= 60 (diag) | 5,110 | +0.0578 | 123 (+0.709) | +0.1947 | +0.0157 | +0.94 | 3/4 |
+
+Per sample (candidate): +0.0620 / -0.0820 / -0.0473 / -0.0479.
+
+Both clauses fail. The positions closed at the ceiling are well in profit
+(+0.41 R), and what they would have gone on to earn — the target at
++1.5 R or the leash — is worth more than banking them: a strong ADX on an
+open position marks a trend still paying, not one that has finished. The
+entry ceiling and this exit answer different questions; the ceiling's
+evidence (a late entry has poor terms) does not transfer to a position
+already entered at better ones. The 60 diagnostic is noise at t +0.94.
