@@ -9999,3 +9999,31 @@ open position marks a trend still paying, not one that has finished. The
 entry ceiling and this exit answer different questions; the ceiling's
 evidence (a late entry has poor terms) does not transfer to a position
 already entered at better ones. The 60 diagnostic is noise at t +0.94.
+
+## 271. A target that falls for the second half of the leash: every sample worse
+
+Every target run held the target fixed for the whole hold.
+`scripts/decaying_target.py` keeps 1.5 R through bar 12 and lowers it to
+1.0 R from bar 13 (diagnostic 0.5 R); stop, leash, size and guards
+unchanged, the selector ranking on each arm's own booking. The booking in
+all three arms fills a bar that *opens* beyond the target at the open —
+the gap-through-target case the shared `book` books at the target — which
+is why the live arm reads +0.0551 USD a trade here against +0.0533 in
+sections 255–270. Clauses (a) all four year-samples up, (b) pooled paired
+t > +2.
+
+| arm | trades | USD/trade | mean R | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **1.5 R throughout (live)** | **5,097** | **+0.0551** | **+0.0207** | **+0.1845** | — | — | — |
+| 1.0 R after bar 12 | 5,193 | +0.0429 | +0.0156 | +0.1464 | -0.0381 | -1.01 | 0/4 |
+| 0.5 R after bar 12 (diag) | 5,530 | +0.0243 | +0.0081 | +0.0860 | -0.0936 | -1.85 | 0/4 |
+
+Per sample (candidate): -0.0511 / -0.0336 / -0.0154 / -0.0084.
+
+Worse on every sample, monotonically in how far the target falls. Banking
+the positions that reach +1.0 R late gives up those that would have gone
+on to +1.5 R or closed higher at the leash — the same arithmetic as the
+partial take-profit and section 270's climax exit: on this book a
+position in profit is worth more held than banked. The gap-through-target
+fill is a small upward correction to the shared booking (+0.002 USD a
+trade); it moves every arm alike and changes no verdict.

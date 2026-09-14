@@ -6116,3 +6116,20 @@ the section numbers below point there.
   more by running.
 - **Decision:** verworfen — no code change, no restart. Section 270.
 
+## 2026-09-15 (fifth run) — a target that falls for the second half of the leash
+
+- **Lever:** exit logic — 1.5 R target through bar 12, 1.0 R from bar 13
+  (diag 0.5 R). Every earlier target run held the target fixed.
+- **Measurement:** `scripts/decaying_target.py`, live-faithful book, all
+  arms filling a gap through the target at the open.
+
+  | arm | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **1.5 R (live)** | **5,097** | **+0.0551** | **+0.1845** | — | — | — |
+  | 1.0 R after bar 12 | 5,193 | +0.0429 | +0.1464 | -0.0381 | -1.01 | 0/4 |
+  | 0.5 R after bar 12 (diag) | 5,530 | +0.0243 | +0.0860 | -0.0936 | -1.85 | 0/4 |
+
+- **Result:** (a) and (b) fail, worse on every sample.
+- **Decision:** verworfen — target stays 1.5 R, no code change, no
+  restart. Section 271.
+
