@@ -5952,3 +5952,27 @@ the section numbers below point there.
   261. **Preregistered next:** the inverse (add only to losers) goes to
   the walk-forward only if the live journal, which did not generate it,
   shows losers-held entries beating winners-held entries too.
+
+## 2026-09-14 (second run) — adding only to a losing cluster direction
+
+- **Lever:** regime filter at factor level — section 261's inverse:
+  admit a same-direction addition into a cluster only while the held
+  positions' mean open R is ≤ 0. Preregistered gate first: the live
+  journal (541 closed trades), which did not generate the hypothesis.
+- **Journal (section 262):** additions to a losing direction -0.052 R
+  (n 100), to a winning direction -0.244 R (n 74), L − W +0.19 R at
+  Welch t +1.47 — gate passes on direction, so the rule went on.
+- **Measurement:** `scripts/cluster_add_to_losers.py`, live-faithful book.
+
+  | variant | trades | refused | their USD | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|---|
+  | **live** | **5,097** | — | — | **+0.1785** | — | — | — |
+  | mean open R ≤ 0 | 3,900 | 8,238 | +0.0539 (t +3.04) | +0.0478 | -0.1307 | -2.61 | 1/4 |
+  | all ≤ 0 (diag) | 3,822 | 8,780 | +0.0445 (t +2.61) | +0.0688 | -0.1099 | -2.11 | 1/4 |
+
+- **Result:** significantly worse. The refused additions to winners earn
+  +0.0539 USD a signal; section 261's refused additions to losers earned
+  +0.0822. Both kinds are profitable — the difference is an ordering, and
+  no filter can cut a profitable population without costing dollars.
+- **Decision:** verworfen — no rule, no code change, no restart.
+  Sections 262 and 263 close the add-to-winners/losers axis.

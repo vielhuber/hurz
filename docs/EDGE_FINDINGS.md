@@ -9736,3 +9736,54 @@ live journal, entries opened while same-cluster same-direction positions
 were open, split by the sign of those positions' mean open R at entry;
 the inverse rule is only taken to the walk-forward if losers-held entries
 beat winners-held entries in the journal as well.
+
+## 262. The live journal agrees on the direction: additions to a losing cluster direction lose less
+
+Section 261's refused additions — same-direction entries while the
+cluster's held positions were losing — earned more than the book's mean
+trade in the harness, on the same data a walk-forward of the inverse rule
+would score. `scripts/journal_add_to_losers.py` read the preregistered
+check on the live journal (541 closed live trades, 2026-05-08 to
+2026-09-11, read only), reconstructing each held position's open R at the
+moment of entry from the hourly bar cache.
+
+| live entries | n | mean R | t | median R | win rate |
+|---|---|---|---|---|---|
+| L — added to a losing cluster direction | 100 | **-0.0524** | -0.60 | -0.106 | 39 % |
+| W — added to a winning cluster direction | 74 | **-0.2438** | -2.52 | -0.474 | 39 % |
+| N — nothing held in that direction | 272 | -0.2246 | -3.56 | -1.000 | 35 % |
+
+L − W: **+0.19 R per trade at Welch t +1.47**. 73 entries could not be
+priced (held instruments outside the bar cache) and are excluded.
+
+The preregistered gate — L beats W in the journal — passes on direction,
+not on significance. It sent the inverse rule to the walk-forward, as
+fixed in section 261 (section 263).
+
+## 263. Adding only to a losing cluster direction: both kinds of addition pay, and refusing either costs
+
+`scripts/cluster_add_to_losers.py` admits a same-direction addition into a
+cluster only while the held positions' mean open R is ≤ 0 (diagnostic:
+every one ≤ 0). First positions unaffected, refusal only, section 261's
+clauses unchanged. Live-faithful book of section 255.
+
+| variant | trades | USD/trade | refused | their USD/signal | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|---|
+| **live** | **5,097** | **+0.0533** | — | — | **+0.1785** | — | — | — |
+| mean open R ≤ 0 | 3,900 | +0.0187 | 8,238 | +0.0539 (t +3.04) | +0.0478 | **-0.1307** | **-2.61** | **1/4** |
+| every one ≤ 0 (diag) | 3,822 | +0.0273 | 8,780 | +0.0445 (t +2.61) | +0.0688 | -0.1099 | -2.11 | 1/4 |
+
+Per sample: +0.0172 / -0.1147 / -0.0931 / -0.0689. Both clauses fail, and
+the pooled loss is significant.
+
+**Sections 261 and 263 together close the question from both sides.**
+Additions while the cluster direction loses earn +0.0822 USD a signal;
+additions while it wins earn +0.0539. Both are positive and both are
+significantly so. Section 261's difference and the journal's (section
+262) are real as an *ordering* — additions against losing positions are
+the better of two profitable kinds — but neither kind is a loser to cut,
+and refusing either removes dollars the book was earning. A filter needs a
+negative subset; an ordering between two positive ones is not one. This is
+section 220's constraint in its sharpest form yet: the harness separated
+two populations at t > 3, and the separation is still no lever, because
+the worse population is profitable.
