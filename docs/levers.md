@@ -6020,3 +6020,23 @@ the section numbers below point there.
 - **Decision:** verworfen — no rule, no code change, no restart. Section
   265.
 
+## 2026-09-14 (fifth run) — flat before the weekend close
+
+- **Lever:** exit logic — close a position at the last bar before a data
+  gap > 36 h (weekend, long holiday; crypto unaffected), diag before any
+  gap > 2 h. Run 5 of 2026-09-08 measured Friday entries, never the exit.
+  Considered first and dropped unmeasured: a structure stop clamped to
+  1.5–3 ATR — the live 3-ATR floor pins every traded stop at the venue's
+  1.05 % minimum, so it would change no trade.
+- **Measurement:** `scripts/flat_before_weekend.py`, live-faithful book,
+  selector ranking on each arm's own booking.
+
+  | arm | trades | forced (R) | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,097** | — | **+0.1771** | — | — | — |
+  | flat before > 36 h | 5,308 | 912 (+0.030) | +0.1661 | -0.0110 | -0.25 | 2/4 |
+  | flat before > 2 h (diag) | 5,380 | 1,130 (+0.049) | +0.1910 | +0.0144 | +0.30 | 2/4 |
+
+- **Result:** (a) and (b) fail; the cut positions are mildly positive.
+- **Decision:** verworfen — no code change, no restart. Section 266.
+

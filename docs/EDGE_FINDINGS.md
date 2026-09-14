@@ -9851,3 +9851,31 @@ profitable, so it is no filter. The inverse (trade only after a losing
 spell) would cut the admitted after-win signals, which are profitable as
 well (+0.0533 book mean), and is not promoted without a sample that did not
 generate it.
+
+## 266. Flat before the weekend: the carried positions are worth what the forced close takes
+
+A Friday-afternoon entry on an instrument that closes for the weekend is
+carried into Monday by the 24-bar leash. Run 5 of 2026-09-08 measured
+Friday entries, not the exit side. `scripts/flat_before_weekend.py` closes
+at the last bar before a data gap longer than 36 hours (weekend or long
+holiday; crypto never gaps and is unaffected), diagnostic before any gap
+longer than 2 hours. No extra cost charged; overnight financing is not
+charged by the harness, so the flat arms are if anything under-credited.
+Stop, target, size and every guard unchanged; the selector ranks on each
+arm's own booking. Live-faithful book of section 255, clauses (a) all four
+year-samples up, (b) pooled paired t > +2.
+
+| arm | trades | USD/trade | forced closes (their R) | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **live** | **5,097** | **+0.0533** | — | **+0.1771** | — | — | — |
+| flat before gaps > 36 h | 5,308 | +0.0480 | 912 (+0.030) | +0.1661 | -0.0110 | -0.25 | 2/4 |
+| flat before gaps > 2 h (diag) | 5,380 | +0.0546 | 1,130 (+0.049) | +0.1910 | +0.0144 | +0.30 | 2/4 |
+
+Per sample (candidate): -0.0099 / -0.0733 / +0.0431 / +0.0120.
+
+Both clauses fail. The positions a weekend close cuts short sit at +0.03 R
+when cut — positive, like the rest of the book's marginal trades — and the
+slots they free are refilled by 211 more trades at a lower dollar value.
+The diagnostic's small plus is noise at t +0.30 and flips across samples
+the same way. The gap risk of section 45-era run 5 stays real and small;
+carrying the position is not a cost the walk-forward can see.
