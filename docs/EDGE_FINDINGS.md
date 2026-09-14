@@ -9819,3 +9819,35 @@ refused additions earn less than the admitted ones they dilute (+0.05 to
 +0.08 against +0.0533 at full size on fewer, earlier entries), so the
 aggregate barely moves. A lower-variance book at equal USD is not a better
 daily gain; the sizing stays at three full slots.
+
+## 265. The equity-curve filter: signals after a combination's losing spell are its better ones
+
+Every filter so far read the market at the signal bar or the book's open
+positions; the selector reads a combination's results only quarterly over
+a trailing year. `scripts/combo_equity_curve_filter.py` measured the short
+horizon: refuse a signal while the combination's last 3 closed signals
+(diagnostic: last 5) sum to a negative R. The record is the shadow record
+— every gated signal the harness books, taken or not — so a refusal cannot
+freeze it. Refusal only, live-faithful book of section 255, clauses (a)
+all four year-samples up and (b) pooled paired t > +2.
+
+| variant | trades | USD/trade | refused | their USD/signal | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|---|
+| **live** | **5,097** | **+0.0533** | — | — | **+0.1789** | — | — | — |
+| last 3 < 0 | 2,969 | +0.0223 | 10,343 | +0.0602 (t +4.03) | +0.0437 | **-0.1351** | **-2.18** | **1/4** |
+| last 5 < 0 (diag) | 3,113 | +0.0368 | 9,794 | +0.0882 (t +5.70) | +0.0757 | -0.1035 | -1.69 | 1/4 |
+
+Per sample (candidate): +0.1411 / -0.2438 / -0.0876 / -0.0238. Both clauses
+fail, and the pooled loss is significant.
+
+The premise is reversed, not merely unconfirmed: the refused signals —
+those that follow a losing spell of their own combination — earn more per
+signal than the book's admitted trades, and the longer the losing record
+the better they are (+0.0882 at five). A breakout combination's losses are
+false breakouts in a range, and the range is what builds the level whose
+eventual break pays. The spell that "ended" is the one about to start.
+Section 220's constraint holds again: the separated population is
+profitable, so it is no filter. The inverse (trade only after a losing
+spell) would cut the admitted after-win signals, which are profitable as
+well (+0.0533 book mean), and is not promoted without a sample that did not
+generate it.

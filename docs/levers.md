@@ -5999,3 +5999,24 @@ the section numbers below point there.
 - **Decision:** verworfen — sizing unchanged, no code change, no restart.
   Section 264.
 
+## 2026-09-14 (fourth run) — the equity-curve filter per combination
+
+- **Lever:** regime filter at combination level — refuse a signal while
+  the combination's last 3 closed shadow signals sum to a negative R
+  (diag: last 5). Never measured: all earlier filters read the market or
+  the open book, the selector only a trailing year per quarter.
+- **Measurement:** `scripts/combo_equity_curve_filter.py`, live-faithful
+  book.
+
+  | variant | trades | refused | their USD | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|---|
+  | **live** | **5,097** | — | — | **+0.1789** | — | — | — |
+  | last 3 < 0 | 2,969 | 10,343 | +0.0602 (t +4.03) | +0.0437 | -0.1351 | -2.18 | 1/4 |
+  | last 5 < 0 (diag) | 3,113 | 9,794 | +0.0882 (t +5.70) | +0.0757 | -0.1035 | -1.69 | 1/4 |
+
+- **Result:** (a) and (b) fail, significantly worse. Signals after a
+  losing spell earn more than the admitted trades — the premise is
+  reversed, and the reversed population is still no filter (section 220).
+- **Decision:** verworfen — no rule, no code change, no restart. Section
+  265.
+
