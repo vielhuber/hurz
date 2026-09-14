@@ -6079,3 +6079,23 @@ the section numbers below point there.
 - **Decision:** verworfen — period stays 14, no code change, no restart.
   Section 268.
 
+## 2026-09-15 (third run) — refusing breakouts on the first bar after a session gap
+
+- **Lever:** regime filter — refuse a signal whose bar opens > 2 h after
+  the previous bar (Monday open, index reopen, holiday); diag first two
+  bars. Never measured.
+- **Measurement:** `scripts/gap_open_breakouts.py`, live-faithful book.
+
+  | arm | trades | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|
+  | **live** | **5,097** | **+0.1797** | — | — | — |
+  | first bar refused | 5,068 | +0.2010 | +0.0213 | +1.77 | 4/4 |
+  | first two bars (diag) | 5,047 | +0.1873 | +0.0077 | +0.52 | 3/4 |
+
+  The 68 refused book trades: -0.45 USD each at t -2.11.
+- **Second look (live journal, preregistered sign gate):** first-bar
+  entries +0.028 R (n 13) against -0.087 R for the rest — wrong sign.
+- **Result:** (a) passes, (b) fails at t +1.77, journal disagrees.
+- **Decision:** verworfen — no filter, no code change, no restart.
+  Section 269.
+

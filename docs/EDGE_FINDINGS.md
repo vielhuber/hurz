@@ -9937,3 +9937,40 @@ significantly, so the pooled figure is lower. The faster ADX admits 39 %
 more signals whose trades lose money — a noisy trend reading lets range
 breakouts through, which is the router's whole job to stop. The period
 stays at 14.
+
+## 269. Breakouts on the first bar after a session gap: four samples up, short of significance, and the journal disagrees
+
+No entry filter had asked whether the signal bar was the first after the
+market was shut (Monday open, an index's daily reopen, a holiday). A
+channel broken by that bar was broken by the gap, and the open is where
+live spreads are widest, which the harness's flat cost does not charge.
+`scripts/gap_open_breakouts.py` refuses signals whose bar opens more than
+2 hours after the previous bar (diagnostic: the first two bars); the
+selector never sees them. Live-faithful book of section 255, clauses (a)
+all four year-samples up, (b) pooled paired t > +2, fixed before the data.
+
+| arm | signals | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **live** | **28,713** | **5,097** | **+0.0533** | **+0.1797** | — | — | — |
+| first bar refused | 28,268 | 5,068 | +0.0599 | +0.2010 | +0.0213 | +1.77 | **4/4** |
+| first two bars refused (diag) | 28,045 | 5,047 | +0.0561 | +0.1873 | +0.0077 | +0.52 | 3/4 |
+
+Per sample (candidate): +0.0394 / +0.0104 / +0.0130 / +0.0010. In the live
+book, the 68 first-bar-after-gap trades book -0.4511 USD each at t -2.11.
+
+Clause (a) passes, clause (b) fails at t +1.77. Following the ADX ceiling's
+precedent (a near miss sent to data that did not generate it), the live
+journal was read as a second look, preregistered as: first-bar entries
+below the rest in sign.
+
+| live journal (read-only) | n | mean R |
+|---|---|---|
+| signal bar first after a > 2 h gap | 13 | **+0.028** |
+| rest | 320 | -0.087 |
+
++0.114 R the wrong way at Welch t +0.51 (210 trades unpriced: bar outside
+the cache or not matching). Thirteen trades cannot confirm anything, but
+the gate asks for the sign and the sign disagrees. Not built. The
+harness effect is small (68 trades in seven years, 2 % of a dollar a
+day); the diagnostic's dilution to +0.0077 when the second bar is also
+refused says the effect, if real, is confined to the gap bar itself.
