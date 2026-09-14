@@ -6152,3 +6152,22 @@ the section numbers below point there.
 - **Decision:** verworfen — no filter, no code change, no restart.
   Section 272.
 
+## 2026-09-15 (seventh run) — no index shorts over the turn of the month
+
+- **Lever:** regime filter, calendar — refuse index shorts from the last
+  trading day of a month through the third of the next (diag last 2 /
+  first 4), chosen from the turn-of-the-month literature before reading
+  the book. Never measured: calendar work split weekdays only.
+- **Measurement:** `scripts/turn_of_month_index_shorts.py`, live-faithful
+  book.
+
+  | arm | trades | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|
+  | **live** | **5,097** | **+0.1796** | — | — | — |
+  | last 1 / first 3 | 5,011 | +0.1876 | +0.0081 | +0.39 | 2/4 |
+  | last 2 / first 4 (diag) | 4,975 | +0.1658 | -0.0139 | -0.57 | 2/4 |
+
+- **Result:** (a) and (b) fail; the refused shorts earn +0.022 USD, the
+  gain sits in the recent year only.
+- **Decision:** verworfen — no code change, no restart. Section 273.
+

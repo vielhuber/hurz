@@ -10055,3 +10055,29 @@ counter-quarter breakouts — pullbacks breaking out against a slow trend —
 are profitable enough that refusing them costs the slots' dollars. The
 30-day diagnostic's per-trade jump (+0.0913) is what a third fewer trades
 at a higher mean looks like, and it wins only two samples.
+
+## 273. No index shorts over the turn of the month: the literature's window is not a loser here
+
+Equity indices earn a disproportionate share of their return from the last
+trading day of a month through the third of the next. The rule was taken
+from that literature before the book was read; the book's calendar work
+had split weekdays and guarded holidays, never the month boundary.
+`scripts/turn_of_month_index_shorts.py` refuses index shorts in that
+window (diagnostic: last two and first four trading days), trading days
+being the instrument's own dates with bars. Live-faithful book of section
+255, clauses (a) all four year-samples up, (b) pooled paired t > +2.
+
+| arm | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **live** | **5,097** | **+0.0533** | **+0.1796** | — | — | — |
+| no index shorts, last 1 / first 3 days | 5,011 | +0.0566 | +0.1876 | +0.0081 | +0.39 | 2/4 |
+| no index shorts, last 2 / first 4 days (diag) | 4,975 | +0.0503 | +0.1658 | -0.0139 | -0.57 | 2/4 |
+
+Per sample (candidate): **+0.0620 (t +2.05)** / -0.0135 / -0.0018 / +0.0010.
+The 117 index shorts the candidate refuses earn +0.0223 USD each in the
+book (t +0.11).
+
+Both clauses fail. The whole effect sits in the recent year and is absent
+before it; the widened window, which a real flow effect should survive,
+turns negative. On a 24-hour breakout book the index shorts taken at the
+month boundary are no worse than any others.
