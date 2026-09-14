@@ -6040,3 +6040,23 @@ the section numbers below point there.
 - **Result:** (a) and (b) fail; the cut positions are mildly positive.
 - **Decision:** verworfen — no code change, no restart. Section 266.
 
+## 2026-09-15 — FX longs refused at class level
+
+- **Lever:** regime filter, direction by class — FX longs lose on all
+  four samples of the live-faithful book (read off a decomposition, so
+  clause (a) is not independent). Preregistered gate: the live journal
+  must show FX longs below the rest.
+- **Journal:** FX longs -0.057 R (n 36) against -0.184 R for the rest,
+  +0.121 R at Welch t +1.29 — the best live cell. Gate fails.
+- **Measurement (for the record):** `scripts/fx_long_block.py`.
+
+  | arm | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,097** | **+0.0533** | **+0.1786** | — | — | — |
+  | FX longs refused | 3,857 | +0.0866 | +0.2198 | +0.0412 | +0.89 | 4/4 |
+
+- **Result:** (a) passes by construction, (b) fails, journal disagrees;
+  the gain decays with sample age (+0.095 → +0.002).
+- **Decision:** verworfen — no block, no code change, no restart.
+  Section 267.
+

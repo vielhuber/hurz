@@ -9879,3 +9879,37 @@ slots they free are refilled by 211 more trades at a lower dollar value.
 The diagnostic's small plus is noise at t +0.30 and flips across samples
 the same way. The gap risk of section 45-era run 5 stays real and small;
 carrying the position is not a cost the walk-forward can see.
+
+## 267. FX longs at class level: a four-sample reading the journal does not share
+
+A decomposition of the live-faithful book (section 255) by class and
+direction showed FX longs losing dollars on all four year-samples (-0.025 /
+-0.063 / -0.025 / -0.004 USD a day, 1,527 of 5,097 trades) while occupying
+`risk_on` slots. Run 39 of 2026-09-08 reported no FX-long row and section
+196 tested direction per instrument, so the class-level refusal was new —
+but it was read off the book it would be scored on, so clause (a) is not
+independent. Preregistered gate before the walk-forward could count: the
+live journal must show FX longs below the rest.
+
+| live journal (read-only) | n | mean R | t |
+|---|---|---|---|
+| FX longs | 36 | **-0.057** | -0.69 |
+| FX shorts | 36 | -0.107 | -1.24 |
+| other longs | 277 | -0.154 | -2.35 |
+| other shorts | 193 | -0.226 | -3.25 |
+
+FX longs are the *best* live cell: +0.121 R above the rest at Welch t
++1.29. The gate fails. `scripts/fx_long_block.py` ran the walk-forward for
+the record (FX long signals removed before ranking, as with
+`SHORT_BLOCKED_PAIRS`):
+
+| arm | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **live** | **5,097** | **+0.0533** | **+0.1786** | — | — | — |
+| FX longs refused | 3,857 | +0.0866 | +0.2198 | +0.0412 | +0.89 | 4/4 |
+
+Per sample: +0.0951 / +0.0284 / +0.0077 / +0.0021. Clause (a) passes by
+construction, clause (b) fails, and the journal disagrees in sign. Not
+built. The shape is worth recording: the gain sits almost entirely in the
+recent year and shrinks monotonically with age, which is what a bias of
+the selection sample looks like rather than a stable class effect.
