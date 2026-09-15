@@ -10233,3 +10233,32 @@ better combinations. With sections 276 and 277 this completes the re-read
 of every expectancy filter built before the dollar harness — the direction
 block, the instrument blocks and the ceiling all hold in dollars on the
 book the bot runs.
+
+## 279. The selector's refresh cadence: a quarterly list is worse than a weekly one, and the harness has been ranking too rarely
+
+The live selector re-ranks nightly; the live-faithful harness always
+re-ranked quarterly. `scripts/selector_refresh_cadence.py` compares weekly
+(the nearest to nightly the harness can run over seven years), quarterly
+(candidate — what a cheaper live refresh would do) and monthly
+(diagnostic), same 365-day window, eligibility, pins, vetoes, caps and
+6-hour cooldown, all arms scored over the same days. Clauses (a) all four
+year-samples better than weekly, (b) pooled paired t > +2.
+
+| cadence | rankings | mean list turnover | trades | USD/trade | pooled USD/day | diff vs weekly | t | up |
+|---|---|---|---|---|---|---|---|---|
+| **weekly (≈ live)** | **309** | **1.22** | **5,272** | **+0.0638** | **+0.2213** | — | — | — |
+| quarterly | 24 | 5.22 | 5,061 | +0.0571 | +0.1902 | -0.0312 | -1.02 | 1/4 |
+| monthly (diag) | 72 | 3.03 | 5,110 | +0.0569 | +0.1918 | -0.0299 | -0.98 | 1/4 |
+
+Per sample (quarterly): -0.0335 / -0.0101 / **-0.0774 (t -2.01)** / +0.0393.
+
+The candidate fails; the nightly refresh stays. A list that follows its
+trailing year closely enters a combination's good spell sooner and drops a
+fading one sooner: weekly lists earn more per trade (+0.0638 against
++0.0571) and take 4 % more trades, with a quarter of a combination
+changing a week. Section 157's hour of rate limits buys this.
+
+**For the harness:** every book since section 255 re-ranked quarterly and
+so understated the live configuration by about 0.03 USD a day (+0.2213
+against +0.1902). All those comparisons were within-cadence and paired,
+so no verdict changes, but the live book's level is the weekly one.

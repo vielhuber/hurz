@@ -6269,3 +6269,22 @@ the section numbers below point there.
 - **Decision:** verworfen — ceiling stays at 50, no code change, no
   restart. Section 278.
 
+## 2026-09-15 (thirteenth run) — the selector's refresh cadence
+
+- **Lever:** pair selection — re-rank quarterly (a cheaper live refresh)
+  instead of the live nightly cadence, approximated weekly; diag monthly.
+  The harness had only ever ranked quarterly.
+- **Measurement:** `scripts/selector_refresh_cadence.py`, live-faithful
+  book with the 6 h cooldown, all arms over the same days.
+
+  | cadence | rankings | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|---|
+  | **weekly (≈ live)** | **309** | **5,272** | **+0.0638** | **+0.2213** | — | — | — |
+  | quarterly | 24 | 5,061 | +0.0571 | +0.1902 | -0.0312 | -1.02 | 1/4 |
+  | monthly (diag) | 72 | 5,110 | +0.0569 | +0.1918 | -0.0299 | -0.98 | 1/4 |
+
+- **Result:** (a) and (b) fail; fresher lists earn more per trade.
+- **Decision:** verworfen — the nightly refresh stays, no code change, no
+  restart. Found on the way: the quarterly harness understated the live
+  book by ~0.03 USD/day; no verdict changes. Section 279.
+
