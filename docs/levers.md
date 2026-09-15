@@ -6288,3 +6288,22 @@ the section numbers below point there.
   restart. Found on the way: the quarterly harness understated the live
   book by ~0.03 USD/day; no verdict changes. Section 279.
 
+## 2026-09-15 (fourteenth run) — the ranking window at the live cadence
+
+- **Lever:** pair selection — 180-day ranking window instead of 365, at
+  the weekly re-ranking section 279 found closest to live (section 231
+  measured windows only at quarterly cadence); diag 730 days.
+- **Measurement:** `scripts/rank_window_weekly.py`, live-faithful book
+  with the 6 h cooldown, all arms from the first 730-day window (oldest
+  sample empty, clause (a) on the other three).
+
+  | window | trades | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|
+  | **365 d (live)** | **4,482** | **+0.2018** | — | — | — |
+  | 180 d | 4,367 | +0.1982 | -0.0036 | -0.15 | 2/3 |
+  | 730 d (diag) | 4,386 | +0.2133 | +0.0121 | +0.53 | 2/3 |
+
+- **Result:** (a) and (b) fail.
+- **Decision:** verworfen — window stays 365 days, no code change, no
+  restart. Section 280.
+

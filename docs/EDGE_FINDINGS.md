@@ -10262,3 +10262,30 @@ changing a week. Section 157's hour of rate limits buys this.
 so understated the live configuration by about 0.03 USD a day (+0.2213
 against +0.1902). All those comparisons were within-cadence and paired,
 so no verdict changes, but the live book's level is the weekly one.
+
+## 280. The ranking window at the live cadence: 365 days stays
+
+Section 231 swept the selector's trailing window at the harness's
+quarterly cadence; section 279 showed the live near-nightly cadence earns
+more by following combinations sooner, which could favour a shorter
+memory. `scripts/rank_window_weekly.py` re-asks it with weekly re-ranking:
+180 days (candidate), 730 (diagnostic), against 365. All arms start once
+the 730-day window exists and trade the same days, so the oldest
+year-sample has no days; clause (a) therefore needs all three remaining
+samples up. Clause (b) pooled paired t > +2.
+
+| window | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **365 d (live)** | **4,482** | **+0.0578** | **+0.2018** | — | — | — |
+| 180 d | 4,367 | +0.0583 | +0.1982 | -0.0036 | -0.15 | 2/3 |
+| 730 d (diag) | 4,386 | +0.0627 | +0.2133 | +0.0121 | +0.53 | 2/3 |
+
+Per sample (180 d): +0.0366 / +0.0140 / -0.0387. Diagnostic: +0.0604
+(t +2.29) / -0.0161 / +0.0072.
+
+The candidate fails both clauses. Freshness comes from how often the list
+is rebuilt, not from how short its memory is: at a weekly cadence the
+180-day window neither earns more per trade nor more per day. The 730-day
+window repeats section 231's pattern — ahead pooled, not on every sample,
+far from significance — and stays a diagnostic. The nightly job keeps its
+365-day default.
