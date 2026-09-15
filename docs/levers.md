@@ -6411,11 +6411,13 @@ the section numbers below point there.
 
   | arm | trades | USD/trade | pooled USD/day | diff | t | up |
   |---|---|---|---|---|---|---|
-  | **live** | **5,027** | **+0.0493** | **+0.1625** | — | — | — |
-  | refuse < 0.5 | 4,919 | +0.0537 | +0.1730 | +0.0105 | +0.49 | 3/4 |
-  | refuse < 0.25 (diag) | 5,017 | +0.0522 | +0.1721 | +0.0091 | +1.34 | 3/4 |
+  | **live** | **5,100** | **+0.0617** | **+0.2048** | — | — | — |
+  | refuse < 0.5 | 4,990 | +0.0669 | +0.2173 | +0.0125 | +0.59 | 3/4 |
+  | refuse < 0.25 (diag) | 5,087 | +0.0649 | +0.2154 | +0.0100 | +1.39 | 3/4 |
 
-  The 228 live book trades below 0.5: +0.0182 USD each (t +0.19).
-- **Result:** (a) fails at 3/4, (b) fails at t +0.49.
+  The 236 live book trades below 0.5: +0.0299 USD each (t +0.32). A first
+  run from a clone without the spread audits under `data/` charged
+  fallback costs (live 5,027 trades) and gave the same verdict.
+- **Result:** (a) fails at 3/4, (b) fails at t +0.59.
 - **Decision:** verworfen — no filter, no code change, no restart.
   Section 286.

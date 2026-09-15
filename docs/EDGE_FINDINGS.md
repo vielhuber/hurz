@@ -10453,27 +10453,29 @@ cooldowns (section 284), caps, pins and live vetoes as live. Clauses (a)
 all four year-samples up, (b) pooled paired t > +2.
 
 Of 28,713 signals the close location's quartiles are 0.73 / 0.85 / 0.93;
-5.0 % close below 0.5, 0.8 % below 0.25. In the live book, the 228 trades
-below 0.5 earn +0.0182 USD each (t +0.19), the 22 below 0.25 -0.2127
-(t -0.65).
+5.0 % close below 0.5, 0.8 % below 0.25. In the live book, the 236 trades
+below 0.5 earn +0.0299 USD each (t +0.32), the 24 below 0.25 -0.1898
+(t -0.64).
 
 | arm | signals | trades | USD/trade | pooled USD/day | diff | t | up |
 |---|---|---|---|---|---|---|---|
-| **live** | **28,713** | **5,027** | **+0.0493** | **+0.1625** | — | — | — |
-| refuse below 0.5 | 27,278 | 4,919 | +0.0537 | +0.1730 | +0.0105 | +0.49 | 3/4 |
-| refuse below 0.25 (diag) | 28,497 | 5,017 | +0.0522 | +0.1721 | +0.0091 | +1.34 | 3/4 |
+| **live** | **28,713** | **5,100** | **+0.0617** | **+0.2048** | — | — | — |
+| refuse below 0.5 | 27,278 | 4,990 | +0.0669 | +0.2173 | +0.0125 | +0.59 | 3/4 |
+| refuse below 0.25 (diag) | 28,497 | 5,087 | +0.0649 | +0.2154 | +0.0100 | +1.39 | 3/4 |
 
-Per sample (candidate): +0.0220 / +0.0120 / -0.0080 / +0.0070.
+Per sample (candidate): +0.0233 / +0.0050 / -0.0002 / +0.0099.
 
 Both fail. The adverse-half closes are a twentieth of the signals and, once
 booked, as good as the rest: a breakout that closed beyond the channel has
 already passed the confirmation section 92 measured, and how much of the
 bar's excursion it gave back adds nothing measurable. The small positive
-difference is the slot freed by 108 fewer trades, not a population worth
+difference is the slot freed by 110 fewer trades, not a population worth
 refusing.
 
-The live arm reads 5,027 trades and +0.1625 USD a day against section
-285's 5,100 and +0.2018 on the same harness; the live-expectancy vetoes
-are read from the journal at run time and the year-samples are anchored
-to the run date, so the baselines of different days are not comparable
-with each other — only arms within one run are. Not traced further.
+A first run from a fresh clone read 5,027 live trades and +0.1625 USD a
+day with the same verdict (candidate +0.0105, t +0.49, 3/4). The clone
+lacked the unversioned spread audits under `data/` that
+`scripts/spot_backtest.py: _fee_for` prices each instrument from, so it
+charged fallback costs. Run from the bot's checkout, the live arm
+reproduces section 285's 5,100 trades at +0.0617 USD exactly; the table
+above is that run. Harness scripts must run where those files are.
