@@ -6526,3 +6526,22 @@ the section numbers below point there.
 - **Result:** (a) fails at 0/4, (b) fails at t -1.17; the cap barely
   binds and refuses good entries when it does.
 - **Decision:** verworfen — no code change, no restart. Section 291.
+
+## 2026-09-16 (seventh run) — closing a cluster's positions when one stops out
+
+- **Lever:** exit logic — at a stop-out, close the open same-cluster,
+  same-direction positions with negative open R (diag: all of them).
+  Section 283 read the stop-out on the entry side only.
+- **Measurement:** `scripts/cluster_stop_exit.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | arm | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,100** | **+0.0617** | **+0.2055** | — | — | — |
+  | close losing siblings | 5,152 | +0.0561 | +0.1887 | -0.0168 | -0.89 | 2/4 |
+  | close all siblings (diag) | 5,207 | +0.0556 | +0.1893 | -0.0162 | -0.60 | 2/4 |
+
+  305 siblings closed at -0.398 R instead of -0.392 R held (t -0.21).
+- **Result:** (a) fails at 2/4, (b) fails at t -0.89; neutral exits,
+  weaker refills.
+- **Decision:** verworfen — no code change, no restart. Section 292.

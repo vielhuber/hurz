@@ -10645,3 +10645,32 @@ at t +3.00 as counterfactuals at a cap of 4, the burst lesson of section
 285 seen from the other side. A nominal side is not a factor in any case —
 a long EURUSD and a long USDJPY are opposite dollar bets — which the
 cluster map already handles where it matters.
+
+## 292. Closing a cluster's same-direction positions on a stop-out: neutral exits, worse refills
+
+A stop-out in a correlation cluster is the factor moving against the
+position, and the cluster's other same-direction positions carry the same
+factor at the old risk. Section 283 read the event on the entry side and
+found the refused entries good; no run read it on the exit side.
+`scripts/cluster_stop_exit.py` closes, at a stop-out's bar, every open
+same-cluster, same-direction position whose open R is negative
+(candidate) or every one whatever its sign (diagnostic), booking its open
+R net of its own cost; a close at or below -0.9 R starts its cooldown.
+Weekly re-ranking, carried positions and cooldowns (section 284), caps,
+pins and vetoes as live, run from the bot's checkout (section 286).
+Clauses (a) all four year-samples up, (b) pooled paired t > +2.
+
+| arm | trades | USD/trade | siblings closed | closed R vs held to exit (paired, t) | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|---|
+| **stop closes its own (live)** | **5,100** | **+0.0617** | — | — | **+0.2055** | — | — | — |
+| close losing siblings | 5,152 | +0.0561 | 305 | -0.398 vs -0.392 (-0.006, -0.21) | +0.1887 | -0.0168 | -0.89 | 2/4 |
+| close all siblings (diag) | 5,207 | +0.0556 | 512 | -0.128 vs -0.134 (+0.007, +0.32) | +0.1893 | -0.0162 | -0.60 | 2/4 |
+
+Per sample (candidate): +0.0167 / -0.0420 / -0.0058 / +0.0060.
+
+Both fail, the way section 285 did. The early close itself is neutral —
+a sibling closed at the stop-out books what it would have booked held to
+its own exit, section 250's finding that the open result carries nothing
+about the next bars — and the slots it frees refill with entries worth
+less than the book's average. A stop in a cluster is not information
+about the positions still held.
