@@ -10171,3 +10171,39 @@ alone are worse than all five together. The trades added are not only
 losers on their own; USD per trade across the book drops from +0.057 to
 +0.042, so the selector's lists also shift toward the short combinations
 that ranked well in their trailing year and then failed. The block stays.
+
+## 277. The instrument blocks on the live book: all four still lose, and their slots are worth more elsewhere
+
+`EXPECTANCY_BLOCKED_PAIRS` — AU200 (run 21 of 2026-09-07) and AUDUSD,
+GBPCAD, GBPUSD (section 192) — were set on R before the current floor,
+ceiling, sizing, selector and caps; section 256 re-read the rule for new
+blocks but never removed the existing four, and the harness never held
+their bars. `scripts/instrument_block_ablation.py` fetched seven years of
+hourly bars for the four (paced at 2 s a page, own cache) with venue size
+constraints and quote rates, and admitted them on the live-faithful book of
+section 255 with section 275's 6-hour cooldown: all four (candidate), AU200
+only (diagnostic). Clauses (a) all four year-samples up, (b) pooled paired
+t > +2.
+
+| arm | signals | trades | USD/trade | the unblocked instruments' trades (USD each) | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|---|
+| **blocked (live)** | **28,713** | **5,061** | **+0.0571** | — | **+0.1867** | — | — | — |
+| all four admitted | 34,376 | 5,742 | +0.0285 | AU200 160 (-0.266), AUDUSD 198 (-0.115), GBPCAD 349 (-0.097), GBPUSD 243 (-0.014) | +0.1056 | **-0.0811** | **-2.61** | **0/4** |
+| AU200 admitted (diag) | 29,847 | 5,151 | +0.0445 | AU200 169 (-0.257) | +0.1509 | -0.0394 | -2.19 | 0/4 |
+
+Per sample (candidate): -0.0522 / -0.0732 / -0.0267 / -0.0502 (t -2.16).
+
+Worse on every sample and significantly so pooled, for both arms. Each of
+the four loses on today's book, and the book loses more than their own
+dollars: USD per trade falls by half, because the unblocked instruments
+take `risk_on` slots from better trades and enter the selector's lists in
+the years they ranked well. The blocks were set on R under an older
+simulator and hold in dollars under the current one — the first of this
+project's blocks to be confirmed on the book in both directions (section
+256 found no new block to add, this none to remove).
+
+A side finding for the tooling: `scripts/efficiency_filter.py` runs its
+whole study at import (no `__main__` guard). An import of its helper on
+2026-09-15 started a full history fetch against the venue and was stopped
+within ten minutes, with no rate-limit errors in the bot's log; this script
+carries its own copy of the helper.

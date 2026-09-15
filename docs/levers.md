@@ -6230,3 +6230,25 @@ the section numbers below point there.
 - **Decision:** verworfen — block stays, no code change, no restart.
   Section 276.
 
+## 2026-09-15 (eleventh run) — the four instrument blocks, removed on the live book
+
+- **Lever:** pair selection — admit AU200, AUDUSD, GBPCAD and GBPUSD
+  (`EXPECTANCY_BLOCKED_PAIRS`, set on R under older simulators, never
+  ablated, never in the harness); diag AU200 only. Started in the previous
+  session, interrupted by its end after the first fetch, rerun detached.
+- **Measurement:** `scripts/instrument_block_ablation.py`, seven years of
+  hourly bars fetched paced at 2 s a page, live-faithful book with the
+  6 h cooldown.
+
+  | arm | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **blocked (live)** | **5,061** | **+0.0571** | **+0.1867** | — | — | — |
+  | all four admitted | 5,742 | +0.0285 | +0.1056 | -0.0811 | -2.61 | 0/4 |
+  | AU200 admitted (diag) | 5,151 | +0.0445 | +0.1509 | -0.0394 | -2.19 | 0/4 |
+
+- **Result:** (a) and (b) fail, significantly worse; all four instruments
+  lose on the book (-0.27 to -0.01 USD a trade).
+- **Decision:** verworfen — blocks stay, no code change, no restart.
+  Section 277. Operational note: the host rebooted around 08:10 UTC and
+  the boot keepalive restarted the bot and the dashboard loop unattended.
+
