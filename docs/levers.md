@@ -6587,3 +6587,21 @@ the section numbers below point there.
   calm hours are the weakest population measured on this book, per day
   they cost nothing.
 - **Decision:** verworfen — no code change, no restart. Section 294.
+
+## 2026-09-16 (tenth run) — a cluster cap on the active list itself
+
+- **Lever:** pair selection — cap the ranked 40 at 15 combinations of one
+  correlation cluster (diag 10, an equal share). The cluster cap acts on
+  positions; the list's composition was never constrained.
+- **Measurement:** `scripts/list_cluster_cap.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | list | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,100** | **+0.0617** | **+0.2055** | — | — | — |
+  | max 15 per cluster | 4,694 | +0.0613 | +0.1879 | -0.0176 | -0.57 | 2/4 |
+  | max 10 per cluster (diag) | 4,552 | +0.0584 | +0.1736 | -0.0319 | -0.86 | 2/4 |
+
+- **Result:** (a) fails at 2/4, (b) fails at t -0.57; the dropped
+  combinations earn what the kept ones earn.
+- **Decision:** verworfen — no code change, no restart. Section 295.

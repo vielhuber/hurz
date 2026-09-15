@@ -10748,3 +10748,34 @@ slot that earns more, and the samples disagree in sign. The wider cut at
 rank 0.40 removes a third of the book and loses on three samples,
 which puts the earlier reading in its place: quiet hours are not costly,
 they are merely thin.
+
+## 295. A cluster cap on the active list: spreading the slots over factors buys nothing
+
+The correlation cluster cap limits open positions, three per cluster and
+direction; nothing limits how much of the *list* one cluster occupies.
+Crypto and risk_on hold 38 of the 44 instruments, so the ranked 40 can be
+almost one factor, and sections 285 and 291 both read the caps rather
+than the list they act on. `scripts/list_cluster_cap.py` caps the ranked
+list at 15 combinations of one cluster (candidate) or 10, an equal share
+of the four clusters (diagnostic); pins are added afterwards as live and
+are not capped. Weekly re-ranking, carried positions and cooldowns
+(section 284), caps, pins and vetoes as live, run from the bot's checkout
+(section 286). Clauses (a) all four year-samples up, (b) pooled paired
+t > +2.
+
+| list | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **no cluster constraint (live)** | **5,100** | **+0.0617** | **+0.2055** | — | — | — |
+| at most 15 per cluster | 4,694 | +0.0613 | +0.1879 | -0.0176 | -0.57 | 2/4 |
+| at most 10 per cluster (diag) | 4,552 | +0.0584 | +0.1736 | -0.0319 | -0.86 | 2/4 |
+
+Per sample (candidate): +0.0217 / -0.0185 / -0.0388 / +0.0094.
+
+Both fail. The constraint removes 8 % of the trades and the combinations
+it drops earn what the ones it keeps earn — the same result the length
+sweeps of sections 216 and 218 reached from the other direction: the
+score orders the list about as well as anything else, and what sits at
+rank 41 is not different from what sits at rank 30. Diversifying the
+list is not a free lunch here because the cluster cap already limits what
+a crowded list can do to the book, and the extra slots given to metals
+and energy are two instruments deep.
