@@ -6442,3 +6442,23 @@ the section numbers below point there.
 - **Decision:** verworfen — no code change, no restart. Section 287.
   Found on the way: the harness's admission order did not bias earlier
   live arms (+0.2013 vs +0.2018 USD/day).
+
+## 2026-09-16 (third run) — the width of the range before the break
+
+- **Lever:** regime filter, entry quality — refuse breakouts out of a wide
+  range: 20-bar high-low before the signal bar in ATR above the 75th
+  percentile of all signals (diag 90th). Never measured.
+- **Measurement:** `scripts/breakout_base_width.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | arm | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,100** | **+0.0617** | **+0.2044** | — | — | — |
+  | refuse > p75 (6.38 ATR) | 4,561 | +0.0460 | +0.1365 | -0.0680 | -1.43 | 1/4 |
+  | refuse > p90 (diag) | 4,910 | +0.0600 | +0.1921 | -0.0130 | -0.42 | 2/4 |
+
+  The 1,005 live book trades above p75 earn +0.1148 USD each (t +2.10).
+- **Result:** (a) fails at 1/4, (b) fails at t -1.43; wrong sign.
+- **Decision:** verworfen — no code change, no restart. Section 288. The
+  reverse rule (refuse narrow bases) is chosen on this table and is not
+  to be run as a fresh lever.

@@ -10517,3 +10517,41 @@ Found on the way: admitting in live list order instead of the signal
 list's order moves the harness's live arm from 5,100 trades at +0.0617 to
 5,116 at +0.0604, +0.2013 against +0.2018 USD a day. The harness's
 admission order has not biased the live arms of sections 255–286.
+
+## 288. The width of the range before the break: the wide bases are the good ones
+
+The classic breakout is the release of a tight consolidation; a break of a
+wide, loose range is a swing inside noise. No entry filter had read how
+tight the range before the break was: runs 40–43 read the signal bar's
+extension and range and the age of the broken level, and the volatility
+filter read the level of ATR, not the range relative to it.
+`scripts/breakout_base_width.py` measures the high-low range of the 20
+bars before the signal bar in ATR(14) at the signal bar and refuses
+signals above the 75th percentile (candidate) or the 90th (diagnostic) of
+all signals' widths — percentiles taken from the feature alone, before
+any outcome was read. Refused before the selector sees them; weekly
+re-ranking, carried positions and cooldowns (section 284), run from the
+bot's checkout (section 286). Clauses (a) all four year-samples up, (b)
+pooled paired t > +2.
+
+Width quartiles 4.05 / 5.11 / 6.38 ATR, 90th percentile 7.72. In the live
+book, the 1,005 trades above the 75th percentile earn +0.1148 USD each
+(t +2.10), the 357 above the 90th +0.0867 (t +0.93) — against +0.0617 for
+the book.
+
+| arm | signals | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **live** | **28,713** | **5,100** | **+0.0617** | **+0.2044** | — | — | — |
+| refuse above p75 | 21,535 | 4,561 | +0.0460 | +0.1365 | -0.0680 | -1.43 | 1/4 |
+| refuse above p90 (diag) | 25,841 | 4,910 | +0.0600 | +0.1921 | -0.0130 | -0.42 | 2/4 |
+
+Per sample (candidate): +0.0201 / -0.1086 / -0.0070 / -0.0428.
+
+Both fail, and the hypothesis has the wrong sign: the wide-base breakouts
+are the book's best quarter, and refusing them costs a third of the daily
+figure. A 20-bar range several ATR wide on a trend-following book is most
+often a trend already under way, which the breakout extends — consistent
+with section 113's finding that the level's age does not separate good
+from bad breaks, and with the trend strategies earning in trends rather
+than out of coils. The reverse rule, refusing the narrow bases, was not
+preregistered here; it would be chosen on this table and is not tested.
