@@ -6421,3 +6421,24 @@ the section numbers below point there.
 - **Result:** (a) fails at 3/4, (b) fails at t +0.59.
 - **Decision:** verworfen — no filter, no code change, no restart.
   Section 286.
+
+## 2026-09-16 (second run) — which signal of a burst gets the free slot
+
+- **Lever:** pair selection under the caps — admit same-bar signals by
+  cost in R, cheapest first, instead of the live active-list order; diag
+  reverse list order. Never measured.
+- **Measurement:** `scripts/burst_cost_priority.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | arm | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **list order (live)** | **5,116** | **+0.0604** | **+0.2013** | — | — | — |
+  | cost order | 5,118 | +0.0597 | +0.1993 | -0.0020 | -0.10 | 1/4 |
+  | reverse list (diag) | 5,110 | +0.0552 | +0.1836 | -0.0175 | -0.63 | 2/4 |
+
+  Cost order swaps 361 trades: taken +0.1669 USD at 0.009 R cost, given
+  up +0.1765 USD at 0.013 R.
+- **Result:** (a) fails at 1/4, (b) fails at t -0.10.
+- **Decision:** verworfen — no code change, no restart. Section 287.
+  Found on the way: the harness's admission order did not bias earlier
+  live arms (+0.2013 vs +0.2018 USD/day).

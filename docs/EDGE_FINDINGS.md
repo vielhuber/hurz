@@ -10479,3 +10479,41 @@ lacked the unversioned spread audits under `data/` that
 charged fallback costs. Run from the bot's checkout, the live arm
 reproduces section 285's 5,100 trades at +0.0617 USD exactly; the table
 above is that run. Harness scripts must run where those files are.
+
+## 287. Which signal of a burst gets the slot: cost order is not better than the list's
+
+Section 285 found breakouts arrive in bursts: on one hourly close several
+instruments break, and the cluster cap or the concurrent cap admits only
+some. The live loop walks the active list in its written order — ranked
+combinations by score, then pins in file order — so a burst's free slots
+go to the best-scored combinations. The harness had admitted same-bar
+signals in the arbitrary order its signal list happened to have.
+`scripts/burst_cost_priority.py` admits them in active-list order (live),
+by cost in R lowest first with list order breaking ties (candidate), or in
+reverse list order (diagnostic). Caps, stops and sizes unchanged; weekly
+re-ranking, carried positions and cooldowns (section 284). Clauses (a) all
+four year-samples up, (b) pooled paired t > +2.
+
+Signal costs are small next to the stop: quartiles 0.006 / 0.010 / 0.015 R.
+
+| arm | trades | USD/trade | taken instead (USD, cost R) | given up (USD, cost R) | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|---|
+| **list order (live)** | **5,116** | **+0.0604** | — | — | **+0.2013** | — | — | — |
+| cost order | 5,118 | +0.0597 | 361 (+0.1669, 0.009) | 359 (+0.1765, 0.013) | +0.1993 | -0.0020 | -0.10 | 1/4 |
+| reverse list order (diag) | 5,110 | +0.0552 | 3,576 (+0.0482, 0.012) | 3,582 (+0.0556, 0.012) | +0.1836 | -0.0175 | -0.63 | 2/4 |
+
+Per sample (candidate): -0.0451 / -0.0067 / +0.0345 / -0.0095.
+
+Both fail. Cost order swaps 361 trades and saves 0.004 R on each, a
+hundredth of a dollar; the signals it gives up earned slightly more than
+those it takes. A burst's members differ by far more in outcome than in
+cost, and the cost already sits inside the score that orders the list.
+Reverse list order swaps two thirds of the book — the choice on a
+contested bar cascades through the positions held afterwards — and loses
+0.0175 USD a day at t -0.63: the score's order is worth at most a small,
+unproven amount, and cost does not improve on it.
+
+Found on the way: admitting in live list order instead of the signal
+list's order moves the harness's live arm from 5,100 trades at +0.0617 to
+5,116 at +0.0604, +0.2013 against +0.2018 USD a day. The harness's
+admission order has not biased the live arms of sections 255–286.
