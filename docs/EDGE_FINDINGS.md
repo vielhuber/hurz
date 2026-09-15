@@ -10826,3 +10826,44 @@ average. The ordering is monotone in the cut — 22.0, 17.6 and 13.8 bars
 held for +0.196, +0.131 and +0.070 USD a day — which is the throughput
 lesson of section 198 in reverse: this book's dollars come from the few
 trades that run, not from turning the slots over faster.
+
+## 298. The daily bar, and why the selector cannot see it
+
+Every measurement in this document trades the 1h bar; 15m was worse
+(section 29), the 4h variants dead, the 2h book flat. The daily bar — the
+timeframe the turtle rules were written for — had never been booked.
+`scripts/daily_bar_book.py` resamples the 1h history to UTC days,
+recomputes the indicators, runs the same three strategies with a stop of
+3 x ATR (the floor's multiple, so the daily book obeys the same rule), a
+1.5 R target and a 24-day leash, and offers the daily combinations to the
+same ranked list of 40. Financing is charged per night held in EVERY arm,
+at the rates of section 154: crypto longs 0.050 R a night, metals longs
+0.013, other longs 0.005, shorts 0.003, crypto and metals shorts nothing.
+
+| arm | trades (daily) | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **1h book (live)** | **5,060 (0)** | **+0.0464** | **+0.1540** | — | — | — |
+| 1h and 1d ranked together | 4,980 (26) | +0.0407 | +0.1329 | -0.0210 | -1.46 | 1/4 |
+| 1d book alone (diag) | 30 (30) | -0.9234 | -0.0182 | -0.1722 | -1.97 | 0/4 |
+
+Both fail, but the candidate's number is not the finding. **The daily
+book produces 1,668 signals in seven years on 27 instruments — about
+three per combination per year — and the selector's eligibility rule
+needs ten trades inside the 365-day ranking window (section 217). A daily
+combination therefore almost never becomes eligible: 26 of 4,980 trades
+are daily, and the 26 are the few crypto pairs that fire often enough.**
+The list, not the timeframe, is what refuses the daily bar. The diagnostic
+books 30 trades in seven years and loses 0.92 USD each, which is a
+statement about financing more than about the signal: a 20-day hold on a
+crypto long pays a full R in overnight fees at 0.050 R a night, and the
+daily book's holds are measured in weeks.
+
+Two consequences worth recording. **Financing is not a footnote at 1h
+either** — charging it costs the live book a quarter of its dollars per
+trade, +0.0617 to +0.0464, which is the first time this harness has
+priced it; sections 255–297 are all gross of it and their comparisons
+stand, since every arm there holds positions for the same 22 bars.
+**And any lower-frequency signal source is blocked by the eligibility
+rule before its edge can be measured** — a finding for the next attempt
+at a new timeframe, which would have to change the selector before it
+could trade one.

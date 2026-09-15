@@ -6634,3 +6634,28 @@ the section numbers below point there.
 - **Result:** (a) fails at 0/4, (b) fails at t -1.34; the diagnostic is
   significantly worse. Monotone in the cut: shorter holds, less money.
 - **Decision:** verworfen — no code change, no restart. Section 297.
+
+## 2026-09-16 (thirteenth run) — the daily bar as a second book
+
+- **Lever:** new signal source — the same three strategies on daily bars
+  (stop 3 x ATR to obey the floor, 1.5 R target, 24-day leash), offered
+  to the same ranked list; diag the daily book alone. Financing charged
+  per night in every arm (crypto longs 0.050 R a night, metals 0.013,
+  other longs 0.005, shorts 0.003).
+- **Measurement:** `scripts/daily_bar_book.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | arm | trades (daily) | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **1h book (live)** | **5,060 (0)** | **+0.0464** | **+0.1540** | — | — | — |
+  | 1h + 1d ranked together | 4,980 (26) | +0.0407 | +0.1329 | -0.0210 | -1.46 | 1/4 |
+  | 1d alone (diag) | 30 (30) | -0.9234 | -0.0182 | -0.1722 | -1.97 | 0/4 |
+
+- **Result:** (a) fails at 1/4, (b) fails at t -1.46. The daily book
+  fires three times per combination per year, so the selector's ten-trade
+  eligibility rule keeps it out: 26 of 4,980 trades are daily. Its own
+  arm loses to financing — a 20-day crypto long pays a full R.
+- **Decision:** verworfen — no code change, no restart. Section 298.
+  Recorded on the way: financing costs the live 1h book a quarter of its
+  dollars per trade (+0.0617 → +0.0464), and any lower-frequency source
+  is blocked by the eligibility rule before it can be measured.
