@@ -10674,3 +10674,41 @@ its own exit, section 250's finding that the open result carries nothing
 about the next bars — and the slots it frees refill with entries worth
 less than the book's average. A stop in a cluster is not information
 about the positions still held.
+
+## 293. How far the close clears the broken level: the marginal breaks are not the bad ones
+
+A channel break by a close a tick beyond the prior extreme and one that
+clears it by half an ATR are the same signal to the strategy. The entry
+filters so far read the signal bar's range and extension, its close
+location (section 286), the level's age (section 113) and the range's
+width (section 288); none read the distance between the close and the
+level it broke. `scripts/breakout_penetration.py` measures it as
+(close − prior N-bar extreme) in ATR(14) in the signal's direction, N = 20
+for donchian_breakout and 55 for turtle_breakout (momentum has no level
+and is never refused), and refuses signals below 0.25 ATR (candidate) or
+0.10 ATR (diagnostic). Weekly re-ranking, carried positions and cooldowns
+(section 284), caps, pins and vetoes as live, run from the bot's checkout
+(section 286). Clauses (a) all four year-samples up, (b) pooled paired
+t > +2.
+
+Of 27,845 signals with a level, the penetration's quartiles are 0.147 /
+0.349 / 0.697 ATR; 39.2 % clear the level by less than 0.25 ATR, 17.4 %
+by less than 0.10. In the live book, the 1,955 trades below 0.25 earn
++0.0627 USD each (t +1.79) — as much as the book — and the 899 below 0.10
+-0.0162 (t -0.33).
+
+| arm | signals | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **live** | **28,713** | **5,100** | **+0.0617** | **+0.2028** | — | — | — |
+| refuse below 0.25 ATR | 17,807 | 4,067 | +0.0555 | +0.1457 | -0.0572 | -1.09 | 1/4 |
+| refuse below 0.10 ATR (diag) | 23,859 | 4,695 | +0.0751 | +0.2293 | +0.0248 | +0.69 | 3/4 |
+
+Per sample: candidate +0.0116 / -0.0654 / -0.0330 / -0.0300; diag +0.0241
+/ +0.0453 / +0.0034 / -0.0112.
+
+The candidate fails and costs a quarter of the daily figure: a break by a
+fraction of an ATR is as good a breakout as a decisive one, because the
+trade's outcome is decided by the move after the close, not by the margin
+on it. The diagnostic, refusing only the closest sixth, is ahead on three
+samples and behind on the oldest at t +0.69 — far from a pass, and a 0.10
+threshold run as a fresh candidate would be chosen on this table.

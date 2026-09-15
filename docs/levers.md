@@ -6545,3 +6545,22 @@ the section numbers below point there.
 - **Result:** (a) fails at 2/4, (b) fails at t -0.89; neutral exits,
   weaker refills.
 - **Decision:** verworfen — no code change, no restart. Section 292.
+
+## 2026-09-16 (eighth run) — how far the close clears the broken level
+
+- **Lever:** regime filter, entry quality — refuse donchian/turtle
+  breakouts whose close clears the prior 20/55-bar extreme by less than
+  0.25 ATR (diag 0.10). Never measured.
+- **Measurement:** `scripts/breakout_penetration.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | arm | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,100** | **+0.0617** | **+0.2028** | — | — | — |
+  | refuse < 0.25 ATR | 4,067 | +0.0555 | +0.1457 | -0.0572 | -1.09 | 1/4 |
+  | refuse < 0.10 ATR (diag) | 4,695 | +0.0751 | +0.2293 | +0.0248 | +0.69 | 3/4 |
+
+  The 1,955 live book trades below 0.25 ATR earn +0.0627 USD each.
+- **Result:** (a) fails at 1/4, (b) fails at t -1.09. The diag is not a
+  pass either and would be chosen on this table.
+- **Decision:** verworfen — no code change, no restart. Section 293.
