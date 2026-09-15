@@ -10407,3 +10407,34 @@ Every verdict stands. Two statements do not and are withdrawn:
   19 fewer trades. Sections 255–278 compare arms inside one harness, so
   no verdict there changes; from here on, scripts use the carrying
   admission.
+
+## 285. Rotating a full cluster's worst position: the refused signals are not worth their slot once taken
+
+Sections 261, 263 and 283 found the entries a binding cluster cap refuses
+profitable when booked as counterfactuals; section 253 rotated the
+stalest held position into them and lost because the stalest were the
+winners. `scripts/cluster_rotate_worst.py` rotates the same-cluster,
+same-direction position with the lowest open R at the signal bar's close
+— only if below zero (candidate), whatever its sign (diagnostic) — booking
+it at that open R net of its own cost; weekly re-ranking, carried
+positions and cooldowns (section 284). Clauses (a) all four year-samples
+up, (b) pooled paired t > +2.
+
+| arm | trades | USD/trade | rotations | rotated R vs held to exit (paired, t) | rotated-in signals' R | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|---|---|
+| **refuse (live)** | **5,100** | **+0.0617** | — | — | — | **+0.2018** | — | — | — |
+| rotate worst if < 0 | 5,961 | +0.0483 | 1,118 | -0.211 vs -0.208 (-0.003, -0.23) | +0.011 | +0.1846 | -0.0172 | -0.43 | 1/4 |
+| rotate worst (diag) | 8,046 | +0.0360 | 3,569 | +0.040 vs +0.044 (-0.005, -0.50) | +0.007 | +0.1818 | -0.0156 | -0.30 | 2/4 |
+
+Per sample (candidate): +0.0664 / -0.0069 / -0.0448 / -0.0223.
+
+Both fail. The rotation itself is neutral, as section 250 predicts: a
+losing position closed early books what it would have booked anyway. What
+fails is the other half. The rotated-in signals earn +0.011 R, not the
++0.05 to +0.13 USD a signal the refused populations of 261/263/283
+showed as counterfactuals: those were every refused signal, each booked
+alone; taken for real they arrive in bursts, fill the freed slot with the
+first of several correlated breakouts and stack a fourth
+same-factor position's worth of turnover onto the book. The counterfactual
+value of a refused population is not the marginal value of taking it — the
+same lesson as section 256's, from the entry side.

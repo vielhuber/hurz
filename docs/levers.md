@@ -6380,3 +6380,22 @@ the section numbers below point there.
   lists earn more" and "the quarterly harness understated the live book by
   0.03 USD/day" — cadence is worth nothing measurable. Section 284.
 
+## 2026-09-15 (eighteenth run) — rotating a full cluster's worst position
+
+- **Lever:** position management under the cluster cap — when the cap
+  binds, close the same-direction position with the lowest open R (if
+  < 0) and take the signal; diag rotates the lowest regardless. Section
+  253 rotated the stalest only.
+- **Measurement:** `scripts/cluster_rotate_worst.py`, weekly re-ranking,
+  carried positions and cooldowns.
+
+  | arm | trades | rotations | rotated-in R | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|---|
+  | **refuse (live)** | **5,100** | — | — | **+0.2018** | — | — | — |
+  | rotate worst < 0 | 5,961 | 1,118 | +0.011 | +0.1846 | -0.0172 | -0.43 | 1/4 |
+  | rotate worst (diag) | 8,046 | 3,569 | +0.007 | +0.1818 | -0.0156 | -0.30 | 2/4 |
+
+- **Result:** (a) and (b) fail; the rotation is neutral, the signals
+  taken for real earn far less than their counterfactual value.
+- **Decision:** verworfen — no code change, no restart. Section 285.
+
