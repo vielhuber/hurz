@@ -10837,7 +10837,7 @@ recomputes the indicators, runs the same three strategies with a stop of
 3 x ATR (the floor's multiple, so the daily book obeys the same rule), a
 1.5 R target and a 24-day leash, and offers the daily combinations to the
 same ranked list of 40. Financing is charged per night held in EVERY arm,
-at the rates of section 154: crypto longs 0.050 R a night, metals longs
+at the rates of section 126: crypto longs 0.050 R a night, metals longs
 0.013, other longs 0.005, shorts 0.003, crypto and metals shorts nothing.
 
 | arm | trades (daily) | USD/trade | pooled USD/day | diff | t | up |
