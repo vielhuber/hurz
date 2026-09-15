@@ -20,6 +20,8 @@ Acceptance, fixed before the data were seen:
   (a) USD per calendar day better on ALL FOUR year-samples,
   (b) pooled paired t > +2.
 
+Open positions and cooldowns persist across ranking boundaries (section 284).
+
 See docs/EDGE_FINDINGS.md 280.
 """
 import asyncio, json, os, sys
@@ -29,7 +31,7 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, _ROOT); os.chdir(_ROOT)
 import scripts.pin_eligibility as pe
 from scripts.flat_before_weekend import signals
-from scripts.stop_out_cooldown_length import admit_cooldown
+from scripts.cluster_stop_out_cooldown import admit
 from app.strategies import add_indicators
 from app.spot_trading.autotrade import _min_stop_atr_multiple
 from scripts.efficiency_weighted_selection import load_history, to_frame, t_stat, META_CACHE
@@ -55,12 +57,13 @@ async def main():
     results = {}
     for arm, window in ARMS.items():
         rank_w = np.timedelta64(window, 'D'); cut = start
-        daily = {}; taken = []; last_stop = {}
+        daily = {}; taken = []
+        state = {"open": {}, "pair": {}, "cluster": {}}
         while cut < end:
             nxt = min(cut + STEP, end)
             lo = int(np.searchsorted(ts_all, cut - rank_w)); hi = int(np.searchsorted(ts_all, cut))
             ranked, _ = pe.lists(sig[lo:hi], pins, reserved)
-            for t in admit_cooldown(sig[hi:int(np.searchsorted(ts_all, nxt))], ranked | pins, 6, last_stop, []):
+            for t in admit(sig[hi:int(np.searchsorted(ts_all, nxt))], ranked | pins, 0, state, []):
                 d = str(np.datetime64(t["exit_ts"], 'D'))
                 daily[d] = daily.get(d, 0.0) + t["usd"]; taken.append(t)
             cut = nxt

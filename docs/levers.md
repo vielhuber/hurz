@@ -6362,3 +6362,21 @@ the section numbers below point there.
   Found on the way: the weekly harness of sections 279–282 reset open
   positions at every weekly boundary; re-checked in the next entry.
 
+## 2026-09-15 (correction) — sections 279–282 re-run with the book carried across ranking boundaries
+
+- **Defect:** the harness admission started every ranking block with no
+  open positions; at weekly re-ranking (279–282) that freed slots 309
+  times and inflated the weekly arms.
+- **Re-run:** the four scripts on the carrying admission of section 283.
+
+  | section | candidate | reported | corrected | t | up |
+  |---|---|---|---|---|---|
+  | 279 | quarterly vs weekly | -0.0312 | -0.0034 | -0.30 | 2/4 |
+  | 280 | 180-day window | -0.0036 | -0.0095 | -0.41 | 1/3 |
+  | 281 | no pins | +0.0042 | -0.0003 | -0.01 | 2/4 |
+  | 282 | half-life 120 d | -0.0104 | -0.0203 | -1.24 | 1/4 |
+
+- **Result:** every verdict stands (all verworfen). Withdrawn: "fresher
+  lists earn more" and "the quarterly harness understated the live book by
+  0.03 USD/day" — cadence is worth nothing measurable. Section 284.
+

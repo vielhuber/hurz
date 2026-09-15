@@ -10363,3 +10363,47 @@ stop-out is a failure of one instrument's level, not of the factor's
 move: the cluster's other members breaking the same way within hours are
 among the best entries the book takes, as sections 261 and 263 found for
 additions to a losing cluster direction.
+
+## 284. Correction to sections 279–282: the weekly harness forgot open positions every week
+
+The admission used from section 255 on (`admit`, `admit_cooldown`) starts
+each ranking block with no open positions and, in 275's version, keeps
+only the cooldown map. At quarterly re-ranking that forgets the book 24
+times in seven years; at weekly re-ranking 309 times, and every forgotten
+position frees an instrument slot and a cluster slot early. Section 279's
+weekly arm took more trades (5,272 against 5,061) for that reason, not
+because its lists were fresher. Found while building section 283, whose
+admission carries open positions and both cooldown maps across ranking
+boundaries (`scripts/cluster_stop_out_cooldown.py: admit`). Sections 279–282
+were re-run on that admission, same arms and clauses:
+
+| section | comparison | as reported | corrected | corrected t | corrected up | verdict |
+|---|---|---|---|---|---|---|
+| 279 | quarterly vs weekly re-ranking | -0.0312 | **-0.0034** | -0.30 | 2/4 | unchanged (verworfen) |
+| 279 | monthly vs weekly (diag) | -0.0299 | -0.0032 | -0.32 | 2/4 | — |
+| 280 | 180-day window | -0.0036 | -0.0095 | -0.41 | 1/3 | unchanged |
+| 280 | 730-day window (diag) | +0.0121 | +0.0021 | +0.09 | 1/3 | — |
+| 281 | ranked only, no pins | +0.0042 | -0.0003 | -0.01 | 2/4 | unchanged |
+| 281 | pins only (diag) | -0.0279 | -0.0207 | -0.48 | 2/4 | — |
+| 282 | half-life 120 days | -0.0104 | -0.0203 | -1.24 | 1/4 | unchanged |
+| 282 | half-life 60 days (diag) | -0.0253 | -0.0280 | -1.35 | 1/4 | — |
+
+Corrected cadence book: weekly 5,044 trades at +0.0618 USD, +0.2055 USD a
+day; quarterly 5,042 at +0.0608, +0.2021; monthly 5,048 at +0.0608.
+
+Every verdict stands. Two statements do not and are withdrawn:
+
+- **"Fresher lists earn more"** (279). With the book remembered, weekly,
+  monthly and quarterly lists are within 0.004 USD a day and 1 % of the
+  trades of one another. The nightly refresh is not worth a measurable
+  amount in the book; it stays because nothing is gained by changing it.
+  The motivations of sections 280 and 282 rested on the withdrawn
+  statement, and their corrected results close the selector's time axis
+  on the same grounds as before.
+- **"The quarterly harness understated the live book by 0.03 USD a day"**
+  (279). The gap was the weekly reset. What remains is smaller and has the
+  same cause at quarterly scale: carrying positions across the 24
+  quarterly boundaries moves the book from +0.1902 to +0.2021 USD a day on
+  19 fewer trades. Sections 255–278 compare arms inside one harness, so
+  no verdict there changes; from here on, scripts use the carrying
+  admission.
