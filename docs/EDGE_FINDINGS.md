@@ -10315,3 +10315,26 @@ at the quarterly cadence; the one sample it wins is the oldest. Section
 219's reading holds at the cadence the bot runs: which list, among lists
 this close, decides which interchangeable trades fill the slots, not how
 much the day earns. The pins stay.
+
+## 282. Recency weights in the selector's score: the gain of a fresh list is in the rebuild, not in the weights
+
+Section 279: fresher lists earn more. Section 280: a shorter window does
+not add to it. `scripts/rank_recency_decay.py` keeps the 365-day sample
+and weights eR and pf by 0.5 ** (age / half-life) — 120 days (candidate),
+60 (diagnostic) — with n, the eligibility cut, the top 40, pins, vetoes,
+caps, the 6-hour cooldown and weekly re-ranking as live. Clauses (a) all
+four year-samples up, (b) pooled paired t > +2.
+
+| score | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **unweighted (live)** | **5,329** | **+0.0636** | **+0.2216** | — | — | — |
+| half-life 120 d | 5,251 | +0.0615 | +0.2111 | -0.0104 | -0.66 | 2/4 |
+| half-life 60 d (diag) | 5,207 | +0.0576 | +0.1958 | -0.0253 | -1.38 | 1/4 |
+
+Per sample (120 d): +0.0395 / +0.0028 / **-0.0388 (t -2.24)** / -0.0057.
+
+Both fail, and more decay is worse. With sections 279 and 280 the
+selector's time axis is closed on three sides: rebuild often (nightly,
+as live), rank on a full year, weight it evenly. What the fresh rebuild
+buys is dropping a combination once its whole year turns, not reading
+its last quarter louder.

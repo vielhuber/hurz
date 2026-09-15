@@ -6326,3 +6326,21 @@ the section numbers below point there.
 - **Decision:** verworfen — pins stay, no code change, no restart.
   Section 281.
 
+## 2026-09-15 (sixteenth run) — recency weights in the selector's score
+
+- **Lever:** pair selection — weight eR and pf of the 365-day ranking by
+  a 120-day half-life (diag 60), n and the eligibility cut unchanged, at
+  the weekly cadence. Never measured.
+- **Measurement:** `scripts/rank_recency_decay.py`, live-faithful book
+  with the 6 h cooldown.
+
+  | score | trades | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|
+  | **unweighted (live)** | **5,329** | **+0.2216** | — | — | — |
+  | half-life 120 d | 5,251 | +0.2111 | -0.0104 | -0.66 | 2/4 |
+  | half-life 60 d (diag) | 5,207 | +0.1958 | -0.0253 | -1.38 | 1/4 |
+
+- **Result:** (a) and (b) fail; stronger decay is worse.
+- **Decision:** verworfen — no code change, no restart. The selector's
+  time axis (cadence 279, window 280, weights 282) is closed. Section 282.
+
