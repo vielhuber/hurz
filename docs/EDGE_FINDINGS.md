@@ -10289,3 +10289,29 @@ is rebuilt, not from how short its memory is: at a weekly cadence the
 window repeats section 231's pattern — ahead pooled, not on every sample,
 far from significance — and stays a diagnostic. The nightly job keeps its
 365-day default.
+
+## 281. The operator pins at the live cadence: still flat against the ranked list
+
+Section 219 compared the live list (ranked ∪ pins) with ranked only and
+pins only at quarterly re-ranking and found three lists within 0.017 USD a
+day. Section 279 showed the ranking is worth more at the live
+near-nightly cadence — the half of the list the pins bypass.
+`scripts/pins_at_live_cadence.py` repeats the comparison with weekly
+re-ranking, vetoes, caps and the 6-hour cooldown: ranked top 40 only, no
+pins and no reserved instruments (candidate), pins only (diagnostic).
+Clauses (a) all four year-samples up, (b) pooled paired t > +2.
+
+| list | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **ranked ∪ pins (live)** | **5,329** | **+0.0636** | **+0.2211** | — | — | — |
+| ranked only | 4,622 | +0.0747 | +0.2253 | +0.0042 | +0.10 | 1/4 |
+| pins only (diag) | 4,253 | +0.0696 | +0.1934 | -0.0279 | -0.66 | 2/4 |
+
+Per sample (ranked only): -0.0305 / -0.0406 / -0.0062 / +0.0620.
+
+Both clauses fail. Dropping the pins raises USD per trade by a sixth and
+costs 13 % of the trades, and the two cancel to the same daily figure as
+at the quarterly cadence; the one sample it wins is the oldest. Section
+219's reading holds at the cadence the bot runs: which list, among lists
+this close, decides which interchangeable trades fill the slots, not how
+much the day earns. The pins stay.

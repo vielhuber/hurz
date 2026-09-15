@@ -6307,3 +6307,22 @@ the section numbers below point there.
 - **Decision:** verworfen — window stays 365 days, no code change, no
   restart. Section 280.
 
+## 2026-09-15 (fifteenth run) — the operator pins at the live cadence
+
+- **Lever:** pair selection — drop the operator pins and trade the ranked
+  top 40 only, re-read at the weekly re-ranking of section 279 (section
+  219 ran it quarterly); diag pins only.
+- **Measurement:** `scripts/pins_at_live_cadence.py`, live-faithful book
+  with the 6 h cooldown.
+
+  | list | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **ranked ∪ pins (live)** | **5,329** | **+0.0636** | **+0.2211** | — | — | — |
+  | ranked only | 4,622 | +0.0747 | +0.2253 | +0.0042 | +0.10 | 1/4 |
+  | pins only (diag) | 4,253 | +0.0696 | +0.1934 | -0.0279 | -0.66 | 2/4 |
+
+- **Result:** (a) and (b) fail; higher USD per trade, fewer trades, same
+  day.
+- **Decision:** verworfen — pins stay, no code change, no restart.
+  Section 281.
+
