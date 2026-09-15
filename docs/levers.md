@@ -6399,3 +6399,23 @@ the section numbers below point there.
   taken for real earn far less than their counterfactual value.
 - **Decision:** verworfen — no code change, no restart. Section 285.
 
+
+## 2026-09-16 — where the breakout bar closes in its own range
+
+- **Lever:** regime filter, entry quality — refuse a signal whose bar
+  closes in the adverse half of its high-low range (close location
+  < 0.5 in the signal's direction); diag < 0.25. Never measured: runs
+  40/41 read the bar's extension and range, not its close location.
+- **Measurement:** `scripts/breakout_close_location.py`, weekly
+  re-ranking, carried positions and cooldowns, live vetoes.
+
+  | arm | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,027** | **+0.0493** | **+0.1625** | — | — | — |
+  | refuse < 0.5 | 4,919 | +0.0537 | +0.1730 | +0.0105 | +0.49 | 3/4 |
+  | refuse < 0.25 (diag) | 5,017 | +0.0522 | +0.1721 | +0.0091 | +1.34 | 3/4 |
+
+  The 228 live book trades below 0.5: +0.0182 USD each (t +0.19).
+- **Result:** (a) fails at 3/4, (b) fails at t +0.49.
+- **Decision:** verworfen — no filter, no code change, no restart.
+  Section 286.
