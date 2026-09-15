@@ -10555,3 +10555,35 @@ with section 113's finding that the level's age does not separate good
 from bad breaks, and with the trend strategies earning in trends rather
 than out of coils. The reverse rule, refusing the narrow bases, was not
 preregistered here; it would be chosen on this table and is not tested.
+
+## 289. The concurrent-position cap in dollars on the live book: 6 is not better, 7 is not proven
+
+Section 85 replayed the cap of 8 in R on ten core instruments, before the
+cluster cap, the cooldown, the weekly-ranked list and the pins existed; a
+cap of 6 looked strong on one sample and reversed on the other. Section
+285 found that the signals a full book refuses are not worth their slot
+once taken, which asks the converse: whether the positions taken behind
+six others earn theirs. Only a lower cap can be built — a higher one
+raises exposure. `scripts/concurrent_cap_live_book.py` sets the admission's
+cap to 6 (candidate) and 7 (diagnostic) against the live 8; weekly
+re-ranking, carried positions and cooldowns (section 284), cluster cap,
+pins and vetoes as live, run from the bot's checkout (section 286).
+Clauses (a) all four year-samples up, (b) pooled paired t > +2.
+
+| cap | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **8 (live)** | **5,100** | **+0.0617** | **+0.2052** | — | — | — |
+| 6 | 5,039 | +0.0615 | +0.2023 | -0.0029 | -0.18 | 2/4 |
+| 7 (diag) | 5,088 | +0.0650 | +0.2160 | +0.0105 | +1.89 | 3/4 |
+
+Per sample: cap 6 -0.0484 / +0.0239 / +0.0084 / -0.0222; cap 7 +0.0125 /
++0.0076 / +0.0043 / +0.0000.
+
+The candidate fails. The cap binds rarely on this book — 61 trades fewer
+at 6, 12 at 7 — because the cluster cap and one position per instrument
+bound it first, and what a cap of 6 refuses is as good as the rest of the
+book; the recent year loses 0.05 USD a day on it. The diagnostic cap of 7
+is ahead on three samples, level on the fourth and short of the t
+threshold. It was fixed as the diagnostic before the data were seen; a
+cap of 7 run as a fresh candidate would be chosen on this table and is
+not a new lever. Section 85's verdict stands in dollars: 8 stays.

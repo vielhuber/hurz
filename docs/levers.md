@@ -6462,3 +6462,25 @@ the section numbers below point there.
 - **Decision:** verworfen — no code change, no restart. Section 288. The
   reverse rule (refuse narrow bases) is chosen on this table and is not
   to be run as a fresh lever.
+
+## 2026-09-16 (fourth run) — the concurrent-position cap, re-read in dollars on the live book
+
+- **Lever:** risk guard / positions — lower the cap of 8 simultaneous
+  positions to 6 (diag 7); run 15 measured it in R on ten instruments
+  before the cluster cap, cooldown and weekly list existed. Only a lower
+  cap is buildable.
+- **Measurement:** `scripts/concurrent_cap_live_book.py`, weekly
+  re-ranking, carried positions and cooldowns, run from the bot's
+  checkout.
+
+  | cap | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **8 (live)** | **5,100** | **+0.0617** | **+0.2052** | — | — | — |
+  | 6 | 5,039 | +0.0615 | +0.2023 | -0.0029 | -0.18 | 2/4 |
+  | 7 (diag) | 5,088 | +0.0650 | +0.2160 | +0.0105 | +1.89 | 3/4 |
+
+- **Result:** (a) fails at 2/4, (b) fails at t -0.18. The diag is ahead
+  on three samples, level on the fourth, t +1.89 — not a pass, and a cap
+  of 7 re-run as a candidate would be chosen on this table.
+- **Decision:** verworfen — 8 stays, no code change, no restart.
+  Section 289.
