@@ -10587,3 +10587,30 @@ is ahead on three samples, level on the fourth and short of the t
 threshold. It was fixed as the diagnostic before the data were seen; a
 cap of 7 run as a fresh candidate would be chosen on this table and is
 not a new lever. Section 85's verdict stands in dollars: 8 stays.
+
+## 290. The stop-out cooldown's scope: the whole instrument stays
+
+The 6-hour cooldown refuses every entry on an instrument that just stopped
+out; section 275 held its length in dollars and section 283 found widening
+it to the cluster direction refuses good entries. Its premise from run 16
+is a claim about one direction — the instrument re-breaks the level that
+failed — so a breakout the other way within hours might be a different
+event. `scripts/cooldown_direction_scope.py` narrows the cooldown to the
+stopped-out direction (candidate) or to the stopped-out strategy
+(diagnostic). Weekly re-ranking, carried positions and cooldowns (section
+284), caps, pins and vetoes as live, run from the bot's checkout (section
+286). Clauses (a) all four year-samples up, (b) pooled paired t > +2.
+
+| scope | trades | USD/trade | admitted inside the instrument cooldown (USD, t) | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **instrument (live)** | **5,100** | **+0.0617** | — | **+0.2053** | — | — | — |
+| instrument and direction | 5,140 | +0.0567 | 100 (-0.0659, -0.35) | +0.1902 | -0.0151 | -1.05 | 1/4 |
+| instrument and strategy (diag) | 5,123 | +0.0585 | 53 (-0.2760, -1.01) | +0.1957 | -0.0097 | -0.89 | 1/4 |
+
+Per sample (candidate): -0.0452 / +0.0064 / -0.0045 / -0.0110.
+
+Both fail, and the entries the narrower scopes let through lose: the
+opposite-direction breakouts within six hours of a stop-out at -0.07 USD,
+another strategy's breakout on the same instrument at -0.28. Six hours
+after a stop an instrument is in a whipsaw, not a reversal; the cooldown
+earns its place on the instrument as a whole, as run 16 built it.

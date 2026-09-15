@@ -6484,3 +6484,25 @@ the section numbers below point there.
   of 7 re-run as a candidate would be chosen on this table.
 - **Decision:** verworfen — 8 stays, no code change, no restart.
   Section 289.
+
+## 2026-09-16 (fifth run) — the stop-out cooldown's scope inside the instrument
+
+- **Lever:** regime filter — narrow the 6 h stop-out cooldown from the
+  instrument to the stopped-out direction (opposite breakouts admitted);
+  diag to the stopped-out strategy. Length (275) and cluster widening
+  (283) were measured, the scope inside the instrument never.
+- **Measurement:** `scripts/cooldown_direction_scope.py`, weekly
+  re-ranking, carried positions and cooldowns, run from the bot's
+  checkout.
+
+  | scope | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **instrument (live)** | **5,100** | **+0.0617** | **+0.2053** | — | — | — |
+  | direction | 5,140 | +0.0567 | +0.1902 | -0.0151 | -1.05 | 1/4 |
+  | strategy (diag) | 5,123 | +0.0585 | +0.1957 | -0.0097 | -0.89 | 1/4 |
+
+  Newly admitted: 100 opposite-direction entries at -0.0659 USD, 53
+  other-strategy entries at -0.2760 USD.
+- **Result:** (a) fails at 1/4, (b) fails at t -1.05.
+- **Decision:** verworfen — the cooldown stays on the whole instrument,
+  no code change, no restart. Section 290.
