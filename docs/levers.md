@@ -6434,7 +6434,7 @@ the section numbers below point there.
   |---|---|---|---|---|---|---|
   | **list order (live)** | **5,116** | **+0.0604** | **+0.2013** | — | — | — |
   | cost order | 5,118 | +0.0597 | +0.1993 | -0.0020 | -0.10 | 1/4 |
-  | reverse list (diag) | 5,110 | +0.0552 | +0.1836 | -0.0175 | -0.63 | 2/4 |
+  | reverse list (diag) | 5,110 | +0.0552 | +0.1836 | -0.0175 | -0.63 | 1/4 |
 
   Cost order swaps 361 trades: taken +0.1669 USD at 0.009 R cost, given
   up +0.1765 USD at 0.013 R.
