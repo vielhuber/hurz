@@ -6659,3 +6659,23 @@ the section numbers below point there.
   Recorded on the way: financing costs the live 1h book a quarter of its
   dollars per trade (+0.0617 → +0.0464), and any lower-frequency source
   is blocked by the eligibility rule before it can be measured.
+
+## 2026-09-16 (fourteenth run) — keltner instead of momentum in the nightly mix
+
+- **Lever:** pair selection / strategy mix — swap `momentum` for
+  `keltner_breakout`, mix still three deep; diag drops momentum without
+  replacement. Section 224 measured drops, 236 the addition as a fourth,
+  never the exchange.
+- **Measurement:** `scripts/strategy_swap.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | mix | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **donchian, momentum, turtle (live)** | **5,100** | **+0.0617** | **+0.2017** | — | — | — |
+  | donchian, keltner, turtle | 5,355 | +0.0431 | +0.1478 | -0.0538 | -1.31 | 0/4 |
+  | donchian, turtle (diag) | 5,095 | +0.0631 | +0.2101 | +0.0047 | +1.12 | 1/4 |
+
+- **Result:** (a) fails at 0/4, (b) fails at t -1.31; keltner's extra
+  trades are worth less than the ones they displace.
+- **Decision:** verworfen — mix unchanged, no code change, no restart.
+  Section 299.

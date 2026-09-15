@@ -10867,3 +10867,31 @@ stand, since every arm there holds positions for the same 22 bars.
 rule before its edge can be measured** — a finding for the next attempt
 at a new timeframe, which would have to change the selector before it
 could trade one.
+
+## 299. Keltner instead of momentum: the exchange loses what the addition lost
+
+Section 224 measured the nightly mix by dropping a strategy, section 236
+by adding keltner as a fourth, where it took 1,529 of 4,708 trades and
+displaced about 1,235 entries of the established two. The exchange —
+keltner *instead of* momentum, the mix still three deep — had not been
+measured. `scripts/strategy_swap.py` gives the selector each set and
+changes nothing else. Weekly re-ranking, carried positions and cooldowns
+(section 284), run from the bot's checkout (section 286). Clauses (a) all
+four year-samples up, (b) pooled paired t > +2.
+
+| mix | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **donchian, momentum, turtle (live)** | **5,100** | **+0.0617** | **+0.2017** | — | — | — |
+| donchian, keltner, turtle | 5,355 | +0.0431 | +0.1478 | -0.0538 | -1.31 | 0/4 |
+| donchian, turtle (diag) | 5,095 | +0.0631 | +0.2101 | +0.0047 | +1.12 | 1/4 |
+
+Per sample (candidate): -0.0028 / -0.0346 / -0.0262 / -0.0553.
+
+The exchange fails on all four samples: keltner's extra 255 trades are
+worth less than the entries they displace, the same displacement section
+236 measured for the addition, now paid for by the strategy that was
+supposed to be the cheapest to lose. Momentum is not cheap to lose —
+dropping it too (the diagnostic) leaves the book within 0.005 USD a day
+of live and changes only two of the four samples at all, because
+momentum's signals are rare and sit in the two older years. The nightly
+mix stays where sections 224 and 236 left it.
