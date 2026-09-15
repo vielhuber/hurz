@@ -10207,3 +10207,29 @@ whole study at import (no `__main__` guard). An import of its helper on
 2026-09-15 started a full history fetch against the venue and was stopped
 within ten minutes, with no rate-limit errors in the bot's log; this script
 carries its own copy of the helper.
+
+## 278. The ADX ceiling in dollars on the live book: removing or raising it loses on every sample
+
+The ceiling at ADX 50 was built on per-trade R (sections 187/188) and
+ablated in R per day on the merged book (2026-09-11), where removing it won
+one sample at t +3.27 and lost three. `scripts/adx_ceiling_live_book.py`
+re-reads it in dollars on the live-faithful book of section 255 with the
+6-hour cooldown, through `HURZ_REGIME_ADX_TREND_MAX` so signals and the
+selector both see the arm: no ceiling (candidate), 60 (diagnostic).
+Clauses (a) all four year-samples up, (b) pooled paired t > +2.
+
+| arm | signals | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **ceiling 50 (live)** | **28,713** | **5,061** | **+0.0571** | **+0.1902** | — | — | — |
+| no ceiling | 32,360 | 5,132 | +0.0441 | +0.1490 | -0.0412 | -1.49 | 0/4 |
+| ceiling 60 (diag) | 31,641 | 5,101 | +0.0410 | +0.1376 | -0.0527 | -2.05 | 0/4 |
+
+Per sample (no ceiling): -0.0243 / -0.0576 / -0.0151 / -0.0045.
+
+Both arms lose on all four samples. The 3,647 extra signals add only 71
+trades but cut USD per trade by a fifth: late, overextended entries take
+slots and, through the selector's trailing-year ranking, list places from
+better combinations. With sections 276 and 277 this completes the re-read
+of every expectancy filter built before the dollar harness — the direction
+block, the instrument blocks and the ceiling all hold in dollars on the
+book the bot runs.

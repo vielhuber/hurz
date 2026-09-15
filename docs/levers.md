@@ -6252,3 +6252,20 @@ the section numbers below point there.
   Section 277. Operational note: the host rebooted around 08:10 UTC and
   the boot keepalive restarted the bot and the dashboard loop unattended.
 
+## 2026-09-15 (twelfth run) — the ADX ceiling, re-read in dollars on the live book
+
+- **Lever:** regime filter — remove the ADX 50 ceiling (built on R,
+  ablated only in R on the merged book); diag ceiling 60.
+- **Measurement:** `scripts/adx_ceiling_live_book.py`, live-faithful book
+  with the 6 h cooldown, ceiling set via `HURZ_REGIME_ADX_TREND_MAX`.
+
+  | arm | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **ceiling 50 (live)** | **5,061** | **+0.0571** | **+0.1902** | — | — | — |
+  | no ceiling | 5,132 | +0.0441 | +0.1490 | -0.0412 | -1.49 | 0/4 |
+  | ceiling 60 (diag) | 5,101 | +0.0410 | +0.1376 | -0.0527 | -2.05 | 0/4 |
+
+- **Result:** (a) and (b) fail; worse on every sample.
+- **Decision:** verworfen — ceiling stays at 50, no code change, no
+  restart. Section 278.
+
