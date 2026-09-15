@@ -6701,3 +6701,24 @@ the section numbers below point there.
   signals' counterfactual value belongs to the bar they fired on.
 - **Decision:** verworfen — no code change, no restart. Section 300.
   With sections 285 and 291 the cap's refusals are closed as a lever.
+
+## 2026-09-16 (sixteenth run) — widening the eligibility thresholds further
+
+- **Lever:** pair selection — relax the selector's eligibility from
+  pf >= 0.8 / eR >= -0.2 to 0.7 / -0.3 (diag 0.5 / -0.5). Section 217
+  measured tightenings only, all worse; the other direction was open.
+- **Measurement:** `scripts/eligibility_widening.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | thresholds | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **pf 0.8, eR -0.2 (live)** | **5,100** | **+0.0617** | **+0.2051** | — | — | — |
+  | pf 0.7, eR -0.3 | 5,168 | +0.0640 | +0.2157 | +0.0107 | +1.26 | 3/4 |
+  | pf 0.5, eR -0.5 (diag) | 5,219 | +0.0622 | +0.2111 | +0.0066 | +0.62 | 3/4 |
+
+- **Result:** (a) fails at 3/4, (b) fails at t +1.26 — the best reading
+  of this series, still inside the noise that has dissolved a dozen
+  candidates.
+- **Decision:** verworfen — thresholds stay at 0.8 / -0.2, no code
+  change, no restart. Section 301. With 217 the eligibility filter is
+  closed in both directions.

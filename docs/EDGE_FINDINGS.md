@@ -10931,3 +10931,37 @@ they fired on, and a book that is full on that bar cannot have it.
 Together with sections 285 and 291, the cluster cap's refusals are closed
 as a lever: they cannot be rotated into, they cannot be queued, and
 lifting the cap raises exposure.
+
+## 301. Widening the eligibility thresholds further: the right direction, not a significant one
+
+Section 217 varied the eligibility filter in one direction only and found
+every tightening worse on all four samples — twelve comparisons out of
+twelve — because the in-sample ranking does not transfer (section 130)
+while the throughput it costs is certain (section 198). The other side of
+that argument had never been measured. `scripts/eligibility_widening.py`
+relaxes the scheduler's pf >= 0.8 and eR >= -0.2 to 0.7 / -0.3
+(candidate) and 0.5 / -0.5 (diagnostic); the ten-trade minimum, the cut at
+40, the caps, the cooldown, pins and vetoes are unchanged, so exposure is
+bounded as before. Weekly re-ranking, carried positions and cooldowns
+(section 284), run from the bot's checkout (section 286). Clauses (a) all
+four year-samples up, (b) pooled paired t > +2.
+
+| thresholds | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **pf 0.8, eR -0.2 (live)** | **5,100** | **+0.0617** | **+0.2051** | — | — | — |
+| pf 0.7, eR -0.3 | 5,168 | +0.0640 | +0.2157 | +0.0107 | +1.26 | 3/4 |
+| pf 0.5, eR -0.5 (diag) | 5,219 | +0.0622 | +0.2111 | +0.0066 | +0.62 | 3/4 |
+
+Per sample (candidate): +0.0153 / +0.0205 / -0.0056 / +0.0002.
+
+The candidate fails both clauses, and it is the closest thing to a
+positive lever this series has produced: both arms are ahead pooled and
+on three of four samples, in the direction section 217's reasoning
+predicts, and the widening adds trades at a slightly better dollar per
+trade rather than diluting them. It is still 0.01 USD a day at t +1.26 —
+the size of effect that has dissolved on the next sample a dozen times in
+this document, and the third sample is already negative. Nothing is
+built: the thresholds stay at 0.8 / -0.2, where section 217 left them.
+What the pair of sections does establish is that the eligibility filter
+sits on a plateau — a tightening costs, a widening does not pay, and the
+selector has no more to give in either direction.
