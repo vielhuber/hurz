@@ -10712,3 +10712,39 @@ trade's outcome is decided by the move after the close, not by the margin
 on it. The diagnostic, refusing only the closest sixth, is ahead on three
 samples and behind on the oldest at t +0.69 — far from a pass, and a 0.10
 threshold run as a fresh candidate would be chosen on this table.
+
+## 294. The market-wide volatility regime: the calm hours earn less per trade and the same per day
+
+Trend following is supposed to earn where markets move. The regime
+filters had read the instrument's own volatility against its last month
+(section 171), the market's directional breadth (section 176) and trend
+strength by ADX; none read how much the market as a whole was moving.
+`scripts/market_volatility_regime.py` ranks each instrument's ATR(14)/close
+against its previous 2,160 bars (90 days), carries the rank forward at
+most 72 bars, takes the median across instruments at the signal bar and
+refuses signals below a market rank of 0.25 (candidate) or 0.40
+(diagnostic). Weekly re-ranking, carried positions and cooldowns (section
+284), caps, pins and vetoes as live, run from the bot's checkout (section
+286). Clauses (a) all four year-samples up, (b) pooled paired t > +2.
+
+Market rank quartiles 0.277 / 0.460 / 0.659; 21.7 % of signals fall below
+0.25. In the live book the 1,157 trades in those hours earn +0.0099 USD
+each (t +0.21) against +0.0617 for the book, and the 2,201 below 0.40
++0.0548 (t +1.58).
+
+| arm | signals | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **live** | **28,713** | **5,100** | **+0.0617** | **+0.2045** | — | — | — |
+| refuse below rank 0.25 | 22,699 | 4,342 | +0.0757 | +0.2137 | +0.0092 | +0.20 | 3/4 |
+| refuse below rank 0.40 (diag) | 17,162 | 3,416 | +0.0624 | +0.1385 | -0.0658 | -1.08 | 1/4 |
+
+Per sample (candidate): +0.0038 / -0.0423 / +0.0436 / +0.0094.
+
+The candidate fails. The quiet quarter of the market's hours is the
+weakest population any entry filter has found on this book — a sixth of
+the book's dollars per trade — and refusing it still buys nothing per
+day: the trades it removes are 15 % of the count, their absence frees no
+slot that earns more, and the samples disagree in sign. The wider cut at
+rank 0.40 removes a third of the book and loses on three samples,
+which puts the earlier reading in its place: quiet hours are not costly,
+they are merely thin.

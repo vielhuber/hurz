@@ -6564,3 +6564,26 @@ the section numbers below point there.
 - **Result:** (a) fails at 1/4, (b) fails at t -1.09. The diag is not a
   pass either and would be chosen on this table.
 - **Decision:** verworfen — no code change, no restart. Section 293.
+
+## 2026-09-16 (ninth run) — the market-wide volatility regime
+
+- **Lever:** regime filter — refuse signals when the median 90-day
+  volatility rank across all instruments is below 0.25 (diag 0.40).
+  Section 171 read the instrument's own volatility, section 176 the
+  market's breadth; the market's volatility never.
+- **Measurement:** `scripts/market_volatility_regime.py`, weekly
+  re-ranking, carried positions and cooldowns, run from the bot's
+  checkout.
+
+  | arm | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,100** | **+0.0617** | **+0.2045** | — | — | — |
+  | refuse rank < 0.25 | 4,342 | +0.0757 | +0.2137 | +0.0092 | +0.20 | 3/4 |
+  | refuse rank < 0.40 (diag) | 3,416 | +0.0624 | +0.1385 | -0.0658 | -1.08 | 1/4 |
+
+  The 1,157 live book trades below rank 0.25 earn +0.0099 USD each
+  against +0.0617 for the book.
+- **Result:** (a) fails at 3/4, (b) fails at t +0.20; per trade the
+  calm hours are the weakest population measured on this book, per day
+  they cost nothing.
+- **Decision:** verworfen — no code change, no restart. Section 294.
