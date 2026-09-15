@@ -10895,3 +10895,39 @@ dropping it too (the diagnostic) leaves the book within 0.005 USD a day
 of live and changes only two of the four samples at all, because
 momentum's signals are rare and sit in the two older years. The nightly
 mix stays where sections 224 and 236 left it.
+
+## 300. A queue for the refused signals: the value is in the bar, not in the signal
+
+Sections 261, 263, 283 and 291 found the entries a binding cap refuses
+profitable as counterfactuals; section 285 took them by closing a held
+position and lost. A queue pays nothing for them: the refused signal
+waits for a slot to free by itself and is entered only while still fresh
+and only if the pair's close still stands beyond the signal's entry
+price. `scripts/refused_signal_queue.py` queues for 3 bars (candidate) or
+6 (diagnostic), keeps the signal's stop distance, cost and risk, and runs
+the stop, target and leash from the bar of the late entry. Every cap, the
+cooldown and one position per instrument are unchanged. Weekly
+re-ranking, carried positions and cooldowns (section 284), run from the
+bot's checkout (section 286). Clauses (a) all four year-samples up, (b)
+pooled paired t > +2.
+
+| arm | trades | USD/trade | late entries (USD, t) | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **refused is gone (live)** | **5,100** | **+0.0617** | — | **+0.2052** | — | — | — |
+| queue 3 bars | 5,125 | +0.0601 | 290 (-0.0944, -1.03) | +0.2011 | -0.0041 | -0.21 | 2/4 |
+| queue 6 bars (diag) | 5,162 | +0.0560 | 494 (-0.0733, -1.10) | +0.1884 | -0.0165 | -0.73 | 1/4 |
+
+Per sample (candidate): -0.0103 / -0.0234 / +0.0080 / +0.0119.
+
+Both fail, and the late entries lose: -0.09 USD each against the +0.05 to
++0.13 the same populations showed as counterfactuals. Three sections'
+worth of "the refused entries are good" now has its explanation. The
+counterfactual books the signal at its own bar's close; the queue books
+it one to three bars later, after the move that made it worth taking has
+already happened, and it is entered only in the cases where price held —
+which is not a filter for quality but a delay applied to the same
+population. Whatever the refused signals are worth, it belongs to the bar
+they fired on, and a book that is full on that bar cannot have it.
+Together with sections 285 and 291, the cluster cap's refusals are closed
+as a lever: they cannot be rotated into, they cannot be queued, and
+lifting the cap raises exposure.

@@ -6679,3 +6679,25 @@ the section numbers below point there.
   trades are worth less than the ones they displace.
 - **Decision:** verworfen — mix unchanged, no code change, no restart.
   Section 299.
+
+## 2026-09-16 (fifteenth run) — a queue for the signals a full book refuses
+
+- **Lever:** pair selection under the caps — queue a signal refused by
+  the cluster or concurrent cap for 3 bars (diag 6) and enter it when a
+  slot frees, if the close still stands beyond its entry price. Section
+  285 rotated into these signals and lost; the queue pays nothing for
+  them.
+- **Measurement:** `scripts/refused_signal_queue.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | arm | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,100** | **+0.0617** | **+0.2052** | — | — | — |
+  | queue 3 bars | 5,125 | +0.0601 | +0.2011 | -0.0041 | -0.21 | 2/4 |
+  | queue 6 bars (diag) | 5,162 | +0.0560 | +0.1884 | -0.0165 | -0.73 | 1/4 |
+
+  The 290 late entries earn -0.0944 USD each (t -1.03).
+- **Result:** (a) fails at 2/4, (b) fails at t -0.21. The refused
+  signals' counterfactual value belongs to the bar they fired on.
+- **Decision:** verworfen — no code change, no restart. Section 300.
+  With sections 285 and 291 the cap's refusals are closed as a lever.
