@@ -6506,3 +6506,23 @@ the section numbers below point there.
 - **Result:** (a) fails at 1/4, (b) fails at t -1.05.
 - **Decision:** verworfen — the cooldown stays on the whole instrument,
   no code change, no restart. Section 290.
+
+## 2026-09-16 (sixth run) — a book-wide cap on positions in one direction
+
+- **Lever:** risk guard / positions — refuse a signal when 5 positions
+  in its direction are already open across the book (diag 4); only the
+  per-cluster cap existed. Lower exposure only.
+- **Measurement:** `scripts/book_direction_cap.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | cap per side | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **none (live)** | **5,100** | **+0.0617** | **+0.2055** | — | — | — |
+  | 5 | 5,096 | +0.0606 | +0.2016 | -0.0039 | -1.17 | 0/4 |
+  | 4 (diag) | 5,065 | +0.0615 | +0.2032 | -0.0022 | -0.18 | 1/4 |
+
+  Refused signals, booked alone: 11 at +0.58 USD (cap 5), 161 at +0.53
+  USD, t +3.00 (cap 4).
+- **Result:** (a) fails at 0/4, (b) fails at t -1.17; the cap barely
+  binds and refuses good entries when it does.
+- **Decision:** verworfen — no code change, no restart. Section 291.

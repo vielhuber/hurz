@@ -10614,3 +10614,34 @@ opposite-direction breakouts within six hours of a stop-out at -0.07 USD,
 another strategy's breakout on the same instrument at -0.28. Six hours
 after a stop an instrument is in a whipsaw, not a reversal; the cooldown
 earns its place on the instrument as a whole, as run 16 built it.
+
+## 291. A book-wide cap on one direction: it binds almost never, and what it refuses is good
+
+The cluster cap allows three same-direction positions per correlation
+cluster and the concurrent cap eight in all, so the book can hold eight
+longs across clusters. Section 285 found breakouts arrive in bursts on a
+shared move; a broad risk-on hour breaks crypto, indices, commodities and
+the risk currencies together in different clusters. No run had capped the
+count of one nominal side across the book. `scripts/book_direction_cap.py`
+refuses a signal when 5 (candidate) or 4 (diagnostic) positions in its
+direction are already open; only lower exposure is tested. Weekly
+re-ranking, carried positions and cooldowns (section 284), caps, pins and
+vetoes as live, run from the bot's checkout (section 286). Clauses (a) all
+four year-samples up, (b) pooled paired t > +2.
+
+| cap per side | trades | USD/trade | refused signals (USD each booked alone, t) | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **none (live)** | **5,100** | **+0.0617** | — | **+0.2055** | — | — | — |
+| 5 | 5,096 | +0.0606 | 11 (+0.5758, +0.84) | +0.2016 | -0.0039 | -1.17 | 0/4 |
+| 4 (diag) | 5,065 | +0.0615 | 161 (+0.5323, +3.00) | +0.2032 | -0.0022 | -0.18 | 1/4 |
+
+Per sample (candidate): -0.0025 / -0.0040 / -0.0053 / 0.0000.
+
+Both fail. One position per instrument, the cluster cap and the cooldown
+keep the book below five on one side almost always — the candidate refuses
+11 signals in seven years. When the book does lean that far, the move is
+broad and the refused breakouts are among the best it sees: +0.53 USD each
+at t +3.00 as counterfactuals at a cap of 4, the burst lesson of section
+285 seen from the other side. A nominal side is not a factor in any case —
+a long EURUSD and a long USDJPY are opposite dollar bets — which the
+cluster map already handles where it matters.
