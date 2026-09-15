@@ -6344,3 +6344,21 @@ the section numbers below point there.
 - **Decision:** verworfen — no code change, no restart. The selector's
   time axis (cadence 279, window 280, weights 282) is closed. Section 282.
 
+## 2026-09-15 (seventeenth run) — the stop-out cooldown for the whole cluster direction
+
+- **Lever:** regime filter — after a stop-out, refuse same-cluster,
+  same-direction entries for 6 h (diag 24 h); instrument cooldown kept.
+- **Measurement:** `scripts/cluster_stop_out_cooldown.py`, weekly
+  re-ranking, open positions carried across ranking boundaries.
+
+  | arm | trades | refused (USD) | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,100** | — | **+0.2052** | — | — | — |
+  | cluster 6 h | 4,979 | 496 (+0.126) | +0.1827 | -0.0225 | -1.08 | 1/4 |
+  | cluster 24 h (diag) | 4,699 | 1,738 (+0.087) | +0.2017 | -0.0035 | -0.10 | 2/4 |
+
+- **Result:** (a) and (b) fail; the refused entries are profitable.
+- **Decision:** verworfen — no code change, no restart. Section 283.
+  Found on the way: the weekly harness of sections 279–282 reset open
+  positions at every weekly boundary; re-checked in the next entry.
+

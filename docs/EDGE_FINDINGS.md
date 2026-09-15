@@ -10338,3 +10338,28 @@ selector's time axis is closed on three sides: rebuild often (nightly,
 as live), rank on a full year, weight it evenly. What the fresh rebuild
 buys is dropping a combination once its whole year turns, not reading
 its last quarter louder.
+
+## 283. A stop-out cooldown for the whole cluster direction: the refused entries are the good ones
+
+The 6-hour cooldown on the stopped-out instrument holds in dollars
+(section 275). `scripts/cluster_stop_out_cooldown.py` propagates it: for
+6 hours (candidate) or 24 (diagnostic) after a stop-out, no entry in the
+same cluster and direction; the instrument cooldown stays in every arm.
+Weekly re-ranking, caps, pins and vetoes as live. Unlike sections 279–282,
+this admission carries open positions and cooldown state across the weekly
+ranking boundaries (see section 284), so its live arm reads 5,100 trades.
+Clauses (a) all four year-samples up, (b) pooled paired t > +2.
+
+| arm | trades | USD/trade | refused (USD each, t) | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **instrument cooldown (live)** | **5,100** | **+0.0617** | — | **+0.2052** | — | — | — |
+| + cluster direction, 6 h | 4,979 | +0.0562 | 496 (+0.1264, +1.82) | +0.1827 | -0.0225 | -1.08 | 1/4 |
+| + cluster direction, 24 h (diag) | 4,699 | +0.0658 | 1,738 (+0.0871, +2.27) | +0.2017 | -0.0035 | -0.10 | 2/4 |
+
+Per sample (6 h): -0.0655 / +0.0169 / -0.0202 / -0.0112.
+
+Both fail, and the refused entries earn twice the book's mean trade. A
+stop-out is a failure of one instrument's level, not of the factor's
+move: the cluster's other members breaking the same way within hours are
+among the best entries the book takes, as sections 261 and 263 found for
+additions to a losing cluster direction.
