@@ -10717,7 +10717,7 @@ threshold run as a fresh candidate would be chosen on this table.
 
 Trend following is supposed to earn where markets move. The regime
 filters had read the instrument's own volatility against its last month
-(section 171), the market's directional breadth (section 176) and trend
+(section 172), the market's directional breadth (section 178) and trend
 strength by ADX; none read how much the market as a whole was moving.
 `scripts/market_volatility_regime.py` ranks each instrument's ATR(14)/close
 against its previous 2,160 bars (90 days), carries the rank forward at

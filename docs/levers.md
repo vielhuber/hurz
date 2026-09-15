@@ -6569,7 +6569,7 @@ the section numbers below point there.
 
 - **Lever:** regime filter — refuse signals when the median 90-day
   volatility rank across all instruments is below 0.25 (diag 0.40).
-  Section 171 read the instrument's own volatility, section 176 the
+  Section 172 read the instrument's own volatility, section 178 the
   market's breadth; the market's volatility never.
 - **Measurement:** `scripts/market_volatility_regime.py`, weekly
   re-ranking, carried positions and cooldowns, run from the bot's
