@@ -6605,3 +6605,32 @@ the section numbers below point there.
 - **Result:** (a) fails at 2/4, (b) fails at t -0.57; the dropped
   combinations earn what the kept ones earn.
 - **Decision:** verworfen — no code change, no restart. Section 295.
+
+## 2026-09-16 (eleventh run) — an escalating cooldown after a repeated stop-out — UNMEASURABLE
+
+- **Lever:** regime filter — 24 h cooldown (diag 48 h) when two stop-outs
+  on an instrument fall within that window, instead of 6 h.
+- **Measurement:** `scripts/escalating_cooldown.py`. The rule fires six
+  times in seven years; both arms book the identical live book
+  (+0.2055 USD/day, zero difference on every sample).
+- **Result:** unmeasurable at this rate, not rejected on evidence.
+  Recorded so it is not proposed again. Section 296.
+
+## 2026-09-16 (twelfth run) — a stagnation exit
+
+- **Lever:** exit logic — close a position 12 bars after its last new
+  favourable extreme (diag 8), inside the 24-bar leash. The leash's
+  length and its split by open result were measured; the shape of the
+  move never.
+- **Measurement:** `scripts/stagnation_exit.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | arm | trades | USD/trade | bars held | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|---|
+  | **live** | **5,100** | **+0.0617** | **22.0** | **+0.1961** | — | — | — |
+  | stagnation 12 | 5,478 | +0.0383 | 17.6 | +0.1308 | -0.0653 | -1.34 | 0/4 |
+  | stagnation 8 (diag) | 5,867 | +0.0202 | 13.8 | +0.0703 | -0.1162 | -2.00 | 0/4 |
+
+- **Result:** (a) fails at 0/4, (b) fails at t -1.34; the diagnostic is
+  significantly worse. Monotone in the cut: shorter holds, less money.
+- **Decision:** verworfen — no code change, no restart. Section 297.

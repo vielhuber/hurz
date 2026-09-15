@@ -10779,3 +10779,50 @@ rank 41 is not different from what sits at rank 30. Diversifying the
 list is not a free lunch here because the cluster cap already limits what
 a crowded list can do to the book, and the extra slots given to metals
 and energy are two instruments deep.
+
+## 296. An escalating cooldown after a repeated stop-out: inert
+
+The 6-hour cooldown is the same after the first stop-out and the third.
+`scripts/escalating_cooldown.py` lengthens it to 24 hours (candidate) or
+48 (diagnostic) when two stop-outs on an instrument fall inside that
+window. In seven years the rule fires six times (16 at 48 h): the 6-hour
+cooldown, one position per instrument and the leash keep a second stop-out
+from arriving that fast, and the book is identical to the live one —
++0.2055 USD a day in both arms, zero difference on every sample. The
+refused signals are negative (-0.69 USD each, t -1.59) but six of them
+decide nothing.
+
+This is not a verdict on the escalation. The harness cannot separate it
+from the live rule at this rate, so the lever is unmeasurable here rather
+than rejected on evidence, and it is recorded so it is not proposed again
+as a fresh idea.
+
+## 297. A stagnation exit: leaving when the move stops extending costs a third of the day
+
+The leash exits after 24 bars whatever the position has been doing;
+sections 198, 228 and 250 measured its length and its split by open
+result, never the shape of the move. `scripts/stagnation_exit.py` adds an
+exit at the close of the bar 12 (candidate) or 8 (diagnostic) bars after
+the position's last new favourable extreme — stop, target, leash, sizes
+and caps unchanged, so it can only close earlier. Weekly re-ranking,
+carried positions and cooldowns (section 284), run from the bot's
+checkout (section 286). Clauses (a) all four year-samples up, (b) pooled
+paired t > +2.
+
+| arm | trades | USD/trade | bars held | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **leash only (live)** | **5,100** | **+0.0617** | **22.0** | **+0.1961** | — | — | — |
+| stagnation 12 bars | 5,478 | +0.0383 | 17.6 | +0.1308 | -0.0653 | -1.34 | 0/4 |
+| stagnation 8 bars (diag) | 5,867 | +0.0202 | 13.8 | +0.0703 | -0.1162 | -2.00 | 0/4 |
+
+Per sample (candidate): -0.0128 / -0.0862 / -0.0445 / -0.0076.
+
+Both fail, on every sample, and the diagnostic is significantly worse —
+one of the few candidates in this document that the data reject outright
+rather than leave undecided. Cutting a quiet stretch cuts the trades that
+resume: a breakout that pauses for twelve bars inside the leash is the
+normal shape of the winners, and the freed slots refill at the book's
+average. The ordering is monotone in the cut — 22.0, 17.6 and 13.8 bars
+held for +0.196, +0.131 and +0.070 USD a day — which is the throughput
+lesson of section 198 in reverse: this book's dollars come from the few
+trades that run, not from turning the slots over faster.
