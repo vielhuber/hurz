@@ -6846,3 +6846,23 @@ the section numbers below point there.
   signals earn exactly what the kept ones earn; a market that just broke
   the other way is no worse a place to enter.
 - **Decision:** verworfen — no code change, no restart. Section 307.
+
+## 2026-09-17 (sixth run) — supertrend flips as a fourth signal source
+
+- **Lever:** new signal source — supertrend(10, 3) flips under the trend
+  router, offered to the same ranked list with the live stop, target and
+  leash; diag supertrend(10, 2). Sections 224, 236 and 299 only moved
+  strategies already in the repository.
+- **Measurement:** `scripts/supertrend_source.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | arm | trades (supertrend) | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,100 (0)** | **+0.0617** | **+0.2034** | — | — | — |
+  | + supertrend(10, 3) | 5,168 (378) | +0.0550 | +0.1838 | -0.0195 | -0.76 | 1/4 |
+  | + supertrend(10, 2) (diag) | 5,665 (1,098) | +0.0305 | +0.1105 | -0.0907 | -2.12 | 1/4 |
+
+- **Result:** (a) fails at 1/4, (b) fails at t -0.76; the diagnostic is
+  significantly worse. The flips win places on the list and displace
+  better breakout trades.
+- **Decision:** verworfen — no code change, no restart. Section 308.

@@ -11115,3 +11115,27 @@ book earns, so the refused ones were worth the same: a breakout that
 follows a break the other way is no whipsaw in expectation. With section
 280 the opposite signal is closed as an entry and as an exit rule.
 Nothing is built.
+
+## 308. Supertrend flips as a fourth source: they win places on the list and lose them money
+
+`scripts/supertrend_source.py` adds the flips of a supertrend line (a
+close crossing a band 3 x ATR(10) off the bar's midpoint, diag 2 x) to the
+live mix as a fourth strategy, gated by the trend router and booked with
+the live stop, 1.5 R target and 24-bar leash, and offers the new
+combinations to the same ranked list. Clauses (a) all four year-samples
+up, (b) pooled paired t > +2.
+
+| arm | trades (supertrend) | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **live** | **5,100 (0)** | **+0.0617** | **+0.2034** | — | — | — |
+| + supertrend(10, 3) | 5,168 (378) | +0.0550 | +0.1838 | -0.0195 | -0.76 | 1/4 |
+| + supertrend(10, 2) (diag) | 5,665 (1,098) | +0.0305 | +0.1105 | -0.0907 | -2.12 | 1/4 |
+
+Per sample (candidate): +0.0226 / -0.0261 / -0.0175 / -0.0092.
+
+The flips pass the eligibility rule and take slots from the breakout
+combinations, and every trade they take is worth less than the one it
+displaces; the faster line takes three times as many and is significantly
+worse. A trailing volatility line fires late in a move, after the
+channel break has already been traded, which is the displacement sections
+236 and 302 found for keltner and the 4h book. Nothing is built.
