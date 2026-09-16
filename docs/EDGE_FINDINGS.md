@@ -11000,3 +11000,28 @@ cap bites into the size, so the trades that do win win small.
 With sections 29, 246, 298 and this one, the timeframe axis is closed in
 both directions: 15m, 2h, 4h and 1d have all been booked against the 1h
 book on this harness, and none of them adds anything.
+
+## 303. Room to the target: an older extreme in the way costs nothing the book can save
+
+Every live strategy enters on the break of a short channel and aims at
+1.5 R, and no gate reads what stands between the entry and that target.
+`scripts/target_room.py` refuses a long when the highest high of the 240
+bars before the signal bar lies above the entry and below the target (a
+short: the lowest low below the entry and above the target); the
+diagnostic looks back 480 bars. Stop, target, leash, sizes and caps are
+unchanged; weekly re-ranking with the book carried across boundaries.
+Clauses (a) all four year-samples up, (b) pooled paired t > +2.
+
+| arm | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **live** | **5,100** | **+0.0617** | **+0.2039** | — | — | — |
+| room over 240 bars | 3,774 | +0.0649 | +0.1587 | -0.0451 | -0.83 | 1/4 |
+| room over 480 bars (diag) | 3,967 | +0.0569 | +0.1466 | -0.0577 | -1.16 | 1/4 |
+
+Per sample (candidate): -0.1156 / -0.0350 / -0.0103 / +0.0067.
+
+A third of all gated signals have an older extreme between entry and
+target, so the filter bites hard, and the trades it keeps earn only three
+thousandths of a dollar more each. A level inside the target's reach does
+not stop the breakouts that meet it often enough to matter: the refused
+trades were worth nearly what the kept ones are. Nothing is built.

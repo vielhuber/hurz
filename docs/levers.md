@@ -6744,3 +6744,24 @@ the section numbers below point there.
   four days for the same target and pay four times the financing.
 - **Decision:** verworfen — no code change, no restart. Section 302.
   With sections 29, 246 and 298 the timeframe axis is closed.
+
+## 2026-09-17 — room to the target (an older extreme between entry and target)
+
+- **Lever:** regime / entry filter — refuse a long when the highest high
+  of the 240 bars before the signal bar lies above the entry and below
+  the 1.5 R target (a short mirrored); diag 480 bars. Sections 203 and
+  262 read the broken level's age and the range before it, never what
+  stands between entry and target.
+- **Measurement:** `scripts/target_room.py`, weekly re-ranking, carried
+  positions and cooldowns, run from the bot's checkout.
+
+  | arm | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,100** | **+0.0617** | **+0.2039** | — | — | — |
+  | room over 240 bars | 3,774 | +0.0649 | +0.1587 | -0.0451 | -0.83 | 1/4 |
+  | room over 480 bars (diag) | 3,967 | +0.0569 | +0.1466 | -0.0577 | -1.16 | 1/4 |
+
+- **Result:** (a) fails at 1/4, (b) fails at t -0.83. The filter refuses
+  a third of the signals; the kept trades earn barely more per trade
+  (+0.0032 USD), far too little to pay for the lost ones.
+- **Decision:** verworfen — no code change, no restart. Section 303.
