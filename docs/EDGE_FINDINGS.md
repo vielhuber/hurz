@@ -11093,3 +11093,25 @@ the day's side of the open, so the gate touches 174 signals in seven
 years and moves a few dozen trades. The direction of the effect is
 consistent, its size is a hundredth of a dollar a day, and no amount of
 this history can separate it from chance. Nothing is built.
+
+## 307. A whipsaw gate: the signal after an opposite break is an ordinary signal
+
+`scripts/whipsaw_gate.py` refuses a signal when any live strategy fired a
+gated signal in the opposite direction on the same instrument within the
+24 bars before it (diag 48). Everything else is the live book with weekly
+re-ranking and carried positions. Clauses (a) all four year-samples up,
+(b) pooled paired t > +2.
+
+| arm | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **live** | **5,100** | **+0.0617** | **+0.2041** | — | — | — |
+| opposite signal within 24 bars | 4,731 | +0.0617 | +0.1895 | -0.0147 | -0.45 | 2/4 |
+| within 48 bars (diag) | 4,220 | +0.0561 | +0.1539 | -0.0508 | -1.06 | 1/4 |
+
+Per sample (candidate): -0.0289 / +0.0146 / -0.0338 / +0.0030.
+
+The kept trades earn +0.0617 USD each, to the ten-thousandth what the full
+book earns, so the refused ones were worth the same: a breakout that
+follows a break the other way is no whipsaw in expectation. With section
+280 the opposite signal is closed as an entry and as an exit rule.
+Nothing is built.

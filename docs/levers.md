@@ -6826,3 +6826,23 @@ the section numbers below point there.
   only 174 of 28,713 signals — a breakout almost always already stands on
   the day's side — so the effect is small and not separable from noise.
 - **Decision:** verworfen — no code change, no restart. Section 306.
+
+## 2026-09-17 (fifth run) — a whipsaw gate on entries
+
+- **Lever:** regime filter — refuse a signal when any live strategy fired
+  a gated signal the other way on the same instrument within the 24 bars
+  before it; diag 48 bars. Section 280 used the opposite signal as an
+  exit, never as an entry gate.
+- **Measurement:** `scripts/whipsaw_gate.py`, weekly re-ranking, carried
+  positions and cooldowns, run from the bot's checkout.
+
+  | arm | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,100** | **+0.0617** | **+0.2041** | — | — | — |
+  | opposite signal within 24 bars | 4,731 | +0.0617 | +0.1895 | -0.0147 | -0.45 | 2/4 |
+  | within 48 bars (diag) | 4,220 | +0.0561 | +0.1539 | -0.0508 | -1.06 | 1/4 |
+
+- **Result:** (a) fails at 2/4, (b) fails at t -0.45. The refused
+  signals earn exactly what the kept ones earn; a market that just broke
+  the other way is no worse a place to enter.
+- **Decision:** verworfen — no code change, no restart. Section 307.
