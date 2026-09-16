@@ -11139,3 +11139,26 @@ displaces; the faster line takes three times as many and is significantly
 worse. A trailing volatility line fires late in a move, after the
 channel break has already been traded, which is the displacement sections
 236 and 302 found for keltner and the 4h book. Nothing is built.
+
+## 309. Inside-bar breakouts as a fourth source: a pause is not a base
+
+`scripts/inside_bar_source.py` adds a close beyond the mother bar's high
+or low within three bars after an inside bar (diag: after two consecutive
+inside bars) to the live mix, gated by the trend router, booked with the
+live stop, 1.5 R target and 24-bar leash, and offered to the same ranked
+list. Clauses (a) all four year-samples up, (b) pooled paired t > +2.
+
+| arm | trades (inside bar) | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **live** | **5,100 (0)** | **+0.0617** | **+0.1955** | — | — | — |
+| + inside bar | 6,090 (2,085) | +0.0251 | +0.0952 | -0.1003 | -1.74 | 0/4 |
+| + two inside bars (diag) | 5,152 (223) | +0.0507 | +0.1693 | -0.0344 | -1.48 | 1/4 |
+
+Per sample (candidate): -0.1300 / -0.0779 / -0.0035 / -0.0753.
+
+The single inside bar is common enough on hourly bars — 19,000 signals —
+that its combinations pass the eligibility rule and crowd the list: a
+third of all booked trades, at half the book's dollars per trade, and the
+pooled figure halves. The rarer double inside bar costs less and still
+costs on three samples. A one-hour pause is not the base a channel break
+needs. Nothing is built.

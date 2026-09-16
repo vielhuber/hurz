@@ -6866,3 +6866,22 @@ the section numbers below point there.
   significantly worse. The flips win places on the list and displace
   better breakout trades.
 - **Decision:** verworfen — no code change, no restart. Section 308.
+
+## 2026-09-17 (seventh run) — inside-bar breakouts as a fourth signal source
+
+- **Lever:** new signal source — a close beyond the mother bar's high or
+  low within three bars after an inside bar, under the trend router, with
+  the live stop, target and leash, offered to the same ranked list; diag
+  requires two consecutive inside bars.
+- **Measurement:** `scripts/inside_bar_source.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | arm | trades (inside bar) | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,100 (0)** | **+0.0617** | **+0.1955** | — | — | — |
+  | + inside bar | 6,090 (2,085) | +0.0251 | +0.0952 | -0.1003 | -1.74 | 0/4 |
+  | + two inside bars (diag) | 5,152 (223) | +0.0507 | +0.1693 | -0.0344 | -1.48 | 1/4 |
+
+- **Result:** (a) fails at 0/4, (b) fails at t -1.74. The pattern fires
+  19,000 times, takes 2,085 slots and halves the dollars per trade.
+- **Decision:** verworfen — no code change, no restart. Section 309.
