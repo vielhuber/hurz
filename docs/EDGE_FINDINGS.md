@@ -11047,3 +11047,26 @@ recent year; the diagnostic, which refuses a further 3,000 signals, is
 worse than live. A real gate would improve as it tightens until it starts
 to starve the book; this one flips at the first step, which is the shape
 of the noise that sections 290 and 301 also produced. Nothing is built.
+
+## 305. Momentum's rate-of-change floor: raising it only removes the strategy
+
+`momentum` enters on an EMA cross when the 10-bar rate of change is at
+least 0.5 % in its direction; the threshold had never been moved.
+`scripts/momentum_roc_floor.py` books the live book with 1.0 % (diag
+0.0 %), everything else unchanged. Clauses (a) all four year-samples up,
+(b) pooled paired t > +2.
+
+| min_roc_pct | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **0.5 (live)** | **5,100** | **+0.0617** | **+0.2055** | — | — | — |
+| 1.0 | 5,095 | +0.0631 | +0.2101 | +0.0047 | +1.12 | 1/4 |
+| 0.0 (diag) | 5,107 | +0.0594 | +0.1975 | -0.0072 | -0.54 | 1/4 |
+
+Per sample (1.0): -0.0087 / +0.0142 / 0.0000 / 0.0000.
+
+At 1.0 the two older samples do not move by a cent and the pooled
+figures equal section 299's arm without momentum: the stricter floor
+leaves too few momentum trades for any combination to pass the
+eligibility rule, so the lever is the strategy's removal under another
+name, already measured and rejected. Letting every cross in (0.0) costs a
+little on three samples. The floor stays at 0.5.

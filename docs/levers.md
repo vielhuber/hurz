@@ -6785,3 +6785,24 @@ the section numbers below point there.
   t +0.79. The stricter cut reverses the sign, so the candidate's gain is
   not a monotone effect of the gate.
 - **Decision:** verworfen — no code change, no restart. Section 304.
+
+## 2026-09-17 (third run) — the momentum strategy's rate-of-change floor
+
+- **Lever:** strategy parameter — `momentum`'s `min_roc_pct` from the
+  default 0.5 to 1.0; diag 0.0. Never swept since the strategy was
+  written.
+- **Measurement:** `scripts/momentum_roc_floor.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | min_roc_pct | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **0.5 (live)** | **5,100** | **+0.0617** | **+0.2055** | — | — | — |
+  | 1.0 | 5,095 | +0.0631 | +0.2101 | +0.0047 | +1.12 | 1/4 |
+  | 0.0 (diag) | 5,107 | +0.0594 | +0.1975 | -0.0072 | -0.54 | 1/4 |
+
+- **Result:** (a) fails at 1/4, (b) fails at t +1.12. At 1.0 the two
+  older samples are unchanged to the cent: momentum no longer earns a
+  place on the list, and the arm reproduces section 299's drop diagnostic
+  (+0.0047, t +1.12) exactly.
+- **Decision:** verworfen — default stays at 0.5, no code change, no
+  restart. Section 305.
