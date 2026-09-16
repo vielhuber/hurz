@@ -11025,3 +11025,25 @@ target, so the filter bites hard, and the trades it keeps earn only three
 thousandths of a dollar more each. A level inside the target's reach does
 not stop the breakouts that meet it often enough to matter: the refused
 trades were worth nearly what the kept ones are. Nothing is built.
+
+## 304. The efficiency ratio as a trend gate: a gain at 0.2 that turns at 0.3
+
+`scripts/efficiency_ratio_gate.py` refuses a signal when Kaufman's
+efficiency ratio of the 24 closes up to the signal bar — net move over the
+sum of the bar-to-bar moves — is below 0.2 (diag 0.3). Everything else is
+the live book with weekly re-ranking and carried positions. Clauses (a)
+all four year-samples up, (b) pooled paired t > +2.
+
+| arm | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **live** | **5,100** | **+0.0617** | **+0.2043** | — | — | — |
+| ER >= 0.2 | 4,462 | +0.0824 | +0.2388 | +0.0345 | +0.79 | 3/4 |
+| ER >= 0.3 (diag) | 4,001 | +0.0687 | +0.1777 | -0.0256 | -0.47 | 1/4 |
+
+Per sample (candidate): -0.0816 / +0.0454 / +0.0302 / +0.0382.
+
+The candidate lifts the dollars per trade by a third and loses the most
+recent year; the diagnostic, which refuses a further 3,000 signals, is
+worse than live. A real gate would improve as it tightens until it starts
+to starve the book; this one flips at the first step, which is the shape
+of the noise that sections 290 and 301 also produced. Nothing is built.

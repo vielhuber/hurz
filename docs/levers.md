@@ -6765,3 +6765,23 @@ the section numbers below point there.
   a third of the signals; the kept trades earn barely more per trade
   (+0.0032 USD), far too little to pay for the lost ones.
 - **Decision:** verworfen — no code change, no restart. Section 303.
+
+## 2026-09-17 (second run) — Kaufman's efficiency ratio as a trend gate
+
+- **Lever:** regime filter — refuse a signal when the efficiency ratio
+  (net move / summed bar moves) of the 24 closes up to the signal bar is
+  below 0.2; diag below 0.3. The router reads ADX; no run measured how
+  directly price travelled.
+- **Measurement:** `scripts/efficiency_ratio_gate.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | arm | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,100** | **+0.0617** | **+0.2043** | — | — | — |
+  | ER >= 0.2 | 4,462 | +0.0824 | +0.2388 | +0.0345 | +0.79 | 3/4 |
+  | ER >= 0.3 (diag) | 4,001 | +0.0687 | +0.1777 | -0.0256 | -0.47 | 1/4 |
+
+- **Result:** (a) fails at 3/4 (the latest year -0.0816), (b) fails at
+  t +0.79. The stricter cut reverses the sign, so the candidate's gain is
+  not a monotone effect of the gate.
+- **Decision:** verworfen — no code change, no restart. Section 304.
