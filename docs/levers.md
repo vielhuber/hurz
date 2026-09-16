@@ -6722,3 +6722,25 @@ the section numbers below point there.
 - **Decision:** verworfen — thresholds stay at 0.8 / -0.2, no code
   change, no restart. Section 301. With 217 the eligibility filter is
   closed in both directions.
+
+## 2026-09-16 (seventeenth run) — the 4h bar as a second signal stream
+
+- **Lever:** new signal source — the same three strategies on 4h bars
+  (3 x ATR stop, 1.5 R target, 24-bar leash) offered to the same ranked
+  list; diag the 4h book alone. Section 298 found the daily book blocked
+  by the eligibility rule; 4h clears it with 10,696 signals.
+- **Measurement:** `scripts/four_hour_stream.py`, weekly re-ranking,
+  carried positions and cooldowns, financing charged in every arm, run
+  from the bot's checkout.
+
+  | arm | trades (on 4h) | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **1h book (live)** | **5,060 (0)** | **+0.0464** | **+0.1459** | — | — | — |
+  | 1h + 4h ranked together | 4,860 (799) | +0.0196 | +0.0593 | -0.0867 | -1.43 | 0/4 |
+  | 4h alone (diag) | 1,358 (1,358) | -0.0910 | -0.0756 | -0.2194 | -2.27 | 0/4 |
+
+- **Result:** (a) fails at 0/4, (b) fails at t -1.43; the diagnostic is
+  significantly negative. The 4h trades displace 999 hourly ones, hold
+  four days for the same target and pay four times the financing.
+- **Decision:** verworfen — no code change, no restart. Section 302.
+  With sections 29, 246 and 298 the timeframe axis is closed.

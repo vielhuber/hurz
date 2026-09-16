@@ -10965,3 +10965,38 @@ built: the thresholds stay at 0.8 / -0.2, where section 217 left them.
 What the pair of sections does establish is that the eligibility filter
 sits on a plateau — a tightening costs, a widening does not pay, and the
 selector has no more to give in either direction.
+
+## 302. The 4h bar as a second stream: enough signals to be selected, and they lose
+
+Section 298 offered daily combinations to the selector and found them
+blocked by the eligibility rule — three signals a year against the ten
+the ranking window demands. The 4h bar clears that rule: 10,696 signals
+in seven years against 1,668 daily and 28,713 hourly.
+`scripts/four_hour_stream.py` resamples the history to 4h, recomputes the
+indicators, runs the same three strategies with a 3 x ATR stop (the
+floor's multiple), a 1.5 R target and a 24-bar leash of four days, and
+offers the 4h combinations to the same ranked list of 40. Financing is
+charged per night in every arm at the rates of section 126. Clauses (a)
+all four year-samples up, (b) pooled paired t > +2.
+
+| arm | trades (on 4h) | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **1h book (live)** | **5,060 (0)** | **+0.0464** | **+0.1459** | — | — | — |
+| 1h and 4h ranked together | 4,860 (799) | +0.0196 | +0.0593 | -0.0867 | -1.43 | 0/4 |
+| 4h book alone (diag) | 1,358 (1,358) | -0.0910 | -0.0756 | -2.27 | 0/4 |
+
+Per sample (candidate): -0.0851 / -0.0345 / -0.0490 / -0.0658.
+
+Both fail on every sample, and the diagnostic is significantly negative:
+the 4h book loses 0.09 USD a trade on its own and drags the combined book
+down by 40 % when it is allowed to compete for slots. It takes 799 of
+4,860 trades and displaces 999 hourly ones — the displacement section 236
+measured for keltner, at a larger scale and a worse price. Two reasons
+sit in the numbers. A 4h position holds four days where an hourly one
+holds a day, so it pays four times the financing for the same 1.5 R
+target; and the 3 x ATR stop on a 4h bar is wide enough that the notional
+cap bites into the size, so the trades that do win win small.
+
+With sections 29, 246, 298 and this one, the timeframe axis is closed in
+both directions: 15m, 2h, 4h and 1d have all been booked against the 1h
+book on this harness, and none of them adds anything.
