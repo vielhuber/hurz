@@ -6806,3 +6806,23 @@ the section numbers below point there.
   (+0.0047, t +1.12) exactly.
 - **Decision:** verworfen — default stays at 0.5, no code change, no
   restart. Section 305.
+
+## 2026-09-17 (fourth run) — the day's direction as a gate
+
+- **Lever:** regime filter — refuse a long whose signal close is below the
+  open of its UTC day's first bar (a short: above it); diag against the
+  previous UTC day's last close. No gate read where a signal stands in its
+  own trading day.
+- **Measurement:** `scripts/day_direction_gate.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | arm | signals | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|---|
+  | **live** | **28,713** | **5,100** | **+0.0617** | **+0.2053** | — | — | — |
+  | against the day's open | 28,539 | 5,084 | +0.0654 | +0.2169 | +0.0116 | +1.36 | 4/4 |
+  | against the prior close (diag) | 28,688 | 5,096 | +0.0622 | +0.2070 | +0.0016 | +0.37 | 2/4 |
+
+- **Result:** (a) passes at 4/4, (b) fails at t +1.36. The gate refuses
+  only 174 of 28,713 signals — a breakout almost always already stands on
+  the day's side — so the effect is small and not separable from noise.
+- **Decision:** verworfen — no code change, no restart. Section 306.

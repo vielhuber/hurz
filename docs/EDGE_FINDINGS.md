@@ -11070,3 +11070,26 @@ leaves too few momentum trades for any combination to pass the
 eligibility rule, so the lever is the strategy's removal under another
 name, already measured and rejected. Letting every cross in (0.0) costs a
 little on three samples. The floor stays at 0.5.
+
+## 306. The day's direction as a gate: every sample up, and too few refusals to prove it
+
+`scripts/day_direction_gate.py` refuses a long whose signal close is below
+the open of its UTC day's first bar, a short above it; the diagnostic uses
+the previous UTC day's last close. Everything else is the live book with
+weekly re-ranking and carried positions. Clauses (a) all four year-samples
+up, (b) pooled paired t > +2.
+
+| arm | signals | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **live** | **28,713** | **5,100** | **+0.0617** | **+0.2053** | — | — | — |
+| against the day's open | 28,539 | 5,084 | +0.0654 | +0.2169 | +0.0116 | +1.36 | 4/4 |
+| against the prior close (diag) | 28,688 | 5,096 | +0.0622 | +0.2070 | +0.0016 | +0.37 | 2/4 |
+
+Per sample (candidate): +0.0057 / +0.0171 / +0.0028 / +0.0016.
+
+The candidate is up on every sample and fails the t clause. The reason is
+in the signal count: a channel breakout nearly always already trades on
+the day's side of the open, so the gate touches 174 signals in seven
+years and moves a few dozen trades. The direction of the effect is
+consistent, its size is a hundredth of a dollar a day, and no amount of
+this history can separate it from chance. Nothing is built.
