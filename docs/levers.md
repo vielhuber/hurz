@@ -7041,8 +7041,9 @@ the section numbers below point there.
   | quarterly only (diag) | 5,082 | +0.0620 | +0.2055 | +0.0002 | +0.02 | 2/4 |
 
 - **Result:** (a) fails at 0/4, (b) fails at t -3.22 — significantly
-  worse on every sample. Index breakouts around the monthly expiry are
-  among the book's best trades, not its worst.
+  worse on every sample. Only 115 trades net go, so most of the loss is
+  second-order: without their expiry-window trades index combinations
+  fall below the eligibility rule and leave the list on every day.
 - **Decision:** verworfen — no code change, no restart. The inverse (more
   exposure on expiry days) would need higher risk and is not a candidate
   under the risk rules. Section 317.

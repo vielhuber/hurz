@@ -11346,11 +11346,14 @@ year-samples up, (b) pooled paired t > +2.
 
 Per sample (candidate): -0.0089 / -0.0460 / -0.0723 / -0.0282.
 
-The premise is reversed, and significantly: refusing 115 index trades a
-year around the monthly expiry takes a third of the book's dollars away,
-down on every sample. The index breakouts that start in the expiry window
-are some of the book's best — the release of the hedges after the pin is
-a move, and the channel break catches it. The quarterly dates alone carry
+The premise is reversed, and significantly: a blackout that removes 115
+trades net in seven years takes a third of the book's dollars away, down
+on every sample. That is far more than 115 trades at the book's
++0.06 USD can carry, so most of the loss is second-order: refused index
+signals drop combinations below the eligibility rule and off the list,
+and the book loses their trades on every other day as well. The index
+breakouts in the expiry window are good enough that their absence costs
+the combinations their place. The quarterly dates alone carry
 no signal either way. Leaning into the window would mean more risk on
 those days, which the risk rules exclude without forward evidence; the
 finding is recorded, nothing is built.
