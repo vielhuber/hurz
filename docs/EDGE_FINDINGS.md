@@ -11210,3 +11210,27 @@ to decide a combination's rank, and the charge on everything else is the
 same few thousandths across the list. Pricing it into the score moves a
 handful of combinations at the edge of the top 40 and nothing else.
 Nothing is built.
+
+## 312. Momentum's EMA pair: the slower cross changes nothing, the faster one is not a finding
+
+`scripts/momentum_ema_pair.py` recomputes the two averages behind
+`momentum` — live EMA(10)/EMA(30), candidate EMA(20)/EMA(60), diag
+EMA(5)/EMA(15) — and leaves donchian, turtle and everything else as live.
+Clauses (a) all four year-samples up, (b) pooled paired t > +2.
+
+| EMA pair | trades (momentum) | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **10 / 30 (live)** | **5,100 (10)** | **+0.0617** | **+0.2053** | — | — | — |
+| 20 / 60 | 5,102 (14) | +0.0619 | +0.2061 | +0.0007 | +0.10 | 2/4 |
+| 5 / 15 (diag) | 5,128 (55) | +0.0678 | +0.2271 | +0.0218 | +1.48 | 3/4 |
+
+Per sample (candidate): -0.0213 / +0.0114 / +0.0029 / -0.0022.
+Per sample (diag): +0.0228 / +0.0401 / -0.0136 / +0.0078.
+
+Momentum books ten trades in seven years on the live list, so no setting
+of its averages can move the book much. The slower pair adds four and
+changes nothing. The faster pair adds 45 and reads +0.02 USD a day at
+t +1.48 with one sample down — the best diagnostic of the series and
+still short of both clauses, found on the arm that was fixed as a check,
+not as the candidate. Adopting it would be selecting on this history
+after seeing it; it stays recorded, not built.

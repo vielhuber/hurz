@@ -6926,3 +6926,24 @@ the section numbers below point there.
   0.006 R a signal and hardly varies between the combinations that reach
   the list; it reorders the tail of the ranking, not the book.
 - **Decision:** verworfen — no code change, no restart. Section 311.
+
+## 2026-09-17 (tenth run) — the momentum strategy's EMA pair
+
+- **Lever:** strategy parameter — `momentum`'s cross from EMA(10)/EMA(30)
+  to the slower EMA(20)/EMA(60); diag the faster EMA(5)/EMA(15). Section
+  305 moved the rate-of-change floor, never the averages.
+- **Measurement:** `scripts/momentum_ema_pair.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | EMA pair | trades (momentum) | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **10 / 30 (live)** | **5,100 (10)** | **+0.0617** | **+0.2053** | — | — | — |
+  | 20 / 60 | 5,102 (14) | +0.0619 | +0.2061 | +0.0007 | +0.10 | 2/4 |
+  | 5 / 15 (diag) | 5,128 (55) | +0.0678 | +0.2271 | +0.0218 | +1.48 | 3/4 |
+
+- **Result:** (a) fails at 2/4, (b) fails at t +0.10. The diagnostic
+  reads better (3/4, t +1.48) on 55 momentum trades in seven years; it
+  was not the preregistered candidate, fails both clauses itself and is
+  not adopted after the fact.
+- **Decision:** verworfen — EMA(10)/EMA(30) stays, no code change, no
+  restart. Section 312.
