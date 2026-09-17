@@ -11280,3 +11280,28 @@ the leash (section 131's timeouts above entry); a stop at entry turns a
 share of them into scratches, and the freed slots take trades worth less.
 Arming on time does what arming on distance did in run 3: it trades the
 rare saved loser for the frequent cut winner. Nothing is built.
+
+## 315. A cash-session long on the US indices: one bull market, not a source
+
+`scripts/cash_session_long.py` buys US500, US30 and US100 at the close of
+the 14:00 UTC bar every weekday (diag 15:00 UTC), booked with the live
+stop, 1.5 R target and 24-bar leash and offered to the same ranked list
+of 40 without the trend router. No arm is charged financing, which
+favours the candidate. Clauses (a) all four year-samples up, (b) pooled
+paired t > +2.
+
+| arm | trades (session) | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **live** | **5,100 (0)** | **+0.0617** | **+0.1977** | — | — | — |
+| + long at 14:00 UTC | 6,011 (1,470) | +0.0730 | +0.2759 | +0.0782 | +1.23 | 3/4 |
+| + long at 15:00 UTC (diag) | 5,935 (1,358) | +0.0567 | +0.2117 | +0.0137 | +0.23 | 2/4 |
+
+Per sample (candidate): -0.1473 / +0.1850 / +0.0546 / +0.0062.
+
+The largest pooled difference of the series, and the least trustworthy:
+it is a long-only bet on three correlated indices, and nearly all of it
+comes from the 366–1,095 d sample, the index rally, while the latest
+year loses fifteen cents a day. Moving the entry one hour later keeps the
+direction and loses five sixths of the gain, so the entry hour is not a
+structural edge either. A calendar long on the indices is the market's
+beta sold as a signal; it is not built.

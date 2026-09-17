@@ -6985,3 +6985,24 @@ the section numbers below point there.
 - **Result:** (a) fails at 1/4, (b) fails at t -1.13. The scratches cut
   positions that would have timed out above entry or reached the target.
 - **Decision:** verworfen — no code change, no restart. Section 314.
+
+## 2026-09-17 (thirteenth run) — a cash-session long on the US indices
+
+- **Lever:** new signal source — `cash_session_long` on US500, US30 and
+  US100 at the close of the 14:00 UTC bar every weekday, live stop,
+  target and leash, no router, offered to the same ranked list; diag at
+  15:00 UTC. Section 276 measured the overnight half, never the session.
+- **Measurement:** `scripts/cash_session_long.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout; no
+  financing charged in any arm.
+
+  | arm | trades (session) | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,100 (0)** | **+0.0617** | **+0.1977** | — | — | — |
+  | + long at 14:00 UTC | 6,011 (1,470) | +0.0730 | +0.2759 | +0.0782 | +1.23 | 3/4 |
+  | + long at 15:00 UTC (diag) | 5,935 (1,358) | +0.0567 | +0.2117 | +0.0137 | +0.23 | 2/4 |
+
+- **Result:** (a) fails at 3/4, (b) fails at t +1.23. The gain is one
+  sample (366–1,095 d, the 2023–2025 index rally, +0.185 USD/day); the
+  latest year loses -0.147, and an hour later most of it is gone.
+- **Decision:** verworfen — no code change, no restart. Section 315.
