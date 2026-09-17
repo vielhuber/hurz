@@ -11329,3 +11329,28 @@ down. Breakouts printed into the release are not worse than the others;
 the spike that follows is as likely to carry a position to its target as
 to its stop. The first macro-calendar filter measured here is not a
 lever. Nothing is built.
+
+## 317. An index expiry blackout: the refused days are where the index book earns
+
+`scripts/index_expiry_blackout.py` refuses signals on the nine index CFDs
+on the Thursday before and on the third Friday of each month (diag: the
+quarterly third Fridays only). Everything else is the live book with
+weekly re-ranking and carried positions. Clauses (a) all four
+year-samples up, (b) pooled paired t > +2.
+
+| arm | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **live** | **5,100** | **+0.0617** | **+0.2053** | — | — | — |
+| monthly expiry blackout | 4,985 | +0.0410 | +0.1335 | -0.0718 | -3.22 | 0/4 |
+| quarterly only (diag) | 5,082 | +0.0620 | +0.2055 | +0.0002 | +0.02 | 2/4 |
+
+Per sample (candidate): -0.0089 / -0.0460 / -0.0723 / -0.0282.
+
+The premise is reversed, and significantly: refusing 115 index trades a
+year around the monthly expiry takes a third of the book's dollars away,
+down on every sample. The index breakouts that start in the expiry window
+are some of the book's best — the release of the hedges after the pin is
+a move, and the channel break catches it. The quarterly dates alone carry
+no signal either way. Leaning into the window would mean more risk on
+those days, which the risk rules exclude without forward evidence; the
+finding is recorded, nothing is built.

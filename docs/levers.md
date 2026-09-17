@@ -7025,3 +7025,24 @@ the section numbers below point there.
 - **Result:** (a) fails at 1/4, (b) fails at t +0.18. Fifty-five refused
   trades in seven years; the release hour is not where the book loses.
 - **Decision:** verworfen — no code change, no restart. Section 316.
+
+## 2026-09-17 (fifteenth run) — an index options-expiry blackout
+
+- **Lever:** regime filter — refuse index signals (US500, US30, US100,
+  DE40, EU50, FR40, UK100, J225, HK50) on the Thursday before and on the
+  third Friday of each month; diag on the quarterly third Fridays only.
+- **Measurement:** `scripts/index_expiry_blackout.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | arm | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,100** | **+0.0617** | **+0.2053** | — | — | — |
+  | monthly expiry blackout | 4,985 | +0.0410 | +0.1335 | -0.0718 | -3.22 | 0/4 |
+  | quarterly only (diag) | 5,082 | +0.0620 | +0.2055 | +0.0002 | +0.02 | 2/4 |
+
+- **Result:** (a) fails at 0/4, (b) fails at t -3.22 — significantly
+  worse on every sample. Index breakouts around the monthly expiry are
+  among the book's best trades, not its worst.
+- **Decision:** verworfen — no code change, no restart. The inverse (more
+  exposure on expiry days) would need higher risk and is not a candidate
+  under the risk rules. Section 317.
