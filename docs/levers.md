@@ -7006,3 +7006,22 @@ the section numbers below point there.
   sample (366–1,095 d, the 2023–2025 index rally, +0.185 USD/day); the
   latest year loses -0.147, and an hour later most of it is gone.
 - **Decision:** verworfen — no code change, no restart. Section 315.
+
+## 2026-09-17 (fourteenth run) — a payrolls blackout
+
+- **Lever:** regime filter — refuse signals on the first Friday of the
+  month on bars opening 12:00–15:59 UTC, around the US employment report;
+  diag refuses the whole first Friday. No macro-calendar filter was ever
+  measured.
+- **Measurement:** `scripts/payroll_blackout.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | arm | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,100** | **+0.0617** | **+0.2053** | — | — | — |
+  | blackout 12–16 UTC | 5,045 | +0.0630 | +0.2074 | +0.0020 | +0.18 | 1/4 |
+  | whole first Friday (diag) | 4,880 | +0.0628 | +0.1998 | -0.0053 | -0.25 | 2/4 |
+
+- **Result:** (a) fails at 1/4, (b) fails at t +0.18. Fifty-five refused
+  trades in seven years; the release hour is not where the book loses.
+- **Decision:** verworfen — no code change, no restart. Section 316.

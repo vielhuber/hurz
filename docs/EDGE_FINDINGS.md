@@ -11305,3 +11305,27 @@ year loses fifteen cents a day. Moving the entry one hour later keeps the
 direction and loses five sixths of the gain, so the entry hour is not a
 structural edge either. A calendar long on the indices is the market's
 beta sold as a signal; it is not built.
+
+## 316. A payrolls blackout: the release hour costs the book nothing
+
+`scripts/payroll_blackout.py` refuses signals on the first Friday of the
+month whose bar opens between 12:00 and 15:59 UTC, around the US
+employment report (diag: the whole first Friday). The release date is
+approximated by the first Friday. Everything else is the live book with
+weekly re-ranking and carried positions. Clauses (a) all four
+year-samples up, (b) pooled paired t > +2.
+
+| arm | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **live** | **5,100** | **+0.0617** | **+0.2053** | — | — | — |
+| blackout 12–16 UTC | 5,045 | +0.0630 | +0.2074 | +0.0020 | +0.18 | 1/4 |
+| whole first Friday (diag) | 4,880 | +0.0628 | +0.1998 | -0.0053 | -0.25 | 2/4 |
+
+Per sample (candidate): -0.0062 / +0.0127 / -0.0008 / -0.0045.
+
+The window refuses 450 signals and 55 booked trades in seven years, and
+the difference is two thousandths of a dollar a day with three samples
+down. Breakouts printed into the release are not worse than the others;
+the spike that follows is as likely to carry a position to its target as
+to its stop. The first macro-calendar filter measured here is not a
+lever. Nothing is built.
