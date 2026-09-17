@@ -6966,3 +6966,22 @@ the section numbers below point there.
 - **Result:** (a) fails at 2/4, (b) fails at t -0.28. The kept trades earn
   slightly more each, the refused ones still pay for their slot.
 - **Decision:** verworfen — no code change, no restart. Section 313.
+
+## 2026-09-17 (twelfth run) — a time-armed break-even stop
+
+- **Lever:** exit logic — at the close of bar 12, if the close is beyond
+  the entry, move the stop to the entry price; diag at bar 6. Run 3 of
+  2026-09-07 armed break-even on distance at the old 1-ATR stop, never on
+  time at the live floor.
+- **Measurement:** `scripts/time_armed_breakeven.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | arm | trades | USD/trade | bars held | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|---|
+  | **live** | **5,100** | **+0.0617** | **22.0** | **+0.2005** | — | — | — |
+  | armed at bar 12 | 5,245 | +0.0485 | 20.2 | +0.1621 | -0.0384 | -1.13 | 1/4 |
+  | armed at bar 6 (diag) | 5,483 | +0.0453 | 18.1 | +0.1555 | -0.0413 | -0.95 | 1/4 |
+
+- **Result:** (a) fails at 1/4, (b) fails at t -1.13. The scratches cut
+  positions that would have timed out above entry or reached the target.
+- **Decision:** verworfen — no code change, no restart. Section 314.

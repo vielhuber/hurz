@@ -11257,3 +11257,26 @@ with the samples split two and two. The refused breakouts on wide days
 are worth less than the kept ones and still more than nothing, which is
 the shape sections 290, 301 and 304 found for every refusal on this book.
 Nothing is built.
+
+## 314. A time-armed break-even stop: the scratches take away the timeouts
+
+`scripts/time_armed_breakeven.py` moves the stop to the entry price at the
+close of bar 12 (diag bar 6) when that close is beyond the entry; a stop
+touched after arming books a scratch at entry minus costs. Target, leash,
+sizes and caps are live; weekly re-ranking with the book carried across
+boundaries. Clauses (a) all four year-samples up, (b) pooled paired
+t > +2.
+
+| arm | trades | USD/trade | bars held | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **live** | **5,100** | **+0.0617** | **22.0** | **+0.2005** | — | — | — |
+| armed at bar 12 | 5,245 | +0.0485 | 20.2 | +0.1621 | -0.0384 | -1.13 | 1/4 |
+| armed at bar 6 (diag) | 5,483 | +0.0453 | 18.1 | +0.1555 | -0.0413 | -0.95 | 1/4 |
+
+Per sample (candidate): +0.0470 / -0.0138 / -0.0386 / -0.0540.
+
+The book's edge sits in the positions that drift in its favour through
+the leash (section 131's timeouts above entry); a stop at entry turns a
+share of them into scratches, and the freed slots take trades worth less.
+Arming on time does what arming on distance did in run 3: it trades the
+rare saved loser for the frequent cut winner. Nothing is built.
