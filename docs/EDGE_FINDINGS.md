@@ -11186,3 +11186,27 @@ least their proportional share, and the two middle samples, where the
 book earns most, are where they earn it. With sections 185 and 274 the
 lower edge of the router's band is closed for target, floor and size.
 Sizes stay at 3 USD.
+
+## 311. The selector's score net of financing: too small and too even to reorder the book
+
+`scripts/financing_net_ranking.py` books every trade net of overnight
+financing (section 154's rates: crypto longs 0.050 R a night, metals
+longs 0.013, other longs 0.005, shorts 0.003) in all arms and varies only
+what the selector ranks on: R before financing (live), net of financing
+(candidate), net of twice the financing (diag). Clauses (a) all four
+year-samples up, (b) pooled paired t > +2.
+
+| ranking | trades | USD/trade (net) | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **gross R (live)** | **5,100** | **+0.0475** | **+0.1583** | — | — | — |
+| net of financing | 5,060 | +0.0464 | +0.1535 | -0.0048 | -0.63 | 1/4 |
+| net of 2 x financing (diag) | 5,017 | +0.0474 | +0.1554 | -0.0029 | -0.29 | 1/4 |
+
+Per sample (candidate): -0.0030 / +0.0018 / -0.0075 / -0.0029.
+
+Financing averages 0.006 R a signal and the booked trades pay the same
+0.0061 R in every arm: the expensive crypto and metals longs are too few
+to decide a combination's rank, and the charge on everything else is the
+same few thousandths across the list. Pricing it into the score moves a
+handful of combinations at the edge of the top 40 and nothing else.
+Nothing is built.

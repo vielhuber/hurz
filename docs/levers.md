@@ -6906,3 +6906,23 @@ the section numbers below point there.
   taking risk off it takes dollars off the book.
 - **Decision:** verworfen — sizes stay at 3 USD, no code change, no
   restart. Section 310.
+
+## 2026-09-17 (ninth run) — the selector's score net of financing
+
+- **Lever:** cost filter / pair selection — rank combinations on their
+  trailing R net of overnight financing (section 154's rates) instead of
+  before it; diag at twice the financing. Every arm books the same trades
+  net of financing, so only the ranking differs.
+- **Measurement:** `scripts/financing_net_ranking.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | ranking | trades | USD/trade (net) | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **gross R (live)** | **5,100** | **+0.0475** | **+0.1583** | — | — | — |
+  | net of financing | 5,060 | +0.0464 | +0.1535 | -0.0048 | -0.63 | 1/4 |
+  | net of 2 x financing (diag) | 5,017 | +0.0474 | +0.1554 | -0.0029 | -0.29 | 1/4 |
+
+- **Result:** (a) fails at 1/4, (b) fails at t -0.63. Financing averages
+  0.006 R a signal and hardly varies between the combinations that reach
+  the list; it reorders the tail of the ranking, not the book.
+- **Decision:** verworfen — no code change, no restart. Section 311.
