@@ -7067,3 +7067,14 @@ the section numbers below point there.
   weakens section 317's second-order reading: list churn is not where
   the book loses dollars, so the expiry loss is not explained by it alone.
 - **Decision:** verworfen — no code change, no restart. Section 318.
+
+## 2026-09-17 (diagnostic) — the expiry window decomposed
+
+- **Question:** why section 317's blackout of 115 net trades cost a third
+  of the book's dollars (section 318 ruled out list churn).
+- **Finding:** 168 live-book index trades fall in the window and carry
+  +94 of +315 USD at +0.225 R. The pocket is spread over all nine indices
+  (no roll artifact) and decays by year from +0.39 R (2021) to -0.08 R
+  (2025) and -0.17 R (2026). Section 319.
+- **Decision:** no rule in either direction — a faded calendar effect is
+  no lever, and leaning into it would raise risk. No code change.

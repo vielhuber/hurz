@@ -11383,3 +11383,34 @@ and it does not. The expiry blackout's loss is therefore better read as
 the value of the refused index trades themselves plus their knock-on
 effect on cooldowns and caps, and it stays unexplained in size. Nothing
 is built.
+
+## 319. The expiry window decomposed: a decaying pocket, not an artifact
+
+Sections 317 and 318 left the size of the expiry blackout's loss
+unexplained. Booking the live book and tagging its index trades by the
+window of 317 (Thursday before and third Friday) gives the answer
+directly: 168 of 5,100 trades fall in the window, and they carry +94 USD
+of the book's +315 USD at +0.225 R a trade against +0.03 R for the rest.
+The loss of 317 is those trades' own value; the list and cooldown effects
+are second-order.
+
+It is spread over all nine indices (every one positive in the window),
+so it is not one instrument's price history with a broken roll, and the
+top trades are ordinary target hits on channel breakouts. By year:
+
+| year | in window n / E[R] | outside n / E[R] |
+|---|---|---|
+| 2020 | 5 / +1.060 | 52 / +0.151 |
+| 2021 | 32 / +0.385 | 259 / +0.012 |
+| 2022 | 12 / +0.723 | 168 / +0.026 |
+| 2023 | 30 / +0.199 | 290 / +0.089 |
+| 2024 | 43 / +0.245 | 294 / +0.024 |
+| 2025 | 31 / -0.078 | 310 / +0.031 |
+| 2026 | 15 / -0.173 | 178 / +0.010 |
+
+The pocket shrinks every year and has been negative for the last twenty
+months; the Thursday before (92 trades, +0.294 R) carries more of it than
+the third Friday (76, +0.141 R). A calendar effect that has faded to
+below zero on the recent data is no basis for a rule in either direction,
+and leaning into it would need more risk on those days. Recorded as the
+explanation of 317; nothing is built.
