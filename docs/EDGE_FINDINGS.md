@@ -11436,3 +11436,25 @@ close is a trend that is working, and its night and next session reach
 the target often enough to beat the banked fraction. It is the same
 answer as the break-even (314) and stagnation (297) exits: the book's
 edge is the drift that the leash lets run. Nothing is built.
+
+## 321. A year-end holiday blackout: thin weeks, ordinary trades
+
+`scripts/year_end_blackout.py` refuses signals from 20 December to
+3 January inclusive (diag: also every signal in August). Everything else
+is the live book with weekly re-ranking and carried positions. Clauses
+(a) all four year-samples up, (b) pooled paired t > +2.
+
+| arm | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **live** | **5,100** | **+0.0617** | **+0.2052** | — | — | — |
+| 20 Dec – 3 Jan refused | 4,948 | +0.0643 | +0.2077 | +0.0025 | +0.15 | 2/4 |
+| and August (diag) | 4,554 | +0.0723 | +0.2145 | +0.0097 | +0.33 | 2/4 |
+
+Per sample (candidate): +0.0041 / +0.0215 / -0.0133 / -0.0050.
+
+Seven year-ends give 152 trades, and removing them moves the book by a
+quarter of a cent a day with the samples split. Adding August raises the
+dollars per trade and still splits the samples two and two at t +0.33.
+The calendar axis — weekday, turn of month, holidays, payrolls, expiry,
+season — is now read at every grain this history offers, and none of it
+is a lever. Nothing is built.

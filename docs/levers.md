@@ -7097,3 +7097,21 @@ the section numbers below point there.
 - **Result:** (a) fails at 1/4, (b) fails at t -1.02. Index profits at the
   cash close run on to the target more often than they give back.
 - **Decision:** verworfen — no code change, no restart. Section 320.
+
+## 2026-09-17 (eighteenth run) — a year-end holiday blackout
+
+- **Lever:** regime filter — refuse signals from 20 December to 3 January;
+  diag also every signal in August. The bank-holiday guard covers the
+  days, not the thin weeks between them.
+- **Measurement:** `scripts/year_end_blackout.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | arm | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,100** | **+0.0617** | **+0.2052** | — | — | — |
+  | 20 Dec – 3 Jan refused | 4,948 | +0.0643 | +0.2077 | +0.0025 | +0.15 | 2/4 |
+  | and August (diag) | 4,554 | +0.0723 | +0.2145 | +0.0097 | +0.33 | 2/4 |
+
+- **Result:** (a) fails at 2/4, (b) fails at t +0.15. The thin weeks are
+  not measurably worse for the book.
+- **Decision:** verworfen — no code change, no restart. Section 321.
