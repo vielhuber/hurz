@@ -7047,3 +7047,23 @@ the section numbers below point there.
 - **Decision:** verworfen — no code change, no restart. The inverse (more
   exposure on expiry days) would need higher risk and is not a candidate
   under the risk rules. Section 317.
+
+## 2026-09-17 (sixteenth run) — hysteresis on the active list
+
+- **Lever:** pair selection — a combination on the list in any of the
+  last four weekly rankings stays on it; diag eight weeks. Motivated by
+  section 317's fragile list.
+- **Measurement:** `scripts/list_hysteresis.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | arm | final list | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|---|
+  | **this week's ranking (live)** | **34** | **5,100** | **+0.0617** | **+0.2049** | — | — | — |
+  | kept for 4 weeks | 39 | 5,153 | +0.0605 | +0.2031 | -0.0018 | -0.21 | 1/4 |
+  | kept for 8 weeks (diag) | 42 | 5,193 | +0.0614 | +0.2075 | +0.0027 | +0.27 | 1/4 |
+
+- **Result:** (a) fails at 1/4, (b) fails at t -0.21. Keeping dropped
+  combinations adds fifty trades worth what the rest are worth. It also
+  weakens section 317's second-order reading: list churn is not where
+  the book loses dollars, so the expiry loss is not explained by it alone.
+- **Decision:** verworfen — no code change, no restart. Section 318.

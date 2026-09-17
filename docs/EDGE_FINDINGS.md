@@ -11357,3 +11357,29 @@ the combinations their place. The quarterly dates alone carry
 no signal either way. Leaning into the window would mean more risk on
 those days, which the risk rules exclude without forward evidence; the
 finding is recorded, nothing is built.
+
+## 318. Hysteresis on the active list: the churn costs nothing
+
+`scripts/list_hysteresis.py` keeps a combination on the active list if it
+was on it in any of the last four weekly rankings (diag eight), so a
+combination that falls below the eligibility rule for a week or two keeps
+trading. Pins, vetoes, sizes and caps are live. Clauses (a) all four
+year-samples up, (b) pooled paired t > +2.
+
+| arm | final list | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **this week's ranking (live)** | **34** | **5,100** | **+0.0617** | **+0.2049** | — | — | — |
+| kept for 4 weeks | 39 | 5,153 | +0.0605 | +0.2031 | -0.0018 | -0.21 | 1/4 |
+| kept for 8 weeks (diag) | 42 | 5,193 | +0.0614 | +0.2075 | +0.0027 | +0.27 | 1/4 |
+
+Per sample (candidate): +0.0131 / -0.0055 / -0.0031 / -0.0018.
+
+The list grows by five to eight combinations and the book by fifty to
+ninety trades, each worth what the book's trades are worth; the pooled
+difference is inside two thousandths either way. The list's weekly churn
+is not a leak. This also qualifies the reading of section 317: if losing
+a place on the list for a few weeks were expensive, keeping it would pay,
+and it does not. The expiry blackout's loss is therefore better read as
+the value of the refused index trades themselves plus their knock-on
+effect on cooldowns and caps, and it stays unexplained in size. Nothing
+is built.
