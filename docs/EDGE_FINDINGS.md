@@ -11234,3 +11234,26 @@ t +1.48 with one sample down — the best diagnostic of the series and
 still short of both clauses, found on the arm that was fixed as a check,
 not as the candidate. Adopting it would be selecting on this history
 after seeing it; it stays recorded, not built.
+
+## 313. Range exhaustion within the day: a used-up day is not a worse day to break out
+
+`scripts/range_exhaustion_gate.py` refuses a signal when the high-low
+range of its UTC day up to the signal bar exceeds 1.5 x (diag 1.0 x) the
+mean full-day range of the twenty previous UTC days. Everything else is
+the live book with weekly re-ranking and carried positions. Clauses (a)
+all four year-samples up, (b) pooled paired t > +2.
+
+| arm | trades | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|
+| **live** | **5,100** | **+0.0617** | **+0.2038** | — | — | — |
+| refuse above 1.5 x | 4,798 | +0.0625 | +0.1942 | -0.0095 | -0.28 | 2/4 |
+| refuse above 1.0 x (diag) | 4,099 | +0.0702 | +0.1863 | -0.0173 | -0.32 | 2/4 |
+
+Per sample (candidate): +0.0176 / -0.0206 / -0.0221 / +0.0139.
+
+The gate works in the expected direction per trade — the stricter it is,
+the more each kept trade earns — and loses in dollars a day at both cuts,
+with the samples split two and two. The refused breakouts on wide days
+are worth less than the kept ones and still more than nothing, which is
+the shape sections 290, 301 and 304 found for every refusal on this book.
+Nothing is built.

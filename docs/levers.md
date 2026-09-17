@@ -6947,3 +6947,22 @@ the section numbers below point there.
   not adopted after the fact.
 - **Decision:** verworfen — EMA(10)/EMA(30) stays, no code change, no
   restart. Section 312.
+
+## 2026-09-17 (eleventh run) — range exhaustion within the day
+
+- **Lever:** regime filter — refuse a signal when its UTC day's range so
+  far exceeds 1.5 x the mean range of the twenty previous days; diag
+  1.0 x. Section 306 read the day's direction, run 40 the extension from
+  EMA20; no gate read how much of a normal day's range is used.
+- **Measurement:** `scripts/range_exhaustion_gate.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | arm | trades | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|
+  | **live** | **5,100** | **+0.0617** | **+0.2038** | — | — | — |
+  | refuse above 1.5 x | 4,798 | +0.0625 | +0.1942 | -0.0095 | -0.28 | 2/4 |
+  | refuse above 1.0 x (diag) | 4,099 | +0.0702 | +0.1863 | -0.0173 | -0.32 | 2/4 |
+
+- **Result:** (a) fails at 2/4, (b) fails at t -0.28. The kept trades earn
+  slightly more each, the refused ones still pay for their slot.
+- **Decision:** verworfen — no code change, no restart. Section 313.
