@@ -11414,3 +11414,25 @@ the third Friday (76, +0.141 R). A calendar effect that has faded to
 below zero on the recent data is no basis for a rule in either direction,
 and leaning into it would need more risk on those days. Recorded as the
 explanation of 317; nothing is built.
+
+## 320. Banking index profits at the cash close: the night carries them on
+
+`scripts/index_cash_close_exit.py` closes a position on one of the nine
+index CFDs at the close of the 19:00 UTC bar when its open result there
+is at least +0.5 R (diag: any profit). Everything else is the live book.
+Clauses (a) all four year-samples up, (b) pooled paired t > +2.
+
+| arm | trades | USD/trade | bars held | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **live** | **5,100** | **+0.0617** | **22.0** | **+0.2044** | — | — | — |
+| bank at >= +0.5 R | 5,167 | +0.0505 | 21.5 | +0.1695 | -0.0349 | -1.02 | 1/4 |
+| bank any profit (diag) | 5,330 | +0.0400 | 20.2 | +0.1370 | -0.0651 | -1.48 | 0/4 |
+
+Per sample (candidate): -0.0540 / -0.0393 / -0.0115 / +0.0041.
+
+Monotone and in the wrong direction: the more of the open profit is
+banked, the more the book loses. An index position in profit at the cash
+close is a trend that is working, and its night and next session reach
+the target often enough to beat the banked fraction. It is the same
+answer as the break-even (314) and stagnation (297) exits: the book's
+edge is the drift that the leash lets run. Nothing is built.

@@ -7078,3 +7078,22 @@ the section numbers below point there.
   (2025) and -0.17 R (2026). Section 319.
 - **Decision:** no rule in either direction — a faded calendar effect is
   no lever, and leaning into it would raise risk. No code change.
+
+## 2026-09-17 (seventeenth run) — banking index profits at the US cash close
+
+- **Lever:** exit logic — close an index position at the close of the
+  19:00 UTC bar if its open result there is at least +0.5 R; diag at any
+  profit. Section 276 read the overnight drift for entries, never as an
+  exit for positions already in profit.
+- **Measurement:** `scripts/index_cash_close_exit.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | arm | trades | USD/trade | bars held | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|---|
+  | **live** | **5,100** | **+0.0617** | **22.0** | **+0.2044** | — | — | — |
+  | bank at >= +0.5 R | 5,167 | +0.0505 | 21.5 | +0.1695 | -0.0349 | -1.02 | 1/4 |
+  | bank any profit (diag) | 5,330 | +0.0400 | 20.2 | +0.1370 | -0.0651 | -1.48 | 0/4 |
+
+- **Result:** (a) fails at 1/4, (b) fails at t -1.02. Index profits at the
+  cash close run on to the target more often than they give back.
+- **Decision:** verworfen — no code change, no restart. Section 320.
