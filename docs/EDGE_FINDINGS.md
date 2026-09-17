@@ -11162,3 +11162,27 @@ third of all booked trades, at half the book's dollars per trade, and the
 pooled figure halves. The rarer double inside bar costs less and still
 costs on three samples. A one-hour pause is not the base a channel break
 needs. Nothing is built.
+
+## 310. Risk by trend strength: the weakest admitted trends carry their share
+
+`scripts/adx_risk_scaling.py` sizes entries whose ADX(14) at the signal
+bar is below 35 — the lower edge of the router's band — at 1.5 USD target
+risk (diag 2.25 USD) and the rest at the live 3 USD, through
+`calculate_position_size` with the venue's size steps. Nothing is sized
+up. Weekly re-ranking with the book carried across boundaries. Clauses (a)
+all four year-samples up, (b) pooled paired t > +2.
+
+| arm | trades | risk/trade | USD/trade | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **3 USD everywhere (live)** | **5,100** | **2.30** | **+0.0617** | **+0.2055** | — | — | — |
+| 1.5 USD below ADX 35 | 5,096 | 1.69 | +0.0420 | +0.1398 | -0.0657 | -2.37 | 2/4 |
+| 2.25 USD below ADX 35 (diag) | 5,100 | 2.04 | +0.0556 | +0.1852 | -0.0203 | -1.65 | 2/4 |
+
+Per sample (candidate): +0.0246 / -0.0891 / -0.0667 / +0.0052.
+
+Halving the risk on the weak band takes a quarter of the risk off the book
+and a third of its dollars, significantly: the ADX 30–35 signals earn at
+least their proportional share, and the two middle samples, where the
+book earns most, are where they earn it. With sections 185 and 274 the
+lower edge of the router's band is closed for target, floor and size.
+Sizes stay at 3 USD.

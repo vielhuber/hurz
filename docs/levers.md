@@ -6885,3 +6885,24 @@ the section numbers below point there.
 - **Result:** (a) fails at 0/4, (b) fails at t -1.74. The pattern fires
   19,000 times, takes 2,085 slots and halves the dollars per trade.
 - **Decision:** verworfen — no code change, no restart. Section 309.
+
+## 2026-09-17 (eighth run) — risk by trend strength
+
+- **Lever:** position sizing — entries with ADX(14) below 35 at the signal
+  bar sized at 1.5 USD target risk instead of 3 USD; diag 2.25 USD. Sized
+  through `calculate_position_size` with the real size steps. Sizes only
+  go down; no limit raised.
+- **Measurement:** `scripts/adx_risk_scaling.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | arm | trades | risk/trade | USD/trade | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|---|
+  | **3 USD everywhere (live)** | **5,100** | **2.30** | **+0.0617** | **+0.2055** | — | — | — |
+  | 1.5 USD below ADX 35 | 5,096 | 1.69 | +0.0420 | +0.1398 | -0.0657 | -2.37 | 2/4 |
+  | 2.25 USD below ADX 35 (diag) | 5,100 | 2.04 | +0.0556 | +0.1852 | -0.0203 | -1.65 | 2/4 |
+
+- **Result:** (a) fails at 2/4, (b) fails at t -2.37 — significantly
+  worse. The weak-trend band earns at least as much per R as the rest;
+  taking risk off it takes dollars off the book.
+- **Decision:** verworfen — sizes stay at 3 USD, no code change, no
+  restart. Section 310.
