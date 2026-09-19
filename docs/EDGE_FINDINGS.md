@@ -11458,3 +11458,26 @@ dollars per trade and still splits the samples two and two at t +0.33.
 The calendar axis — weekday, turn of month, holidays, payrolls, expiry,
 season — is now read at every grain this history offers, and none of it
 is a lever. Nothing is built.
+
+## 322. A profit lock: the pullbacks it books were on their way to the target
+
+`scripts/profit_lock.py` moves the stop to +0.5 R once a bar's extreme has
+reached +1.0 R (diag: +0.25 R after +0.75 R), armed after the bar's own
+barrier checks so a bar touching both books against the old stop.
+Everything else is the live book with weekly re-ranking and carried
+positions. Clauses (a) all four year-samples up, (b) pooled paired t > +2.
+
+| arm | trades | USD/trade | bars held | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|
+| **live** | **5,100** | **+0.0617** | **22.0** | **+0.2048** | — | — | — |
+| lock +0.5 R after +1.0 R | 5,116 | +0.0585 | 21.6 | +0.1948 | -0.0100 | -0.45 | 1/4 |
+| lock +0.25 R after +0.75 R (diag) | 5,164 | +0.0550 | 21.3 | +0.1851 | -0.0198 | -0.76 | 1/4 |
+
+Per sample (candidate): -0.0010 / +0.0074 / -0.0261 / -0.0019.
+
+Locking a profit instead of scratching at the entry changes the size of
+the loss, not its sign: the tighter the lock, the more the book gives up.
+With the break-even runs (2026-09-07 run 3, 314), the cash-close exit
+(320) and the stagnation exit (297), every way of protecting an open
+profit before the target or the leash has now been read on this book, and
+all of them cut the drift the leash lets run. Nothing is built.

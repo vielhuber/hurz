@@ -7115,3 +7115,22 @@ the section numbers below point there.
 - **Result:** (a) fails at 2/4, (b) fails at t +0.15. The thin weeks are
   not measurably worse for the book.
 - **Decision:** verworfen — no code change, no restart. Section 321.
+
+## 2026-09-19 — a profit lock at +0.5 R after +1 R
+
+- **Lever:** exit logic — once a bar's extreme reaches +1.0 R, the stop
+  moves to +0.5 R from the next bar on; diag +0.25 R after +0.75 R. The
+  break-even runs (2026-09-07 run 3, section 314) only ever moved the stop
+  to the entry, never to a locked profit.
+- **Measurement:** `scripts/profit_lock.py`, weekly re-ranking, carried
+  positions and cooldowns, run from the bot's checkout.
+
+  | arm | trades | USD/trade | bars held | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|---|
+  | **live** | **5,100** | **+0.0617** | **22.0** | **+0.2048** | — | — | — |
+  | lock +0.5 R after +1.0 R | 5,116 | +0.0585 | 21.6 | +0.1948 | -0.0100 | -0.45 | 1/4 |
+  | lock +0.25 R after +0.75 R (diag) | 5,164 | +0.0550 | 21.3 | +0.1851 | -0.0198 | -0.76 | 1/4 |
+
+- **Result:** (a) fails at 1/4, (b) fails at t -0.45. The locked
+  pullbacks are positions that would have run on to the target.
+- **Decision:** verworfen — no code change, no restart. Section 322.
