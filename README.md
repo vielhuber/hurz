@@ -63,6 +63,21 @@ when `trade_platform ∈ {kraken, capital_com}`. The menu offers the same
 operations plus a "Switch platform" toggle that flips between Kraken
 and Capital.com without editing JSON files.
 
+#### persistent operation
+
+The live session runs inside the Charly container. Checkout, `venv/`,
+`data/` and `models/` live under `/host/data/hurz` — the only path there
+that outlives a container recreate.
+
+`scripts/boot_start.sh` starts bot and dashboard loop and stays a silent
+no-op while both are healthy. A `*/5` cron entry on the docker host runs
+`scripts/container_keepalive.sh`, which reaches into the container and
+calls it; the container's own crontab would not survive a recreate.
+
+`hurz.vielhuber.dev` is still served by Apache on the old host, so
+`scripts/publish_dashboard.sh` copies `dashboard/index.html` there after
+every regeneration. Its target sits in `data/dashboard_publish.conf`.
+
 ## installation
 
 #### install requirements

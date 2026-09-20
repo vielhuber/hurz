@@ -6,9 +6,11 @@
 # stopped-out position went unbooked until the next start's reconcile.
 # Nothing about the bot itself failed; it simply was never started again.
 #
-# Wired to cron `@reboot` and to a `*/5` keepalive. Kraken is deliberately
-# NOT started here: its demo endpoint has been dead since 2026-07-02 and
-# the platform is retired.
+# Driven from a `*/5` cron entry on the docker host via
+# `container_keepalive.sh`, which also covers the restart of the Charly
+# container the bot now runs in. Kraken is deliberately NOT started here:
+# its demo endpoint has been dead since 2026-07-02 and the platform is
+# retired.
 #
 # Waits for DNS before starting — on a fresh boot the network stack is
 # often not up yet, and a start without it dies on the broker handshake.

@@ -15,5 +15,7 @@ source data/dashboard_publish.conf
 [[ -n "${TARGET:-}" ]] || exit 0
 [[ -f dashboard/index.html ]] || exit 0
 
-scp -q ${KEY:+-i "$KEY"} -o BatchMode=yes -o ConnectTimeout=15 \
-    dashboard/index.html "$TARGET"
+# A container recreate wipes /root/.ssh/known_hosts, and BatchMode alone
+# would then fail the copy on the unknown-host prompt.
+scp -q ${KEY:+-i "$KEY"} -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+    -o ConnectTimeout=15 dashboard/index.html "$TARGET"
