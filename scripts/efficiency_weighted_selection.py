@@ -76,10 +76,18 @@ PAIRS=[p for p in ["BTCUSD","ETHUSD",
 STRATS=["donchian_breakout","momentum","turtle_breakout"]
 STOP_ATR=2.0; RR=1.5; HOLD=24; MAX_CONCURRENT=8; PLAT="capital_com"
 TOP_N=10; RANK_DAYS=365; TRADE_DAYS=90; MIN_RANK_TRADES=10
-SPAN=2555; PAGE_DAYS=35; PAGE_PAUSE=1.0
-# /var/tmp, not /tmp: the host reboot of 2026-09-13 wiped /tmp and with it
-# seven years of hourly bars that take most of an hour to fetch again.
-BAR_CACHE="/var/tmp/hurz_eff_bars"; META_CACHE="/var/tmp/hurz_eff_meta.json"
+SPAN=2555; PAGE_DAYS=35
+# Overridable because the fetch shares the broker's rate limit with the
+# running bot: while it trades, a longer pause keeps the measurement from
+# pushing the live price calls into 429s.
+PAGE_PAUSE=float(os.environ.get("HURZ_PAGE_PAUSE") or 1.0)
+# Under the runtime directory, not /var/tmp: since the move into the Charly
+# container /var/tmp lives in the container's writable layer, so every
+# recreate threw away seven years of hourly bars and forced an hour of
+# refetching against the same rate limit the bot is trading on. `tmp/` is
+# gitignored and sits on the persistent volume.
+BAR_CACHE=os.path.join(_ROOT,"tmp","eff_bars")
+META_CACHE=os.path.join(_ROOT,"tmp","eff_meta.json")
 
 
 def book(O,H,L,C,e,d,entry,stop_d,cost_r,n):
