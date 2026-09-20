@@ -7152,3 +7152,26 @@ the section numbers below point there.
   alive, a dead bot could never be restarted — the keepalive had been a
   no-op in exactly the case it exists for. Fixed with `9>&-`.
 - **Next run:** back to one measured lever.
+
+## 2026-09-20 (twentieth run) — no lever: persistent operation in the container
+
+- **Lever:** none measured. The run was commissioned to set up and verify
+  the persistent operation inside the Charly container.
+- **State found:** the container had been recreated at 07:54Z; the `*/5`
+  keepalive on the docker host brought bot and dashboard loop back at
+  07:55:01Z on its own — the first live proof that the lock fix from the
+  nineteenth run works. One instance, host `192.168.178.24` free of hurz
+  processes and hurz cron entries, dashboard published byte-identical to
+  the generated file.
+- **Found on the way:** the Charly container is created with restart
+  policy `no`. A reboot of the docker host would therefore leave it down,
+  and `container_keepalive.sh`, which only ever looks at *running*
+  containers, would exit silently on every later tick — the bot would
+  stay down unnoticed, the same failure the keepalive exists to prevent.
+  The keepalive now sets `unless-stopped` on each tick, which survives the
+  daemon and still honours a deliberate `docker stop`; a container
+  recreate drops the policy, so it is re-applied rather than set once.
+- **Carried over:** the `429` rate on the Capital price endpoint runs at
+  roughly the same share as on the retired host (19 of 32 lines against 29
+  of 43), so it is not a regression of the move. Not touched in this run.
+- **Next run:** back to one measured lever.
