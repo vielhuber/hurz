@@ -7175,3 +7175,36 @@ the section numbers below point there.
   roughly the same share as on the retired host (19 of 32 lines against 29
   of 43), so it is not a regression of the move. Not touched in this run.
 - **Next run:** back to one measured lever.
+
+## 2026-09-20 (twenty-first run) — the 3-ATR pin floor as a stop widening
+
+- **Operation:** container recreated at 16:08:46Z, the `*/5` keepalive on
+  the docker host had bot and dashboard loop back up at 16:10:02Z on its
+  own, restart policy `unless-stopped` still in place. One instance
+  (watchdog 14942 → `hurz.py` 14950, dashboard loop 14953), dashboard
+  written every 30 s. Nothing to fix.
+- **Lever:** the 3-ATR pin floor as a widening instead of a refusal — a
+  signal whose stop sits closer than 3×ATR gets its stop set to 3×ATR
+  (diag 3.5×ATR) and a correspondingly smaller position, rather than
+  being thrown away. Section 230 had read the refused band as a variance
+  filter, not an earnings filter.
+- **Measurement:** `scripts/pin_floor_widen.py`, weekly re-ranking,
+  carried positions and cooldowns, run from the bot's checkout.
+
+  | arm | trades | USD/trade | bars held | pooled USD/day | diff | t | up |
+  |---|---|---|---|---|---|---|---|
+  | **live** | **5,101** | **+0.0595** | **22.0** | **+0.1704** | — | — | — |
+  | widen to 3.0×ATR | 7,203 | -0.0012 | 20.6 | -0.0047 | -0.1752 | -2.04 | 2/4 |
+  | widen to 3.5×ATR (diag) | 7,109 | +0.0040 | 21.2 | +0.0160 | -0.1542 | -1.95 | 2/4 |
+
+- **Result:** fails both clauses. The 2,485 readmitted trades book
+  -0.1544 USD each at t -2.83: sized at the floor's own stop distance the
+  band is negative, not merely volatile. Daily sd rises 3.14 → 4.75, the
+  worst day -16.68 → -19.50.
+- **Decision:** verworfen — the floor stays a refusal, no code change, no
+  restart. Section 323.
+- **Also committed:** the measurement harness caches its hourly bars
+  under `tmp/` on the persistent volume instead of `/var/tmp`, which
+  lives in the container's writable layer and was thrown away on every
+  recreate, costing an hour of refetching against the rate limit the bot
+  trades on. Page pause overridable via `HURZ_PAGE_PAUSE`.

@@ -11481,3 +11481,37 @@ With the break-even runs (2026-09-07 run 3, 314), the cash-close exit
 (320) and the stagnation exit (297), every way of protecting an open
 profit before the target or the leash has now been read on this book, and
 all of them cut the drift the leash lets run. Nothing is built.
+
+## 323. The pin floor as a stop widening: the refused band is negative once it is sized at the floor
+
+`scripts/pin_floor_widen.py` keeps every signal whose stop sits closer
+than 3×ATR, but sets its stop to 3×ATR (diag: 3.5×ATR) instead of
+refusing it; the target follows at 1.5 R and the position shrinks to hold
+the 3 USD target risk. Everything else is the live book with weekly
+re-ranking and carried positions. Clauses (a) all four year-samples up,
+(b) pooled paired t > +2.
+
+| arm | signals | trades | USD/trade | bars held | pooled USD/day | diff | t | up |
+|---|---|---|---|---|---|---|---|---|
+| **live** | **28,704** | **5,101** | **+0.0595** | **22.0** | **+0.1704** | — | — | — |
+| widen to 3.0×ATR | 41,495 | 7,203 | -0.0012 | 20.6 | -0.0047 | -0.1752 | -2.04 | 2/4 |
+| widen to 3.5×ATR (diag) | 41,417 | 7,109 | +0.0040 | 21.2 | +0.0160 | -0.1542 | -1.95 | 2/4 |
+
+Per sample (candidate): +0.0616 / +0.0385 / -0.4068 / -0.0922.
+
+Section 230 read the refused band at the stop it would have carried and
+found it indistinguishable in dollars (-0.0367 against -0.1300, t +0.26),
+which is what made the widening worth a run. Traded at the floor's own
+stop distance the band is not indistinguishable: the 2,485 readmitted
+trades book -0.1544 USD each at t -2.83 (diag 2,413 at -0.1279, t -2.52).
+Widening buys the larger stop with a smaller position, so the same signal
+now needs a 1.5 R move that is further away in price, and the leash
+expires on more of them — bars held fall from 22.0 to 20.6 because more
+trades end at the barrier rather than at a target.
+
+The cost does not stop at the readmitted trades. They compete for the
+same eight slots, so the surviving live trades are not the live book's:
+4,718 of them remain against 5,101. Daily sd rises from 3.14 to 4.75 and
+the worst day from -16.68 to -19.50 — the variance the floor was found to
+filter (230) arrives in full, and now without the earnings that made the
+band look harmless. The floor stays a refusal.
