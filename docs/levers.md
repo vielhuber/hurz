@@ -7208,3 +7208,28 @@ the section numbers below point there.
   lives in the container's writable layer and was thrown away on every
   recreate, costing an hour of refetching against the rate limit the bot
   trades on. Page pause overridable via `HURZ_PAGE_PAUSE`.
+
+## 2026-09-20 — persistent-runtime verification
+
+- **Scope:** explicitly commissioned runtime setup, not an optimisation
+  run; no new lever measured. The previous stop-widening rejection stands.
+- **State:** the Charly container was recreated at 16:33:11Z. The existing
+  host keepalive restored the watchdog, one bot and the dashboard loop at
+  16:35:01Z. Checkout, interpreter, database, settings, active pairs,
+  models and credentials are already on the persistent volume. The old
+  host has no Hurz runtime processes or active runtime cron entries.
+- **Checks:** the host's five-minute cron and `unless-stopped` policy are
+  present. Invoking both startup and host keepalive preserved all three
+  PIDs. Runtime shell syntax checks passed. Dashboard regeneration
+  advanced at its configured 30-second interval; generated and published
+  content had matching SHA-256 hashes. No deliberate restart was needed
+  or performed, and a Docker-host reboot was not tested.
+- **Journal:** the dashboard reports +2.31 USD over 10 closed trades since
+  the 10 September filter epoch, about +0.23 USD/calendar day; today's
+  realised result is 0.00 USD. These are forward figures, not proof of an
+  edge.
+- **Decision:** retain the existing setup without starting another
+  instance or changing trading settings. Broker price requests still
+  sometimes return HTTP 429, as already recorded in the twentieth run;
+  the demo connection and bot activity are confirmed, not error-free
+  broker operation. Documentation only.
