@@ -7134,3 +7134,21 @@ the section numbers below point there.
 - **Result:** (a) fails at 1/4, (b) fails at t -0.45. The locked
   pullbacks are positions that would have run on to the target.
 - **Decision:** verworfen — no code change, no restart. Section 322.
+
+## 2026-09-20 (nineteenth run) — no lever: the runtime moved into the container
+
+- **Lever:** none measured. The run carried out the runtime move the
+  project rules now prescribe: Hurz runs in the Charly container, the
+  host `192.168.178.24` is retired as a runtime.
+- **What happened:** host bot, watchdog, dashboard loop and both cron
+  entries stopped and removed; database, settings, active pairs, models
+  and `.env` carried over byte-identical (md5 `88fc2094…` on
+  `data/hurz.sqlite`); checkout, `venv/`, `data/` and `models/` now live
+  under `/host/data/hurz`, which survives a LAMP reset and a container
+  recreate.
+- **Found on the way:** `boot_start.sh` leaked its lock fd into the
+  processes it starts, so the lock stayed held for their whole lifetime
+  and every later run exited at the `flock`. With the dashboard loop
+  alive, a dead bot could never be restarted — the keepalive had been a
+  no-op in exactly the case it exists for. Fixed with `9>&-`.
+- **Next run:** back to one measured lever.
