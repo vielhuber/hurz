@@ -53,10 +53,14 @@ if ! getent hosts demo-api-capital.backend-capital.com >/dev/null 2>&1; then
   echo "[$(stamp)] boot_start: DNS still down after 5min — starting anyway" >>"$LOG"
 fi
 
+# The started processes outlive this run and would inherit fd 9 — the
+# lock then stays held for as long as any of them lives, and every later
+# run exits at the flock above. That silently disabled the keepalive:
+# with the dashboard loop still up, a dead bot could never be restarted.
 echo "[$(stamp)] boot_start: starting capital session" >>"$LOG"
-bash scripts/start_paper_session.sh >>"$LOG" 2>&1
+bash scripts/start_paper_session.sh >>"$LOG" 2>&1 9>&-
 
 echo "[$(stamp)] boot_start: starting dashboard loop" >>"$LOG"
-bash scripts/dashboard_loop.sh >>"$LOG" 2>&1
+bash scripts/dashboard_loop.sh >>"$LOG" 2>&1 9>&-
 
 echo "[$(stamp)] boot_start: done" >>"$LOG"
