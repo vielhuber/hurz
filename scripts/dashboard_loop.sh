@@ -60,6 +60,7 @@ case "$cmd" in
     setsid nohup bash -c "
       while true; do
         '$PYTHON_BIN' scripts/generate_dashboard.py $DAYS >>'$LOG_FILE' 2>&1
+        bash scripts/publish_dashboard.sh >>'$LOG_FILE' 2>&1
         if [[ \$(stat -c %s '$LOG_FILE' 2>/dev/null || echo 0) -gt $LOG_MAX_BYTES ]]; then
           mv -f '$LOG_FILE' '$LOG_FILE.1'
         fi
