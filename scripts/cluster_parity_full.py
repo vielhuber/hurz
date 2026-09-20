@@ -30,7 +30,7 @@ conservative reading when none can be assigned.
 import asyncio, json, os, sys
 from datetime import datetime
 import numpy as np, pandas as pd
-sys.path.insert(0,"/var/www/hurz"); os.chdir("/var/www/hurz")
+_ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__))); sys.path.insert(0,_ROOT); os.chdir(_ROOT)
 from scripts.efficiency_weighted_selection import load_history, to_frame, META_CACHE
 from app.strategies import add_indicators
 from app.spot_trading.autotrade import _CORRELATION_CLUSTERS
