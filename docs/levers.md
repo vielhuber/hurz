@@ -7266,3 +7266,33 @@ the section numbers below point there.
 - **Decision:** rejected; neither acceptance condition passes. Trading
   code and runtime settings stay unchanged, no restart. The experiment
   and four focused tests are retained. See `EDGE_FINDINGS.md` section 324.
+
+## 2026-09-21 (second run) — stronger trends first on a contested bar
+
+- **Operation:** one bot, dashboard 13 seconds old, automatic refresh
+  active. Forward result since the 10 September filter epoch: +3.08 USD
+  over 14 closes, about +0.29 USD/calendar day. Some broker price calls
+  still return HTTP 429; no runtime intervention or restart.
+- **Lever:** admit simultaneous signals by descending entry ADX, using
+  the current active-list order to break ties. Baseline is ranked list
+  order followed by pin order, as in section 287. Only already-admitted
+  signals are reordered; every gate, size, stop and position cap stays.
+- **Measurement:** `scripts/burst_adx_priority.py`, cached seven-year
+  hourly history, 27 instruments, weekly trailing-365-day selection using
+  only closed training trades. Current pins/vetoes fixed across both arms,
+  positions and cooldowns carried across weeks. OOS 2020-09-23 through
+  2026-09-19 inclusive, all 2,188 calendar days counted. No broker history
+  requests and read-only journal access. No diagnostic variant.
+
+  | arm | closed trades | simulated USD | USD/calendar day | delta | pooled t |
+  |---|---:|---:|---:|---:|---:|
+  | active-list order | 5,111 | +289.193282 | +0.132172 | — | — |
+  | highest ADX first | 5,101 | +258.624432 | +0.118201 | -0.013971 | -0.8715 |
+
+- **Result:** worse on all four samples (0/4 improve). The candidate
+  replaces 380 baseline trades with 370 others. Daily standard deviation
+  falls 2.8595 → 2.8035 USD and worst day improves -19.3248 → -16.9704 USD,
+  but daily gain falls about 10.6%.
+- **Decision:** rejected; no production trading change or restart.
+  Five new priority tests and 19 existing sizing, cooldown and calendar
+  tests pass. See `EDGE_FINDINGS.md` section 325.

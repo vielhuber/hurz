@@ -11556,3 +11556,43 @@ day -16.6802 USD. Neither admission criterion passes, so the lever is
 rejected without changing or restarting the bot. Four focused tests
 cover equal-duration ranking parity, the intended faster-turnover
 preference, eligibility/reservations/vetoes, and zero-trade calendar days.
+
+## 325. Higher ADX first at admission: lower daily gain in every sample
+
+`scripts/burst_adx_priority.py` preregistered one admission-order candidate:
+sort simultaneous eligible signals by descending ADX at the signal bar,
+breaking ties by active-list order. Unlike the ADX sizing experiment
+(310), this does not reduce any position; unlike the cost-priority test
+(287), it ranks trend strength rather than entry costs. The baseline
+reuses section 287's ranked-then-pinned active-list order. No diagnostic
+arm is selected after seeing the result.
+
+The cached history covers 27 instruments and produces 28,704 priced
+signals. Both arms use current pins and vetoes, weekly 365-day ranking
+with only previously closed training trades, and carried positions and
+cooldowns. All gates, sizing and caps are unchanged. The OOS interval
+is [2020-09-23, 2026-09-20), including every calendar day after ranking
+warm-up, with the oldest sample clipped to available OOS data. Historical
+pins/vetoes are not reconstructed, as in section 324; no claim of a
+point-in-time historical live-account replay is made. Hourly-bar ADX
+ordering is a counterfactual, not a measurement of live execution latency.
+
+| OOS interval (end exclusive) | days | list-order USD/day | ADX-first USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.042229 | +0.028691 | -0.013538 | -0.4590 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.189763 | +0.189668 | -0.000095 | -0.0038 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.110071 | +0.096189 | -0.013882 | -0.4107 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.151242 | +0.108750 | -0.042491 | -1.1602 |
+| pooled | 2,188 | +0.132172 | +0.118201 | -0.013971 | -0.8715 |
+
+Baseline closes 5,111 trades for +289.193282 USD; candidate closes 5,101
+for +258.624432 USD. It displaces 380 baseline trades and admits 370
+different ones. Daily standard deviation is 2.8595 versus 2.8035 USD;
+worst day is -19.3248 versus -16.9704 USD. Lower variability does not meet
+the requested gain criterion: none of the four samples improves and
+pooled t is below +2. Reject without a live change or restart.
+
+Five focused tests cover baseline order, within-bar ADX order, chronology,
+stable ties independent of future PnL, inactive-signal exclusion, and the
+unchanged same-direction cluster cap. Nineteen existing tests cover
+walk-forward sizing, stop-out cooldown and calendar-day accounting.
