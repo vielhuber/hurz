@@ -7327,3 +7327,36 @@ the section numbers below point there.
   Eight new tests and 19 existing tests passed, including 200 deterministic
   no-cross paths checked against the existing stop/target simulator.
   Section 326. Only research code, tests and documentation are published.
+
+## 2026-09-21 (fourth run) — rolling signed-correlation entry guard
+
+- **Operation:** one bot with watchdog and automatic dashboard refresh;
+  dashboard nine seconds old. Forward result since the 10 September
+  filter epoch: +10.60 USD from 16 closes, about +0.94 USD/calendar day.
+  Intermittent broker HTTP 429 remains; no operational intervention.
+  Pre-existing runtime changes remain untouched.
+- **Lever:** additionally refuse an entry when its hourly-return
+  correlation with an open instrument, multiplied by both position
+  directions, is at least 0.8. Use the trailing 60 calendar days,
+  refreshed weekly strictly before the selection cutoff, with at least
+  200 common consecutive-hour returns. Missing estimates add no guard.
+  Existing cluster/position caps, cooldowns, sizes and stops stay intact.
+- **Measurement:** `scripts/rolling_correlation_guard.py`, 27 instruments
+  from the seven-year cache, weekly trailing-365-day selection using
+  closed training outcomes, ranked active-list then pin admission order.
+  Positions and cooldowns persist across weeks. Current pins/vetoes fixed
+  across both arms; journal read-only, no broker calls, no diagnostic arm.
+  OOS 2020-09-23 through 2026-09-19 inclusive, 2,188 calendar days.
+
+  | arm | closes | simulated USD | USD/calendar day | delta | pooled t |
+  |---|---:|---:|---:|---:|---:|
+  | current guards | 5,111 | +289.193282 | +0.132172 | — | — |
+  | additional rolling correlation guard | 4,873 | +211.216834 | +0.096534 | -0.035638 | -1.5379 |
+
+- **Result:** 1,544 additional entry refusals; only 1/4 samples improves.
+  Daily gain falls 27.0%. Daily standard deviation improves 2.8595 →
+  2.6625 USD and worst day -19.3248 → -16.8148 USD, but neither adoption
+  criterion passes.
+- **Decision:** rejected; no production trading change or restart.
+  Ten new guard/causality tests and 19 existing sizing, cooldown and
+  calendar tests pass. Research and documentation only. Section 327.

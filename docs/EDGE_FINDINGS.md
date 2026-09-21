@@ -11643,3 +11643,59 @@ Eight focused tests cover baseline parity, 200 deterministic no-cross
 paths in both directions, long/short crosses, an already-opposite entry,
 stop/gap/target priority, incomplete bars and causal symmetric indicator
 calculation. Nineteen existing sizing, cooldown and calendar tests pass.
+
+## 327. Rolling signed correlation: less variability, less daily gain
+
+`scripts/rolling_correlation_guard.py` tests one preregistered additional
+entry guard: refuse a signal if its correlation with an already-open
+instrument, multiplied by both signed trade directions, is at least 0.8.
+Unlike the fixed cluster map, correlations use the preceding 60 calendar
+days of hourly log returns and refresh weekly. Only consecutive-hour
+returns are used; gaps are not filled. At least 200 common observations
+are required. An unavailable estimate adds no restriction, while all
+original guards remain. Negative correlation and opposite directions
+can therefore block the same directional risk; a positively correlated
+hedge is not refused by this extra guard. No threshold search or control
+arm was run.
+
+The simulator reuses original admission before applying the extra guard,
+so expiry handling, stop-out cooldown, one position per instrument, the
+eight-position total cap and three-position directional cluster cap are
+unchanged. A refused simulated entry is removed from the open book and
+booked list. Stops, targets, spread charges and sizing remain unchanged:
+3 USD target risk, 250 USD notional ceiling and broker size increments.
+
+The seven-year cache contains 27 instruments and supplies 28,704 signals.
+Selection uses only closed outcomes in the preceding 365 days; signal
+priority follows ranked list then pin order. Positions/cooldowns carry
+across weeks. Correlation data exclude the cutoff itself and every future
+bar. Both arms hold today's pins, vetoes and broker metadata fixed, so
+this remains a historical counterfactual, not a point-in-time recreation
+of every operational setting or evidence of executable live slippage.
+The journal is read-only and no broker data is requested.
+
+OOS is [2020-09-23, 2026-09-20), with zero-trade days included in all
+2,188 calendar days. The baseline matches section 325; section 326 used
+a different common terminal-history restriction for its exit comparison.
+Only the same-run paired baseline is used for this decision.
+
+| OOS interval (end exclusive) | days | baseline USD/day | correlation guard USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.042229 | +0.015524 | -0.026705 | -0.5087 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.189763 | +0.195012 | +0.005249 | +0.1389 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.110071 | +0.042672 | -0.067399 | -1.4500 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.151242 | +0.088268 | -0.062973 | -1.3373 |
+| pooled | 2,188 | +0.132172 | +0.096534 | -0.035638 | -1.5379 |
+
+Baseline closes 5,111 trades for +289.193282 USD; candidate closes 4,873
+for +211.216834 USD. The guard adds 1,544 refusals along the candidate's
+own position path. Freed slots and subsequent admissions mean this is
+not the difference in final trade counts. Daily standard deviation falls
+from 2.8595 to 2.6625 USD and worst day improves -19.3248 to -16.8148 USD,
+but daily gain falls 27.0%. Reject: only 1/4 samples improves, pooled t
+is -1.5379 rather than above +2. No live change or restart.
+
+Ten focused tests cover signed risk, hedging/missing estimates, expiry,
+the original cluster/total caps, cooldown and one-position rule, exclusion
+of cutoff/future/too-old observations and minimum common sample size.
+Nineteen existing sizing, cooldown and calendar tests also pass.
