@@ -11596,3 +11596,50 @@ Five focused tests cover baseline order, within-bar ADX order, chronology,
 stable ties independent of future PnL, inactive-signal exclusion, and the
 unchanged same-direction cluster cap. Nineteen existing tests cover
 walk-forward sizing, stop-out cooldown and calendar-day accounting.
+
+## 326. Directional-indicator crossover exit: faster turnover, fewer dollars
+
+`scripts/directional_exit.py` preregistered a single candidate: exit a
+long at the completed bar where DI+(14) crosses below DI-(14), and a
+short on the inverse cross. This reads direction rather than ADX strength
+and differs from the longer-channel opposite-breakout exit. The smoothed
+directional-movement difference uses the same Wilder approximation as
+the existing ADX calculation; its sign equals DI+ minus DI- because the
+common positive ATR divisor cancels. Only a new post-entry crossing
+qualifies. Stop gaps, stop touches and targets are checked first, and the
+24-bar timeout remains. No control variant or threshold search is used.
+
+The cached seven-year history supplies 27 instruments. Both arms require
+the full subsequent 24 bars at entry, yielding a common 28,702-signal
+stream rather than letting terminal-data availability differ by exit
+rule. Each arm ranks its own already-closed training outcomes weekly
+over 365 days. Positions and cooldowns persist across ranking boundaries;
+admission follows ranked active-list then pin order. Today's pins/vetoes
+and broker metadata are held fixed, not reconstructed historically. The
+journal is read-only and no broker history requests are made.
+
+OOS is [2020-09-23, 2026-09-20), after ranking warm-up. Means include all
+2,188 calendar days; the oldest sample is clipped to available OOS data.
+The common terminal censoring means the baseline differs slightly from
+section 325, so only the paired same-run comparison is used.
+
+| OOS interval (end exclusive) | days | baseline USD/day | DI-exit USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.048616 | +0.065023 | +0.016407 | +0.1953 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.189763 | +0.139559 | -0.050204 | -0.7015 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.110071 | +0.044492 | -0.065579 | -0.9245 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.151242 | +0.092133 | -0.059109 | -0.6472 |
+| pooled | 2,188 | +0.133238 | +0.087539 | -0.045699 | -1.1590 |
+
+Baseline closes 5,110 trades for +291.524477 USD; candidate closes 5,616
+for +191.534437 USD, including 3,203 crossover exits. More freed slots do
+not compensate for the altered exits: daily gain falls 34.3%. Daily
+standard deviation improves from 2.8580 to 2.7183 USD and worst day from
+-19.3248 to -11.5208 USD. Neither admission criterion passes: 1/4 samples
+improve and pooled t is below +2. Reject without a trading-code change
+or bot restart. Hourly close fills are simulated, not forward executions.
+
+Eight focused tests cover baseline parity, 200 deterministic no-cross
+paths in both directions, long/short crosses, an already-opposite entry,
+stop/gap/target priority, incomplete bars and causal symmetric indicator
+calculation. Nineteen existing sizing, cooldown and calendar tests pass.

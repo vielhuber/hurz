@@ -1,0 +1,156 @@
+"""Preregistered exit lever: close after an adverse DI(14) crossover.
+
+Run from the runtime checkout, using its interpreter, cache and settings.
+The candidate closes at the first completed post-entry bar where DI+
+crosses below DI- for a long, or above for a short. Existing stop/target
+checks take precedence. No diagnostic variant. Admission requires 4/4
+better OOS samples and pooled paired daily t > +2, with unchanged risk.
+"""
+import asyncio
+import json
+import os
+from pathlib import Path
+import sqlite3
+import sys
+
+import numpy as np
+import pandas as pd
+
+sys.path.insert(0, str(Path.cwd()))
+from app.utils.singletons import database, settings
+settings.load_env()
+from app.strategies import add_indicators, get_strategy
+from app.spot_trading.autotrade import _min_stop_atr_multiple
+from app.spot_trading.regime import gate
+from app.spot_trading.trading_blocks import direction_blocked
+import scripts.pin_eligibility as pe
+from scripts.burst_cost_priority import active_order
+from scripts.cluster_rotate_worst import admit
+from scripts.efficiency_weighted_selection import (
+    PAIRS, META_CACHE, RANK_DAYS, STRATS, RR, HOLD, book, trade_terms,
+    cache_path, load_history, t_stat, to_frame,
+)
+from scripts.rank_holding_time import daily_series
+
+
+def directional_balance(frame):
+    up, down = frame["high"].diff(), -frame["low"].diff()
+    positive = pd.Series(np.where((up > down) & (up > 0), up, 0.0), index=frame.index)
+    negative = pd.Series(np.where((down > up) & (down > 0), down, 0.0), index=frame.index)
+    # The common positive ATR divisor cancels when comparing DI+ and DI-.
+    return (positive.ewm(alpha=1 / 14, adjust=False).mean()
+            - negative.ewm(alpha=1 / 14, adjust=False).mean()).to_numpy()
+
+
+def book_directional(opening, high, low, close, balance, entry_index,
+                     direction, entry, stop_distance, cost, enabled):
+    if not enabled:
+        return (*book(opening, high, low, close, entry_index, direction,
+                      entry, stop_distance, cost, len(close)), False)
+    stop = entry - direction * stop_distance
+    target = entry + direction * RR * stop_distance
+    for index in range(entry_index + 1, min(entry_index + HOLD + 1, len(close))):
+        gap = (opening[index] - entry) * direction
+        if gap <= -stop_distance:
+            return gap / stop_distance - cost, index, False
+        adverse = low[index] if direction == 1 else high[index]
+        favorable = high[index] if direction == 1 else low[index]
+        if (adverse - stop) * direction <= 0:
+            return -1.0 - cost, index, False
+        if (favorable - target) * direction >= 0:
+            return RR - cost, index, False
+        if (index < entry_index + HOLD and balance[index - 1] * direction >= 0
+                and balance[index] * direction < 0):
+            return (close[index] - entry) * direction / stop_distance - cost, index, True
+    if entry_index + HOLD < len(close):
+        return (close[entry_index + HOLD] - entry) * direction / stop_distance - cost, entry_index + HOLD, False
+    return None, None, False
+
+
+async def main():
+    missing = [pair for pair in PAIRS if not Path(cache_path(pair)).is_file()]
+    assert not missing, f"Offline history missing: {missing}"
+    path = Path(os.getenv("DB_PATH", "data/hurz.sqlite")).resolve()
+    database.db_conn = sqlite3.connect(path.as_uri() + "?mode=ro", uri=True,
+                                      detect_types=sqlite3.PARSE_DECLTYPES)
+    database.db_conn.row_factory = sqlite3.Row
+    database.db_conn.execute("PRAGMA query_only = ON")
+    raw = await load_history()
+    with open(META_CACHE) as handle:
+        meta = json.load(handle)
+    assert set(raw) <= set(meta)
+    frames = {pair: add_indicators(to_frame(rows)) for pair, rows in raw.items() if len(rows) >= 2000}
+    pe.VETOED.update(pe.live_expectancy_veto("capital_com"))
+    pins, reserved = pe.load_pins(set(frames), pe.VETOED, set(pe.strategy_expectancy_veto("capital_com")))
+    with open(pe.PINS_PATH) as handle:
+        pin_order = [(row["strategy"], row["pair"]) for row in json.load(handle)["combos"]]
+    signals = {arm: [] for arm in ("live", "candidate")}
+    floor = _min_stop_atr_multiple()
+    for pair, frame in frames.items():
+        timestamps = frame["timestamp"].values
+        arrays = [frame[column].values for column in ("open", "high", "low", "close")]
+        balance = directional_balance(frame)
+        for strategy in STRATS:
+            for signal in get_strategy(strategy)(frame, {}):
+                if signal.index + HOLD >= len(frame):
+                    continue
+                if gate(strategy, frame, signal.index).blocked or direction_blocked(pair, signal.direction):
+                    continue
+                terms = trade_terms(frame, signal.index, pair, meta, floor)
+                if terms is None:
+                    continue
+                entry, distance, cost, risk = terms
+                for arm in signals:
+                    result, exit_index, forced = book_directional(
+                        *arrays, balance, signal.index, signal.direction, entry, distance, cost, arm == "candidate")
+                    assert result is not None
+                    signals[arm].append(dict(ts=timestamps[signal.index], exit_ts=timestamps[exit_index],
+                                             strat=strategy, pair=pair, dir=signal.direction,
+                                             r=result, usd=result * risk, risk=risk, forced=forced))
+    for rows in signals.values():
+        rows.sort(key=lambda trade: trade["ts"])
+    start = np.datetime64(signals["live"][0]["ts"], "D") + np.timedelta64(RANK_DAYS, "D")
+    end = max(np.datetime64(frame["timestamp"].values[-1], "D") for frame in frames.values())
+    days = np.arange(start, end)
+    print(f"instruments={len(frames)} signals_per_arm={len(signals['live'])} "
+          f"OOS=[{start}, {end}) days={len(days)}", flush=True)
+    series = {}
+    for arm, rows in signals.items():
+        timestamps = np.array([trade["ts"] for trade in rows])
+        cut = start
+        booked, state = [], {"open": {}, "pair": {}}
+        while cut < end:
+            following = min(cut + np.timedelta64(7, "D"), end)
+            low = int(np.searchsorted(timestamps, cut - np.timedelta64(RANK_DAYS, "D")))
+            high = int(np.searchsorted(timestamps, cut))
+            training = [trade for trade in rows[low:high] if trade["exit_ts"] < cut]
+            order = active_order(training, pins, reserved, pin_order)
+            window = [trade for trade in rows[high:int(np.searchsorted(timestamps, following))]
+                      if (trade["strat"], trade["pair"]) in order]
+            window.sort(key=lambda trade: (trade["ts"], order[(trade["strat"], trade["pair"])]))
+            admit(window, set(order), "live", None, state, booked, [])
+            cut = following
+        series[arm] = daily_series(booked, days)
+        closed = [trade for trade in booked if np.datetime64(trade["exit_ts"], "D") < end]
+        print(f"{arm}: closed={len(closed)} crossover_exits={sum(trade['forced'] for trade in closed)} "
+              f"pnl={series[arm].sum():+.6f} USD/day={series[arm].mean():+.6f} "
+              f"daily_sd={series[arm].std(ddof=1):.4f} worst_day={series[arm].min():+.4f}", flush=True)
+    difference = series["candidate"] - series["live"]
+    improved = 0
+    for older, newer in ((365, 0), (1095, 365), (1825, 1095), (2555, 1825)):
+        selected = (days >= end - np.timedelta64(older, "D")) & (days < end - np.timedelta64(newer, "D"))
+        assert selected.any()
+        improved += difference[selected].sum() > 0
+        print(f"sample=[{days[selected][0]}, {days[selected][-1] + np.timedelta64(1, 'D')}) "
+              f"days={selected.sum()} live={series['live'][selected].mean():+.6f} "
+              f"candidate={series['candidate'][selected].mean():+.6f} "
+              f"delta={difference[selected].mean():+.6f} t={t_stat(difference[selected]):+.4f}")
+    statistic = t_stat(difference)
+    print(f"better_samples={improved}/4 pooled_delta={difference.mean():+.6f} pooled_t={statistic:+.4f}")
+    print("VERDICT=" + ("BUILD" if improved == 4 and statistic > 2 else "DISCARD"))
+    database.db_conn.close()
+    database.db_conn = None
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

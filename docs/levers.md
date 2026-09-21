@@ -7296,3 +7296,34 @@ the section numbers below point there.
 - **Decision:** rejected; no production trading change or restart.
   Five new priority tests and 19 existing sizing, cooldown and calendar
   tests pass. See `EDGE_FINDINGS.md` section 325.
+
+## 2026-09-21 (third run) — exit on an adverse directional-indicator crossover
+
+- **Operation:** one bot and dashboard loop running; dashboard age eight
+  seconds. Forward result since the 10 September filter epoch: +6.84 USD
+  over 15 closes, about +0.62 USD/calendar day. Intermittent broker HTTP
+  429 remains. Pre-existing uncommitted runtime changes to the startup,
+  keepalive and lever log were left untouched; no runtime intervention.
+- **Lever:** close at the completed hourly bar where DI+(14) crosses
+  below DI-(14) for a long (inverse for a short). Stops and targets retain
+  intrabar priority; an already-opposite DI at entry is not a new cross.
+  All sizes, gates and caps remain unchanged. No diagnostic arm.
+- **Measurement:** `scripts/directional_exit.py`, 27 instruments from
+  the seven-year cache, weekly selection using closed training outcomes,
+  carried positions and cooldowns, current pins/vetoes fixed in both
+  arms. Both arms require 24 subsequent bars for each candidate entry;
+  the shared stream has 28,702 signals. OOS 2020-09-23 through 2026-09-19
+  inclusive, 2,188 calendar days. Journal read-only, no broker data calls.
+
+  | arm | closes | crossover exits | simulated USD | USD/calendar day |
+  |---|---:|---:|---:|---:|
+  | current exit | 5,110 | 0 | +291.524477 | +0.133238 |
+  | adverse DI cross | 5,616 | 3,203 | +191.534437 | +0.087539 |
+
+- **Result:** daily gain falls 34.3%, delta -0.045699 USD/day, pooled
+  paired t -1.1590, only 1/4 samples better. Daily standard deviation
+  falls 2.8580 → 2.7183 USD; worst day -19.3248 → -11.5208 USD.
+- **Decision:** rejected; trading code/settings unchanged, no restart.
+  Eight new tests and 19 existing tests passed, including 200 deterministic
+  no-cross paths checked against the existing stop/target simulator.
+  Section 326. Only research code, tests and documentation are published.
