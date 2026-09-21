@@ -11515,3 +11515,44 @@ same eight slots, so the surviving live trades are not the live book's:
 the worst day from -16.68 to -19.50 — the variance the floor was found to
 filter (230) arrives in full, and now without the earnings that made the
 band look harmless. The floor stays a refusal.
+
+## 324. Ranking per occupied hour: different lists, identical realised dollars
+
+`scripts/rank_holding_time.py` preregistered one candidate: divide the
+existing composite score by mean wall-clock holding hours in the trailing
+365 days. Eligibility and the top-40 limit do not change; neither do pins,
+exclusive reservations, sizing, exits or entry guards. This measures a
+selection preference for faster turnover, not a shorter holding leash.
+Acceptance remains 4/4 better samples and pooled paired daily t > +2.
+
+The 27-instrument cached hourly history supplies 28,704 priced signals.
+The same fixed current pins and vetoes are applied in both arms, as in
+the existing historical counterfactual harness. They are not reconstructed
+point-in-time historical selections. The journal connection is read-only
+and no broker history requests are made. Weekly ranking excludes trades
+whose exits were not yet known, with positions and cooldowns carried
+between ranking windows.
+
+After the 365-day ranking warm-up, the common out-of-sample interval is
+[2020-09-23, 2026-09-20). Daily means and paired differences include every
+one of its 2,188 calendar days, including days without exits. The four
+samples are disjoint and the oldest is clipped to the available OOS
+period. Consequently these levels must not be compared directly with
+earlier pooled tables using only the union of days with realised trades.
+
+| OOS interval (end exclusive) | days | current USD/day | candidate USD/day | difference |
+|---|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.046587 | +0.046587 | 0.000000 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.201442 | +0.201442 | 0.000000 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.111892 | +0.111892 | 0.000000 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.124053 | +0.124053 | 0.000000 |
+| pooled | 2,188 | +0.132893 | +0.132893 | 0.000000 |
+
+Each arm closes 5,096 trades for +290.768909 USD. The selected active sets
+differ in 11 weeks, but daily realised PnL is identical throughout. The
+paired t-statistic is undefined (zero mean and zero variance), not a
+positive finding. Both have daily standard deviation 2.8291 USD and worst
+day -16.6802 USD. Neither admission criterion passes, so the lever is
+rejected without changing or restarting the bot. Four focused tests
+cover equal-duration ranking parity, the intended faster-turnover
+preference, eligibility/reservations/vetoes, and zero-trade calendar days.

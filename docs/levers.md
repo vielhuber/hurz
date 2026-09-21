@@ -7233,3 +7233,36 @@ the section numbers below point there.
   sometimes return HTTP 429, as already recorded in the twentieth run;
   the demo connection and bot activity are confirmed, not error-free
   broker operation. Documentation only.
+
+## 2026-09-21 — selector score per occupied position-hour
+
+- **Operation:** one running demo instance, unchanged since 20 September
+  16:35 UTC. Dashboard age 21 seconds, automatic refresh active. Broker
+  price requests still sometimes return HTTP 429; no operating blocker
+  required intervention. Forward dashboard result since the 10 September
+  filter epoch: +3.08 USD, 14 closes, about +0.29 USD/calendar day.
+- **Lever:** divide the existing selector score by the trailing sample's
+  mean wall-clock holding hours. Eligibility, top 40, pins, reservations,
+  stops, sizing, position caps and cooldowns remain unchanged. No control
+  variant or post-hoc parameter search.
+- **Measurement:** `scripts/rank_holding_time.py`, the existing seven-year
+  hourly cache, 27 instruments, weekly selection on 365 trailing days.
+  Both arms rank only trades closed before the selection timestamp;
+  positions and cooldowns carry across weeks. Out-of-sample period:
+  2020-09-23 through 2026-09-19 inclusive, 2,188 calendar days. Unlike older
+  tables, the pooled daily denominator includes idle days; the oldest
+  sample excludes the initial ranking warm-up. No broker history calls;
+  the journal was opened read-only.
+
+  | arm | closed trades | realised simulated USD | USD/calendar day |
+  |---|---:|---:|---:|
+  | current score | 5,096 | +290.768909 | +0.132893 |
+  | score / holding hours | 5,096 | +290.768909 | +0.132893 |
+
+- **Result:** active sets differed in 11 weeks but produced identical
+  daily PnL. Improvement 0/4 samples, delta 0.000000 USD/day; paired t is
+  undefined because every daily difference is zero. Daily standard
+  deviation 2.8291 USD and worst day -16.6802 USD in both arms.
+- **Decision:** rejected; neither acceptance condition passes. Trading
+  code and runtime settings stay unchanged, no restart. The experiment
+  and four focused tests are retained. See `EDGE_FINDINGS.md` section 324.
