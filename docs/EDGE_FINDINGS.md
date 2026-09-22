@@ -11745,3 +11745,49 @@ current high/low, causal prefixes, long/short symmetry and actual exits
 using the calculated balance. Eight existing crossover tests cover
 barrier priority and 200 deterministic no-cross parity paths; 19 existing
 sizing, cooldown and calendar tests also pass (32 total).
+
+## 329. EMA crossover exit: no improvement in daily gain
+
+`scripts/ema_cross_exit.py` preregisters a single candidate: close a long
+when EMA(12) crosses below EMA(26) at a completed hourly close, inverse
+for a short. Recursive means start at the first observed close. Existing
+stop/gap/target handling precedes the crossover, and the 24-bar timeout
+is retained. An already-adverse balance is not itself an exit. This is
+an exit test, not another sweep of the momentum entry strategy's EMAs.
+No diagnostic arm, changed size, widened stop or relaxed entry guard.
+
+Reuse the tested crossover replay from section 326, replacing only its
+balance series. Seven-year cached history supplies 27 instruments and
+28,702 gated signals per arm with full 24-bar horizons. The 3-ATR floor
+is active. Weekly selection ranks each arm's closed trailing-year
+outcomes; positions and cooldowns carry across weekly boundaries.
+Current pins/vetoes and venue metadata are fixed, not point-in-time
+reconstructions. The journal is read-only; no broker history is fetched.
+OOS [2020-09-23, 2026-09-20) includes 2,188 calendar days, including days
+without trades. The four established samples below are not four equal
+one-year periods. Acceptance requires all four to improve and pooled
+paired daily t > +2.
+
+| OOS interval (end exclusive) | days | baseline USD/day | EMA exit USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.048616 | +0.120580 | +0.071964 | +1.3193 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.189763 | +0.177293 | -0.012470 | -0.2685 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.110071 | +0.070340 | -0.039731 | -1.0016 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.151242 | +0.123476 | -0.027766 | -0.4321 |
+| pooled | 2,188 | +0.133238 | +0.123220 | -0.010018 | -0.4051 |
+
+Baseline closes 5,110 trades for +291.524477 USD, matching the paired
+baseline from section 328. Candidate closes 5,224 for +269.605716 USD,
+including 1,216 crossover exits. Daily standard deviation moves from
+2.8580 to 2.8520 USD and worst day from -19.3248 to -15.6493 USD, but
+daily gain falls 7.5%. Only 1/4 samples improves and pooled t is negative:
+reject. No trading-code change or bot restart. Close-fill simulation is
+not evidence of forward execution quality or future profitability.
+
+Five new tests verify exact recursive EMA spans, constant prices,
+causal prefixes, reflection symmetry and actual long/short exits using
+the calculated balance. Eight existing crossover tests, including 200
+deterministic no-cross barrier-parity paths, plus 19 existing sizing,
+cooldown and calendar tests pass: 32 tests total. The LAMP interpreter
+lacks pandas, so tests and the measurement used the existing persistent
+runtime interpreter against this checkout; no dependency was installed.

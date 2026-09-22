@@ -7393,3 +7393,38 @@ the section numbers below point there.
 - **Decision:** rejected, no trading change or restart. Five new channel
   tests plus 27 existing simulator/sizing/cooldown/calendar tests pass.
   Only research and documentation are published. Section 328.
+
+## 2026-09-22 (second run) — exit on an adverse EMA(12)/EMA(26) cross
+
+- **Operation:** one bot with watchdog, three open positions at the last
+  completed heartbeat; local dashboard 14 seconds old. Read-only journal
+  since 10 September: +5.132491 USD, 22 closes, +0.410067 USD per elapsed
+  calendar day. This query includes all qualifying accepted live-demo
+  closes, not only currently eligible combinations. Broker HTTP 429
+  continues. Dashboard publishing fails: the old host rejects SSH host-key
+  verification with a changed identity. No trust bypass or runtime restart;
+  remote dashboard freshness is unverified. Existing runtime edits remain
+  untouched, including Charly's restart-policy correction.
+- **Lever:** close at a completed hourly bar when recursive EMA(12)
+  crosses below EMA(26) for a long, inverse for a short. Stops, gaps and
+  targets retain priority, with the existing 24-bar timeout. No diagnostic
+  arm, no risk relaxation, no parameter sweep.
+- **Measurement:** `scripts/ema_cross_exit.py`, existing cached seven-year
+  crossover replay, 27 instruments, 28,702 signals per arm. Weekly
+  trailing-year selection on closed outcomes; positions and cooldowns
+  carry across weeks. Current pins/vetoes fixed in both arms. OOS
+  [2020-09-23, 2026-09-20), 2,188 calendar days including idle days;
+  read-only journal and no broker history calls. Active 3-ATR floor.
+
+  | arm | closes | crossover exits | simulated USD | USD/calendar day |
+  |---|---:|---:|---:|---:|
+  | current exits | 5,110 | 0 | +291.524477 | +0.133238 |
+  | adverse EMA cross | 5,224 | 1,216 | +269.605716 | +0.123220 |
+
+- **Result:** delta -0.010018 USD/day (-7.5%), pooled paired t -0.4051,
+  only 1/4 samples better. Daily standard deviation 2.8580 → 2.8520 USD;
+  worst day -19.3248 → -15.6493 USD.
+- **Decision:** rejected; trading code/settings unchanged, no restart.
+  Five new indicator/crossover tests and 27 existing replay, sizing,
+  cooldown and calendar tests pass. Section 329. Research and documentation
+  only; the daily-gain improvement objective remains unmet.
