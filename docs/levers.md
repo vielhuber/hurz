@@ -7360,3 +7360,36 @@ the section numbers below point there.
 - **Decision:** rejected; no production trading change or restart.
   Ten new guard/causality tests and 19 existing sizing, cooldown and
   calendar tests pass. Research and documentation only. Section 327.
+
+## 2026-09-22 — exit on crossing the channel midpoint
+
+- **Operation:** one bot with watchdog and automatic dashboard loop;
+  dashboard one second old. Since the 10 September filter epoch, realised
+  gain is +10.60 USD over 16 closes, about +0.92 USD/calendar day.
+  Intermittent broker price HTTP 429 remains; no operational intervention.
+  Pre-existing runtime changes were left untouched.
+- **Lever:** exit a long when the completed hourly close crosses below
+  the midpoint of the preceding 20 bars' high/low channel, inverse for a
+  short. Excludes the current bar from channel construction. Stops and
+  targets retain priority, all sizes/caps/gates stay unchanged. No control
+  variant or parameter search.
+- **Measurement:** `scripts/channel_midpoint_exit.py` reuses the tested
+  crossover replay, replacing only its balance series. Seven-year cached
+  history, 27 instruments, 28,702 shared signals with complete 24-bar exit
+  horizons, weekly selection using closed training outcomes, persistent
+  positions/cooldowns and current pins/vetoes fixed across both arms.
+  Journal read-only, no broker history calls. OOS 2020-09-23 through
+  2026-09-19 inclusive; all 2,188 calendar days included.
+
+  | arm | closes | midpoint exits | simulated USD | USD/calendar day |
+  |---|---:|---:|---:|---:|
+  | current exits | 5,110 | 0 | +291.524477 | +0.133238 |
+  | channel midpoint cross | 5,866 | 4,292 | +116.571630 | +0.053278 |
+
+- **Result:** delta -0.079960 USD/day (-60.0%), pooled paired t -1.8042,
+  only 1/4 samples better. Daily standard deviation falls 2.8580 → 2.5400
+  USD and worst day improves -19.3248 → -11.5780 USD; higher turnover
+  does not compensate for lost returns.
+- **Decision:** rejected, no trading change or restart. Five new channel
+  tests plus 27 existing simulator/sizing/cooldown/calendar tests pass.
+  Only research and documentation are published. Section 328.

@@ -11699,3 +11699,49 @@ Ten focused tests cover signed risk, hedging/missing estimates, expiry,
 the original cluster/total caps, cooldown and one-position rule, exclusion
 of cutoff/future/too-old observations and minimum common sample size.
 Nineteen existing sizing, cooldown and calendar tests also pass.
+
+## 328. Channel-midpoint exit: faster turnover loses most of the gain
+
+`scripts/channel_midpoint_exit.py` preregisters a single exit candidate:
+close a long on a completed hourly close crossing below the midpoint of
+the previous 20 bars' highest high and lowest low, inverse for a short.
+Unlike the opposite-channel breakout exit, this leaves at the centre of
+the rolling range, before the opposite boundary. The current bar does
+not set the channel. An already-adverse balance is not a fresh cross;
+stops, gaps and targets retain priority, and the original timeout stays.
+No second parameter or diagnostic arm is tested.
+
+The existing crossover replay is reused with only its indicator-balance
+function replaced. This preserves the independently tested barrier and
+cost accounting. The seven-year cached history supplies 27 instruments
+and a shared stream of 28,702 signals, each with the full 24 following
+bars. Each arm reranks its own already-closed trailing-365-day training
+outcomes weekly; positions and cooldowns persist between weeks. Current
+pins/vetoes and broker metadata are fixed in both arms, not reconstructed
+point in time. Journal access is read-only and no broker data is fetched.
+
+OOS [2020-09-23, 2026-09-20) covers 2,188 calendar days, including idle
+days. Baseline equals section 326, with the same terminal-bar restriction;
+only this paired same-run comparison supports the decision.
+
+| OOS interval (end exclusive) | days | baseline USD/day | midpoint exit USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.048616 | +0.061168 | +0.012553 | +0.1265 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.189763 | +0.080572 | -0.109191 | -1.3880 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.110071 | +0.022900 | -0.087172 | -1.0624 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.151242 | +0.051546 | -0.099696 | -1.0391 |
+| pooled | 2,188 | +0.133238 | +0.053278 | -0.079960 | -1.8042 |
+
+Baseline closes 5,110 trades for +291.524477 USD. Candidate closes 5,866
+for +116.571630 USD, including 4,292 midpoint exits. Daily variability
+falls (standard deviation 2.8580 → 2.5400 USD, worst day -19.3248 →
+-11.5780 USD), but daily gain drops 60.0%. Only 1/4 samples improves;
+pooled t is negative rather than above +2. Reject, with no production
+trading changes and no restart. Sizes, stops and exposure limits remain
+unchanged. These are simulated close fills, not forward execution proof.
+
+Five new tests cover the exact lagged 20-bar channel, exclusion of the
+current high/low, causal prefixes, long/short symmetry and actual exits
+using the calculated balance. Eight existing crossover tests cover
+barrier priority and 200 deterministic no-cross parity paths; 19 existing
+sizing, cooldown and calendar tests also pass (32 total).
