@@ -95,6 +95,7 @@ async def main():
         identities[arm] = {(trade["ts"], trade["strat"], trade["pair"]) for trade in closed}
         print(f"{arm}: closed={len(closed)} pnl={series[arm].sum():+.6f} "
               f"USD/calendar_day={series[arm].mean():+.6f} "
+              f"mean_planned_risk={np.mean([trade['risk'] for trade in closed]):.6f} "
               f"daily_sd={series[arm].std(ddof=1):.4f} worst_day={series[arm].min():+.4f}", flush=True)
     delta = series["candidate"] - series["live"]
     improved = 0

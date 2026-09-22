@@ -11791,3 +11791,54 @@ deterministic no-cross barrier-parity paths, plus 19 existing sizing,
 cooldown and calendar tests pass: 32 tests total. The LAMP interpreter
 lacks pandas, so tests and the measurement used the existing persistent
 runtime interpreter against this checkout; no dependency was installed.
+
+## 330. Sizing-efficiency admission priority reduces the daily gain
+
+`scripts/burst_risk_priority.py` preregisters one admission change:
+among eligible signals on the same hourly bar, admit higher planned
+dollar risk first. With the common 3 USD risk budget, that is higher
+budget utilization after notional limits and venue size rounding. Ties
+retain the active-list order; earlier bars always precede later ones.
+Unlike the historical efficiency-weighted selector, this changes neither
+ranking scores nor list eligibility: it changes the contest for slots
+at entry. No diagnostic variant or parameter sweep.
+
+The existing admission replay is reused with only its priority function
+replaced. It now also reports mean planned risk among closed trades:
+unchanged ceilings do not imply unchanged actual exposure. No position
+is resized and all existing stops, caps, cooldowns and entry gates remain.
+
+Cached seven-year history covers 27 instruments, 28,704 signals and
+39 current pins, with the 3-ATR floor active. Weekly selection uses
+already-closed trailing-365-day results. Open positions and cooldowns
+carry across weeks. Current pins, vetoes and broker metadata remain
+fixed across the historical comparison, not point-in-time reconstructed.
+Journal access is read-only; no broker history was requested. OOS
+[2020-09-23, 2026-09-20) covers 2,188 calendar days, including idle days.
+The four established samples below are unequal-length periods.
+
+| OOS interval (end exclusive) | days | baseline USD/day | priority USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.042229 | +0.005775 | -0.036454 | -0.9022 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.189763 | +0.190158 | +0.000395 | +0.0166 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.110071 | +0.093958 | -0.016113 | -0.5365 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.151242 | +0.094509 | -0.056732 | -1.6489 |
+| pooled | 2,188 | +0.132172 | +0.111435 | -0.020738 | -1.3344 |
+
+Baseline closes 5,111 trades for +289.193282 USD. Candidate closes 5,114
+for +243.819618 USD; 343 new admissions displace 340 baseline trades.
+Mean planned risk among closes rises 2.316016 → 2.326875 USD (+0.47%).
+This is an entry-risk statistic, not a measure of peak concurrent risk.
+Daily standard deviation moves 2.8595 → 2.8486 USD; worst day stays
+-19.3248 USD. The paired baseline matches sections 325 and 327; the
+exit experiments use a different common terminal-history restriction.
+
+Reject: daily gain falls 15.7%, only 1/4 samples improves, and pooled
+paired t is -1.3344 rather than above +2. No production trading change
+or restart. Seven new tests cover baseline ordering, same-bar priority,
+tie stability without future outcomes, eligibility and immutable sizes,
+cluster/total position caps, cooldown and one-position-per-instrument.
+Twenty-four existing priority, sizing, cooldown and calendar tests also
+pass (31 total), using the persistent runtime interpreter against this
+checkout. No dependency changes. These are simulations, not a forward
+profitability claim.

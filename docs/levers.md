@@ -7428,3 +7428,38 @@ the section numbers below point there.
   Five new indicator/crossover tests and 27 existing replay, sizing,
   cooldown and calendar tests pass. Section 329. Research and documentation
   only; the daily-gain improvement objective remains unmet.
+
+## 2026-09-22 (third run) — higher sizing efficiency first on a contested bar
+
+- **Operation:** one bot and watchdog, three open positions at the last
+  heartbeat. Local dashboard eight seconds old; publishing still fails.
+  SSH access to the former webhost still fails host-key verification;
+  no trust bypass. Broker HTTP 429 continues. Since 10 September, the
+  read-only journal has 22 qualifying live-demo closes, +5.132491 USD,
+  approximately +0.40 USD per elapsed calendar day. Runtime unchanged.
+- **Lever:** prioritize simultaneous eligible signals by descending
+  planned dollar risk after venue sizing, keeping active-list order for
+  ties. With a shared 3 USD budget this favors better budget utilization,
+  not larger configured sizes. Existing stops, limits and entry guards
+  remain. Actual exposure can increase within those limits. No control
+  arm, changed ranking score or parameter sweep.
+- **Measurement:** `scripts/burst_risk_priority.py` reuses the weekly
+  admission replay. Seven-year cached history, 27 instruments, 28,704
+  signals, 39 current pins, active 3-ATR floor. Only already-closed
+  trailing-year outcomes determine each weekly selection; positions and
+  cooldowns persist. Current pins/vetoes/venue metadata fixed in both
+  arms. OOS [2020-09-23, 2026-09-20), 2,188 calendar days including idle
+  days. Read-only journal, no broker history requests.
+
+  | arm | closes | simulated USD | USD/calendar day | mean planned risk USD |
+  |---|---:|---:|---:|---:|
+  | active-list order | 5,111 | +289.193282 | +0.132172 | 2.316016 |
+  | higher sizing efficiency first | 5,114 | +243.819618 | +0.111435 | 2.326875 |
+
+- **Result:** daily gain -15.7%, delta -0.020738 USD/day, pooled paired
+  t -1.3344, only 1/4 samples better. Mean planned risk rises 0.47%; daily
+  standard deviation 2.8595 → 2.8486 USD; worst day unchanged at -19.3248
+  USD. 343 different admissions displace 340 baseline trades.
+- **Decision:** rejected; no trading change or restart. Seven new
+  priority/guard tests and 24 existing admission, sizing, cooldown and
+  calendar tests pass. Research and documentation only. Section 330.
