@@ -11891,3 +11891,64 @@ total) on the persistent runtime interpreter against this checkout.
 The completed paired measurement above followed that correction, with
 the preregistered indicator and threshold unchanged. Simulated outcomes
 are not proof of forward profitability.
+
+## 332. Aroon direction agreement reduces daily gain
+
+`scripts/aroon_gate.py` preregisters one admission-only regime filter:
+the Aroon(25) oscillator must agree with the signal direction. Over 26
+completed bars including the signal bar, compute
+`100 * (bars_since_lowest_low - bars_since_highest_high) / 25`. Repeated
+extremes use the most recent occurrence. Longs require a positive value,
+shorts a negative value; zero and undefined values refuse entry. No
+alternative period, threshold or diagnostic arm is measured.
+
+The existing weekly admission replay retains the baseline rankings,
+using only already-closed trailing-year training outcomes. Positions and
+cooldowns carry across weeks. Current pins, vetoes and venue metadata
+are fixed in both arms. Stops, the 3-ATR floor, costs, actual size steps,
+3 USD target risk, 250 USD notional cap and position caps are unchanged.
+This is an entry filter, not a selector change or a stop adjustment.
+
+Seven-year cached history supplies 27 instruments and 28,704 eligible
+signals, with 39 current pins. No broker history requests. A consistent,
+read-only snapshot of the current journal's 1,787 rows supplies vetoes;
+the measurement uses a separate temporary SQLite database with writes
+disabled. The baseline is recomputed in this run rather than copied from
+section 331: 0.105438 USD/day versus that section's 0.132172. Only the
+paired arms below support this decision; no between-run gain is inferred.
+
+OOS [2020-09-23, 2026-09-20): 2,188 calendar days, including idle days.
+The harness's established four disjoint samples have unequal lengths;
+they are not four individual calendar years.
+
+| OOS interval (end exclusive) | days | baseline USD/day | Aroon USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.000787 | -0.032444 | -0.033231 | -0.6737 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.163841 | +0.162328 | -0.001513 | -0.0347 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.087222 | +0.087984 | +0.000762 | +0.0167 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.129848 | +0.113101 | -0.016747 | -0.3021 |
+| pooled | 2,188 | +0.105438 | +0.096865 | -0.008573 | -0.3512 |
+
+Baseline: 5,040 closes, +230.698099 USD. Candidate: 4,689 closes,
++211.940911 USD, with 429 newly admitted trades displacing 780 baseline
+trades. Daily gain falls 8.1%. Mean planned risk per close decreases
+2.316256 → 2.312908 USD; daily standard deviation falls 2.8570 → 2.7351
+USD; worst day remains -19.5309 USD. These lower variability figures do
+not satisfy the gain objective.
+
+Reject: only 1/4 samples improves and pooled paired t is -0.3512, not
+above +2. No production trading change or restart. Eight new tests cover
+indicator endpoints, latest-extreme ties, neutral/missing values,
+causality, direction gating, eligibility, ordering and UTC signal-bar
+alignment without changing outcomes. Fifty-five existing admission,
+sizing, cooldown, Choppiness and calendar/ranking tests also pass (63
+total). Tests and replay ran in the LAMP environment with isolated
+temporary dependencies matching the runtime's numpy, pandas, scipy and
+scikit-learn versions. No production dependency changes.
+
+Hurz remained running with one watchdog/bot and five open positions at
+the initial heartbeat. The local dashboard was 13 seconds old and showed
+-0.04 USD today and +0.96 USD/day since 10 September in its active-book
+scope. Dashboard publishing continues to fail, and broker price calls
+still sometimes return HTTP 429. Neither triggered a restart. This
+historical counterfactual is not a forward profitability demonstration.

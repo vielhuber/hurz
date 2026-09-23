@@ -7533,3 +7533,37 @@ the section numbers below point there.
   qualifying-journal scope and are not a new profitability measurement.
 - **Decision:** retain the running instance, its data and trading limits;
   version the already-deployed restart-policy safeguard and its tests.
+
+## 2026-09-23 (evening) — Aroon(25) direction agreement at entry
+
+- **Operation:** one running bot and watchdog, five open positions at
+  the initial heartbeat. Local dashboard 13 seconds old, showing -0.04
+  USD today and +0.96 USD/day since 10 September in its active-book scope.
+  Dashboard publishing and intermittent broker HTTP 429 errors persist.
+  No runtime intervention or restart.
+- **Lever:** admit a long only when Aroon(25) is positive, a short only
+  when negative. Compare the latest high/low ages across 26 completed
+  bars including the signal bar; use the latest occurrence for ties.
+  Zero/undefined values refuse entry. Baseline weekly rankings, stops,
+  sizing and every existing guard remain unchanged. No control arm or
+  period/threshold sweep.
+- **Measurement:** existing cached seven-year weekly admission replay,
+  27 instruments, 28,704 signals, 39 current pins, active 3-ATR floor.
+  Read-only journal snapshot; no broker history requests. OOS
+  [2020-09-23, 2026-09-20), 2,188 calendar days including idle days.
+  Today's pins/vetoes/venue metadata are fixed historical assumptions
+  in both arms. The baseline is recomputed, not reused from earlier runs.
+
+  | arm | closes | simulated USD | USD/calendar day |
+  |---|---:|---:|---:|
+  | current entry guards | 5,040 | +230.698099 | +0.105438 |
+  | additional Aroon gate | 4,689 | +211.940911 | +0.096865 |
+
+- **Result:** daily gain -8.1%, delta -0.008573 USD/day, pooled paired
+  t -0.3512; only 1/4 established comparison samples improves. Daily
+  standard deviation 2.8570 → 2.7351 USD; worst day unchanged at -19.5309
+  USD. Mean planned risk per close 2.316256 → 2.312908 USD.
+- **Decision:** rejected; production trading code/settings unchanged,
+  no restart. Eight new tests and 55 existing admission, sizing,
+  cooldown, Choppiness and calendar/ranking tests pass. Research and
+  documentation only. Section 332; the daily-gain objective remains unmet.
