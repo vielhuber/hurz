@@ -7497,3 +7497,39 @@ the section numbers below point there.
   tests pass. An initial timestamp-matching error was reproduced in a
   regression test and corrected before the completed measurement.
   Section 331. Research and documentation only; gain objective unmet.
+
+## 2026-09-23 — persistent-runtime verification and restart-policy guard
+
+- **Scope:** explicitly commissioned persistent operation, not an
+  optimisation run; no new trading lever measured. The Choppiness
+  rejection above remains unchanged.
+- **State:** Charly started at 13:43:20 UTC; the existing host five-minute
+  keepalive restored the watchdog, one demo bot and dashboard loop at
+  13:45 UTC. Their PIDs are 3594, 3602 and 3605. Runtime, SQLite database,
+  settings, active pairs, models and interpreter remain on the persistent
+  volume, independent of this LAMP checkout. No new instance, data import
+  or deliberate restart was performed.
+- **Correction:** the deployed keepalive already preserves Charly's
+  restart policy, but the tracked script still overwrote it. Removed that
+  override from source and added regression coverage. Charly owns its
+  lifecycle; policy `no` was left unchanged. Hurz recovers once Charly is
+  running, not by changing how Docker starts Charly itself.
+- **Checks:** both keepalive regression tests pass (including four policy
+  cases), after reproducing the source failure. Six runtime shell scripts
+  pass syntax checks. A real host keepalive invocation preserved all three
+  PIDs and Docker policy. Dashboard regeneration advanced automatically
+  at its 30-second cadence; age was 12 seconds at 13:52:21 UTC. Installed
+  scikit-learn 1.5.2 and mapie 0.9.2 match the runtime requirement.
+- **Limits:** the retired host rejects SSH because its host key changed.
+  Its process/cron shutdown and original data transfer remain documented
+  by the 20 September checks, but could not be reverified today. No trust
+  bypass or new first start. Dashboard publication still fails; the public
+  URL redirects to Cloudflare Access, so served freshness is not verified.
+  Broker price requests still intermittently return HTTP 429. A deliberate
+  container/host restart and crash recovery were not exercised.
+- **Journal display:** the current local dashboard shows -0.04 USD today
+  and +0.98 USD/day since 10 September (20 closes, +12.65 USD), for its
+  active-book scope. These differ from the previous research entry's
+  qualifying-journal scope and are not a new profitability measurement.
+- **Decision:** retain the running instance, its data and trading limits;
+  version the already-deployed restart-policy safeguard and its tests.

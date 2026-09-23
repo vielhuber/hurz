@@ -16,13 +16,5 @@ container=$(docker ps --filter "name=${HURZ_CONTAINER:-charly-david}" \
             --format '{{.Names}}' | head -1)
 [[ -n "$container" ]] || exit 0
 
-# The container is created without a restart policy, so a reboot of the
-# docker host leaves it down — and this script, which only ever looks at
-# running containers, then exits silently for good. `unless-stopped` brings
-# it back with the daemon while still honouring a deliberate `docker stop`.
-# Re-applied on every tick because a container recreate drops it again.
-if [[ $(docker inspect -f '{{.HostConfig.RestartPolicy.Name}}' "$container") != unless-stopped ]]; then
-  docker update --restart unless-stopped "$container" >/dev/null
-fi
-
+# Charly owns the container lifecycle; never override its restart policy.
 exec docker exec "$container" /bin/bash /host/data/hurz/scripts/boot_start.sh

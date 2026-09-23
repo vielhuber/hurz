@@ -73,6 +73,9 @@ that outlives a container recreate.
 no-op while both are healthy. A `*/5` cron entry on the docker host runs
 `scripts/container_keepalive.sh`, which reaches into the container and
 calls it; the container's own crontab would not survive a recreate.
+Charly owns the container lifecycle: the keepalive does not change its
+Docker restart policy or start a stopped container. Once Charly is running,
+Hurz is restored within five minutes.
 
 `hurz.vielhuber.dev` is still served by Apache on the old host, so
 `scripts/publish_dashboard.sh` copies `dashboard/index.html` there after
