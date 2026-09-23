@@ -7463,3 +7463,37 @@ the section numbers below point there.
 - **Decision:** rejected; no trading change or restart. Seven new
   priority/guard tests and 24 existing admission, sizing, cooldown and
   calendar tests pass. Research and documentation only. Section 330.
+
+## 2026-09-23 — Choppiness(14) admission gate
+
+- **Operation:** one bot with watchdog; local dashboard 15 seconds old.
+  Since 10 September: 23 qualifying live-demo closes, +6.259039 USD,
+  +0.480638 USD per elapsed calendar day. Broker HTTP 429 continues.
+  Dashboard publishing still fails; SSH to the serving host again fails
+  host-key verification. No security bypass, restart or runtime edit.
+- **Lever:** refuse entries when Choppiness(14) exceeds 61.8 or is
+  undefined. It compares summed true ranges with the enclosing high/low
+  range, including the completed signal bar. Weekly baseline rankings
+  remain unchanged; this is only an admission filter. No diagnostic arm
+  or threshold search. Stops, sizes and all existing limits remain.
+- **Measurement:** `scripts/choppiness_gate.py`, cached seven-year weekly
+  replay, 27 instruments, 28,704 signals and 39 current pins. Selection
+  uses closed trailing-year outcomes; positions and cooldowns persist.
+  Active 3-ATR floor; current pins/vetoes/venue metadata fixed in both
+  arms. OOS [2020-09-23, 2026-09-20): 2,188 calendar days including idle
+  days. Read-only journal; no broker history requests.
+
+  | arm | closes | simulated USD | USD/calendar day |
+  |---|---:|---:|---:|
+  | current entry guards | 5,111 | +289.193282 | +0.132172 |
+  | additional Choppiness gate | 5,062 | +256.149902 | +0.117070 |
+
+- **Result:** -11.4% daily gain, delta -0.015102 USD/day, paired pooled
+  t -1.6390, 0/4 samples better. Daily standard deviation falls 2.8595 →
+  2.8363 USD; worst day -19.3248 → -18.6200 USD. Mean planned risk per
+  close is essentially unchanged (2.316016 → 2.316085 USD).
+- **Decision:** rejected; no production trading change or restart.
+  Nine new tests plus 24 existing admission/sizing/cooldown/calendar
+  tests pass. An initial timestamp-matching error was reproduced in a
+  regression test and corrected before the completed measurement.
+  Section 331. Research and documentation only; gain objective unmet.

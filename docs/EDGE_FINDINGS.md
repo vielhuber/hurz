@@ -11842,3 +11842,52 @@ Twenty-four existing priority, sizing, cooldown and calendar tests also
 pass (31 total), using the persistent runtime interpreter against this
 checkout. No dependency changes. These are simulations, not a forward
 profitability claim.
+
+## 331. Choppiness admission gate lowers gain in every sample
+
+`scripts/choppiness_gate.py` preregisters one entry-only regime gate:
+Choppiness(14) must be at most 61.8. The indicator is
+`100 * log10(sum(TR, 14) / (max(high, 14) - min(low, 14))) / log10(14)`.
+True range includes gaps against the previous close. The completed
+signal bar is included; a zero enclosing range yields undefined and
+refuses candidate entry. No diagnostic threshold is evaluated.
+
+Unlike the earlier close-to-close efficiency ratio, this measures
+overlapping intrabar ranges. Weekly rankings are deliberately unchanged:
+only admission is filtered, not historical selector eligibility. The
+existing replay keeps positions and cooldowns across weekly boundaries,
+uses only closed trailing-year training outcomes and applies the current
+3-ATR floor, stops, sizes and caps. Cached seven-year history supplies
+27 instruments, 28,704 signals and 39 current pins. Current pins/vetoes
+and venue metadata are fixed historical assumptions in both arms.
+Journal access is read-only, with no broker history requests.
+
+OOS [2020-09-23, 2026-09-20), 2,188 calendar days including idle days.
+The established four samples are unequal-length periods.
+
+| OOS interval (end exclusive) | days | baseline USD/day | gate USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.042229 | +0.011730 | -0.030499 | -1.3278 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.189763 | +0.171047 | -0.018716 | -1.3341 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.110071 | +0.098778 | -0.011293 | -0.6181 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.151242 | +0.151230 | -0.000012 | -0.0006 |
+| pooled | 2,188 | +0.132172 | +0.117070 | -0.015102 | -1.6390 |
+
+Baseline: 5,111 closes, +289.193282 USD. Candidate: 5,062 closes,
++256.149902 USD. There are 102 newly admitted trades and 151 displaced
+baseline trades as the available slots change. Mean planned risk per
+close moves 2.316016 → 2.316085 USD; daily standard deviation 2.8595 →
+2.8363 USD; worst day -19.3248 → -18.6200 USD. Lower variability does
+not offset an 11.4% reduction in daily gain. Reject: 0/4 samples better,
+pooled t -1.6390 rather than above +2. No live change or restart.
+
+Nine new tests cover exact indicator values, gaps, warm-up/flat ranges,
+causality, threshold equality, missing values, eligibility and signal-bar
+alignment. The first replay exposed a timezone-aware-index/NumPy-key
+mismatch before any comparison completed. A failing regression test
+reproduced it; explicit UTC NumPy index conversion fixes it. Twenty-four
+existing admission, sizing, cooldown and calendar tests also pass (33
+total) on the persistent runtime interpreter against this checkout.
+The completed paired measurement above followed that correction, with
+the preregistered indicator and threshold unchanged. Simulated outcomes
+are not proof of forward profitability.
