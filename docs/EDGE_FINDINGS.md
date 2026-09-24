@@ -11952,3 +11952,61 @@ the initial heartbeat. The local dashboard was 13 seconds old and showed
 scope. Dashboard publishing continues to fail, and broker price calls
 still sometimes return HTTP 429. Neither triggered a restart. This
 historical counterfactual is not a forward profitability demonstration.
+
+## 333. Removing the profit-factor score multiplier does not improve gain
+
+`scripts/rank_without_profit_factor.py` preregisters a single selector
+change: rank by `expectancy * log1p(n)` instead of
+`expectancy * log1p(n) * min(5, profit_factor)`. Profit factor remains an
+eligibility gate, with the same minimum trade count and expectancy gate.
+The motivation is to avoid multiplying two measures of historical
+profitability; no replacement score, threshold sweep or diagnostic arm
+is evaluated. Unlike section 232's membership-only comparison, this
+replay also applies each arm's list order to contested simultaneous
+signals. Pins retain their file order after ranked candidates.
+
+Weekly selection uses only already-closed outcomes from the trailing
+365 days. Top 40, reservations, current vetoes/pins, stops, sizing, the
+3-ATR floor and all admission guards remain. Positions and cooldowns
+carry across weeks. The fixed current pins, vetoes and venue metadata
+are historical assumptions shared by both arms, not historical snapshots.
+Different admissions can change realised exposure within unchanged caps.
+
+The seven-year cache contains 27 instruments and yields 28,704 signals,
+with 39 current pins. Vetoes come from a consistent read-only snapshot
+of 1,797 journal rows; SQLite integrity passes. The replay runs read-only
+against a separate temporary copy, without broker history requests or
+production data changes. OOS [2020-09-23, 2026-09-20), 2,188 calendar
+days including idle days. The four established samples have unequal
+lengths and are not four individual calendar years.
+
+| OOS interval (end exclusive) | days | baseline USD/day | no PF multiplier USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.000787 | +0.000787 | 0 | undefined |
+| 2023-09-21 – 2025-09-20 | 730 | +0.163841 | +0.158377 | -0.005464 | -1.3733 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.087222 | +0.087222 | 0 | undefined |
+| 2020-09-23 – 2021-09-21 | 363 | +0.129848 | +0.129848 | 0 | undefined |
+| pooled | 2,188 | +0.105438 | +0.103615 | -0.001823 | -1.3728 |
+
+The undefined statistics reflect zero-variance daily differences, not a
+missing measurement. Baseline: 5,040 closes and +230.698099 USD.
+Candidate: 5,041 closes and +226.709679 USD. Twenty-one new admissions
+displace twenty baseline trades. Daily gain falls 1.7%; mean planned
+risk per close changes 2.316256 → 2.316282 USD, daily standard deviation
+2.8570 → 2.8573 USD, and worst day remains -19.5309 USD.
+
+Reject: 0/4 samples improves and pooled paired t is -1.3728. Production
+ranking, risk limits and runtime remain unchanged; no restart. Seven
+new tests cover baseline identity, score ordering, eligibility, vetoes,
+reservations, pins, per-arm top-N membership, ties, chronological
+admission and unchanged input outcomes. Forty-six existing admission,
+sizing, cooldown and calendar/ranking tests pass (53 total). Tests and
+the completed paired replay ran in the LAMP environment using the
+isolated dependency environment from section 332.
+
+At the initial check Hurz had one bot/watchdog and five open positions.
+The local dashboard was 29 seconds old, showing 0.00 USD today and
++0.94 USD/day since 10 September in its active-book scope. Publishing
+still fails and intermittent broker HTTP 429 responses remain. No
+operational blocker required intervention; public freshness is not
+confirmed. The historical comparison is not a forward gain claim.

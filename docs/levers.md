@@ -7567,3 +7567,34 @@ the section numbers below point there.
   no restart. Eight new tests and 55 existing admission, sizing,
   cooldown, Choppiness and calendar/ranking tests pass. Research and
   documentation only. Section 332; the daily-gain objective remains unmet.
+
+## 2026-09-24 — selector score without the profit-factor multiplier
+
+- **Operation:** one running bot/watchdog, five open positions. Local
+  dashboard 29 seconds old; 0.00 USD today and +0.94 USD/day since
+  10 September in its active-book scope. Dashboard publication still
+  fails and broker HTTP 429 responses persist. No runtime intervention.
+- **Lever:** replace the ranking score `eR * log1p(n) * min(5, pf)` with
+  `eR * log1p(n)`. Keep profit factor as an eligibility gate. Top 40,
+  pins, reservations, vetoes, stops and risk limits stay unchanged.
+  Each arm uses its own list ordering for simultaneous admissions, not
+  just its own membership. No alternative score or diagnostic arm.
+- **Measurement:** cached seven-year weekly walk-forward, 27 instruments,
+  28,704 signals, 39 pins, active 3-ATR floor. Only already-closed
+  trailing-year outcomes determine rankings; positions/cooldowns persist.
+  Read-only snapshot of 1,797 journal rows, no broker history requests.
+  OOS [2020-09-23, 2026-09-20): 2,188 calendar days including idle days.
+  Current pins/vetoes/venue metadata remain fixed in both arms.
+
+  | arm | closes | simulated USD | USD/calendar day |
+  |---|---:|---:|---:|
+  | current composite score | 5,040 | +230.698099 | +0.105438 |
+  | score without PF multiplier | 5,041 | +226.709679 | +0.103615 |
+
+- **Result:** -1.7% daily gain, delta -0.001823 USD/day, pooled paired
+  t -1.3728; 0/4 established samples better (three unchanged). Twenty-one
+  new admissions displace twenty baseline trades. Daily standard
+  deviation 2.8570 → 2.8573 USD; worst day unchanged at -19.5309 USD.
+- **Decision:** rejected; production ranking/settings unchanged, no
+  restart. Seven new and 46 existing tests pass (53 total). Research
+  and documentation only; section 333. Daily-gain objective still unmet.
