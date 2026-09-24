@@ -12010,3 +12010,81 @@ The local dashboard was 29 seconds old, showing 0.00 USD today and
 still fails and intermittent broker HTTP 429 responses remain. No
 operational blocker required intervention; public freshness is not
 confirmed. The historical comparison is not a forward gain claim.
+
+## 334. Pace Capital requests instead of losing evaluations (2026-09-24)
+
+The existing runtime log contains 139 failed evaluations between
+04:00 and 08:00 UTC on 24 September, all reporting HTTP 429, across
+18 instruments. Successful evaluations were not counted, so neither
+their failure percentage nor lost profit can be reconstructed. This
+observed execution defect motivates the single lever; no new entry,
+exit or ranking filter is being searched.
+
+The adapter now spaces request starts by at least 0.2 seconds, including
+concurrent callers sharing that adapter. This budgets five requests per
+second against Capital's documented ten-per-second user limit
+(https://open-api.capital.com/), leaving room for the separate selector
+process. It is a per-adapter limit, not a cross-process account lock.
+Login remains separate; additional clients can still exhaust the shared
+broker budget. No orders are automatically retried and errors still
+propagate. Each completed scan logs attempted and failed evaluations.
+
+A local HTTP server with a rolling ten-request/second limit received
+55 consecutive price requests through the actual adapter transport:
+
+| adapter | completed | HTTP 429 | elapsed seconds |
+|---|---:|---:|---:|
+| previous unpaced adapter | 10 | 45 | 0.008 |
+| paced adapter | 55 | 0 | 10.845 |
+
+This is a controlled synthetic transport measurement, not a Capital
+broker result and not a measurement of recovered profitable trades.
+
+After deployment, the real demo bot completed six scans ending between
+08:17:48 and 08:23:44 UTC: 294 attempted evaluations, zero failed
+evaluations and zero HTTP 429 log lines. Each scan evaluated 49 of the
+55 active entries; the count excludes entries skipped before evaluation
+by existing guards. This short forward window is not equivalent
+to the four-hour baseline, and does not cover the daily selector run.
+
+The existing cached weekly walk-forward was also rerun with unchanged
+trading logic in both arms. Seven-year history, 27 instruments, 28,704
+signals, 39 current pins, active 3-ATR floor, current venue metadata and
+a read-only snapshot of 1,811 journal rows; no broker history requests.
+OOS [2020-09-23, 2026-09-20), 2,188 calendar days including idle days.
+
+Both arms produce 5,040 closes, +230.698099 USD and +0.105438 USD/day.
+Daily standard deviation is 2.8570 USD, worst day -19.5309 USD, mean
+planned risk 2.316256 USD. All four established samples are identical:
+365 days at +0.000787/day, 730 at +0.163841/day, 730 at +0.087222/day,
+363 at +0.129848/day (same intervals as section 333). Delta is zero,
+0/4 samples improve and paired t is undefined because variance of the
+differences is zero. Historical bars contain no request-failure trace;
+the replay cannot infer which live signals the old adapter missed.
+This is a trading-logic regression check, not an economic validation.
+The historical alpha adoption gate is NOT passed.
+
+The pacing correction is deployed under the explicit operational
+requirement to prevent 429-related missed evaluations, not as a proven
+gain-improving strategy. More completed evaluations can change actual
+admissions and exposure within unchanged limits. The 3 USD target risk,
+250 USD notional cap, position limits, stops and other risk guards remain.
+Longer forward measurement, including the scheduled selector, is needed
+before claiming sustained reliability or increased realised daily gain.
+
+Tests: 14 adapter tests (including three new pacing/error/cancellation
+tests), 25 sizing tests and 23 guard/duplicate-entry/stale-exit/cost tests
+pass in LAMP. The latter use an isolated in-memory journal schema; an
+initial run without that schema failed closed, then passed with the
+proper fixture. Three operational startup/keepalive tests also pass.
+No test order was sent to a real broker. The demo bot was restarted once
+after the source commit was pushed and fast-forwarded into runtime.
+
+Separately, the requested dashboard delivery migration removes the
+30-second loop and scp publishing. The old loop was stopped. Dashboard
+generation remains available on heartbeat and explicitly at run end;
+the run-end HTML is delivered as an attachment. Reviewed runtime drift
+was preserved in the source checkout before deployment, including the
+instruction not to change Charly's restart policy. Runtime is now a
+clean deployment of origin/main; code is only edited in the LAMP
+workspace. The daily-gain objective remains open.

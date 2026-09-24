@@ -7604,3 +7604,41 @@ the section numbers below point there.
 - **Decision:** rejected; production ranking/settings unchanged, no
   restart. Seven new and 46 existing tests pass (53 total). Research
   and documentation only; section 333. Daily-gain objective still unmet.
+
+## 2026-09-24 (morning) — pace requests to recover missed evaluations
+
+- **Observation:** 139 failed evaluations across 18 instruments between
+  04:00 and 08:00 UTC, all HTTP 429. Successful evaluations were not
+  counted before this change; a baseline failure percentage and lost
+  profit cannot be reconstructed. No further trend filter is tested.
+- **Lever:** space Capital request starts by 0.2 seconds per adapter
+  and count attempts/failures per completed scan. No order retries;
+  errors remain visible. Separate processes still share the broker's
+  user quota, so this is not an account-wide rate limiter.
+- **Measurement:** a controlled local HTTP server enforcing ten requests
+  per rolling second completed 10/55 requests before pacing (45 errors)
+  and 55/55 afterwards (zero errors); elapsed time 0.008 → 10.845 seconds.
+  Actual demo forward observation after deployment: six scans ending
+  08:17:48–08:23:44 UTC, 294/294 evaluations completed, zero failures and
+  zero HTTP 429 lines. Longer operation and the selector overlap remain
+  unverified; the before/after windows have different lengths.
+- **Walk-forward:** same cached seven-year weekly replay, 27 instruments,
+  28,704 signals, 39 pins, active 3-ATR floor, read-only snapshot of 1,811
+  journal rows. OOS [2020-09-23, 2026-09-20), 2,188 calendar days. Both
+  arms use identical trading rules and produce 5,040 closes, +230.698099
+  USD and +0.105438 USD/day. Delta zero, 0/4 samples better, paired t
+  undefined. Bars contain no historical API-failure trace, so this is
+  a regression check, not proof of increased gain or recovered trades.
+- **Decision:** retain as the explicitly requested execution-reliability
+  correction, NOT as a strategy passing the historical alpha gate.
+  Risk limits, stops, filters and sizing remain unchanged; more completed
+  evaluations can change exposure within those caps. Daily-gain
+  improvement is unproven and the overall goal remains open. Section 334.
+- **Checks/deployment:** 62 adapter/sizing/guard tests and three
+  startup/keepalive tests passed. Pushed to main, fast-forwarded into the
+  clean runtime checkout and restarted one demo bot under its watchdog.
+  The obsolete publishing/30-second dashboard loop was separately
+  removed and stopped; current dashboard delivery is an HTML attachment.
+  Initial active-book dashboard: +0.93 USD today, +13.58 USD realised
+  since 10 September, +0.99 USD/day. This is not the full historical
+  journal and does not erase its losses.

@@ -6,8 +6,8 @@
 # gone after a recreate, and its start sequence reads no user hook. The
 # docker host survives both, so the keepalive sits here and reaches in.
 #
-# boot_start.sh is a silent no-op while bot and dashboard loop are
-# healthy and serializes through its own lock, so a short interval is
+# boot_start.sh is a silent no-op while the bot is healthy and
+# serializes through its own lock, so a short interval is
 # safe. Wired to a `*/5` cron entry on the docker host.
 
 set -o pipefail
