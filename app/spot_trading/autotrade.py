@@ -1526,6 +1526,8 @@ async def run_loop(
             opened_this_cycle: List[tuple] = []
             opened_this_cycle_count = 0
             opened_this_cycle_pairs: set = set()
+            evaluation_attempts = 0
+            evaluation_failures = 0
             for entry in active:
                 pair = entry.get("pair")
                 entry_strategy = entry.get("strategy") or strategy_name
@@ -1564,6 +1566,7 @@ async def run_loop(
                     )
 
                 try:
+                    evaluation_attempts += 1
                     intent = await evaluate_pair(
                         platform, pair,
                         strategy_name=entry_strategy,
@@ -1575,6 +1578,7 @@ async def run_loop(
                         on_rejected_intent=journal_evaluation_rejection,
                     )
                 except PlatformError as exc:
+                    evaluation_failures += 1
                     _safe_log(f"⚠ {pair}: evaluate failed: {exc}")
                     continue
                 if intent is None:
@@ -2052,6 +2056,8 @@ async def run_loop(
             # a zombie for one poll interval instead of a full hour.
             if dashboard_proc is not None and dashboard_proc.poll() is not None:
                 dashboard_proc = None
+
+            _safe_log(f"evaluation cycle: attempted={evaluation_attempts} failed={evaluation_failures}")
 
             # Heartbeat: prove the loop is alive even on quiet cycles.
             # Always log on the first cycle so the operator gets quick

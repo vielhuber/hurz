@@ -50,6 +50,7 @@ _WS_BASE = "wss://api-streaming-capital.backend-capital.com/connect"
 _CONFIRM_ATTEMPTS = 5
 _CONFIRM_INTERVAL_SECONDS = 1.0
 _CONFIRM_TOTAL_TIMEOUT_SECONDS = 15.0
+_REQUEST_INTERVAL_SECONDS = 0.2
 
 # Capital.com REST resolution codes (matches their `resolution` enum).
 _RESOLUTION_SECONDS = {
@@ -124,6 +125,8 @@ class CapitalComPlatform(Platform):
         # aligned with submission.
         self._dealing_rules: Dict[str, Dict[str, Any]] = {}
         self._dealing_rules_at: Dict[str, float] = {}
+        self._request_lock = asyncio.Lock()
+        self._next_request_at = 0.0
 
     @property
     def base_url(self) -> str:
@@ -209,6 +212,12 @@ class CapitalComPlatform(Platform):
             headers["X-SECURITY-TOKEN"] = self._security_token or ""
             headers["X-CAP-API-KEY"] = self.credentials.get("api_key", "")
         try:
+            # Leave half of the broker's per-user budget for other clients.
+            async with self._request_lock:
+                delay = self._next_request_at - time.monotonic()
+                if delay > 0:
+                    await asyncio.sleep(delay)
+                self._next_request_at = time.monotonic() + _REQUEST_INTERVAL_SECONDS
             async with self._session.request(
                 method, url, params=params, json=body, headers=headers, timeout=15,
             ) as resp:
