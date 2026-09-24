@@ -3,9 +3,8 @@ journal. No external assets — the chart is rendered as inline SVG so the
 file opens offline via file:// or over http if /var/www/hurz is served.
 
 Run once:   python3 scripts/generate_dashboard.py [days|all]
-Automatic:  the bot's hourly heartbeat (autotrade.py) regenerates it,
-            so it stays current whenever hurz runs. dashboard_loop.sh
-            remains as an optional standalone fallback.
+Generate again at the end of each run and attach the HTML to the chat.
+The bot's hourly heartbeat also regenerates the local copy.
 
 `days` defaults to "all" (the full span where data exists); pass an
 integer to restrict to a rolling N-day window.

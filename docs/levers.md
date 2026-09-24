@@ -1,5 +1,11 @@
 # Lever log
 
+Operational correction (2026-09-21): the historical `unless-stopped` change below
+was removed because it overrode Charly's startup-failure policy and caused restart
+loops. The host keepalive may only maintain Hurz inside an already running Charly
+container. It must not start Charly or change Docker restart policies; Charly's
+`restart: "no"` remains authoritative.
+
 One entry per run: the lever, how it was measured, the result and the
 decision. Read this before testing anything — an idea listed here is not
 tested a second time. Detailed measurements live in `EDGE_FINDINGS.md`;

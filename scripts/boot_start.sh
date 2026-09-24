@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Bring the Capital session + dashboard loop back up after a host reboot.
+# Bring the Capital session back up after a host reboot.
 #
 # WHY: three reboots between 2026-07-29 and 2026-07-31 each left the bot
 # down until an operator noticed — the last one for ~10h, during which a
@@ -7,8 +7,8 @@
 # Nothing about the bot itself failed; it simply was never started again.
 #
 # Driven from a `*/5` cron entry on the docker host via
-# `container_keepalive.sh`, which also covers the restart of the Charly
-# container the bot now runs in. Kraken is deliberately NOT started here:
+# `container_keepalive.sh`, while the Charly container is running.
+# Kraken is deliberately NOT started here:
 # its demo endpoint has been dead since 2026-07-02 and the platform is
 # retired.
 #
@@ -34,12 +34,11 @@ flock -n 9 || exit 0
 LOG="tmp/boot_start.log"
 stamp() { date -u '+%Y-%m-%d %H:%M:%SZ'; }
 
-# Both wrappers verify that the recorded PID still belongs to their own
-# process and drop the file otherwise, so their `status` is the single
+# The wrapper verifies that the recorded PID still belongs to its own
+# process and drops the file otherwise, so its `status` is the single
 # source of truth. Judging the PID files here instead would call a PID
 # the kernel has since reassigned healthy and skip the start.
-if bash scripts/start_paper_session.sh status >/dev/null 2>&1 \
-   && bash scripts/dashboard_loop.sh status >/dev/null 2>&1; then
+if bash scripts/start_paper_session.sh status >/dev/null 2>&1; then
   exit 0
 fi
 
@@ -59,8 +58,5 @@ fi
 # with the dashboard loop still up, a dead bot could never be restarted.
 echo "[$(stamp)] boot_start: starting capital session" >>"$LOG"
 bash scripts/start_paper_session.sh >>"$LOG" 2>&1 9>&-
-
-echo "[$(stamp)] boot_start: starting dashboard loop" >>"$LOG"
-bash scripts/dashboard_loop.sh >>"$LOG" 2>&1 9>&-
 
 echo "[$(stamp)] boot_start: done" >>"$LOG"

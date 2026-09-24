@@ -69,17 +69,23 @@ The live session runs inside the Charly container. Checkout, `venv/`,
 `data/` and `models/` live under `/host/data/hurz` — the only path there
 that outlives a container recreate.
 
-`scripts/boot_start.sh` starts bot and dashboard loop and stays a silent
-no-op while both are healthy. A `*/5` cron entry on the docker host runs
+`scripts/boot_start.sh` starts the bot and stays a silent
+no-op while it is healthy. A `*/5` cron entry on the docker host runs
 `scripts/container_keepalive.sh`, which reaches into the container and
 calls it; the container's own crontab would not survive a recreate.
 Charly owns the container lifecycle: the keepalive does not change its
 Docker restart policy or start a stopped container. Once Charly is running,
 Hurz is restored within five minutes.
 
-`hurz.vielhuber.dev` is still served by Apache on the old host, so
-`scripts/publish_dashboard.sh` copies `dashboard/index.html` there after
-every regeneration. Its target sits in `data/dashboard_publish.conf`.
+The runtime checkout is a clean deployment of `origin/main`. Develop,
+test, commit and push only from the LAMP checkout, then immediately run
+`git -C /host/data/hurz pull --ff-only`. Restart the bot if its code changed.
+
+At the end of each run, generate the dashboard from the runtime checkout
+with `venv/bin/python scripts/generate_dashboard.py all`. Copy the resulting
+`dashboard/index.html` to the chat's attachment directory as
+`hurz-dashboard-YYYY-MM-DD-HHMM.html` (UTC). No publishing host or background
+dashboard loop is required.
 
 ## installation
 
