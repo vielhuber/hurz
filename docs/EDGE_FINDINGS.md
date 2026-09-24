@@ -12088,3 +12088,58 @@ was preserved in the source checkout before deployment, including the
 instruction not to change Charly's restart policy. Runtime is now a
 clean deployment of origin/main; code is only edited in the LAMP
 workspace. The daily-gain objective remains open.
+
+## 335. Eight more liquid stock indices do not raise the daily gain
+
+The live journal's loss is not the running book's. Of -242.83 USD over
+586 closes since 8 May, the retired mean-reversion family (bollinger_rev,
+stochastic_mr, rsi_mr) lost -270.95 USD on Capital, while donchian,
+turtle and momentum booked +111.72 USD. Since 10 September the book
+closed 35 trades for +9.265 USD, +0.62 USD per calendar day. By class
+its best live R is on indices (+0.21 R over 20 closes), and only nine
+indices are tradeable. That makes further indices the obvious new
+income source rather than another trend filter.
+
+`scripts/additional_indices.py` preregisters the candidate set before
+any outcome: NL25, RTY, SW20, IT40, SP35, CN50, SG25 and NYFANG, every
+Capital.com equity index outside the 55-instrument universe. DXY is not
+an equity index; AU200AU duplicates the expectancy-blocked AU200. Cost
+per side is half the spread quoted at 2026-09-24 18:55 UTC, floored at
+the 0.01 % the other indices carry (SP35 0.0406 %, CN50 0.0349 %, IT40
+0.0144 %, the rest at or near the floor). All eight join the risk_on
+cluster, as every index does. Pins are resolved on the current universe
+in both arms; vetoes, stops, the 3-ATR floor, sizing, caps and cooldowns
+are unchanged. Missing history (HTTP 404 before listing) counts as an
+empty page; other failures retry and abort rather than leave gaps.
+
+History came from a paced fetch (1.5 s per page) while the bot traded;
+its 46 evaluations per scan kept completing without a failure. SG25 has
+no USD conversion and is dropped exactly as live sizing would drop it.
+NYFANG starts 2024-09-08. The replay therefore carries 34 instruments
+against 27 and 32,804 signals against 28,704, with 39 current pins.
+
+OOS [2020-09-23, 2026-09-20): 2,188 calendar days, including idle days.
+
+| OOS interval (end exclusive) | days | baseline USD/day | + indices USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.042229 | +0.007486 | -0.034742 | -0.5443 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.189763 | +0.244190 | +0.054427 | +1.0051 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.110071 | +0.093952 | -0.016119 | -0.4269 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.151242 | +0.045044 | -0.106198 | -1.9349 |
+| pooled | 2,188 | +0.132172 | +0.121539 | -0.010634 | -0.4072 |
+
+Baseline: 5,111 closes, +289.193282 USD; candidate: 5,252 closes,
++265.926944 USD. The seven added indices close 443 trades: CN50 -36.68,
+NYFANG -6.11, NL25 +3.53, IT40 +12.31, SW20 +17.58, RTY +21.23 and SP35
++33.13 USD; their slots displace existing trades, so the per-index sums
+are not the delta. Mean planned risk per close 2.316016 → 2.335660 USD,
+daily SD 2.8595 → 2.9670 USD, worst day unchanged at -19.3248 USD. The
+baseline equals section 331's recomputation, not the 0.105438 of
+sections 332-334; only the paired arms of this run carry the decision.
+
+Reject: 1/4 samples better and pooled paired t -0.4072, far from +2.
+Dropping CN50 would be a subset chosen on this outcome and is not
+adopted. Universe, trading code and settings stay unchanged; no restart.
+Four new tests cover the cost floor, the candidate set, 404 pages and
+retried rate-limited pages.
+

@@ -7642,3 +7642,41 @@ the section numbers below point there.
   Initial active-book dashboard: +0.93 USD today, +13.58 USD realised
   since 10 September, +0.99 USD/day. This is not the full historical
   journal and does not erase its losses.
+
+## 2026-09-24 (evening) — eight more liquid stock indices
+
+- **Operation:** one bot/watchdog (PIDs 18945/18950 since 12:45 UTC),
+  runtime checkout clean on `origin/main` (ea826c9). No intervention.
+  Forward read of the morning's request pacing: 335 scans, 14,953
+  evaluations, zero failed, zero HTTP 429 lines (12:45–19:12 UTC).
+- **Observation (live vs backtest):** the journal's -242.83 USD since
+  8 May (586 closes) is the retired mean-reversion family: bollinger_rev,
+  stochastic_mr and rsi_mr lost -270.95 USD on Capital; the three current
+  trend strategies booked +111.72 USD. Since 10 September: 35 closes,
+  +9.265 USD, +0.62 USD per calendar day. By class the trend book's best
+  live R is on indices (+0.21 R, 20 closes; FX +0.05, commodities -0.02,
+  crypto -0.04), yet only nine indices are tradeable. Direction switched
+  to new income sources; no further trend filter.
+- **Lever:** add NL25, RTY, SW20, IT40, SP35, CN50, SG25 and NYFANG
+  (all Capital.com equity indices outside the universe; DXY is no equity
+  index, AU200AU duplicates the blocked AU200). Cost: half the quoted
+  spread of 2026-09-24 18:55 UTC, never below the 0.01 %/side the other
+  indices carry. All join the risk_on cluster. Pins, vetoes, stops,
+  sizing and caps unchanged. No subset or diagnostic arm.
+- **Measurement:** `scripts/additional_indices.py`, cached seven-year
+  weekly walk-forward, paced fetch (1.5 s per page) with no bot failures
+  during it. SG25 dropped as live would (no USD rate); NYFANG exists only
+  since 2024-09. 27 → 34 instruments, 28,704 → 32,804 signals, 39 pins.
+  OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | closes | simulated USD | USD/calendar day |
+  |---|---:|---:|---:|
+  | current universe | 5,111 | +289.193282 | +0.132172 |
+  | plus seven indices | 5,252 | +265.926944 | +0.121539 |
+
+- **Result:** -8.0 % daily gain, delta -0.010634 USD/day, pooled paired
+  t -0.4072, 1/4 samples better (2023-09 – 2025-09 only). CN50 -36.68 USD
+  on 103 closes outweighs RTY/SP35/SW20/IT40/NL25; no subset is adopted
+  after the fact. Daily SD 2.8595 → 2.9670 USD; worst day unchanged.
+- **Decision:** rejected; universe and trading code unchanged, no
+  restart. Four new tests pass. Section 335. Daily-gain goal still open.
