@@ -12143,3 +12143,52 @@ adopted. Universe, trading code and settings stay unchanged; no restart.
 Four new tests cover the cost floor, the candidate set, 404 pages and
 retried rate-limited pages.
 
+## 336. The remaining affordable commodities add almost no trades
+
+In the replay of section 335 commodities earn the most per trade (COPPER
++0.785, GOLD +0.240, SILVER +0.210, OIL_BRENT +0.118 USD against +0.057
+for the book) but fire rarely: 106-673 signals each against about
+1,000-1,700 for an index or FX pair. The rejected indices queued behind
+the risk_on cluster cap; commodities sit in their own clusters, so more
+of them should add trades rather than displace them. Live, 526 of about
+720 intents since 10 September were refused by the ADX router, but a
+sideways strategy for that time is already refuted (the mean-reversion
+family -0.128 R live, the failed-breakout fade t -4.14 in section 54).
+
+`scripts/additional_commodities.py` preregisters every tradeable
+Capital.com commodity outside the universe whose spread quoted at
+2026-09-24 18:55 UTC clears the 10 % cost ceiling at the 1.05 % floor:
+WHEAT 0.0352 %, LIVECATTLE 0.0542 %, SOYBEANOIL 0.0592 %, LEANHOGS
+0.0707 %, SOYBEANMEAL 0.0810 %, GASOIL 0.0845 %, HEATINGOIL 0.0877 % and
+GASOLINE 0.0900 %. Closed markets had no quote and are not included.
+Per-side cost is half the spread, floored at 0.01 %. Energy products
+join the energy cluster; grains and livestock form their own clusters
+under the unchanged direction cap. Section 109's commodity short block
+applies to all eight. The replay of section 335 is reused unchanged
+except that candidates, clusters and short blocks are now parameters.
+
+Capital.com serves hourly history for these only from 2023-07 (WHEAT)
+and 2023-11 to 2024-01 (the other seven), so 27 → 35 instruments add
+just 379 signals (28,704 → 29,083). The two older samples cannot change.
+
+| OOS interval (end exclusive) | days | baseline USD/day | + commodities USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.042229 | +0.049667 | +0.007438 | +0.3091 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.189763 | +0.178755 | -0.011008 | -0.7471 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.110071 | +0.110071 | 0 | n/a |
+| 2020-09-23 – 2021-09-21 | 363 | +0.151242 | +0.151242 | 0 | n/a |
+| pooled | 2,188 | +0.132172 | +0.129741 | -0.002432 | -0.3833 |
+
+Baseline: 5,111 closes, +289.193282 USD; candidate: 5,118 closes,
++283.872491 USD. The eight commodities close 16 trades for -7.87 USD
+(SOYBEANMEAL -4.94, LIVECATTLE -2.75, GASOLINE -2.16, GASOIL -0.47,
+HEATINGOIL +1.33, WHEAT +1.11; LEANHOGS and SOYBEANOIL none). With so
+little history they rarely reach the selector's ten-trade eligibility.
+Mean planned risk per close 2.316016 → 2.316796 USD, daily SD 2.8595 →
+2.8613 USD, worst day unchanged.
+
+Reject: 1/4 samples better and pooled paired t -0.3833. Even on the two
+samples with data the candidate does not clearly win. Universe, trading
+code and settings unchanged; no restart. Two new tests cover the cost
+ceiling, clusters, the short block and the replay configuration.
+

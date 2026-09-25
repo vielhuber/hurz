@@ -7680,3 +7680,43 @@ the section numbers below point there.
   after the fact. Daily SD 2.8595 → 2.9670 USD; worst day unchanged.
 - **Decision:** rejected; universe and trading code unchanged, no
   restart. Four new tests pass. Section 335. Daily-gain goal still open.
+
+## 2026-09-25 — the remaining affordable commodities
+
+- **Operation:** one bot/watchdog (18945/18950 since 2026-09-24 12:45
+  UTC), runtime checkout clean on `origin/main` (69af5fd). 647 scans,
+  29,305 evaluations, zero failed, zero HTTP 429. Journal since
+  10 September unchanged: 35 closes, +9.265 USD. No intervention.
+- **Observation:** in the current weekly replay commodities earn the most
+  per trade (COPPER +0.785, GOLD +0.240, SILVER +0.210, OIL_BRENT +0.118
+  USD; book +0.057) but fire rarely (106-673 signals each against about
+  1,000-1,700 per index/FX pair). Since 10 September 526 of ~720 live
+  intents were refused by the ADX router; mean-reversion and fades for
+  that idle time are already dead (live -0.128 R, fade t -4.14), so more
+  uncorrelated trending markets are the new source measured instead.
+- **Lever:** add WHEAT, LIVECATTLE, SOYBEANOIL, LEANHOGS, SOYBEANMEAL,
+  GASOIL, HEATINGOIL and GASOLINE — every tradeable commodity outside
+  the replay universe with a quoted spread <= 0.105 % (2026-09-24 18:55
+  UTC). Cost half that spread, floored at 0.01 %/side. Energy products
+  join the energy cluster; grains and livestock get their own clusters.
+  The commodity short block applies to all eight. Nothing else changes.
+- **Measurement:** `scripts/additional_commodities.py` over the replay of
+  section 335 (now parametrised by candidate set, clusters and short
+  blocks), paced fetch, 27 → 35 instruments, 28,704 → 29,083 signals.
+  Capital.com serves these only from 2023-07 (WHEAT) / 2023-11 – 2024-01
+  (the rest). OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | closes | simulated USD | USD/calendar day |
+  |---|---:|---:|---:|
+  | current universe | 5,111 | +289.193282 | +0.132172 |
+  | plus eight commodities | 5,118 | +283.872491 | +0.129741 |
+
+- **Result:** -1.8 % daily gain, delta -0.002432 USD/day, pooled t
+  -0.3833; 1/4 samples better (last year +0.007438, 2023-09 – 2025-09
+  -0.011008, the two older samples unchanged for lack of history). The
+  eight close only 16 trades (-7.87 USD); the short history plus the
+  selector's ten-trade eligibility keep them off the list.
+- **Decision:** rejected; universe and trading code unchanged, no
+  restart. Two new tests; the six replay tests pass. Section 336.
+  Two new-source levers now rejected in a row; one more and the
+  direction changes.

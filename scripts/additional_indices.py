@@ -37,6 +37,7 @@ from app.platforms.base import PlatformAPIError
 from app.platforms.registry import clear_cache
 from app.strategies import add_indicators
 from app.spot_trading.autotrade import _min_stop_atr_multiple, _CORRELATION_CLUSTERS
+from app.spot_trading.trading_blocks import SHORT_BLOCKED_PAIRS
 import scripts.efficiency_weighted_selection as base
 import scripts.pin_eligibility as pe
 from scripts.burst_adx_priority import prioritize
@@ -52,6 +53,8 @@ SPREAD_PERCENT = {"NL25": 0.0090, "RTY": 0.0176, "SW20": 0.0208, "IT40": 0.0289,
                   "SP35": 0.0812, "CN50": 0.0697, "SG25": 0.0451, "NYFANG": 0.0093}
 CANDIDATES = list(SPREAD_PERCENT)
 FEES = {pair: max(percent / 100 / 2, 0.0001) for pair, percent in SPREAD_PERCENT.items()}
+CLUSTERS = {pair: "risk_on" for pair in CANDIDATES}
+SHORT_BLOCKED = set()
 PAGE_PAUSE = float(os.environ.get("HURZ_PAGE_PAUSE") or 1.5)
 
 
@@ -119,7 +122,8 @@ async def main():
     database.db_conn.row_factory = sqlite3.Row
     database.db_conn.execute("PRAGMA query_only = ON")
     base._fee_for = fee_for(base._fee_for)
-    _CORRELATION_CLUSTERS.update({pair: "risk_on" for pair in CANDIDATES})
+    _CORRELATION_CLUSTERS.update(CLUSTERS)
+    SHORT_BLOCKED_PAIRS.update(SHORT_BLOCKED)
     raw = await load_history()
     frames = {"live": frames_for(raw, meta)}
     for pair in CANDIDATES:
