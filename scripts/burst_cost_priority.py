@@ -60,7 +60,8 @@ def active_order(window, pins, reserved, pin_order):
         rows.append((eR * math.log1p(len(ts)) * min(5.0, pf), key))
     rows.sort(reverse=True)
     ranked = [k for _, k in rows
-              if (k[1] not in reserved or k in pins) and k not in pe.VETOED][:pe.LIVE_N]
+              if (k[1] not in reserved or k in pins) and k not in pe.VETOED
+              and k[0] not in pe.VETOED_STRATEGIES][:pe.LIVE_N]
     order = {k: i for i, k in enumerate(ranked)}
     for k in pin_order:
         if k in pins and k not in order: order[k] = len(order)

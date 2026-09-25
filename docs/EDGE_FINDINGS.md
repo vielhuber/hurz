@@ -12310,3 +12310,59 @@ settings unchanged; no restart. Recorded on the way: financing takes 31 %
 of the replayed book's gross R per close, and a whole-strategy veto moved
 the baseline by 16 % in a single day. Three new tests cover the rollover
 count, the rates and the early-exit rule.
+
+## 339. The selection gap is history, duplicates and one unmodelled veto
+
+Section 337 found only 15 of 101 replay and 51 live trades coinciding
+since 1 August. Keyed by instrument, bar and direction instead of by
+strategy, and dated, the gap mostly dissolves. Of the 67 replay trades
+with no live journal row for their instrument, strategy and bar, 40 fall
+into 3-25 August, when the bot ran under the rules before the 24 August
+filter set, and 25 into the outage of 27 August to 3 September; only two
+fall after 4 September. Since then
+the differences are of two kinds. Same-bar duplicates: when donchian and
+turtle fire on one instrument and bar, live gives the slot to donchian
+(48 turtle and 13 donchian duplicate skips since August), the replay to
+the combination higher on its list; the trade is the same (GOLD 18
+September -2.33 USD either way, HK50 16 September +2.00 against +1.95).
+And cluster caps filled by different open positions. The live list of
+2026-09-25 and the replay's list at its last cut agree on 41 of 42
+combinations; the live selector counts about half the trades per
+combination (median 45 against 83), because the replay ranks on every
+signal including those that overlap an open trade.
+
+One real mismatch was left. Since 2026-09-25 10:04 UTC the bot skips
+every `donchian_breakout` combination on its list: the strategy's
+capital-weighted live R over 159 closes fell to -0.107, below the -0.10
+of `strategy_expectancy_veto`. The replay read the same veto but applied
+it only to pins, so it kept ranking and trading donchian.
+
+`scripts/strategy_veto_calibration.py` replays both. Preregistered: the
+calibration is adopted if the bot's log confirms the skip, because a
+replay trading a retired strategy cannot measure the live book; the
+daily-gain change is reported, not decided on.
+
+| OOS interval (end exclusive) | days | before USD/day | with veto USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.014725 | +0.000860 | -0.013865 | -0.2146 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.149524 | +0.211460 | +0.061936 | +1.1657 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.074179 | +0.065162 | -0.009017 | -0.1682 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.201991 | +0.145598 | -0.056393 | -0.8387 |
+| pooled | 2,188 | +0.110604 | +0.116591 | +0.005987 | +0.2024 |
+
+Before: 4,883 closes (donchian 2,362, momentum 18, turtle 2,503),
++242.000486 USD. With the veto: 4,223 closes (momentum 54, turtle
+4,169), +255.100494 USD. Daily SD 2.7743 → 2.5560 USD, worst day
+unchanged at -18.5626 USD. Retiring donchian is neutral: turtle takes
+the same breakouts. Over the replay's trailing year donchian earns
++0.014 R per signal, turtle -0.004 and momentum +0.204 (t +2.79, 115
+signals); live, donchian reads -0.107 R and turtle +0.18 R, a split that
+follows who wins the duplicate slot rather than any difference between
+the strategies.
+
+Adopted: `active_order` and `pin_eligibility.lists` now drop every
+combination of a strategy that `load_pins` was given as vetoed. The new
+replay baseline is 4,223 closes, +255.100494 USD, +0.116591 USD per
+calendar day; `scripts/rollover_exit.py` reproduces it exactly. Research
+code only; the bot is unchanged, no restart. Three new tests cover the
+lists, the unvetoed case and `load_pins` recording the veto.

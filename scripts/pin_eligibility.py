@@ -56,6 +56,9 @@ MIN_PF = 0.8; MIN_ER = -0.2; MIN_N = 10; LIVE_N = 40
 YEARS = [(0, 365), (366, 1095), (1096, 1825), (1826, 2555)]
 PINS_PATH = "data/pinned_pairs.json"
 VETOED = set()
+# The bot skips every listed combination of a retired strategy, ranked or
+# pinned (section 339), so the replay's lists drop them too.
+VETOED_STRATEGIES = set()
 
 
 def load_pins(pairs, vetoed, vetoed_strategies):
@@ -68,6 +71,7 @@ def load_pins(pairs, vetoed, vetoed_strategies):
         return (c["strategy"] in DISABLED_LIVE_STRATEGIES
                 or c["strategy"] in vetoed_strategies
                 or (c["strategy"], c["pair"]) in vetoed)
+    VETOED_STRATEGIES.update(vetoed_strategies)
     combos = [c for c in json.load(open(PINS_PATH))["combos"] if not retired(c)]
     pins = {(c["strategy"], c["pair"]) for c in combos
             if c["resolution"] == "1h" and c["strategy"] in STRATS and c["pair"] in pairs}
@@ -92,7 +96,8 @@ def lists(window, pins, reserved):
         rows.append((eR * math.log1p(len(ts)) * min(5.0, pf), key))
     rows.sort(reverse=True)
     ranked = [k for _, k in rows
-              if (k[1] not in reserved or k in pins) and k not in VETOED]
+              if (k[1] not in reserved or k in pins) and k not in VETOED
+              and k[0] not in VETOED_STRATEGIES]
     return set(ranked[:LIVE_N]), eligible
 
 

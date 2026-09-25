@@ -14,27 +14,22 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 5, exits and holding).
+run's (last run: 1, live against backtest). The whole-strategy veto is
+not a lever of its own: it was measured on 2026-09-08 (section 99) and
+section 339 found retiring donchian neutral in the replay.
 
-1. **Live against backtest (1) — the selection gap.** Observation
-   (section 337): of 101 replay and 51 live trades since 1 August only
-   15 coincide; 72 replay trades have no live journal row at all and the
-   30 in-universe live-only trades lost -19.21 USD. Hypothesis: the live
-   active list and the replay's weekly `active_order` diverge; rebuilding
-   the live list per day and replaying it isolates which side is right.
-2. **Portfolio and position sizing (4) — the strategy-level live veto.**
-   Observation (section 338): after two losing closes on 2026-09-25 the
-   live expectancy veto retired `donchian_breakout` as a whole (the bot
-   skips every donchian combination since 10:04 UTC) and the replay
-   baseline fell from 5,111 closes / +289.19 USD to 4,883 / +242.00 USD
-   the same day. Hypothesis: a whole-strategy veto on a few dozen trades
-   is noise-driven and removes a third of the book; replaying the veto
-   as it would have fired weekly shows what it costs or saves.
-3. **Execution and costs (6) — the signal price.** Observation (section
+1. **Execution and costs (6) — the signal price.** Observation (section
    337): the live signal price differs from the cached closed bar's close
    by 0.083 R on average (t +3.49). Hypothesis: live and replay evaluate
    different bar data (forming bar or bid against mid); computing the
    live signals on final bars shows whether signals are lost or invented.
+2. **Portfolio and position sizing (4) — risk budget for momentum.**
+   Observation (section 339): over the replay's trailing year momentum is
+   the only strategy with a significant edge (+0.204 R over 115 signals,
+   t +2.79; turtle -0.004, donchian +0.014), yet it books 54 of 4,223
+   replay closes. Hypothesis: momentum's signals lose their slots to the
+   breakout book; giving momentum combinations admission priority or a
+   reserved slot raises the daily gain.
 
 ## Levers already tested before this log existed
 
@@ -7831,3 +7826,46 @@ run's (last run: 5, exits and holding).
   gross R per close. Three new tests pass (rollover count, rates, the
   early-exit rule). Section 338.
 
+## 2026-09-25 (evening) — the replay calibrated on the bot's strategy veto
+
+- **Category:** 1, live against backtest.
+- **Operation:** one bot/watchdog (24806 since 02:05 UTC), runtime
+  checkout clean on `origin/main` (a33bc6e), evaluations failing 0, no
+  HTTP 429. No intervention.
+- **Observation:** the selection gap of section 337, re-read by
+  instrument, bar and direction: of 67 replay trades without a live
+  journal row, 65 fall before 2026-09-04 (40 under the August rules with
+  the bot active, 25 in the outage of 27 August to 3 September), two
+  after it. Since 4 September the remaining differences are same-bar
+  duplicates (live gives the slot to donchian 48 times out of 61, the
+  replay by list position; outcomes match, e.g. GOLD 18 September -2.33
+  USD either way) and cluster caps filled by different open positions.
+  The live and replay active lists agree on 41 of 42 combinations. One
+  real mismatch remains: since 10:04 UTC today the bot skips every
+  `donchian_breakout` combination (strategy veto, live R -0.107 over
+  159 closes, threshold -0.10 over 25), while the replay applied the
+  strategy veto only to pins and kept ranking donchian.
+- **Lever:** calibrate the replay's active lists (`active_order`,
+  `pin_eligibility.lists`) to drop every combination of a vetoed
+  strategy, as the bot does. Preregistered: adopted if the bot's log
+  confirms the skip; the daily-gain change is reported, not decided on.
+- **Measurement:** `scripts/strategy_veto_calibration.py`, cached
+  seven-year weekly walk-forward, 27 instruments, 28,704 signals.
+  OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | closes (donchian / momentum / turtle) | USD | USD/calendar day |
+  |---|---|---:|---:|
+  | replay before calibration | 4,883 (2,362 / 18 / 2,503) | +242.000486 | +0.110604 |
+  | replay with the strategy veto | 4,223 (0 / 54 / 4,169) | +255.100494 | +0.116591 |
+
+- **Result:** +5.4 % daily gain, pooled paired t +0.2024, 1/4 samples
+  better (-0.0139, +0.0619, -0.0090, -0.0564 USD/day): retiring donchian
+  is neutral in the replay because turtle takes the same breakouts.
+  Daily SD 2.7743 → 2.5560 USD, worst day unchanged. Replay R over the
+  trailing year: donchian +0.014, turtle -0.004, momentum +0.204 (t
+  +2.79); live R donchian -0.107, turtle +0.18. The live split between
+  the two breakout strategies follows who wins the duplicate slot.
+- **Decision:** calibration adopted in the replay harness (research code
+  only; the bot is unchanged, no restart). New replay baseline 4,223
+  closes, +255.100494 USD, +0.116591 USD/day; `scripts/rollover_exit.py`
+  reproduces it. Three new tests. Section 339.
