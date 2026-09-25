@@ -12260,3 +12260,53 @@ Conclusion: on the trades both take, the replay predicts live to within
 0.27 USD over 15 trades. The live-against-backtest gap is which signals
 are traded, not how they are filled, plus a financing charge nobody books.
 Research only; trading code and settings unchanged, no restart.
+
+## 338. Leaving before the rollover saves financing and gives up the same in drift
+
+Section 337 found the account paying -3.37 USD of overnight financing over
+50 days, half the replay's daily gain, and neither the journal nor the
+replay booking it. The account history of the last 28 days shows every
+SWAP entry stamped 21:00 UTC, Saturday and Sunday included: a position
+alive at 21:00 pays one night, one alive at Friday 21:00 pays three. Most
+positions end on the 24-bar leash, and one whose leash ends a few hours
+after 21:00 pays a full night for those hours.
+
+`scripts/rollover_exit.py` charges both arms financing: every 21:00 UTC
+rollover strictly after the entry bar's close and at or before the exit
+bar's close costs one night at section 154's rates (crypto long 0.050 R,
+metals long 0.013, other longs 0.005, shorts 0.003, crypto and metal
+shorts nothing). The candidate closes a position still open at the close
+of the 19:00 UTC bar when its timeout bar lies at most seven bars later,
+at that close and with the usual spread charge. Stops, targets, sizing,
+the leash and every entry rule and cap are unchanged.
+
+The replay without financing reads 4,883 closes and +242.000486 USD, not
+section 337's 5,111 and +289.19 of the same morning: two losing closes on
+2026-09-25 (AUDJPY -1.06, US30 -0.96 USD) made the live expectancy veto
+retire `donchian_breakout` as a whole, which the replay reads from the
+journal exactly as the bot does (the bot skips every donchian combination
+since 10:04 UTC). Both arms below carry the same veto.
+
+OOS [2020-09-23, 2026-09-20): 2,188 calendar days, 27 instruments, 28,704
+signals.
+
+| OOS interval (end exclusive) | days | current USD/day | early exit USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | -0.015325 | -0.011995 | +0.003330 | +0.0653 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.110853 | +0.068533 | -0.042320 | -0.9689 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.051706 | +0.109831 | +0.058125 | +1.4745 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.146710 | +0.124125 | -0.022584 | -0.3848 |
+| pooled | 2,188 | +0.076019 | +0.078101 | +0.002082 | +0.0886 |
+
+Current: 4,830 closes, +166.329805 USD, 1.2915 nights and 0.00591 R of
+financing per close against +0.01893 R gross. Candidate: 4,866 closes
+(1,172 left early), +170.884802 USD, 1.0275 nights and 0.00471 R per
+close against +0.01788 R gross. The hours given up earn about what the
+night costs. Daily SD 2.7507 → 2.7982 USD, worst day unchanged at
+-18.5859 USD.
+
+Reject: 2/4 samples better and pooled paired t +0.0886. Exit logic and
+settings unchanged; no restart. Recorded on the way: financing takes 31 %
+of the replayed book's gross R per close, and a whole-strategy veto moved
+the baseline by 16 % in a single day. Three new tests cover the rollover
+count, the rates and the early-exit rule.

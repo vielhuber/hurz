@@ -14,22 +14,22 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 1, live against backtest).
+run's (last run: 5, exits and holding).
 
-1. **Exits and holding (5) — close timed-out positions before the
-   financing charge.** Observation (section 337): the account paid
-   -3.37 USD of overnight financing over 50 days (-0.067 USD/day, 207
-   position-nights), half the replay's +0.132 USD/day, and neither the
-   journal nor the replay sees it. Hypothesis: charging each replay trade
-   its nights at the current per-instrument rates and exiting a position
-   whose 24-bar leash would expire within the next hours before 21:00 UTC
-   raises the financing-net daily gain.
-2. **Live against backtest (1) — the selection gap.** Observation
+1. **Live against backtest (1) — the selection gap.** Observation
    (section 337): of 101 replay and 51 live trades since 1 August only
    15 coincide; 72 replay trades have no live journal row at all and the
    30 in-universe live-only trades lost -19.21 USD. Hypothesis: the live
    active list and the replay's weekly `active_order` diverge; rebuilding
    the live list per day and replaying it isolates which side is right.
+2. **Portfolio and position sizing (4) — the strategy-level live veto.**
+   Observation (section 338): after two losing closes on 2026-09-25 the
+   live expectancy veto retired `donchian_breakout` as a whole (the bot
+   skips every donchian combination since 10:04 UTC) and the replay
+   baseline fell from 5,111 closes / +289.19 USD to 4,883 / +242.00 USD
+   the same day. Hypothesis: a whole-strategy veto on a few dozen trades
+   is noise-driven and removes a third of the book; replaying the veto
+   as it would have fired weekly shows what it costs or saves.
 3. **Execution and costs (6) — the signal price.** Observation (section
    337): the live signal price differs from the cached closed bar's close
    by 0.083 R on average (t +3.49). Hypothesis: live and replay evaluate
@@ -7790,4 +7790,44 @@ run's (last run: 1, live against backtest).
   script and documentation only; trading code unchanged, no restart.
   Section 337. Financing (-0.067 USD/day) and the selection gap are
   the next levers (see Plan).
+
+## 2026-09-25 (afternoon) — leave a nearly expired position before the rollover
+
+- **Category:** 5, exits and holding.
+- **Operation:** one bot/watchdog (24806 since 02:05 UTC), runtime
+  checkout clean on `origin/main` (acdfc48), evaluations failing 0, no
+  HTTP 429. Since 10:04 UTC the live expectancy veto retires every
+  `donchian_breakout` combination (two losing closes today, AUDJPY
+  -1.06 and US30 -0.96 USD); an existing rule working as built, no
+  intervention.
+- **Observation:** section 337: -3.37 USD of financing in 50 days, half
+  the replay's daily gain, booked by neither journal nor replay. The
+  account history (28 days) shows every SWAP entry stamped 21:00 UTC,
+  Saturday and Sunday included: a position alive at Friday 21:00 pays
+  three nights.
+- **Lever:** close a position still open at the close of the 19:00 UTC
+  bar when its 24-bar timeout lies at most seven bars later. Both arms
+  charged financing per 21:00 UTC rollover crossed at section 154's
+  rates. No diagnostic arm.
+- **Measurement:** `scripts/rollover_exit.py`, cached seven-year weekly
+  walk-forward, 27 instruments, 28,704 signals, current vetoes and pins.
+  OOS [2020-09-23, 2026-09-20), 2,188 calendar days. Reference before
+  financing: 4,883 closes, +242.000486 USD (section 337 read 5,111 /
+  +289.19 this morning; the only changed input is the journal-driven
+  veto that now retires donchian_breakout).
+
+  | arm (net of financing) | closes | early exits | USD | USD/calendar day | nights/close |
+  |---|---:|---:|---:|---:|---:|
+  | current exit | 4,830 | 0 | +166.329805 | +0.076019 | 1.2915 |
+  | exit before the rollover | 4,866 | 1,172 | +170.884802 | +0.078101 | 1.0275 |
+
+- **Result:** +2.7 % daily gain, delta +0.002082 USD/day, pooled paired
+  t +0.0886; 2/4 samples better (+0.0033, -0.0423, +0.0581, -0.0226
+  USD/day). Financing per close falls 0.00591 → 0.00471 R, gross R per
+  close falls +0.01893 → +0.01788 R: the hours given up earn about what
+  the night costs. Daily SD 2.7507 → 2.7982 USD, worst day unchanged.
+- **Decision:** rejected (VERDICT=DISCARD); exit logic and settings
+  unchanged, no restart. Financing costs the replayed book 31 % of its
+  gross R per close. Three new tests pass (rollover count, rates, the
+  early-exit rule). Section 338.
 
