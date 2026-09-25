@@ -11,6 +11,31 @@ decision. Read this before testing anything — an idea listed here is not
 tested a second time. Detailed measurements live in `EDGE_FINDINGS.md`;
 the section numbers below point there.
 
+## Plan
+
+Next levers, in order. Each run takes a category other than the previous
+run's (last run: 1, live against backtest).
+
+1. **Exits and holding (5) — close timed-out positions before the
+   financing charge.** Observation (section 337): the account paid
+   -3.37 USD of overnight financing over 50 days (-0.067 USD/day, 207
+   position-nights), half the replay's +0.132 USD/day, and neither the
+   journal nor the replay sees it. Hypothesis: charging each replay trade
+   its nights at the current per-instrument rates and exiting a position
+   whose 24-bar leash would expire within the next hours before 21:00 UTC
+   raises the financing-net daily gain.
+2. **Live against backtest (1) — the selection gap.** Observation
+   (section 337): of 101 replay and 51 live trades since 1 August only
+   15 coincide; 72 replay trades have no live journal row at all and the
+   30 in-universe live-only trades lost -19.21 USD. Hypothesis: the live
+   active list and the replay's weekly `active_order` diverge; rebuilding
+   the live list per day and replaying it isolates which side is right.
+3. **Execution and costs (6) — the signal price.** Observation (section
+   337): the live signal price differs from the cached closed bar's close
+   by 0.083 R on average (t +3.49). Hypothesis: live and replay evaluate
+   different bar data (forming bar or bid against mid); computing the
+   live signals on final bars shows whether signals are lost or invented.
+
 ## Levers already tested before this log existed
 
 | lever | measurement | result | decision | ref |
@@ -7720,3 +7745,49 @@ the section numbers below point there.
   restart. Two new tests; the six replay tests pass. Section 336.
   Two new-source levers now rejected in a row; one more and the
   direction changes.
+
+## 2026-09-25 (morning) — the backtest calibrated on live execution
+
+- **Category:** 1, live against backtest (first measured since 12 September).
+- **Operation:** one bot/watchdog (24806 since 02:05 UTC, restarted by
+  the host keepalive after the container restart at 02:02 UTC), runtime
+  checkout clean on `origin/main` (e4c4719). No intervention.
+- **Observation:** the trend book's journal is negative while the
+  seven-year replay books +0.132 USD/day, and no run had split that gap
+  into cost, slippage, financing and selection.
+- **Lever:** add the measured per-trade gap between live execution and
+  the replay (residual plus overnight financing, in R) to every replay
+  trade. Preregistered: adopt only if the residual's |t| > 2.
+- **Measurement:** `scripts/live_replay_calibration.py`. 51 live trend
+  closes with fills and planned risk, 2026-08-01 to 2026-09-20 (end of
+  the cached bars); 45 matched to their signal bar and re-simulated with
+  the live entry, stop and target. SWAP entries from the account history
+  over the same window. The unchanged weekly walk-forward (27 instruments,
+  5,111 closes, +289.193282 USD, reproduced exactly) over the same days.
+
+  | per matched trade | mean R | t |
+  |---|---:|---:|
+  | live result from fill | -0.0099 | -0.08 |
+  | replay net result | -0.0512 | -0.44 |
+  | spread charged by the replay | +0.0224 | +8.30 |
+  | entry slippage | -0.0088 | -1.29 |
+  | exit difference | +0.0277 | +0.78 |
+  | residual (live - replay net) | +0.0413 | +1.15 |
+  | financing per close (all 155 closes) | -0.0072 | |
+
+  Selection over the window: replay 101 trades, live 51, both 15. On the
+  common trades the replay books +14.97 USD and live +14.70 USD; the 86
+  replay-only trades -8.91 USD (72 without any live journal row), the 36
+  live-only trades -19.21 USD (30 on replay instruments). Window: replay
+  +0.151 USD/day, live -0.090 USD/day.
+- **Result:** execution is not the gap: the replay's cost model is, if
+  anything, conservative (+0.041 R/trade, t +1.15, not significant).
+  0 % change in daily gain, since the calibration is not adopted; the
+  calibrated arm would read +0.322514 USD/day (+144 %) and is exactly the
+  kind of unproven optimism the rule excludes. The gap is selection:
+  live and replay trade different signals.
+- **Decision:** cost model kept (VERDICT=KEEP_COST_MODEL). Research
+  script and documentation only; trading code unchanged, no restart.
+  Section 337. Financing (-0.067 USD/day) and the selection gap are
+  the next levers (see Plan).
+

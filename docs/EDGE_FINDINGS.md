@@ -12192,3 +12192,71 @@ samples with data the candidate does not clearly win. Universe, trading
 code and settings unchanged; no restart. Two new tests cover the cost
 ceiling, clusters, the short block and the replay configuration.
 
+## 337. Live against the replay: execution matches, selection does not
+
+The trend book's journal is barely negative while the weekly replay books
++0.132 USD a day. Before this run no measurement had split that gap, so
+every replay comparison could have been ranking levers on costs the venue
+does not charge, or ignoring costs it does. `scripts/live_replay_calibration.py`
+takes it apart on the live closes of donchian, turtle and momentum with a
+fill and a journaled planned risk: 2026-08-01, the first day
+`planned_risk_usd` was written, to 2026-09-20, the end of the cached bars.
+
+Execution. 45 of 51 closes match their signal bar in the cached history
+(the other six are on AU200, AUDUSD, CORN, GBPAUD and GBPCAD, none of
+them in the replay's 27 instruments) and are re-simulated with the live
+entry, stop and target. With D the planned stop distance the live result
+`(exit - fill) * dir / D` splits exactly into the replay's net result,
+the spread it charges, the entry slippage and the exit difference:
+
+| per matched trade | mean R | t |
+|---|---:|---:|
+| live result from fill | -0.0099 | -0.08 |
+| replay net result | -0.0512 | -0.44 |
+| spread charged by the replay | +0.0224 | +8.30 |
+| entry slippage | -0.0088 | -1.29 |
+| exit difference | +0.0277 | +0.78 |
+| residual (live - replay net) | +0.0413 | +1.15 |
+
+The residual is +0.017 R on stops (11), +0.007 R on timeouts (29) and
++0.296 R on the five targets. The replay's spread charge more than covers
+the measured entry slippage; nothing in the execution makes live worse
+than simulated. The live signal price does differ from the cached closed
+bar's close by 0.083 R on average (t +3.49), which points at different
+bar data rather than at cost.
+
+Financing is not in the journal. The account history holds 207 SWAP
+entries over the window, -3.3656 USD after conversion at the last EURUSD
+close, against 155 Capital closes of every strategy: -0.0072 R per close
+at the 3 USD risk, -0.067 USD per calendar day. That is more than the
+0.003 R of section 126 and half the replay's daily gain.
+
+Selection. The unchanged weekly walk-forward (27 instruments, 5,111
+closes, +289.193282 USD, identical to section 336's baseline) books 101
+trades that open in the window; live booked 51, and only 15 coincide by
+strategy, instrument, bar and direction.
+
+| set | trades | replay USD | live USD |
+|---|---:|---:|---:|
+| both | 15 | +14.97 | +14.70 |
+| replay only | 86 | -8.91 | |
+| live only | 36 | | -19.21 |
+
+72 of the replay-only trades have no live journal row at all: live never
+produced the intent. The other 14 were refused live (six duplicate-bar
+signals, four cluster caps, two by the daily loss limit, one minimum-size
+refusal, one still open). 30 of the live-only trades are on instruments the
+replay trades. Over the window the replay makes +0.151 USD a day, live
+-0.090.
+
+Preregistered candidate: add the pooled residual plus the financing per
+close (+0.0341 R) to every replay trade, adopted only if the residual's
+|t| exceeds 2. It does not (t +1.15). The calibrated replay would read
++705.66 USD, +0.322514 USD/day (+144 %; samples +0.2526, +0.3900,
++0.2853, +0.3318), a number that would only flatter every later
+comparison. The cost model stays as it is.
+
+Conclusion: on the trades both take, the replay predicts live to within
+0.27 USD over 15 trades. The live-against-backtest gap is which signals
+are traded, not how they are filled, plus a financing charge nobody books.
+Research only; trading code and settings unchanged, no restart.
