@@ -46,6 +46,8 @@ STEP = np.timedelta64(7, 'D')
 
 def active_order(window, pins, reserved, pin_order):
     """Position of each combination in the written active list."""
+    if pe.RANK_SEQUENTIAL:
+        window = pe.sequential(window)
     agg = {}
     for t in window:
         agg.setdefault((t["strat"], t["pair"]), []).append(t)

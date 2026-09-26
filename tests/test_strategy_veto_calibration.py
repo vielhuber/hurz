@@ -13,6 +13,12 @@ def training(strategy, pair):
 
 
 class StrategyVetoReplayTest(TestCase):
+    def setUp(self):
+        # Written for ranking on every signal, before section 341.
+        patcher = patch.object(pe, "RANK_SEQUENTIAL", False)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_lists_drop_every_combination_of_a_retired_strategy(self):
         rows = training("donchian_breakout", "AAA") + training("turtle_breakout", "AAA")
         with patch.object(pe, "VETOED_STRATEGIES", {"donchian_breakout"}):

@@ -59,6 +59,22 @@ VETOED = set()
 # The bot skips every listed combination of a retired strategy, ranked or
 # pinned (section 339), so the replay's lists drop them too.
 VETOED_STRATEGIES = set()
+# The selector's backtest holds one position per combination at a time
+# (`spot_backtest._simulate_trades`), so it ranks without the signals that
+# overlap an open trade (section 341).
+RANK_SEQUENTIAL = True
+
+
+def sequential(window):
+    """The signals a one-position-at-a-time backtest takes, per combination."""
+    last_exit, kept = {}, []
+    for t in window:
+        key = (t["strat"], t["pair"])
+        if key in last_exit and t["ts"] <= last_exit[key]:
+            continue
+        last_exit[key] = t["exit_ts"]
+        kept.append(t)
+    return kept
 
 
 def load_pins(pairs, vetoed, vetoed_strategies):
@@ -81,6 +97,8 @@ def load_pins(pairs, vetoed, vetoed_strategies):
 
 def lists(window, pins, reserved):
     """(ranked top 40, eligible set) for one ranking window."""
+    if RANK_SEQUENTIAL:
+        window = sequential(window)
     agg = {}
     for t in window:
         agg.setdefault((t["strat"], t["pair"]), []).append(t)

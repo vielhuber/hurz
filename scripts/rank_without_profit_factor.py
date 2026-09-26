@@ -20,6 +20,8 @@ from scripts.burst_cost_priority import active_order as baseline_order
 
 def active_orders(window, pins, reserved, pin_order):
     baseline = baseline_order(window, pins, reserved, pin_order)
+    if pe.RANK_SEQUENTIAL:
+        window = pe.sequential(window)
     grouped = {}
     for trade in window:
         grouped.setdefault((trade["strat"], trade["pair"]), []).append(trade["r"])

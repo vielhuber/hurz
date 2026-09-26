@@ -7,6 +7,12 @@ from scripts import rank_without_profit_factor as experiment
 
 
 class RankWithoutProfitFactorTest(TestCase):
+    def setUp(self):
+        # Written for ranking on every signal, before section 341.
+        patcher = patch.object(experiment.pe, "RANK_SEQUENTIAL", False)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def training(self, pair, returns):
         return [dict(strat="momentum", pair=pair, r=value) for value in returns]
 

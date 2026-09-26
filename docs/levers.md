@@ -14,27 +14,25 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 4, portfolio and position sizing). The signal-price item
-is dropped: signed, the live signal price is +0.027 R better than the
-closed bar's close (t +1.08, 48 fills), entries follow the bar close by
-a median of seconds, so there is no cost to recover (section 340). The
-models under `models/` are the retired PocketOption 60-second binary
-models and cannot signal CFD trades.
+run's (last run: 1, live against backtest). The 4h-pin item is dropped:
+the pins were measured on 2026-09-11 (section 225, t +0.76) and are not
+tested a second time. The signal price is no cost (section 340), and the
+models under `models/` are retired PocketOption binary models.
 
-1. **Universe and timeframes (3) — the six operator 4h pins.**
-   Observation: `data/pinned_pairs.json` still pins donchian_breakout_4h
-   (SILVER, NZDUSD), turtle_breakout_4h (HK50, WHEAT) and momentum_4h
-   (COPPER, CHFJPY); live they closed 26 trades for -7.43 USD, and the 4h
-   stream was measured at t -2.27 on its own (section 302). Hypothesis:
-   the 4h pins take slots and cluster room from the hourly book;
-   replaying the book with and without them shows what they cost.
-2. **Portfolio and position sizing (4) — momentum's own slot.**
+1. **Portfolio and position sizing (4) — momentum's own slot.**
    Observation (section 340): momentum on every instrument books 344
    trades at +0.179 USD each against +0.060 for the book, but displaces
    as much breakout income as it adds (+7.6 %, t +0.61). Hypothesis: a
    reserved momentum slot beside the eight breakout slots keeps its
    income without the displacement; this raises concurrent risk and must
    be named as such.
+2. **Universe and timeframes (3) — GBPAUD, traded live, unknown to the
+   replay.** Observation: the live list of 2026-09-25 carries GBPAUD,
+   which is outside the replay's 27 instruments and missing from the
+   correlation-cluster map (`tests/test_correlation_cluster_map.py`
+   fails on it), so live it trades without a cluster cap. Hypothesis:
+   adding GBPAUD to the replay with its measured cluster shows whether
+   it earns its slot; if not, the selector should not list it.
 
 ## Levers already tested before this log existed
 
@@ -7907,3 +7905,43 @@ models and cannot signal CFD trades.
   Daily SD 2.5560 → 2.6702 USD, worst day -18.5626 → -18.7995 USD.
 - **Decision:** rejected (VERDICT=DISCARD); selector and bot unchanged,
   no restart. Three new tests. Section 340.
+
+## 2026-09-26 (morning) — the replay ranked like the selector: one trade at a time
+
+- **Category:** 1, live against backtest.
+- **Operation:** one bot/watchdog (24806 since 2026-09-25 02:05 UTC),
+  runtime checkout clean on `origin/main` (5705b26), evaluations failing
+  0, no HTTP 429. No intervention.
+- **Plan item skipped:** the six 4h pins were measured on 2026-09-11
+  (section 225); not tested again.
+- **Observation:** section 339: the live selector counts about half the
+  trades per combination the replay counts (median 45 against 83).
+  `spot_backtest._simulate_trades` skips a signal while the combination's
+  previous trade is open (`in_trade_until`); the replay's `active_order`
+  ranked on every signal, overlapping ones included.
+- **Lever:** before ranking, keep per combination only the signals that
+  start after the previously kept one exited. Preregistered: adopted into
+  the replay because the selector demonstrably ranks this way; the live
+  selector switches to every-signal ranking only if that beats sequential
+  on 4/4 samples with pooled t > +2.
+- **Measurement:** `scripts/sequential_ranking_calibration.py`, cached
+  seven-year weekly walk-forward (section 339 baseline), 27 instruments,
+  28,704 signals. OOS [2020-09-23, 2026-09-20), 2,188 calendar days. At
+  the last cut the sequential count matches the live list's n exactly
+  (median ratio 1.00 against 1.89 for every signal, 14 listed combos).
+
+  | ranking | closes | USD | USD/calendar day |
+  |---|---:|---:|---:|
+  | every signal (replay so far) | 4,223 | +255.100494 | +0.116591 |
+  | sequential (as the selector) | 4,217 | +247.343007 | +0.113045 |
+
+- **Result:** every-signal ranking +3.1 % daily gain over the live one,
+  pooled paired t +0.2884, 2/4 samples (-0.0649 with t -2.30 in the last
+  year, +0.0283, +0.0162, -0.0029). Not better; the live selector stays.
+- **Decision:** calibration adopted (`pin_eligibility.RANK_SEQUENTIAL`,
+  honoured by `active_order` and `pin_eligibility.lists`); the bot is
+  unchanged, no restart. New replay baseline 4,217 closes, +247.343007
+  USD, +0.113045 USD/day, reproduced by `scripts/rollover_exit.py`.
+  Two new tests; two older tests pin the every-signal basis they were
+  written for, and `rank_without_profit_factor.py` ranks both arms on
+  the same basis. Section 341.

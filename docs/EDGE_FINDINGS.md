@@ -12410,3 +12410,50 @@ the new trades take slots breakouts would have used. Mean planned risk
 Reject: 2/4 samples better and pooled paired t +0.6055. Selector and bot
 unchanged; no restart. Three new tests cover the candidate order,
 vetoes, reserved instruments and pinned momentum.
+
+## 341. The replay now ranks like the selector: one trade per combination at a time
+
+Section 339 found the live selector counting about half the trades per
+combination the replay counts over the same trailing year (median 45
+against 83). The cause sits in `spot_backtest._simulate_trades`, the
+backtest behind every nightly list: a signal arriving while the
+combination's previous trade is still open is skipped (`in_trade_until`).
+The selector's expectancy, profit factor and trade count therefore come
+from one position at a time, while the replay's `active_order` ranked on
+every signal, overlapping ones included. Its weekly lists were built from
+a statistic the bot never computes.
+
+`scripts/sequential_ranking_calibration.py` keeps, per combination, only
+the signals that start after the previously kept one has exited, and
+ranks on those; admission, caps, pins and vetoes are unchanged.
+Preregistered: the calibration is adopted because the selector
+demonstrably ranks this way; independently, the live selector switches to
+every-signal ranking only if that wins all four samples with pooled
+paired t > +2.
+
+At the last cut the sequential counts match the live list's n exactly:
+median ratio 1.00 over the 14 ranked combinations both lists hold,
+against 1.89 for every signal.
+
+| OOS interval (end exclusive) | days | sequential USD/day | every signal USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.065781 | +0.000860 | -0.064921 | -2.3006 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.183142 | +0.211460 | +0.028318 | +1.3210 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.048969 | +0.065162 | +0.016194 | +0.6407 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.148463 | +0.145598 | -0.002865 | -0.1872 |
+| pooled | 2,188 | +0.113045 | +0.116591 | +0.003545 | +0.2884 |
+
+Sequential: 4,217 closes, +247.343007 USD; every signal: 4,223 closes,
++255.100494 USD. Daily SD 2.5514 against 2.5560 USD, worst day equal.
+Every-signal ranking is not better (2/4 samples, t +0.29) and loses the
+most recent year significantly, so the live selector stays as it is.
+
+Adopted: `pin_eligibility.RANK_SEQUENTIAL` (default on) makes
+`active_order` and `pin_eligibility.lists` rank on `pin_eligibility
+.sequential(window)`. The replay baseline moves from +0.116591 to
++0.113045 USD per calendar day (4,217 closes, +247.343007 USD);
+`scripts/rollover_exit.py` reproduces it. Research code only; the bot
+is unchanged, no restart. Two new tests cover the per-combination skip
+and the ranking count; the tests of sections 333 and 339 pin the
+every-signal basis they were written for, and `rank_without_profit_factor.py`
+now ranks its candidate on the same basis as its baseline.
