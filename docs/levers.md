@@ -14,25 +14,26 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 1, live against backtest). The 4h-pin item is dropped:
-the pins were measured on 2026-09-11 (section 225, t +0.76) and are not
-tested a second time. The signal price is no cost (section 340), and the
-models under `models/` are retired PocketOption binary models.
+run's (last run: 4, portfolio and position sizing). The momentum
+direction is closed after two rejections (sections 340 and 342): even in
+a slot of its own it displaces breakouts through the one-position-per-
+instrument rule and the cluster caps. Spread-dependent waiting cannot be
+measured over seven years (spread samples exist only since 2026-09-08).
 
-1. **Portfolio and position sizing (4) — momentum's own slot.**
-   Observation (section 340): momentum on every instrument books 344
-   trades at +0.179 USD each against +0.060 for the book, but displaces
-   as much breakout income as it adds (+7.6 %, t +0.61). Hypothesis: a
-   reserved momentum slot beside the eight breakout slots keeps its
-   income without the displacement; this raises concurrent risk and must
-   be named as such.
-2. **Universe and timeframes (3) — GBPAUD, traded live, unknown to the
+1. **Universe and timeframes (3) — GBPAUD, traded live, unknown to the
    replay.** Observation: the live list of 2026-09-25 carries GBPAUD,
    which is outside the replay's 27 instruments and missing from the
    correlation-cluster map (`tests/test_correlation_cluster_map.py`
    fails on it), so live it trades without a cluster cap. Hypothesis:
    adding GBPAUD to the replay with its measured cluster shows whether
    it earns its slot; if not, the selector should not list it.
+2. **Live against backtest (1) — the 4h pins' trades in the replay.**
+   Observation: the replay honours the exclusive 4h pins' reservation of
+   SILVER, NZDUSD, HK50, COPPER and CHFJPY but books none of their
+   trades, while live they closed 26 trades for -7.43 USD. Hypothesis:
+   booking the active 4h pins in the replay makes its baseline the book
+   the bot trades (a calibration, not a second test of section 225's
+   removal).
 
 ## Levers already tested before this log existed
 
@@ -7945,3 +7946,37 @@ models under `models/` are retired PocketOption binary models.
   Two new tests; two older tests pin the every-signal basis they were
   written for, and `rank_without_profit_factor.py` ranks both arms on
   the same basis. Section 341.
+
+## 2026-09-26 (afternoon) — momentum in a slot of its own
+
+- **Category:** 4, portfolio and position sizing.
+- **Operation:** one bot/watchdog (24806 since 2026-09-25 02:05 UTC),
+  runtime checkout clean on `origin/main` (cf706cd), evaluations failing
+  0, no HTTP 429. No intervention.
+- **Observation:** section 340: momentum on every instrument earns +0.179
+  USD a trade against +0.060 for the book, but its +48 USD became +19 USD
+  for the book because it took shared slots.
+- **Lever:** momentum on every instrument as in section 340, with
+  momentum positions counted against a cap of one of their own and
+  breakouts keeping their cap of eight. One position per instrument,
+  cooldown, cluster caps (counting both), stops, sizing unchanged. Raises
+  the most positions open at once from eight to nine (one more risk unit
+  of about 2.3 USD). No diagnostic arm.
+- **Measurement:** `scripts/momentum_own_slot.py`, cached seven-year
+  weekly walk-forward (section 341 baseline), 27 instruments, 28,704
+  signals. OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | closes | momentum closes / USD | breakout USD | USD/calendar day |
+  |---|---:|---|---:|---:|
+  | current book | 4,217 | 46 / +11.03 | +236.32 | +0.113045 |
+  | momentum everywhere, own slot | 4,348 | 238 / +51.05 | +220.66 | +0.124184 |
+
+- **Result:** +9.9 % daily gain, delta +0.011139 USD/day, pooled paired
+  t +0.8718; 2/4 samples better (+0.0255, -0.0051, +0.0293, -0.0072).
+  Breakouts still lose 15.66 USD: momentum occupies instruments and
+  cluster room, not only slots. Daily SD 2.5514 → 2.6089 USD, worst day
+  -18.5626 → -18.7995 USD; the book never held more than eight positions
+  at once in either arm.
+- **Decision:** rejected (VERDICT=DISCARD); caps, selector and bot
+  unchanged, no restart. Second momentum lever rejected in a row; the
+  direction is closed. Three new tests. Section 342.

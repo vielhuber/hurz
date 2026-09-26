@@ -12457,3 +12457,43 @@ is unchanged, no restart. Two new tests cover the per-combination skip
 and the ranking count; the tests of sections 333 and 339 pin the
 every-signal basis they were written for, and `rank_without_profit_factor.py`
 now ranks its candidate on the same basis as its baseline.
+
+## 342. Momentum in a slot of its own still displaces the breakouts
+
+Section 340 let momentum trade every instrument: +0.179 USD a trade
+against +0.060 for the book, but +48 USD of momentum income became +19
+USD for the book, because the new trades took slots the breakouts would
+have used. A separate slot should remove that displacement if the slot
+count is what binds.
+
+`scripts/momentum_own_slot.py` keeps section 340's order (momentum on
+every instrument after the ranked list and the pins) and counts momentum
+positions against a cap of one of their own, while breakout positions
+keep the cap of eight among themselves. One position per instrument, the
+6-hour stop-out cooldown, cluster caps (counting both), stops, targets,
+sizing and risk per trade are unchanged. The design raises the most
+positions open at once from eight to nine, one more risk unit of about
+2.3 USD. The baseline is section 341's replay.
+
+| OOS interval (end exclusive) | days | current USD/day | own slot USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.065781 | +0.091297 | +0.025516 | +0.9422 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.183142 | +0.178035 | -0.005107 | -0.2078 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.048969 | +0.078277 | +0.029308 | +1.3502 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.148463 | +0.141276 | -0.007187 | -0.2475 |
+| pooled | 2,188 | +0.113045 | +0.124184 | +0.011139 | +0.8718 |
+
+Current: 4,217 closes, 46 momentum for +11.03 USD, breakouts +236.32
+USD, +247.343007 USD in all. Own slot: 4,348 closes, 238 momentum for
++51.05 USD, breakouts +220.66 USD, +271.714581 USD in all. The breakouts
+still give up 15.66 USD: momentum holds instruments and cluster room,
+which one position per instrument and the cluster caps deny to them,
+and the slot count was not what bound (neither arm ever held more than
+eight positions at once). Daily SD 2.5514 → 2.6089 USD, worst day
+-18.5626 → -18.7995 USD.
+
+Reject: 2/4 samples better and pooled paired t +0.8718. Caps, selector
+and bot unchanged; no restart. With section 340 this is the second
+momentum lever rejected in a row, and the direction is closed. Three new
+tests cover the separate cap, the instrument and cluster caps binding
+momentum, and the cooldown.
