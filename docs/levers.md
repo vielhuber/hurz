@@ -14,26 +14,26 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 4, portfolio and position sizing). The momentum
-direction is closed after two rejections (sections 340 and 342): even in
-a slot of its own it displaces breakouts through the one-position-per-
-instrument rule and the cluster caps. Spread-dependent waiting cannot be
-measured over seven years (spread samples exist only since 2026-09-08).
+run's (last run: 1, live against backtest). Closed: the momentum
+direction (sections 340, 342), the 4h pins (section 225; section 343
+found their trades immaterial to the replay), spread-dependent waiting
+(not measurable over seven years), the signal price (section 340).
 
-1. **Universe and timeframes (3) — GBPAUD, traded live, unknown to the
-   replay.** Observation: the live list of 2026-09-25 carries GBPAUD,
-   which is outside the replay's 27 instruments and missing from the
-   correlation-cluster map (`tests/test_correlation_cluster_map.py`
-   fails on it), so live it trades without a cluster cap. Hypothesis:
-   adding GBPAUD to the replay with its measured cluster shows whether
-   it earns its slot; if not, the selector should not list it.
-2. **Live against backtest (1) — the 4h pins' trades in the replay.**
-   Observation: the replay honours the exclusive 4h pins' reservation of
-   SILVER, NZDUSD, HK50, COPPER and CHFJPY but books none of their
-   trades, while live they closed 26 trades for -7.43 USD. Hypothesis:
-   booking the active 4h pins in the replay makes its baseline the book
-   the bot trades (a calibration, not a second test of section 225's
-   removal).
+1. **Universe and timeframes (3) — instruments the selector can list but
+   the replay and the cluster map do not know.** Observation: the live
+   list of 2026-09-25 carried GBPAUD, outside the replay's 27 instruments
+   and missing from `_CORRELATION_CLUSTERS`, so it traded without a
+   cluster cap; the list of 2026-09-26 dropped it again. Hypothesis:
+   fetching the selector's full universe, mapping each instrument by
+   measured correlation and replaying it shows whether these instruments
+   earn their slots; if not, the selector should exclude them.
+2. **Portfolio and position sizing (4) — risk cut after a volatile
+   stretch, never raised.** Observation (section 343's baseline): the
+   worst replay day is -18.56 USD against a daily SD of 2.55 USD (7.3
+   SD), and 551 stop-outs cost -1,337 USD against +1,584 USD from targets
+   and timeouts. Hypothesis: halving the risk per trade while the book's
+   trailing 20-day daily SD exceeds its trailing-year level trims the
+   losing clusters more than the gains; risk is only ever reduced.
 
 ## Levers already tested before this log existed
 
@@ -7980,3 +7980,38 @@ measured over seven years (spread samples exist only since 2026-09-08).
 - **Decision:** rejected (VERDICT=DISCARD); caps, selector and bot
   unchanged, no restart. Second momentum lever rejected in a row; the
   direction is closed. Three new tests. Section 342.
+
+## 2026-09-26 (evening) — the 4h pins' trades in the replay
+
+- **Category:** 1, live against backtest.
+- **Operation:** one bot/watchdog (24806 since 2026-09-25 02:05 UTC),
+  runtime checkout clean on `origin/main` (1b783a6), evaluations failing
+  0, no HTTP 429. No intervention.
+- **Plan item dropped:** GBPAUD is no longer on the live list of
+  2026-09-26 and `tests/test_correlation_cluster_map.py` passes again, so
+  the premise of measuring it now is gone.
+- **Observation:** the replay honours the exclusive 4h pins' reservation
+  of SILVER, NZDUSD, HK50, COPPER and CHFJPY but books none of their
+  trades; live they closed 26 trades for -7.43 USD.
+- **Lever:** book the five live 4h pins (WHEAT is outside the universe
+  and vetoed) from resampled 4h bars on section 302's terms, appended
+  after the hourly pins, sharing every cap and cooldown. Preregistered:
+  adopted into the shared replay only if the change is material (pooled
+  |t| > 2). Not a second test of section 225's removal.
+- **Measurement:** `scripts/four_hour_pin_calibration.py`, cached
+  seven-year weekly walk-forward (section 341 baseline), 27 instruments,
+  28,704 hourly and 561 4h pin signals. OOS [2020-09-23, 2026-09-20),
+  2,188 calendar days.
+
+  | arm | closes | 4h closes / USD | USD | USD/calendar day |
+  |---|---:|---|---:|---:|
+  | replay, hourly only | 4,217 | 0 / 0 | +247.343007 | +0.113045 |
+  | replay with the 4h pins | 4,258 | 183 / -11.85 | +239.685213 | +0.109545 |
+
+- **Result:** -3.1 % daily gain with the 4h pins, pooled paired t
+  -0.2044 (+0.0738, -0.0062, -0.0345, -0.0135 USD/day by sample). The 4h
+  pins lose in the replay as they do live, but not measurably for the
+  book. Daily SD 2.5514 → 2.6111 USD, worst day unchanged.
+- **Decision:** immaterial (VERDICT=IMMATERIAL); the replay stays
+  hourly-only, the omission is documented. Bot and pins unchanged, no
+  restart. Two new tests. Section 343.

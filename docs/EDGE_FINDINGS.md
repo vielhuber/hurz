@@ -12497,3 +12497,43 @@ and bot unchanged; no restart. With section 340 this is the second
 momentum lever rejected in a row, and the direction is closed. Three new
 tests cover the separate cap, the instrument and cluster caps binding
 momentum, and the cooldown.
+
+## 343. The 4h pins' trades are missing from the replay, and it does not matter
+
+`data/pinned_pairs.json` pins donchian_breakout_4h (SILVER, NZDUSD),
+turtle_breakout_4h (HK50, WHEAT) and momentum_4h (COPPER, CHFJPY), all
+exclusive. The replay honours their reservation of those instruments but
+books none of their trades; live they closed 26 trades for -7.43 USD.
+Section 225 measured removing them on an older harness (t +0.76). This
+section does not repeat that; it asks whether the replay's baseline
+misses something material by leaving their trades out.
+
+`scripts/four_hour_pin_calibration.py` books the five pins that are live
+today (WHEAT is outside the replay universe and vetoed) from 4h bars
+resampled from the cached hourly bars on section 302's terms: 3 x ATR or
+the venue minimum as stop, 1.5 R, a 24-bar leash. A 4h signal's times are
+moved to the last hourly bar of its 4h bar, so it enters and exits at the
+closes live uses. The pins follow the hourly pins in the active order and
+share every cap and cooldown. Preregistered: adopted into the shared
+replay only if the change is material, pooled paired |t| > 2.
+
+| OOS interval (end exclusive) | days | hourly only USD/day | with 4h pins USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.065781 | +0.139575 | +0.073794 | +1.7799 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.183142 | +0.176956 | -0.006186 | -0.2070 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.048969 | +0.014494 | -0.034475 | -1.1617 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.148463 | +0.134937 | -0.013527 | -0.3253 |
+| pooled | 2,188 | +0.113045 | +0.109545 | -0.003500 | -0.2044 |
+
+Hourly only: 4,217 closes, +247.343007 USD. With the pins: 4,258 closes,
+183 of them 4h for -11.85 USD, +239.685213 USD in all. Daily SD 2.5514 →
+2.6111 USD, worst day unchanged at -18.5626 USD. The 4h pins lose in the
+replay as they do live, but the book barely notices: the verdict is
+immaterial, and the replay stays hourly-only with the omission recorded.
+Bot and pins unchanged; no restart.
+
+Recorded for the plan from the same baseline: stop-outs (551 closes)
+cost -1,337 USD across the four samples, targets (306) and timeouts
+(3,360) earn +1,584 USD, and the worst day of -18.56 USD sits 7.3 daily
+standard deviations below zero. Two new tests cover which 4h pins are
+booked and the time alignment.
