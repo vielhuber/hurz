@@ -12366,3 +12366,47 @@ replay baseline is 4,223 closes, +255.100494 USD, +0.116591 USD per
 calendar day; `scripts/rollover_exit.py` reproduces it exactly. Research
 code only; the bot is unchanged, no restart. Three new tests cover the
 lists, the unvetoed case and `load_pins` recording the veto.
+
+## 340. Momentum on every instrument earns more per trade and displaces as much
+
+Over the replay's trailing year momentum is the only strategy with a
+significant edge (+0.204 R over 115 signals, t +2.79; section 339), yet it
+books 54 of 4,223 replay closes. The cause is structural: momentum fires
+about four times a year per instrument, and the selector lists a
+combination only with at least ten trades in its trailing year, so a
+momentum combination almost never reaches the list.
+
+Checked first: the live signal price of section 337 is no cost. Signed
+against the cached bar's close it is +0.027 R in the bot's favour (t
++1.08, 48 fills since 24 August), and the entries follow the bar close
+by a median of seconds (90th percentile 1.2 minutes). The absolute gap
+of 0.083 R is noise around zero, not slippage.
+
+`scripts/momentum_everywhere.py` adds every (momentum, instrument) of the
+universe to the active order after the ranked list and the pins, at the
+lowest priority on a contested bar, unless the combination or its
+strategy is vetoed or an exclusive pin reserves the instrument. One
+position per instrument, the concurrent cap, cluster caps, cooldowns,
+stops, targets, sizing and risk per trade are unchanged. The baseline is
+section 339's calibrated replay. 768 momentum signals fall into the OOS
+span at +0.0786 R each.
+
+| OOS interval (end exclusive) | days | current USD/day | everywhere USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.000860 | +0.019716 | +0.018856 | +0.7291 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.211460 | +0.207529 | -0.003931 | -0.1468 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.065162 | +0.091626 | +0.026464 | +1.0250 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.145598 | +0.134915 | -0.010683 | -0.2700 |
+| pooled | 2,188 | +0.116591 | +0.125482 | +0.008891 | +0.6055 |
+
+Current: 4,223 closes, 54 momentum for +13.48 USD, +255.100494 USD in
+all. Everywhere: 4,418 closes, 344 momentum for +61.44 USD (+0.179 USD
+per trade against +0.060 for the book), +274.553710 USD in all. The
+extra momentum income of +48 USD becomes +19 USD for the book because
+the new trades take slots breakouts would have used. Mean planned risk
+2.3227 → 2.3229 USD, daily SD 2.5560 → 2.6702 USD, worst day -18.5626 →
+-18.7995 USD.
+
+Reject: 2/4 samples better and pooled paired t +0.6055. Selector and bot
+unchanged; no restart. Three new tests cover the candidate order,
+vetoes, reserved instruments and pinned momentum.

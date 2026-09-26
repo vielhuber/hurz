@@ -14,22 +14,27 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 1, live against backtest). The whole-strategy veto is
-not a lever of its own: it was measured on 2026-09-08 (section 99) and
-section 339 found retiring donchian neutral in the replay.
+run's (last run: 4, portfolio and position sizing). The signal-price item
+is dropped: signed, the live signal price is +0.027 R better than the
+closed bar's close (t +1.08, 48 fills), entries follow the bar close by
+a median of seconds, so there is no cost to recover (section 340). The
+models under `models/` are the retired PocketOption 60-second binary
+models and cannot signal CFD trades.
 
-1. **Execution and costs (6) — the signal price.** Observation (section
-   337): the live signal price differs from the cached closed bar's close
-   by 0.083 R on average (t +3.49). Hypothesis: live and replay evaluate
-   different bar data (forming bar or bid against mid); computing the
-   live signals on final bars shows whether signals are lost or invented.
-2. **Portfolio and position sizing (4) — risk budget for momentum.**
-   Observation (section 339): over the replay's trailing year momentum is
-   the only strategy with a significant edge (+0.204 R over 115 signals,
-   t +2.79; turtle -0.004, donchian +0.014), yet it books 54 of 4,223
-   replay closes. Hypothesis: momentum's signals lose their slots to the
-   breakout book; giving momentum combinations admission priority or a
-   reserved slot raises the daily gain.
+1. **Universe and timeframes (3) — the six operator 4h pins.**
+   Observation: `data/pinned_pairs.json` still pins donchian_breakout_4h
+   (SILVER, NZDUSD), turtle_breakout_4h (HK50, WHEAT) and momentum_4h
+   (COPPER, CHFJPY); live they closed 26 trades for -7.43 USD, and the 4h
+   stream was measured at t -2.27 on its own (section 302). Hypothesis:
+   the 4h pins take slots and cluster room from the hourly book;
+   replaying the book with and without them shows what they cost.
+2. **Portfolio and position sizing (4) — momentum's own slot.**
+   Observation (section 340): momentum on every instrument books 344
+   trades at +0.179 USD each against +0.060 for the book, but displaces
+   as much breakout income as it adds (+7.6 %, t +0.61). Hypothesis: a
+   reserved momentum slot beside the eight breakout slots keeps its
+   income without the displacement; this raises concurrent risk and must
+   be named as such.
 
 ## Levers already tested before this log existed
 
@@ -7869,3 +7874,36 @@ section 339 found retiring donchian neutral in the replay.
   only; the bot is unchanged, no restart). New replay baseline 4,223
   closes, +255.100494 USD, +0.116591 USD/day; `scripts/rollover_exit.py`
   reproduces it. Three new tests. Section 339.
+
+## 2026-09-26 — momentum on every instrument
+
+- **Category:** 4, portfolio and position sizing.
+- **Operation:** one bot/watchdog (24806 since 2026-09-25 02:05 UTC),
+  runtime checkout clean on `origin/main` (779979a), evaluations failing
+  0, no HTTP 429. Saturday: FX and indices closed. No intervention.
+- **Observation:** over the replay's trailing year momentum is the only
+  strategy with a significant edge (+0.204 R, 115 signals, t +2.79), yet
+  it books 54 of 4,223 replay closes: it fires about four times a year
+  per instrument and the selector lists a combination only with ten
+  trailing trades. Checked first and dropped from the plan: the signal
+  price is no cost (signed +0.027 R, t +1.08).
+- **Lever:** after the ranked list and the pins, every (momentum,
+  instrument) joins the active order at lowest priority, respecting
+  vetoes and exclusive pins. Caps, stops, sizing unchanged. No diagnostic
+  arm, no instrument subset.
+- **Measurement:** `scripts/momentum_everywhere.py`, cached seven-year
+  weekly walk-forward (section 339 baseline), 27 instruments, 28,704
+  signals of which 768 momentum OOS at +0.0786 R. OOS [2020-09-23,
+  2026-09-20), 2,188 calendar days.
+
+  | arm | closes | momentum closes / USD | USD | USD/calendar day |
+  |---|---:|---|---:|---:|
+  | current list | 4,223 | 54 / +13.48 | +255.100494 | +0.116591 |
+  | momentum everywhere | 4,418 | 344 / +61.44 | +274.553710 | +0.125482 |
+
+- **Result:** +7.6 % daily gain, delta +0.008891 USD/day, pooled paired
+  t +0.6055; 2/4 samples better (+0.0189, -0.0039, +0.0265, -0.0107).
+  The extra momentum trades earn +48 USD but displace breakout income.
+  Daily SD 2.5560 → 2.6702 USD, worst day -18.5626 → -18.7995 USD.
+- **Decision:** rejected (VERDICT=DISCARD); selector and bot unchanged,
+  no restart. Three new tests. Section 340.
