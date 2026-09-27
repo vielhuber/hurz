@@ -30,8 +30,8 @@ class (section 346). The edge-scaling gate is not a lever (section 195).
 2. **Portfolio and position sizing (4) — a cap on concurrent FX
    positions.** Observation (section 346): the eleven FX pairs take 2,442
    of the book's 4,217 closes for +1.24 USD, while the sixteen others
-   earn about +0.12 USD a trade; removing FX outright was not significant
-   because it also removes the FX trades' diversification. Hypothesis: at
+   earn +246.10 USD on 1,775 closes (+0.14 USD a trade); removing FX
+   outright was not significant (t +0.18). Hypothesis: at
    most three FX positions at once hands the freed slots to the other
    classes without dropping FX; no risk limit loosens.
 
