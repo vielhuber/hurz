@@ -12587,3 +12587,40 @@ history on them: DOGEUSD 4 closes -15.78 USD, WHEAT 9 closes -4.24 USD
 (the vetoed 4h pin), GBPAUD 1 close +1.83 USD. The replay's 27-instrument
 baseline is now the bot's universe. Four new tests cover the set, the
 replay universe and both entry guards.
+
+## 345. Halving the risk after a volatile stretch halves the gain with it
+
+In the replay the worst day is -18.56 USD against a daily SD of 2.55 USD
+(7.3 SD), and 551 stop-outs cost -1,337 USD against +1,584 USD from
+targets and timeouts (section 343). If losses cluster and a volatile
+stretch tends to continue, trading it at half size should cut more loss
+than gain.
+
+`scripts/volatility_risk_cut.py` reads the book's own realised daily PnL
+(calendar days, idle days as zero) from trades closed before a signal's
+day. While the trailing 20 days have a higher standard deviation than the
+trailing 365, a new trade is sized at half the 3 USD target: the signals
+are priced a second time at 1.5 USD with the same notional cap and broker
+increments, and one the minimum size would push above the halved target
+is skipped as live. Stops, targets, caps, cooldowns and admission order
+are unchanged; risk is only ever reduced. The baseline is section 341's.
+
+| OOS interval (end exclusive) | days | current USD/day | half risk when volatile USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.065781 | +0.047112 | -0.018669 | -0.6093 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.183142 | +0.136616 | -0.046526 | -1.5151 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.048969 | -0.004342 | -0.053310 | -1.3359 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.148463 | +0.094811 | -0.053653 | -0.9698 |
+| pooled | 2,188 | +0.113045 | +0.067720 | -0.045325 | -2.2888 |
+
+The state held on 855 of 2,188 days; 5,598 signals met it and were
+priced at half risk before admission. Both arms close 4,217 trades. Mean
+planned risk 2.3222 → 1.7172 USD, daily SD 2.5514 → 1.9363 USD, worst
+day -18.5626 → -9.8995 USD, and +247.343007 → +148.172296 USD in all.
+The volatile stretches earn per unit of risk what the calm ones do: the
+cut trims the tails and the gain in proportion.
+
+Reject: 0/4 samples better and pooled paired t -2.29, significantly
+worse. Sizing and bot unchanged; no restart. Book-level risk cuts are
+closed as a direction. Three new tests cover the state: a recent swing,
+an old one, and trades not yet closed on the day.

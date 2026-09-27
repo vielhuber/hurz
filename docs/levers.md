@@ -14,25 +14,29 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 3, universe and timeframes). Closed: the momentum
+run's (last run: 4, portfolio and position sizing). Closed: the momentum
 direction (sections 340, 342), the 4h pins (sections 225, 343),
 spread-dependent waiting (not measurable over seven years), the signal
-price (section 340).
+price (section 340), book-level risk cuts (section 345). The edge-scaling
+gate is not a lever: it needs thousands of forward trades (section 195).
+Forward check of section 344 on 2026-09-27: the nightly list of 05:47 UTC
+holds 32 combinations and none of the eleven blocked instruments.
 
-1. **Portfolio and position sizing (4) — risk cut after a volatile
-   stretch, never raised.** Observation (section 343's baseline): the
-   worst replay day is -18.56 USD against a daily SD of 2.55 USD (7.3
-   SD), and 551 stop-outs cost -1,337 USD against +1,584 USD from targets
-   and timeouts. Hypothesis: halving the risk per trade while the book's
-   trailing 20-day daily SD exceeds its trailing-year level trims the
-   losing clusters more than the gains; risk is only ever reduced.
-2. **Live against backtest (1) — forward check of the universe block.**
-   Observation (section 344): the block changes nothing on today's list
-   and acts only when the selector would rank one of the eleven again, as
-   it ranked GBPAUD on 2026-09-25. Hypothesis: the nightly lists from
-   2026-09-27 on hold none of them, and the refusals appear in the
-   journal as `expectancy-blocked`; if a list still carries one, the
-   selector's filter path is not the one the replay assumes.
+1. **Universe and timeframes (3) — the FX class as a whole.** Observation
+   (section 344): of the eleven instruments the replay had never seen,
+   the six FX crosses and USDCAD all lost (-101.8 USD together) while the
+   other eight asset classes of the book carry its profit. The replay's
+   27 still hold eleven FX pairs. Hypothesis, preregistered as a class
+   and not per instrument: the book without its FX pairs earns more;
+   the evidence comes from a different instrument set, not from the
+   eleven being tested.
+2. **Live against backtest (1) — replay costs from the live spread
+   samples.** Observation: `data/spread_samples.jsonl` holds more than
+   9,000 quotes since 2026-09-08 across the universe, while the replay
+   charges one spread snapshot per instrument (`capital_spreads.json`).
+   Hypothesis: charging each instrument its median sampled half-spread
+   moves the replay's costs toward what the bot pays; adopted into the
+   replay if the median differs materially from the snapshot.
 
 ## Levers already tested before this log existed
 
@@ -8058,3 +8062,33 @@ price (section 340).
   closes -15.78 USD, WHEAT 9 closes -4.24 USD, GBPAUD 1 close +1.83 USD.
   Four new tests; blocklist tests pass. Pushed, fast-forwarded, bot
   restarted. Section 344.
+
+## 2026-09-27 (morning) — half the risk after a volatile stretch
+
+- **Category:** 4, portfolio and position sizing.
+- **Operation:** one bot/watchdog (852113 since 01:52 UTC), runtime
+  checkout clean on `origin/main` (f7a5d9f), evaluations failing 0, no
+  HTTP 429. Nightly list of 05:47 UTC: 32 combinations, none of section
+  344's eleven. No intervention.
+- **Observation:** section 343's baseline: worst day -18.56 USD against a
+  daily SD of 2.55 USD, and 551 stop-outs cost -1,337 USD.
+- **Lever:** while the book's realised daily PnL over the trailing 20
+  days has a higher SD than over the trailing 365 days, new trades are
+  sized at half the 3 USD target (notional cap and increments unchanged;
+  a trade below minimum size at the halved target is skipped). Risk is
+  only ever reduced. No other window or factor.
+- **Measurement:** `scripts/volatility_risk_cut.py`, cached seven-year
+  weekly walk-forward (section 341 baseline), 27 instruments, 28,704
+  signals. OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | closes | volatile days | USD | USD/calendar day | mean planned risk | worst day |
+  |---|---:|---:|---:|---:|---:|---:|
+  | current sizing | 4,217 | — | +247.343007 | +0.113045 | 2.3222 | -18.5626 |
+  | half risk when volatile | 4,217 | 855 | +148.172296 | +0.067720 | 1.7172 | -9.8995 |
+
+- **Result:** -40.1 % daily gain, delta -0.045325 USD/day, pooled paired
+  t -2.2888, 0/4 samples better (-0.0187, -0.0465, -0.0533, -0.0537).
+  Daily SD 2.5514 → 1.9363 USD. The volatile days earn per unit of risk
+  what the calm ones do, so the cut removes gain in proportion to loss.
+- **Decision:** rejected (VERDICT=DISCARD); sizing and bot unchanged, no
+  restart. Book-level risk cuts are closed. Three new tests. Section 345.
