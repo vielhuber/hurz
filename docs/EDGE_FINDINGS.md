@@ -12573,9 +12573,8 @@ close EURCAD 142 trades for -24.64 USD, EURGBP 119 for -24.73, USDCAD 204
 for -22.04, EURCHF 136 for -15.37, GBPAUD 152 for -10.26, GBPCHF 115 for
 -4.79 and WHEAT 7 for +3.04; ARBUSD (2.5 % spread per side), BNBUSD,
 DOGEUSD and PLATINUM never clear the cost ceiling and the 3-ATR floor.
-The low-volatility FX crosses sit on the 1.05 % venue minimum stop, where
-the breakout rarely reaches its target inside the leash, and their slots
-come out of the instruments that earn.
+Why the FX crosses lose was not measured here; their slots come out of
+the instruments that earn.
 
 Adopted: the first lever since 2026-09-12 to pass both criteria.
 `UNIVERSE_BLOCKED_PAIRS` in `app/spot_trading/trading_blocks.py` feeds
