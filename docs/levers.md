@@ -14,26 +14,25 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 1, live against backtest). Closed: the momentum
-direction (sections 340, 342), the 4h pins (section 225; section 343
-found their trades immaterial to the replay), spread-dependent waiting
-(not measurable over seven years), the signal price (section 340).
+run's (last run: 3, universe and timeframes). Closed: the momentum
+direction (sections 340, 342), the 4h pins (sections 225, 343),
+spread-dependent waiting (not measurable over seven years), the signal
+price (section 340).
 
-1. **Universe and timeframes (3) — instruments the selector can list but
-   the replay and the cluster map do not know.** Observation: the live
-   list of 2026-09-25 carried GBPAUD, outside the replay's 27 instruments
-   and missing from `_CORRELATION_CLUSTERS`, so it traded without a
-   cluster cap; the list of 2026-09-26 dropped it again. Hypothesis:
-   fetching the selector's full universe, mapping each instrument by
-   measured correlation and replaying it shows whether these instruments
-   earn their slots; if not, the selector should exclude them.
-2. **Portfolio and position sizing (4) — risk cut after a volatile
+1. **Portfolio and position sizing (4) — risk cut after a volatile
    stretch, never raised.** Observation (section 343's baseline): the
    worst replay day is -18.56 USD against a daily SD of 2.55 USD (7.3
    SD), and 551 stop-outs cost -1,337 USD against +1,584 USD from targets
    and timeouts. Hypothesis: halving the risk per trade while the book's
    trailing 20-day daily SD exceeds its trailing-year level trims the
    losing clusters more than the gains; risk is only ever reduced.
+2. **Live against backtest (1) — forward check of the universe block.**
+   Observation (section 344): the block changes nothing on today's list
+   and acts only when the selector would rank one of the eleven again, as
+   it ranked GBPAUD on 2026-09-25. Hypothesis: the nightly lists from
+   2026-09-27 on hold none of them, and the refusals appear in the
+   journal as `expectancy-blocked`; if a list still carries one, the
+   selector's filter path is not the one the replay assumes.
 
 ## Levers already tested before this log existed
 
@@ -8015,3 +8014,47 @@ found their trades immaterial to the replay), spread-dependent waiting
 - **Decision:** immaterial (VERDICT=IMMATERIAL); the replay stays
   hourly-only, the omission is documented. Bot and pins unchanged, no
   restart. Two new tests. Section 343.
+
+## 2026-09-27 — the selector's universe cut to the replay's — BUILT IN
+
+- **Category:** 3, universe and timeframes.
+- **Operation:** one bot/watchdog (24806 since 2026-09-25 02:05 UTC),
+  runtime checkout clean on `origin/main` (968c84a), evaluations failing
+  0, no HTTP 429, also during the paced history fetch of this run.
+- **Observation:** the nightly selector backtests 55 instruments; 17 are
+  blocked, and eleven of the remaining 38 were never in the replay:
+  ARBUSD, BNBUSD, DOGEUSD, EURCAD, EURCHF, EURGBP, GBPAUD, GBPCHF,
+  PLATINUM, USDCAD, WHEAT. Eight of them have no cluster, so when listed
+  they trade without a cluster cap; GBPAUD was listed on 2026-09-25.
+- **Lever:** restrict the selector to the replay's 27 instruments,
+  measured against the current state of 38 (the eleven with live costs
+  and the live cluster map, unmapped ones unclustered as live).
+  Preregistered: blocked as a set if the 27 beat the 38 on all four
+  samples with pooled paired t > +2. No subset, no remapping.
+- **Measurement:** `scripts/selector_universe.py` over the replay of
+  section 335, paced fetch (1.5 s per page) of the ten missing histories.
+  28,704 → 37,417 signals. OOS [2020-09-23, 2026-09-20), 2,188 calendar
+  days.
+
+  | arm | closes | USD | USD/calendar day |
+  |---|---:|---:|---:|
+  | 38 instruments (current state) | 5,058 | +163.404885 | +0.074682 |
+  | 27 instruments (candidate) | 4,217 | +247.343007 | +0.113045 |
+
+  The eleven close EURCAD 142 (-24.64 USD), EURGBP 119 (-24.73), USDCAD
+  204 (-22.04), EURCHF 136 (-15.37), GBPAUD 152 (-10.26), GBPCHF 115
+  (-4.79), WHEAT 7 (+3.04); ARBUSD, BNBUSD, DOGEUSD and PLATINUM none
+  (cost ceiling).
+- **Result:** +51.4 % daily gain for the 27 against the current 38,
+  delta +0.038363 USD/day, pooled paired t +2.86, 4/4 samples better
+  (+0.0279, +0.0209, +0.0542, +0.0521 USD/day). Daily SD 2.6413 → 2.5514
+  USD; worst day -17.5915 → -18.5626 USD. No risk limit moves; the
+  change only removes instruments.
+- **Decision:** BUILT IN: `UNIVERSE_BLOCKED_PAIRS` in `trading_blocks.py`
+  feeds `BLOCKED_PAIRS`, so the selector drops the eleven from ranking
+  and pins and both entry guards refuse them (`expectancy-blocked`). No
+  open positions on them; today's list holds none, so the block acts when
+  the selector would list one again. Live history on them: DOGEUSD 4
+  closes -15.78 USD, WHEAT 9 closes -4.24 USD, GBPAUD 1 close +1.83 USD.
+  Four new tests; blocklist tests pass. Pushed, fast-forwarded, bot
+  restarted. Section 344.

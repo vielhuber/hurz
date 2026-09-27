@@ -12537,3 +12537,54 @@ cost -1,337 USD across the four samples, targets (306) and timeouts
 (3,360) earn +1,584 USD, and the worst day of -18.56 USD sits 7.3 daily
 standard deviations below zero. Two new tests cover which 4h pins are
 booked and the time alignment.
+
+## 344. Eleven instruments the replay never saw cost the book a third of its daily gain
+
+The nightly selector backtests 55 instruments (`data/spot_backtest_results
+.json`). Seventeen are blocked; eleven of the remaining 38 were never in
+the replay: ARBUSD, BNBUSD, DOGEUSD, EURCAD, EURCHF, EURGBP, GBPAUD,
+GBPCHF, PLATINUM, USDCAD and WHEAT. Section 245's rule says verdicts must
+be read on the universe the bot trades; this one was 38 instruments wide,
+the replay 27. Eight of the eleven are also missing from
+`_CORRELATION_CLUSTERS`, so when listed they trade without a cluster cap;
+GBPAUD was on the list of 2026-09-25.
+
+`scripts/selector_universe.py` adds the eleven to section 335's replay as
+the bot sees them: live per-instrument costs from the spread caches, the
+live cluster map with the unmapped ones unclustered, the live short
+blocks. History came from a paced fetch (1.5 s per page) on a Sunday; the
+bot's evaluations kept completing without a failure or an HTTP 429.
+Preregistered: the current state is the 38; the candidate restricts the
+selector to the 27 and is adopted as a set only if the 27 win all four
+samples with pooled paired t > +2.
+
+| OOS interval (end exclusive) | days | 38 instruments USD/day | 27 instruments USD/day | delta (27 - 38) | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.037860 | +0.065781 | +0.027921 | +1.0664 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.162257 | +0.183142 | +0.020884 | +0.9459 |
+| 2021-09-21 – 2023-09-21 | 730 | -0.005274 | +0.048969 | +0.054242 | +2.0551 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.096385 | +0.148463 | +0.052078 | +1.6052 |
+| pooled | 2,188 | +0.074682 | +0.113045 | +0.038363 | +2.8615 |
+
+38 instruments: 5,058 closes, +163.404885 USD, mean planned risk 2.2674
+USD, daily SD 2.6413 USD, worst day -17.5915 USD. 27 instruments: 4,217
+closes, +247.343007 USD, 2.3222 USD, 2.5514 USD, -18.5626 USD. The eleven
+close EURCAD 142 trades for -24.64 USD, EURGBP 119 for -24.73, USDCAD 204
+for -22.04, EURCHF 136 for -15.37, GBPAUD 152 for -10.26, GBPCHF 115 for
+-4.79 and WHEAT 7 for +3.04; ARBUSD (2.5 % spread per side), BNBUSD,
+DOGEUSD and PLATINUM never clear the cost ceiling and the 3-ATR floor.
+The low-volatility FX crosses sit on the 1.05 % venue minimum stop, where
+the breakout rarely reaches its target inside the leash, and their slots
+come out of the instruments that earn.
+
+Adopted: the first lever since 2026-09-12 to pass both criteria.
+`UNIVERSE_BLOCKED_PAIRS` in `app/spot_trading/trading_blocks.py` feeds
+`BLOCKED_PAIRS`, so `persist_active_pairs` drops the eleven from ranking
+and pins and `evaluate_pair` and `execute_intent` refuse them
+(`expectancy-blocked`). No risk limit moves; instruments are only
+removed. No position was open on any of them and today's list holds
+none, so the block acts when the selector would list one again. Live
+history on them: DOGEUSD 4 closes -15.78 USD, WHEAT 9 closes -4.24 USD
+(the vetoed 4h pin), GBPAUD 1 close +1.83 USD. The replay's 27-instrument
+baseline is now the bot's universe. Four new tests cover the set, the
+replay universe and both entry guards.

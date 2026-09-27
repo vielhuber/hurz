@@ -44,8 +44,18 @@ COST_BLOCKED_PAIRS = {
 # ONE prior sample does not predict the next. Three agreeing ones do.
 EXPECTANCY_BLOCKED_PAIRS = {"AU200", "AUDUSD", "GBPCAD", "GBPUSD"}
 
+# The selector ranked these eleven although no walk-forward had ever seen
+# them. Added to the seven-year weekly replay they lower the daily gain on
+# all four samples (pooled -0.038 USD/day, t -2.86): the six FX crosses and
+# USDCAD lose, the crypto alts and PLATINUM never clear the cost ceiling
+# (EDGE_FINDINGS 344). Blocked as a set, as measured.
+UNIVERSE_BLOCKED_PAIRS = {
+    "ARBUSD", "BNBUSD", "DOGEUSD", "EURCAD", "EURCHF", "EURGBP", "GBPAUD",
+    "GBPCHF", "PLATINUM", "USDCAD", "WHEAT",
+}
+
 # What the selector and the entry guards actually consult.
-BLOCKED_PAIRS = COST_BLOCKED_PAIRS | EXPECTANCY_BLOCKED_PAIRS
+BLOCKED_PAIRS = COST_BLOCKED_PAIRS | EXPECTANCY_BLOCKED_PAIRS | UNIVERSE_BLOCKED_PAIRS
 
 
 # Instruments whose short signals are refused on measured expectancy.
