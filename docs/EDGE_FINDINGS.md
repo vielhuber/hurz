@@ -12659,3 +12659,39 @@ two.
 Reject: 2/4 samples better and pooled paired t +0.18. Universe and bot
 unchanged; no restart. Two new tests cover the class and the frame
 filter.
+
+## 347. Costs from 9,898 live spread samples barely move the replay
+
+The replay charges each instrument one per-side cost from a spread
+snapshot (`data/capital_spreads.json` via `spot_backtest._fee_for`). Since
+2026-09-08 the bot has written 9,898 live quotes to
+`data/spread_samples.jsonl`. For most instruments the sampled median
+matches the snapshot. DE40 (0.0078 % half-spread against 0.0029 %), FR40
+(0.0080 against 0.0045) and UK100 (0.0139 against 0.0045) quote wider;
+CADJPY (0.0032 against 0.0100) and USDJPY (0.0039 against 0.0050)
+narrower.
+
+`scripts/sampled_spread_costs.py` charges each replay instrument its
+median sampled half-spread per side and changes nothing else.
+Preregistered: adopted into the shared replay only if pooled paired
+|t| > 2; no other statistic and no diagnostic arm.
+
+| OOS interval (end exclusive) | days | snapshot USD/day | sampled USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.065781 | +0.060485 | -0.005296 | -0.6612 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.183142 | +0.168115 | -0.015027 | -1.9796 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.048969 | +0.053996 | +0.005027 | +0.7372 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.148463 | +0.141545 | -0.006919 | -1.8697 |
+| pooled | 2,188 | +0.113045 | +0.107678 | -0.005368 | -1.4466 |
+
+Snapshot: 4,217 closes, +247.343007 USD. Sampled: 4,228 closes,
++235.598706 USD. Daily SD 2.5514 → 2.5512 USD, worst day -18.5626 →
+-18.5769 USD. The sampled costs lower the replay by 4.7 %, not
+materially; the snapshot stays.
+
+The sampled means sit well above the medians for a few instruments
+(AUDNZD 0.022 % against 0.003 %, HK50 0.033 against 0.010). By hour the
+tail is the 21:00 UTC rollover: for the widest FX pairs and HK50 the
+median half-spread is 0.061 % there against about 0.008 % in every other
+hour, which section 246's rollover-hour lever already priced. Research
+only; bot unchanged, no restart. One new test covers the median.

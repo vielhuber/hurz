@@ -14,26 +14,29 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 3, universe and timeframes). Closed: the momentum
+run's (last run: 1, live against backtest). Closed: the momentum
 direction (sections 340, 342), the 4h pins (sections 225, 343),
-spread-dependent waiting (not measurable over seven years), the signal
-price (section 340), book-level risk cuts (section 345), removing the FX
-class (section 346). The edge-scaling gate is not a lever (section 195).
+spread-dependent waiting (not measurable over seven years; the sampled
+tail sits in the 21:00 UTC rollover hour, which section 246's lever
+already covered), the signal price (section 340), book-level risk cuts
+(section 345), removing the FX class (section 346), sampled spread costs
+(section 347, immaterial). The edge-scaling gate is not a lever (section
+195).
 
-1. **Live against backtest (1) — replay costs from the live spread
-   samples.** Observation: `data/spread_samples.jsonl` holds 9,748 quotes
-   since 2026-09-08 across the universe, while the replay charges one
-   spread snapshot per instrument (`capital_spreads.json`). Hypothesis:
-   charging each instrument its median sampled half-spread moves the
-   replay's costs toward what the bot pays; adopted into the replay if
-   the median differs materially from the snapshot.
-2. **Portfolio and position sizing (4) — a cap on concurrent FX
+1. **Portfolio and position sizing (4) — a cap on concurrent FX
    positions.** Observation (section 346): the eleven FX pairs take 2,442
    of the book's 4,217 closes for +1.24 USD, while the sixteen others
    earn +246.10 USD on 1,775 closes (+0.14 USD a trade); removing FX
-   outright was not significant (t +0.18). Hypothesis: at
-   most three FX positions at once hands the freed slots to the other
-   classes without dropping FX; no risk limit loosens.
+   outright was not significant (t +0.18). Hypothesis: at most three FX
+   positions at once hands the freed slots to the other classes without
+   dropping FX; no risk limit loosens.
+2. **Live against backtest (1) — overnight financing in the shared
+   replay.** Observation: the account paid -3.37 USD of financing in 50
+   days (section 337), and in section 338's arms financing took 31 % of
+   the replayed book's gross R per close, yet the shared replay still
+   books none. Hypothesis: charging every replay trade its nights at
+   section 154's rates changes the baseline materially; adopted into the
+   replay if pooled |t| > 2.
 
 ## Levers already tested before this log existed
 
@@ -8120,3 +8123,37 @@ class (section 346). The edge-scaling gate is not a lever (section 195).
   SD 2.5514 → 2.3369 USD, worst day -18.5626 → -15.6459 USD.
 - **Decision:** rejected (VERDICT=DISCARD); universe and bot unchanged,
   no restart. Two new tests. Section 346.
+
+## 2026-09-27 (evening) — replay costs from the live spread samples
+
+- **Category:** 1, live against backtest.
+- **Operation:** one bot/watchdog (852113 since 01:52 UTC), runtime
+  checkout clean on `origin/main` (89548d3), evaluations failing 0, no
+  HTTP 429. No intervention.
+- **Observation:** the replay charges one spread snapshot per instrument
+  while `data/spread_samples.jsonl` holds 9,898 live quotes since
+  2026-09-08. Sampled medians match the snapshot for most instruments;
+  DE40 (0.0078 % against 0.0029 %), FR40 (0.0080 / 0.0045) and UK100
+  (0.0139 / 0.0045) quote wider, CADJPY (0.0032 / 0.0100) and USDJPY
+  (0.0039 / 0.0050) narrower.
+- **Lever:** charge each replay instrument its median sampled half-spread
+  per side. Preregistered: adopted into the shared replay only if pooled
+  |t| > 2. No other statistic, no diagnostic arm.
+- **Measurement:** `scripts/sampled_spread_costs.py`, cached seven-year
+  weekly walk-forward (section 341 baseline), 27 instruments, 28,704
+  signals. OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | costs | closes | USD | USD/calendar day |
+  |---|---:|---:|---:|
+  | snapshot (current) | 4,217 | +247.343007 | +0.113045 |
+  | sampled median | 4,228 | +235.598706 | +0.107678 |
+
+- **Result:** -4.7 % daily gain, delta -0.005368 USD/day, pooled paired
+  t -1.4466 (-0.0053, -0.0150, +0.0050, -0.0069 by sample). The sampled
+  costs lower the replay slightly, not materially. Daily SD and worst day
+  unchanged.
+- **Decision:** immaterial (VERDICT=IMMATERIAL); the snapshot stays in
+  the replay, bot unchanged, no restart. The sampled means sit far above
+  the medians only because of the 21:00 UTC rollover hour (median half-
+  spread 0.061 % there against about 0.008 % in the other hours for the
+  widest FX pairs and HK50). One new test. Section 347.
