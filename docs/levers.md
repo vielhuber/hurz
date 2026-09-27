@@ -14,30 +14,26 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 4, portfolio and position sizing). Closed: the momentum
+run's (last run: 3, universe and timeframes). Closed: the momentum
 direction (sections 340, 342), the 4h pins (sections 225, 343),
 spread-dependent waiting (not measurable over seven years), the signal
-price (section 340), book-level risk cuts (section 345). The edge-scaling
-gate is not a lever: it needs thousands of forward trades (section 195).
-Forward check of section 344 on 2026-09-27: the nightly list of 05:47 UTC
-holds 32 combinations and none of the eleven blocked instruments.
+price (section 340), book-level risk cuts (section 345), removing the FX
+class (section 346). The edge-scaling gate is not a lever (section 195).
 
-1. **Universe and timeframes (3) — the FX class as a whole.** Observation
-   (section 344): of the eleven instruments the replay had never seen,
-   the six FX crosses and USDCAD all lost (-101.8 USD together); in the
-   section 343 baseline the eleven FX pairs of the 27 net about +1 USD
-   of the book's +247 USD over six years (NZDUSD -41, EURAUD -24, GBPJPY
-   +34, USDCHF +22). Hypothesis, preregistered as a class
-   and not per instrument: the book without its FX pairs earns more;
-   the evidence comes from a different instrument set, not from the
-   eleven being tested.
-2. **Live against backtest (1) — replay costs from the live spread
-   samples.** Observation: `data/spread_samples.jsonl` holds more than
-   9,000 quotes since 2026-09-08 across the universe, while the replay
-   charges one spread snapshot per instrument (`capital_spreads.json`).
-   Hypothesis: charging each instrument its median sampled half-spread
-   moves the replay's costs toward what the bot pays; adopted into the
-   replay if the median differs materially from the snapshot.
+1. **Live against backtest (1) — replay costs from the live spread
+   samples.** Observation: `data/spread_samples.jsonl` holds 9,748 quotes
+   since 2026-09-08 across the universe, while the replay charges one
+   spread snapshot per instrument (`capital_spreads.json`). Hypothesis:
+   charging each instrument its median sampled half-spread moves the
+   replay's costs toward what the bot pays; adopted into the replay if
+   the median differs materially from the snapshot.
+2. **Portfolio and position sizing (4) — a cap on concurrent FX
+   positions.** Observation (section 346): the eleven FX pairs take 2,442
+   of the book's 4,217 closes for +1.24 USD, while the sixteen others
+   earn about +0.12 USD a trade; removing FX outright was not significant
+   because it also removes the FX trades' diversification. Hypothesis: at
+   most three FX positions at once hands the freed slots to the other
+   classes without dropping FX; no risk limit loosens.
 
 ## Levers already tested before this log existed
 
@@ -8093,3 +8089,34 @@ holds 32 combinations and none of the eleven blocked instruments.
   what the calm ones do, so the cut removes gain in proportion to loss.
 - **Decision:** rejected (VERDICT=DISCARD); sizing and bot unchanged, no
   restart. Book-level risk cuts are closed. Three new tests. Section 345.
+
+## 2026-09-27 (afternoon) — the book without its FX pairs
+
+- **Category:** 3, universe and timeframes.
+- **Operation:** one bot/watchdog (852113 since 01:52 UTC), runtime
+  checkout clean on `origin/main` (25bcb94), evaluations failing 0, no
+  HTTP 429. No intervention.
+- **Observation:** section 344: the six FX crosses and USDCAD it added all
+  lost (-101.8 USD); in section 343's baseline the eleven FX pairs of the
+  27 net about +1 USD of +247 USD. The FX class as a whole had never been
+  removed (section 121 halved FX risk on a journal gate, section 267
+  refused FX longs only).
+- **Lever:** remove all eleven FX pairs (EURUSD, USDCHF, AUDNZD, EURAUD,
+  NZDUSD, AUDJPY, CHFJPY, CADJPY, EURJPY, GBPJPY, USDJPY) and their pins
+  from the universe; the sixteen others and every rule unchanged. The
+  class as a whole, no subset, no diagnostic arm.
+- **Measurement:** `scripts/fx_class_removal.py`, cached seven-year
+  weekly walk-forward (section 341 baseline). 28,704 → 11,660 signals,
+  21 → 15 pins. OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | instruments | closes | FX closes / USD | USD | USD/calendar day |
+  |---|---:|---:|---|---:|---:|
+  | current universe | 27 | 4,217 | 2,442 / +1.24 | +247.343007 | +0.113045 |
+  | without FX | 16 | 2,074 | 0 / 0 | +261.995658 | +0.119742 |
+
+- **Result:** +5.9 % daily gain, delta +0.006697 USD/day, pooled paired
+  t +0.1797; 2/4 samples better (-0.0069, -0.0468, +0.0429, +0.0552).
+  Half the trades earn the same dollars, but not measurably more. Daily
+  SD 2.5514 → 2.3369 USD, worst day -18.5626 → -15.6459 USD.
+- **Decision:** rejected (VERDICT=DISCARD); universe and bot unchanged,
+  no restart. Two new tests. Section 346.

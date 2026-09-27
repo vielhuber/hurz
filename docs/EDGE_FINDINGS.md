@@ -12624,3 +12624,38 @@ Reject: 0/4 samples better and pooled paired t -2.29, significantly
 worse. Sizing and bot unchanged; no restart. Book-level risk cuts are
 closed as a direction. Three new tests cover the state: a recent swing,
 an old one, and trades not yet closed on the day.
+
+## 346. The book without its FX pairs: half the trades, the same dollars
+
+Section 344 added eleven instruments the replay had never seen; the six FX
+crosses and USDCAD among them all lost, -101.8 USD together. In section
+343's baseline the eleven FX pairs still in the replay net about +1 USD of
+the book's +247 USD over six years (NZDUSD -41, EURAUD -24, GBPJPY +34,
+USDCHF +22). Section 121 halved FX risk on a journal gate and section 267
+refused FX longs; the class itself had never been taken out.
+
+`scripts/fx_class_removal.py` removes EURUSD, USDCHF, AUDNZD, EURAUD,
+NZDUSD, AUDJPY, CHFJPY, CADJPY, EURJPY, GBPJPY and USDJPY from the
+universe, and with them every FX pin. The sixteen other instruments and
+every rule, cap, stop and size are unchanged. Preregistered as a class,
+without subsets; the evidence for trying it comes from section 344's
+instruments, not from the eleven being tested.
+
+| OOS interval (end exclusive) | days | current USD/day | without FX USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.065781 | +0.058881 | -0.006900 | -0.0833 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.183142 | +0.136354 | -0.046788 | -0.7121 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.048969 | +0.091828 | +0.042859 | +0.6154 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.148463 | +0.203667 | +0.055203 | +0.6866 |
+| pooled | 2,188 | +0.113045 | +0.119742 | +0.006697 | +0.1797 |
+
+Current: 4,217 closes, 2,442 of them FX for +1.24 USD, +247.343007 USD in
+all, 21 pins. Without FX: 2,074 closes, 15 pins, +261.995658 USD. Daily
+SD 2.5514 → 2.3369 USD, worst day -18.5626 → -15.6459 USD. The FX trades
+earn nothing in sum, yet the freed slots do not earn measurably more:
+half the trades bring the same dollars, and the samples split two and
+two.
+
+Reject: 2/4 samples better and pooled paired t +0.18. Universe and bot
+unchanged; no restart. Two new tests cover the class and the frame
+filter.
