@@ -24,9 +24,10 @@ holds 32 combinations and none of the eleven blocked instruments.
 
 1. **Universe and timeframes (3) — the FX class as a whole.** Observation
    (section 344): of the eleven instruments the replay had never seen,
-   the six FX crosses and USDCAD all lost (-101.8 USD together) while the
-   other eight asset classes of the book carry its profit. The replay's
-   27 still hold eleven FX pairs. Hypothesis, preregistered as a class
+   the six FX crosses and USDCAD all lost (-101.8 USD together); in the
+   section 343 baseline the eleven FX pairs of the 27 net about +1 USD
+   of the book's +247 USD over six years (NZDUSD -41, EURAUD -24, GBPJPY
+   +34, USDCHF +22). Hypothesis, preregistered as a class
    and not per instrument: the book without its FX pairs earns more;
    the evidence comes from a different instrument set, not from the
    eleven being tested.
