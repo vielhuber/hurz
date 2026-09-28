@@ -14,29 +14,29 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 1, live against backtest). Closed: the momentum
+run's (last run: 4, portfolio and position sizing). Closed: the momentum
 direction (sections 340, 342), the 4h pins (sections 225, 343),
 spread-dependent waiting (not measurable over seven years; the sampled
-tail sits in the 21:00 UTC rollover hour, which section 246's lever
-already covered), the signal price (section 340), book-level risk cuts
-(section 345), removing the FX class (section 346), sampled spread costs
-(section 347, immaterial). The edge-scaling gate is not a lever (section
-195).
+tail sits in the 21:00 UTC rollover hour, section 246), the signal price
+(section 340), book-level risk cuts (section 345), the FX class removed
+or capped (sections 346, 348), sampled spread costs (section 347). The
+edge-scaling gate is not a lever (section 195). Section 348 also shows
+the non-FX book is not bound by slots: freed slots add 43 closes.
 
-1. **Portfolio and position sizing (4) — a cap on concurrent FX
-   positions.** Observation (section 346): the eleven FX pairs take 2,442
-   of the book's 4,217 closes for +1.24 USD, while the sixteen others
-   earn +246.10 USD on 1,775 closes (+0.14 USD a trade); removing FX
-   outright was not significant (t +0.18). Hypothesis: at most three FX
-   positions at once hands the freed slots to the other classes without
-   dropping FX; no risk limit loosens.
-2. **Live against backtest (1) — overnight financing in the shared
+1. **Live against backtest (1) — overnight financing in the shared
    replay.** Observation: the account paid -3.37 USD of financing in 50
    days (section 337), and in section 338's arms financing took 31 % of
    the replayed book's gross R per close, yet the shared replay still
    books none. Hypothesis: charging every replay trade its nights at
    section 154's rates changes the baseline materially; adopted into the
    replay if pooled |t| > 2.
+2. **New strategy families (2) — carry from the broker's own overnight
+   rates.** Observation: in 28 days of SWAP entries only BTCUSD and
+   ETHUSD shorts were credited (+0.03 EUR a night); every FX side was
+   charged. Hypothesis: a carry book only exists where one side of an
+   instrument is credited by more than its spread per holding period;
+   reading the current long and short rates of the 27 instruments decides
+   whether a carry candidate exists before any replay is built.
 
 ## Levers already tested before this log existed
 
@@ -8157,3 +8157,31 @@ already covered), the signal price (section 340), book-level risk cuts
   the medians only because of the 21:00 UTC rollover hour (median half-
   spread 0.061 % there against about 0.008 % in the other hours for the
   widest FX pairs and HK50). One new test. Section 347.
+
+## 2026-09-28 — at most three FX positions at once
+
+- **Category:** 4, portfolio and position sizing.
+- **Operation:** one bot/watchdog (852113 since 2026-09-27 01:52 UTC),
+  runtime checkout clean on `origin/main` (dfc1d14), evaluations failing
+  0, no HTTP 429. No intervention.
+- **Observation:** section 346: the eleven FX pairs take 2,442 of 4,217
+  closes for +1.24 USD; the sixteen others earn +246.10 USD on 1,775.
+- **Lever:** refuse an FX signal while three FX positions are open (the
+  cluster direction cap's value, not tuned); every other rule unchanged,
+  the cap only removes FX entries. No other value, no diagnostic arm.
+- **Measurement:** `scripts/fx_position_cap.py`, cached seven-year weekly
+  walk-forward (section 341 baseline), 27 instruments, 28,704 signals.
+  OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | closes | FX closes / USD | other closes / USD | USD/calendar day |
+  |---|---:|---|---|---:|
+  | current | 4,217 | 2,442 / +1.24 | 1,775 / +246.10 | +0.113045 |
+  | at most three FX | 3,995 | 2,177 / -23.12 | 1,818 / +246.61 | +0.102144 |
+
+- **Result:** -9.6 % daily gain, delta -0.010902 USD/day, pooled paired
+  t -0.8380; 1/4 samples better (-0.0367, -0.0211, +0.0069, -0.0002).
+  The cap refused 1,081 FX signals; the other classes used the freed
+  slots for only 43 more closes (+0.50 USD), and the FX trades it kept
+  lost. Daily SD 2.5514 → 2.5364 USD, worst day unchanged.
+- **Decision:** rejected (VERDICT=DISCARD); caps and bot unchanged, no
+  restart. Two new tests. Section 348.

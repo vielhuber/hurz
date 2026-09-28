@@ -12695,3 +12695,38 @@ tail is the 21:00 UTC rollover: for the widest FX pairs and HK50 the
 median half-spread is 0.061 % there against about 0.008 % in every other
 hour, which section 246's rollover-hour lever already priced. Research
 only; bot unchanged, no restart. One new test covers the median.
+
+## 348. Capping FX at three positions frees slots nobody else uses
+
+In the replay the eleven FX pairs take 2,442 of 4,217 closes for +1.24 USD
+in sum, while the sixteen other instruments earn +246.10 USD on 1,775
+(section 346). Removing FX outright did not measurably help. A cap should
+keep FX trading and hand the slots it holds beyond three to the other
+classes.
+
+`scripts/fx_position_cap.py` refuses an FX signal while three FX positions
+are open in any direction. Three is the existing cluster direction cap,
+not a tuned value. One position per instrument, the concurrent cap of
+eight, the cluster caps, the 6-hour cooldown, stops, targets and sizing
+are unchanged; the cap only removes FX entries. The baseline is section
+341's.
+
+| OOS interval (end exclusive) | days | current USD/day | FX cap USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.065781 | +0.029097 | -0.036684 | -1.0976 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.183142 | +0.162004 | -0.021138 | -1.0024 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.048969 | +0.055882 | +0.006914 | +0.2982 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.148463 | +0.148245 | -0.000218 | -0.0067 |
+| pooled | 2,188 | +0.113045 | +0.102144 | -0.010902 | -0.8380 |
+
+Current: 4,217 closes; FX 2,442 for +1.24 USD, others 1,775 for +246.10
+USD. With the cap: 3,995 closes; 1,081 FX signals refused; FX 2,177 for
+-23.12 USD, others 1,818 for +246.61 USD. Daily SD 2.5514 → 2.5364 USD,
+worst day unchanged. The other classes are not bound by slots: freed
+room adds 43 of their trades and half a dollar. What the cap removes are
+FX trades that were profitable in sum.
+
+Reject: 1/4 samples better and pooled paired t -0.84. Caps and bot
+unchanged; no restart. With section 346 the FX question is closed in
+both forms. Two new tests cover the cap and the release of positions
+closed by the signal's time.
