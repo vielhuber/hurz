@@ -12769,3 +12769,33 @@ there and reused by `rollover_exit.py`). The shared replay baseline is
 code only; the bot is unchanged, no restart. Four new tests cover one
 night, the class and direction rates, the gross switch and exit times;
 the sixteen replay test modules pass.
+
+## 350. Skipping entries before the rollover saves little financing and no gain
+
+Since section 349 the replay books financing: trades hold 1.30 rollovers
+on average and the 58.83 USD of financing lower the daily gain by 14.6 %.
+An entry at 18:00-20:59 UTC pays a full night within three hours of
+opening.
+
+`scripts/pre_rollover_entry_block.py` does not enter a signal whose bar
+closes at 18:00, 19:00 or 20:00 UTC. The selector still ranks on every
+signal; the rule acts at entry only. Financing is charged in both arms;
+stops, targets, leash, caps, cooldowns and sizing are unchanged. 2,928 of
+28,704 signals fall into the window.
+
+| OOS interval (end exclusive) | days | current USD/day | no late entry USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.073074 | +0.061396 | -0.011677 | -0.2742 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.150563 | +0.173105 | +0.022542 | +0.6856 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.042184 | +0.023878 | -0.018307 | -0.5542 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.120554 | +0.160246 | +0.039692 | +1.2711 |
+| pooled | 2,188 | +0.096498 | +0.102549 | +0.006050 | +0.3388 |
+
+Current: 4,191 closes, 438 of them late entries for -2.68 USD, +211.138569
+USD in all. Without late entries: 4,016 closes, +224.376358 USD. Daily SD
+2.5513 → 2.5385 USD, worst day unchanged. The late entries lose a few
+dollars net of their night, and the samples split two and two.
+
+Reject: 2/4 samples better and pooled paired t +0.34. Entry timing and
+bot unchanged; no restart. Two new tests cover the blocked bar hours and
+the bar closing at the rollover itself.

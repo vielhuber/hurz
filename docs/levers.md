@@ -14,28 +14,32 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 1, live against backtest). Closed: the momentum
-direction (sections 340, 342), the 4h pins (sections 225, 343),
-spread-dependent waiting (section 246 covers the rollover-hour tail),
-the signal price (section 340), book-level risk cuts (section 345), the
-FX class removed or capped (sections 346, 348), sampled spread costs
-(section 347). The edge-scaling gate is not a lever (section 195). From
-section 349 on the shared replay books financing; its baseline is 4,191
-closes, +211.138569 USD, +0.096498 USD/day.
+run's (last run: 6, execution and costs). Closed: the momentum direction
+(sections 340, 342), the 4h pins (sections 225, 343), spread-dependent
+waiting (section 246 covers the rollover-hour tail), the signal price
+(section 340), book-level risk cuts (section 345), the FX class removed
+or capped (sections 346, 348), sampled spread costs (section 347), entries
+before the rollover (section 350). The edge-scaling gate is not a lever
+(section 195). The shared replay books financing since section 349:
+baseline 4,191 closes, +211.138569 USD, +0.096498 USD/day.
 
 1. **New strategy families (2) — carry from the broker's own overnight
    rates.** Observation: in 28 days of SWAP entries only BTCUSD and
    ETHUSD shorts were credited (+0.03 EUR a night); every FX side was
    charged. Hypothesis: a carry book only exists where one side of an
-   instrument is credited by more than its spread per holding period;
-   reading the current long and short rates of the 27 instruments decides
-   whether a carry candidate exists before any replay is built.
-2. **Execution and costs (6) — no new entry in the three hours before
-   the 21:00 UTC rollover.** Observation (section 349): trades hold 1.30
-   rollovers on average; the 58.83 USD of financing lower the replay's
-   daily gain by 14.6 %; an entry at 18:00-20:59 UTC pays a full night
-   within three hours. Hypothesis: deferring those entries by skipping
-   them lowers financing more than it costs in missed breakouts.
+   instrument is credited by more than its spread per holding period.
+   Step one reads the current long and short rates of the 27 instruments;
+   if any side qualifies, a preregistered carry book on those sides is
+   replayed against the baseline in the same run; if none does, carry is
+   closed and the run measures item 2 instead.
+2. **Live against backtest (1) — section 337 re-read on the calibrated
+   replay.** Observation: since section 337 the replay gained the
+   strategy veto (339), sequential ranking (341) and financing (349); the
+   live book since 2026-09-10 made +10.96 USD over 30 closes. Hypothesis:
+   matched by instrument, bar and direction on the current rule period,
+   the calibrated replay reproduces the live closes and their dollars
+   closer than the uncalibrated one did; the remaining gap is the next
+   calibration target.
 
 ## Levers already tested before this log existed
 
@@ -8219,3 +8223,32 @@ closes, +211.138569 USD, +0.096498 USD/day.
   USD, +0.096498 USD/day. Research code only; the bot is unchanged, no
   restart. Four new tests; the sixteen replay test modules pass.
   Section 349.
+
+## 2026-09-28 (evening) — no new entry in the three hours before the rollover
+
+- **Category:** 6, execution and costs.
+- **Operation:** one bot/watchdog (852113 since 2026-09-27 01:52 UTC),
+  runtime checkout clean on `origin/main` (fbc1e76), one transient GOLD
+  price timeout at 16:06 UTC (failed=1 in one cycle), no HTTP 429. No
+  intervention.
+- **Observation:** section 349: trades hold 1.30 rollovers, financing
+  lowers the replay's daily gain by 14.6 %; an entry at 18:00-20:59 UTC
+  pays a full night within three hours.
+- **Lever:** signals whose bar closes at 18:00, 19:00 or 20:00 UTC are not
+  entered; ranking still sees every signal; financing charged in both
+  arms. No other window, no diagnostic arm.
+- **Measurement:** `scripts/pre_rollover_entry_block.py`, cached
+  seven-year weekly walk-forward (section 349 baseline), 27 instruments,
+  28,704 signals (2,928 in the window). OOS [2020-09-23, 2026-09-20),
+  2,188 calendar days.
+
+  | arm | closes | late entries / USD | USD | USD/calendar day |
+  |---|---:|---|---:|---:|
+  | current | 4,191 | 438 / -2.68 | +211.138569 | +0.096498 |
+  | no entry 18:00-20:59 UTC | 4,016 | 0 / 0 | +224.376358 | +0.102549 |
+
+- **Result:** +6.3 % daily gain, delta +0.006050 USD/day, pooled paired
+  t +0.3388; 2/4 samples better (-0.0117, +0.0225, -0.0183, +0.0397).
+  Daily SD 2.5513 → 2.5385 USD, worst day unchanged.
+- **Decision:** rejected (VERDICT=DISCARD); entry timing and bot
+  unchanged, no restart. Two new tests. Section 350.
