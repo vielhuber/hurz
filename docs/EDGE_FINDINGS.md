@@ -12758,8 +12758,8 @@ paired |t| > 2.
 Gross: 4,217 closes, +247.343007 USD. Net: 4,191 closes, 1.30 rollovers
 and 58.83 USD of financing across them, +211.138569 USD. Daily SD 2.5514
 → 2.5513 USD, worst day -18.5626 → -18.5859 USD. The most recent year
-reads slightly better net because the ranking on net figures lists
-different combinations; the pooled effect is a 14.6 % overstatement.
+reads slightly better net (why was not measured); pooled, the gross
+replay overstated the daily gain by 14.6 %.
 Net of financing the eleven FX pairs lose -28.94 USD on 2,409 closes.
 
 Adopted: `efficiency_weighted_selection.all_signals` now charges

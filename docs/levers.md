@@ -32,8 +32,8 @@ closes, +211.138569 USD, +0.096498 USD/day.
    whether a carry candidate exists before any replay is built.
 2. **Execution and costs (6) — no new entry in the three hours before
    the 21:00 UTC rollover.** Observation (section 349): trades hold 1.30
-   rollovers on average and financing costs the replay 58.83 USD, 15 % of
-   its gross daily gain; an entry at 18:00-20:59 UTC pays a full night
+   rollovers on average; the 58.83 USD of financing lower the replay's
+   daily gain by 14.6 %; an entry at 18:00-20:59 UTC pays a full night
    within three hours. Hypothesis: deferring those entries by skipping
    them lowers financing more than it costs in missed breakouts.
 
