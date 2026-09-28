@@ -90,6 +90,25 @@ BAR_CACHE=os.path.join(_ROOT,"tmp","eff_bars")
 META_CACHE=os.path.join(_ROOT,"tmp","eff_meta.json")
 
 
+# Capital.com charges financing at 21:00 UTC on every calendar night a
+# position is open, weekends included. Booked at section 154's rates in R;
+# leaving it out overstated the replay's daily gain by 15 % (section 349).
+CHARGE_FINANCING=True
+NIGHT_R={("crypto",1):0.050,("metals",1):0.013,("crypto",-1):0.0,("metals",-1):0.0}
+ROLLOVER=np.timedelta64(21,"h"); DAY=np.timedelta64(1,"D"); HOUR=np.timedelta64(1,"h")
+
+
+def night_rate(pair, direction):
+    default=0.005 if direction>0 else 0.003
+    return NIGHT_R.get((_CORRELATION_CLUSTERS.get(pair),direction),default)
+
+
+def rollovers(entry_close, exit_close):
+    """21:00 UTC instants in (entry_close, exit_close]."""
+    count=lambda moment: int(np.floor((moment-ROLLOVER-np.datetime64("1970-01-01T00"))/DAY))
+    return count(exit_close)-count(entry_close)
+
+
 def book(O,H,L,C,e,d,entry,stop_d,cost_r,n):
     sl=entry-d*stop_d; tp=entry+d*RR*stop_d
     for b in range(e+1,e+HOLD+1):
@@ -151,6 +170,8 @@ def all_signals(frames, atr_floor, meta):
                 entry,stop_d,cost_r,risk_usd=terms
                 r,xb=book(O,H,L,C,x.index,x.direction,entry,stop_d,cost_r,n)
                 if r is None: continue
+                if CHARGE_FINANCING:
+                    r-=night_rate(pair,x.direction)*rollovers(ts[x.index]+HOUR,ts[xb]+HOUR)
                 out.append({"ts":ts[x.index],"exit_ts":ts[xb],"pair":pair,"dir":x.direction,
                             "strat":s,"r":r,"usd":r*risk_usd,"risk":risk_usd})
     out.sort(key=lambda z: z["ts"])

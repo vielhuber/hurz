@@ -38,32 +38,18 @@ os.chdir(_ROOT)
 from app.utils.singletons import database, settings
 settings.load_env()
 from app.strategies import get_strategy
-from app.spot_trading.autotrade import _min_stop_atr_multiple, _CORRELATION_CLUSTERS
+from app.spot_trading.autotrade import _min_stop_atr_multiple
 from app.spot_trading.regime import gate
 from app.spot_trading.trading_blocks import direction_blocked
 import scripts.pin_eligibility as pe
 from scripts.additional_indices import frames_for
 from scripts.efficiency_weighted_selection import (
-    HOLD, META_CACHE, RANK_DAYS, RR, STRATS, load_history, t_stat, trade_terms,
+    HOLD, META_CACHE, RANK_DAYS, RR, STRATS, load_history, night_rate, rollovers, t_stat, trade_terms,
 )
 from scripts.live_replay_calibration import replay
 from scripts.rank_holding_time import daily_series
 
-NIGHT_R = {("crypto", 1): 0.050, ("metals", 1): 0.013, ("crypto", -1): 0.0, ("metals", -1): 0.0}
 EARLY_BARS = 7
-ROLLOVER = np.timedelta64(21, "h")
-DAY = np.timedelta64(1, "D")
-
-
-def night_rate(pair, direction):
-    default = 0.005 if direction > 0 else 0.003
-    return NIGHT_R.get((_CORRELATION_CLUSTERS.get(pair), direction), default)
-
-
-def rollovers(entry_close, exit_close):
-    """21:00 UTC instants in (entry_close, exit_close]."""
-    count = lambda moment: int(np.floor((moment - ROLLOVER - np.datetime64("1970-01-01T00")) / DAY))
-    return count(exit_close) - count(entry_close)
 
 
 def book(O, H, L, C, hours, e, d, entry, stop_d, cost_r, n, early):

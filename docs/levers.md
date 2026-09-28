@@ -14,29 +14,28 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 4, portfolio and position sizing). Closed: the momentum
+run's (last run: 1, live against backtest). Closed: the momentum
 direction (sections 340, 342), the 4h pins (sections 225, 343),
-spread-dependent waiting (not measurable over seven years; the sampled
-tail sits in the 21:00 UTC rollover hour, section 246), the signal price
-(section 340), book-level risk cuts (section 345), the FX class removed
-or capped (sections 346, 348), sampled spread costs (section 347). The
-edge-scaling gate is not a lever (section 195). Section 348 also shows
-the non-FX book is not bound by slots: freed slots add 43 closes.
+spread-dependent waiting (section 246 covers the rollover-hour tail),
+the signal price (section 340), book-level risk cuts (section 345), the
+FX class removed or capped (sections 346, 348), sampled spread costs
+(section 347). The edge-scaling gate is not a lever (section 195). From
+section 349 on the shared replay books financing; its baseline is 4,191
+closes, +211.138569 USD, +0.096498 USD/day.
 
-1. **Live against backtest (1) — overnight financing in the shared
-   replay.** Observation: the account paid -3.37 USD of financing in 50
-   days (section 337), and in section 338's arms financing took 31 % of
-   the replayed book's gross R per close, yet the shared replay still
-   books none. Hypothesis: charging every replay trade its nights at
-   section 154's rates changes the baseline materially; adopted into the
-   replay if pooled |t| > 2.
-2. **New strategy families (2) — carry from the broker's own overnight
+1. **New strategy families (2) — carry from the broker's own overnight
    rates.** Observation: in 28 days of SWAP entries only BTCUSD and
    ETHUSD shorts were credited (+0.03 EUR a night); every FX side was
    charged. Hypothesis: a carry book only exists where one side of an
    instrument is credited by more than its spread per holding period;
    reading the current long and short rates of the 27 instruments decides
    whether a carry candidate exists before any replay is built.
+2. **Execution and costs (6) — no new entry in the three hours before
+   the 21:00 UTC rollover.** Observation (section 349): trades hold 1.30
+   rollovers on average and financing costs the replay 58.83 USD, 15 % of
+   its gross daily gain; an entry at 18:00-20:59 UTC pays a full night
+   within three hours. Hypothesis: deferring those entries by skipping
+   them lowers financing more than it costs in missed breakouts.
 
 ## Levers already tested before this log existed
 
@@ -8185,3 +8184,38 @@ the non-FX book is not bound by slots: freed slots add 43 closes.
   lost. Daily SD 2.5514 → 2.5364 USD, worst day unchanged.
 - **Decision:** rejected (VERDICT=DISCARD); caps and bot unchanged, no
   restart. Two new tests. Section 348.
+
+## 2026-09-28 (morning) — overnight financing in the shared replay — CALIBRATED
+
+- **Category:** 1, live against backtest.
+- **Operation:** one bot/watchdog (852113 since 2026-09-27 01:52 UTC),
+  three open positions, runtime checkout clean on `origin/main`
+  (8b141e7), evaluations failing 0, no HTTP 429. No intervention.
+- **Observation:** the account paid -3.37 USD of financing in 50 days
+  (section 337); financing took 31 % of the replayed gross R per close in
+  section 338; the shared replay booked none.
+- **Lever:** every replay trade pays one night at section 154's rates per
+  21:00 UTC rollover between its entry and exit closes (weekends
+  included). Both arms rank and admit on their own figures.
+  Preregistered: adopted into the shared replay if pooled |t| > 2.
+- **Measurement:** `scripts/financing_calibration.py`, cached seven-year
+  weekly walk-forward (section 341 baseline), 27 instruments, 28,704
+  signals. OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | replay | closes | nights/close | financing USD | USD | USD/calendar day |
+  |---|---:|---:|---:|---:|---:|
+  | gross (until now) | 4,217 | 1.30 | 0 | +247.343007 | +0.113045 |
+  | net of financing | 4,191 | 1.30 | 58.83 | +211.138569 | +0.096498 |
+
+- **Result:** the replay overstated the daily gain by 14.6 %: delta
+  -0.016547 USD/day, pooled paired t -3.4617 (+0.0073, -0.0326 at t
+  -3.88, -0.0068, -0.0279 at t -10.27 by sample). Daily SD and worst day
+  essentially unchanged. Net of financing the FX pairs lose -28.94 USD
+  over 2,409 closes.
+- **Decision:** calibration adopted (VERDICT=CALIBRATE):
+  `efficiency_weighted_selection.all_signals` charges financing
+  (`CHARGE_FINANCING`, `night_rate`, `rollovers`, now shared with
+  `rollover_exit.py`). New replay baseline 4,191 closes, +211.138569
+  USD, +0.096498 USD/day. Research code only; the bot is unchanged, no
+  restart. Four new tests; the sixteen replay test modules pass.
+  Section 349.

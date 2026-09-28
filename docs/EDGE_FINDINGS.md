@@ -12730,3 +12730,42 @@ Reject: 1/4 samples better and pooled paired t -0.84. Caps and bot
 unchanged; no restart. With section 346 the FX question is closed in
 both forms. Two new tests cover the cap and the release of positions
 closed by the signal's time.
+
+## 349. Booking overnight financing lowers the replay's daily gain by 15 %
+
+The account paid -3.37 USD of overnight financing in 50 days (section
+337). In the arms of section 338 financing took 31 % of the replayed
+book's gross R per close. The shared replay still booked none, so every
+lever since was measured on gross results.
+
+`scripts/financing_calibration.py` charges every replay trade one night
+at section 154's rates (crypto long 0.050 R, metals long 0.013, other
+longs 0.005, shorts 0.003, crypto and metal shorts nothing) for each
+21:00 UTC rollover strictly after the entry bar's close and at or before
+the exit bar's close, weekends included as Capital.com books them. Both
+arms rank and admit on their own figures, as the selector ranks on the
+backtest it runs. Preregistered: adopted into the shared replay if pooled
+paired |t| > 2.
+
+| OOS interval (end exclusive) | days | gross USD/day | net USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.065781 | +0.073074 | +0.007292 | +0.4097 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.183142 | +0.150563 | -0.032579 | -3.8750 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.048969 | +0.042184 | -0.006784 | -0.9331 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.148463 | +0.120554 | -0.027909 | -10.2693 |
+| pooled | 2,188 | +0.113045 | +0.096498 | -0.016547 | -3.4617 |
+
+Gross: 4,217 closes, +247.343007 USD. Net: 4,191 closes, 1.30 rollovers
+and 58.83 USD of financing across them, +211.138569 USD. Daily SD 2.5514
+→ 2.5513 USD, worst day -18.5626 → -18.5859 USD. The most recent year
+reads slightly better net because the ranking on net figures lists
+different combinations; the pooled effect is a 14.6 % overstatement.
+Net of financing the eleven FX pairs lose -28.94 USD on 2,409 closes.
+
+Adopted: `efficiency_weighted_selection.all_signals` now charges
+financing (`CHARGE_FINANCING`, with `night_rate` and `rollovers` moved
+there and reused by `rollover_exit.py`). The shared replay baseline is
+4,191 closes, +211.138569 USD, +0.096498 USD per calendar day. Research
+code only; the bot is unchanged, no restart. Four new tests cover one
+night, the class and direction rates, the gross switch and exit times;
+the sixteen replay test modules pass.
