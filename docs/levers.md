@@ -14,32 +14,34 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 6, execution and costs). Closed: the momentum direction
-(sections 340, 342), the 4h pins (sections 225, 343), spread-dependent
-waiting (section 246 covers the rollover-hour tail), the signal price
-(section 340), book-level risk cuts (section 345), the FX class removed
-or capped (sections 346, 348), sampled spread costs (section 347), entries
-before the rollover (section 350). The edge-scaling gate is not a lever
-(section 195). The shared replay books financing since section 349:
-baseline 4,191 closes, +211.138569 USD, +0.096498 USD/day.
+run's (last run: 2, new strategy families). Closed: the momentum
+direction (sections 340, 342), the 4h pins (sections 225, 343),
+spread-dependent waiting (section 246), the signal price (section 340),
+book-level risk cuts (section 345), the FX class removed or capped
+(sections 346, 348), sampled spread costs (section 347), entries before
+the rollover (section 350), carry on the credited sides (section 351).
+The edge-scaling gate is not a lever (section 195). The shared replay
+books financing since section 349: baseline 4,191 closes, +211.138569
+USD, +0.096498 USD/day.
 
-1. **New strategy families (2) — carry from the broker's own overnight
-   rates.** Observation: in 28 days of SWAP entries only BTCUSD and
-   ETHUSD shorts were credited (+0.03 EUR a night); every FX side was
-   charged. Hypothesis: a carry book only exists where one side of an
-   instrument is credited by more than its spread per holding period.
-   Step one reads the current long and short rates of the 27 instruments;
-   if any side qualifies, a preregistered carry book on those sides is
-   replayed against the baseline in the same run; if none does, carry is
-   closed and the run measures item 2 instead.
-2. **Live against backtest (1) — section 337 re-read on the calibrated
-   replay.** Observation: since section 337 the replay gained the
-   strategy veto (339), sequential ranking (341) and financing (349); the
-   live book since 2026-09-10 made +10.96 USD over 30 closes. Hypothesis:
-   matched by instrument, bar and direction on the current rule period,
-   the calibrated replay reproduces the live closes and their dollars
-   closer than the uncalibrated one did; the remaining gap is the next
-   calibration target.
+1. **Live against backtest (1) — financing at each instrument's own
+   rates.** Observation (section 351): the broker's rates of 2026-09-29
+   credit USDJPY, AUDJPY, GBPJPY and USDCHF longs and EURUSD, EURAUD and
+   BTCUSD shorts, while the replay charges every FX long 0.005 R and every
+   short 0.003 R a night by class. Hypothesis: charging each instrument
+   and side its own current rate (converted with the trade's notional)
+   moves the baseline materially; adopted into the replay if pooled
+   |t| > 2.
+2. **Universe and timeframes (3) — 30-minute bars.** Observation: the
+   resolution sweep so far reads 15m worse than 1h (section 29), 2h,
+   4h and daily worse (sections 298, 302 and the 2h run); 30m, the only
+   step next to the working 1h, was never measured. Hypothesis: the same
+   three strategies on 30m bars, ranked and admitted like the hourly
+   book, earn more per calendar day; needs a paced 30m history fetch.
+3. **Live against backtest (1) — section 337 re-read on the calibrated
+   replay**, after a run of another category: matched by instrument, bar
+   and direction since 2026-09-10, how close the calibrated replay now
+   comes to the live closes and their dollars.
 
 ## Levers already tested before this log existed
 
@@ -8252,3 +8254,41 @@ baseline 4,191 closes, +211.138569 USD, +0.096498 USD/day.
   Daily SD 2.5513 → 2.5385 USD, worst day unchanged.
 - **Decision:** rejected (VERDICT=DISCARD); entry timing and bot
   unchanged, no restart. Two new tests. Section 350.
+
+## 2026-09-29 — carry on the sides the broker credits
+
+- **Category:** 2, new strategy families.
+- **Operation:** one bot/watchdog (852113 since 2026-09-27 01:52 UTC),
+  runtime checkout clean on `origin/main` (ed10988), no HTTP 429; the one
+  failed evaluation is the GOLD timeout of 2026-09-28 16:06 UTC. No
+  intervention.
+- **Observation:** the broker's overnight rates of 2026-09-29 00:20 UTC
+  (27 instruments read) credit one side of several instruments. A side
+  qualifies when five nights of credit cover the round-trip spread: BTCUSD
+  short, EURUSD short, USDCHF long, AUDNZD long, EURAUD short, AUDJPY long,
+  GBPJPY long, USDJPY long, GOLD short. Credits are small (USDJPY long
+  0.0056 % a night, about 0.014 USD at 250 USD notional).
+- **Lever:** a carry book: daily at the close of the 19:00 UTC bar one
+  entry in the credited direction on each qualifying instrument (short
+  blocks apply, so GOLD short is refused), book exits, each rollover
+  credited at today's rate converted with the trade's notional, lowest
+  admission priority after ranked list and pins. Rates fixed over seven
+  years; no diagnostic arm.
+- **Measurement:** `scripts/carry_book.py`, cached seven-year weekly
+  walk-forward (section 349 baseline, financing booked), 27 instruments,
+  28,704 book signals and 12,661 carry signals (mean R per signal: AUDJPY
+  +0.028, USDJPY +0.020, GBPJPY +0.016, AUDNZD +0.003, EURUSD -0.005,
+  EURAUD -0.006, USDCHF -0.007, BTCUSD -0.132). OOS [2020-09-23,
+  2026-09-20), 2,188 calendar days.
+
+  | arm | closes | carry closes / USD | USD | USD/calendar day | daily SD |
+  |---|---:|---|---:|---:|---:|
+  | current | 4,191 | 0 / 0 | +211.138569 | +0.096498 | 2.5513 |
+  | with carry book | 10,229 | 8,587 / +155.74 | +224.105247 | +0.102425 | 3.1286 |
+
+- **Result:** +6.1 % daily gain, delta +0.005926 USD/day, pooled paired
+  t +0.0815; 2/4 samples better (+0.1448, -0.1288, +0.1251, -0.1025):
+  the carry income comes with nearly as much breakout income displaced
+  and large swings between years. Worst day -18.5859 → -13.9399 USD.
+- **Decision:** rejected (VERDICT=DISCARD); no carry book, bot unchanged,
+  no restart. Three new tests. Section 351.

@@ -12799,3 +12799,47 @@ dollars net of their night, and the samples split two and two.
 Reject: 2/4 samples better and pooled paired t +0.34. Entry timing and
 bot unchanged; no restart. Two new tests cover the blocked bar hours and
 the bar closing at the rollover itself.
+
+## 351. A carry book on the credited sides adds income and displaces as much
+
+Capital.com's overnight rates, read for the 27 replay instruments on
+2026-09-29 00:20 UTC, credit one side of several instruments. A side
+qualifies when five nights of its credit cover the round-trip spread the
+replay charges: BTCUSD short, EURUSD short, USDCHF long, AUDNZD long,
+EURAUD short, AUDJPY long, GBPJPY long, USDJPY long and GOLD short. The
+credits are small; USDJPY long earns 0.0056 % a night, about 0.014 USD at
+the 250 USD notional. The index shorts are credited too, but by 0.00004 %
+and far below their spread.
+
+`scripts/carry_book.py` adds one entry a day on each qualifying side at the
+close of the 19:00 UTC bar, so the position is held over the rollover. The
+short blocks apply (GOLD short is refused as live), and so do the cost
+ceiling, the 3-ATR floor and sizing. Exits are the book's; every rollover
+held is credited at today's rate, converted to R with the trade's own
+notional. Carry combinations join the active order after the ranked list
+and the pins. Rates are held at today's values over seven years; the
+baseline is section 349's replay with financing booked.
+
+12,661 carry signals, mean R per signal: AUDJPY +0.028, USDJPY +0.020,
+GBPJPY +0.016, AUDNZD +0.003, EURUSD -0.005, EURAUD -0.006, USDCHF -0.007,
+BTCUSD -0.132.
+
+| OOS interval (end exclusive) | days | current USD/day | with carry USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.073074 | +0.217851 | +0.144777 | +0.9420 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.150563 | +0.021796 | -0.128766 | -0.9721 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.042184 | +0.167291 | +0.125107 | +0.9278 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.120554 | +0.018060 | -0.102494 | -0.6665 |
+| pooled | 2,188 | +0.096498 | +0.102425 | +0.005926 | +0.0815 |
+
+Current: 4,191 closes, +211.138569 USD. With carry: 10,229 closes, 8,587
+of them carry for +155.74 USD, +224.105247 USD in all; the rest of the
+book gives up about 143 USD to the carry positions. Daily SD 2.5513 →
+3.1286 USD, worst day -18.5859 → -13.9399 USD. The samples swing by more
+than a full baseline in both directions.
+
+Reject: 2/4 samples better and pooled paired t +0.08. No carry book; bot
+unchanged, no restart. Recorded for the next calibration: the replay
+charges every FX long 0.005 R a night by class, while the broker credits
+USDJPY, AUDJPY, GBPJPY and USDCHF longs. Three new tests cover the entry
+hour and direction, the credit and the skipped sides.
