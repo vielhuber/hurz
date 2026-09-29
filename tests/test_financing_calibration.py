@@ -14,8 +14,8 @@ def frame(bars=40):
 
 
 class FinancingCalibrationTest(TestCase):
-    def signals(self, charge, pair="EURUSD", direction=1):
-        with patch.multiple(base, CHARGE_FINANCING=charge, STRATS=["turtle_breakout"],
+    def signals(self, charge, pair="EURUSD", direction=1, rates=None):
+        with patch.multiple(base, CHARGE_FINANCING=charge, FINANCING_RATES=rates or {}, STRATS=["turtle_breakout"],
                             get_strategy=lambda name: (lambda df, params: [SimpleNamespace(index=0, direction=direction)]),
                             gate=lambda name, df, index: SimpleNamespace(blocked=False),
                             direction_blocked=lambda pair, direction: False,
@@ -39,3 +39,15 @@ class FinancingCalibrationTest(TestCase):
     def test_exit_times_follow_the_exit_bar(self):
         trade = self.signals(True)[0]
         self.assertEqual(np.datetime64("2026-01-02T06:00"), trade["exit_ts"])
+
+    def test_an_instrument_rate_replaces_the_class_rate(self):
+        # trade_terms fakes entry 100 and stop distance 1: notional / risk = 100.
+        rates = {"USDJPY": (0.005, -0.01)}
+        self.assertAlmostEqual(0.5 + 0.005, self.signals(True, "USDJPY", 1, rates)[0]["r"])
+        self.assertAlmostEqual(0.5 - 0.01, self.signals(True, "USDJPY", -1, rates)[0]["r"])
+        self.assertAlmostEqual(0.5 - 0.005, self.signals(True, "EURUSD", 1, rates)[0]["r"])
+
+    def test_the_shared_replay_carries_the_rate_snapshot(self):
+        self.assertIs(base.FINANCING_RATES, base.CAPITAL_OVERNIGHT_RATES)
+        self.assertEqual(set(base.PAIRS), set(base.CAPITAL_OVERNIGHT_RATES))
+

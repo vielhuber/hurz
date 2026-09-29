@@ -12843,3 +12843,44 @@ unchanged, no restart. Recorded for the next calibration: the replay
 charges every FX long 0.005 R a night by class, while the broker credits
 USDJPY, AUDJPY, GBPJPY and USDCHF longs. Three new tests cover the entry
 hour and direction, the credit and the skipped sides.
+
+## 352. Each instrument's own overnight rate lowers the replay by another fifth
+
+Section 349 put financing into the replay at section 154's class rates:
+every FX long pays 0.005 R a night, every short 0.003 R, crypto longs
+0.050 R, metals longs 0.013 R. The broker's rates of 2026-09-29 00:20 UTC
+(section 351) differ from that table in both directions: USDJPY, AUDJPY,
+GBPJPY and USDCHF longs and EURUSD, EURAUD, BTCUSD, ETHUSD, GOLD and SILVER
+shorts are credited, while index longs pay about 0.02 % of notional a
+night. At the venue-minimum stop of 1.05 % that is about 0.02 R a night,
+four times the class rate.
+
+`scripts/instrument_financing_calibration.py` charges or credits every
+trade per rollover the rate of its own instrument and side, converted to
+R with the trade's notional over its risk (entry / stop distance). The
+rates are held at the snapshot's values over seven years. Preregistered:
+adopted into the shared replay only if pooled paired |t| > 2.
+
+| OOS interval (end exclusive) | days | class rates USD/day | instrument rates USD/day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.073074 | +0.055783 | -0.017291 | -2.2564 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.150563 | +0.120409 | -0.030154 | -3.5307 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.042184 | +0.033654 | -0.008531 | -1.0873 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.120554 | +0.099935 | -0.020619 | -6.1974 |
+| pooled | 2,188 | +0.096498 | +0.077287 | -0.019212 | -4.6694 |
+
+Class rates: 4,191 closes, +211.138569 USD. Instrument rates: 4,192
+closes, +169.103126 USD. Daily SD 2.5513 → 2.5475 USD, worst day
+-18.5859 → -18.6303 USD. Net of their own rates the eleven FX pairs lose
+-27.74 USD over 2,414 closes and the sixteen other instruments earn
++196.85 USD over 1,778.
+
+Adopted: `CAPITAL_OVERNIGHT_RATES` in `efficiency_weighted_selection.py`
+feeds `FINANCING_RATES`, and `night_charge` converts each rate with the
+trade's own notional; an instrument missing from the snapshot falls back
+to the class rates. The shared replay baseline is 4,192 closes,
++169.103126 USD, +0.077287 USD per calendar day, 21 % below the gross
+replay of section 341. Since section 337 the calibrations have moved the
+replay from +0.113 toward the bot's reality at +0.077 USD a day. Research
+code only; the bot is unchanged, no restart. Two new tests cover the
+instrument rate and the snapshot's coverage of the universe.

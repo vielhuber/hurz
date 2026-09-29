@@ -103,6 +103,33 @@ def night_rate(pair, direction):
     return NIGHT_R.get((_CORRELATION_CLUSTERS.get(pair),direction),default)
 
 
+# Capital.com overnight rates in percent of notional per night, (long,
+# short), positive when credited; read 2026-09-29 00:20 UTC and held fixed.
+# The class rates above understated them: index longs pay about 0.02 R a
+# night, not 0.005 (section 352). Instruments missing here use the classes.
+CAPITAL_OVERNIGHT_RATES={
+    "BTCUSD":(-0.0616438,0.0136986),"ETHUSD":(-0.0616438,0.0136986),
+    "EURUSD":(-0.00966,0.00144),"USDCHF":(0.00915,-0.01737),"AUDNZD":(0.00146,-0.00968),
+    "EURAUD":(-0.01151,0.00329),"NZDUSD":(-0.0078,-0.00042),"AUDJPY":(0.00743,-0.01565),
+    "CHFJPY":(-0.00767,-0.00055),"CADJPY":(-0.00411,-0.00411),"EURJPY":(0.00002,-0.00824),
+    "GBPJPY":(0.00509,-0.01331),"USDJPY":(0.00557,-0.01379),
+    "DE40":(-0.0180156,-0.0042067),"US500":(-0.0222624,0.0000402),"US30":(-0.0222624,0.0000402),
+    "FR40":(-0.0180156,-0.0042067),"UK100":(-0.0212674,-0.0006504),"EU50":(-0.0180156,-0.0042067),
+    "US100":(-0.0222624,0.0000402),"HK50":(-0.019226,-0.0026918),"J225":(-0.0144383,-0.007784),
+    "OIL_CRUDE":(-0.01096,-0.01096),"OIL_BRENT":(-0.01096,-0.01096),
+    "GOLD":(-0.0163047,0.0080847),"SILVER":(-0.0161185,0.0078985),"COPPER":(-0.01096,-0.01096),
+}
+FINANCING_RATES=CAPITAL_OVERNIGHT_RATES
+
+
+def night_charge(pair, direction, entry, stop_d):
+    """One night's financing in R, at the instrument's own rate when known."""
+    if pair not in FINANCING_RATES:
+        return night_rate(pair,direction)
+    rate=FINANCING_RATES[pair][0 if direction>0 else 1]
+    return -rate/100.0*entry/stop_d
+
+
 def rollovers(entry_close, exit_close):
     """21:00 UTC instants in (entry_close, exit_close]."""
     count=lambda moment: int(np.floor((moment-ROLLOVER-np.datetime64("1970-01-01T00"))/DAY))
@@ -171,7 +198,7 @@ def all_signals(frames, atr_floor, meta):
                 r,xb=book(O,H,L,C,x.index,x.direction,entry,stop_d,cost_r,n)
                 if r is None: continue
                 if CHARGE_FINANCING:
-                    r-=night_rate(pair,x.direction)*rollovers(ts[x.index]+HOUR,ts[xb]+HOUR)
+                    r-=night_charge(pair,x.direction,entry,stop_d)*rollovers(ts[x.index]+HOUR,ts[xb]+HOUR)
                 out.append({"ts":ts[x.index],"exit_ts":ts[xb],"pair":pair,"dir":x.direction,
                             "strat":s,"r":r,"usd":r*risk_usd,"risk":risk_usd})
     out.sort(key=lambda z: z["ts"])

@@ -14,34 +14,29 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 2, new strategy families). Closed: the momentum
+run's (last run: 1, live against backtest). Closed: the momentum
 direction (sections 340, 342), the 4h pins (sections 225, 343),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entries before
 the rollover (section 350), carry on the credited sides (section 351).
 The edge-scaling gate is not a lever (section 195). The shared replay
-books financing since section 349: baseline 4,191 closes, +211.138569
-USD, +0.096498 USD/day.
+books financing at each instrument's own rate since section 352:
+baseline 4,192 closes, +169.103126 USD, +0.077287 USD/day.
 
-1. **Live against backtest (1) — financing at each instrument's own
-   rates.** Observation (section 351): the broker's rates of 2026-09-29
-   credit USDJPY, AUDJPY, GBPJPY and USDCHF longs and EURUSD, EURAUD and
-   BTCUSD shorts, while the replay charges every FX long 0.005 R and every
-   short 0.003 R a night by class. Hypothesis: charging each instrument
-   and side its own current rate (converted with the trade's notional)
-   moves the baseline materially; adopted into the replay if pooled
-   |t| > 2.
-2. **Universe and timeframes (3) — 30-minute bars.** Observation: the
-   resolution sweep so far reads 15m worse than 1h (section 29), 2h,
-   4h and daily worse (sections 298, 302 and the 2h run); 30m, the only
-   step next to the working 1h, was never measured. Hypothesis: the same
-   three strategies on 30m bars, ranked and admitted like the hourly
-   book, earn more per calendar day; needs a paced 30m history fetch.
-3. **Live against backtest (1) — section 337 re-read on the calibrated
-   replay**, after a run of another category: matched by instrument, bar
-   and direction since 2026-09-10, how close the calibrated replay now
-   comes to the live closes and their dollars.
+1. **Universe and timeframes (3) — 30-minute bars.** Observation: the
+   resolution sweep reads 15m worse than 1h (section 29), 2h, 4h and
+   daily worse (the 2h run, sections 302 and 298); 30m, the only step
+   next to the working 1h, was never measured. Hypothesis: the same three
+   strategies on 30m bars, ranked and admitted like the hourly book,
+   earn more per calendar day; needs a paced 30m history fetch.
+2. **Live against backtest (1) — section 337 re-read on the calibrated
+   replay.** Observation: since section 337 the replay gained the
+   strategy veto (339), sequential ranking (341), financing (349) and
+   instrument rates (352); the live book since 2026-09-10 made +10.96 USD
+   over 30 closes. Hypothesis: matched by instrument, bar and direction
+   on the current rule period, the calibrated replay reproduces the live
+   closes and their dollars closer than the uncalibrated one did.
 
 ## Levers already tested before this log existed
 
@@ -8292,3 +8287,40 @@ USD, +0.096498 USD/day.
   and large swings between years. Worst day -18.5859 → -13.9399 USD.
 - **Decision:** rejected (VERDICT=DISCARD); no carry book, bot unchanged,
   no restart. Three new tests. Section 351.
+
+## 2026-09-29 (morning) — financing at each instrument's own rate — CALIBRATED
+
+- **Category:** 1, live against backtest.
+- **Operation:** one bot/watchdog (852113 since 2026-09-27 01:52 UTC),
+  runtime checkout clean on `origin/main` (3aa6ec7), no HTTP 429 (the one
+  failed evaluation is still the GOLD timeout of 2026-09-28). No
+  intervention.
+- **Observation:** section 351: the broker's rates of 2026-09-29 credit
+  USDJPY, AUDJPY, GBPJPY and USDCHF longs and several shorts, and charge
+  index longs about 0.02 % of notional a night, while the replay charged
+  every FX long 0.005 R and every short 0.003 R by class.
+- **Lever:** each trade pays or receives per rollover its own
+  instrument's and side's rate, converted with notional over risk (entry
+  / stop distance). Rates held fixed over seven years. Preregistered:
+  adopted into the shared replay if pooled |t| > 2.
+- **Measurement:** `scripts/instrument_financing_calibration.py`, cached
+  seven-year weekly walk-forward (section 349 baseline), 27 instruments,
+  28,704 signals. OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | financing | closes | USD | USD/calendar day |
+  |---|---:|---:|---:|
+  | class rates (section 349) | 4,191 | +211.138569 | +0.096498 |
+  | instrument rates | 4,192 | +169.103126 | +0.077287 |
+
+- **Result:** the class rates overstated the daily gain by a further
+  19.9 %: delta -0.019212 USD/day, pooled paired t -4.6694, all four
+  samples lower (-0.0173 at t -2.26, -0.0302 at t -3.53, -0.0085, -0.0206
+  at t -6.20). Daily SD 2.5513 → 2.5475 USD, worst day -18.5859 →
+  -18.6303 USD. Net of instrument rates the FX pairs lose -27.74 USD over
+  2,414 closes, the other instruments earn +196.85 USD over 1,778.
+- **Decision:** calibration adopted (VERDICT=CALIBRATE):
+  `CAPITAL_OVERNIGHT_RATES` in `efficiency_weighted_selection.py` feeds
+  `FINANCING_RATES`, and `night_charge` converts each rate with the
+  trade's notional. New replay baseline 4,192 closes, +169.103126 USD,
+  +0.077287 USD/day. Research code only; bot unchanged, no restart. Two
+  new tests; nineteen replay test modules pass. Section 352.
