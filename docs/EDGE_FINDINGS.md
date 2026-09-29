@@ -12879,8 +12879,7 @@ Adopted: `CAPITAL_OVERNIGHT_RATES` in `efficiency_weighted_selection.py`
 feeds `FINANCING_RATES`, and `night_charge` converts each rate with the
 trade's own notional; an instrument missing from the snapshot falls back
 to the class rates. The shared replay baseline is 4,192 closes,
-+169.103126 USD, +0.077287 USD per calendar day, 21 % below the gross
-replay of section 341. Since section 337 the calibrations have moved the
-replay from +0.113 toward the bot's reality at +0.077 USD a day. Research
++169.103126 USD, +0.077287 USD per calendar day, 32 % below the gross
+replay of section 341 (+0.113045). Research
 code only; the bot is unchanged, no restart. Two new tests cover the
 instrument rate and the snapshot's coverage of the universe.
