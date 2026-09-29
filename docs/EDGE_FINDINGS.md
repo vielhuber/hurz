@@ -12883,3 +12883,45 @@ to the class rates. The shared replay baseline is 4,192 closes,
 replay of section 341 (+0.113045). Research
 code only; the bot is unchanged, no restart. Two new tests cover the
 instrument rate and the snapshot's coverage of the universe.
+
+## 353. Flat before the weekend, financed: the weekend nights are worth their fee
+
+Section 266 closed positions at the last bar before a data gap longer than
+36 hours and found nothing, on a harness that charged no financing. Since
+section 352 the shared replay pays each instrument's own rate on every
+calendar 21:00 UTC rollover, Saturday and Sunday included. In its baseline
+782 of 4,192 closes cross a weekend; they hold 3.04 nights and pay 0.0250 R
+of financing per close against 0.90 nights and 0.0063 R for the other
+3,410, 47 % of the book's financing on 19 % of its closes, for +0.0475 R
+gross per close (+0.0199 R for the rest).
+
+`scripts/weekend_flat_financed.py` applies section 266's rule unchanged
+(close at the close of a bar whose next bar is more than 36 hours away;
+crypto never gaps) with financing charged up to that exit. Both arms rank
+and admit on their own figures. Preregistered: built in only if all four
+samples are better and pooled paired t > +2; no other gap, no diagnostic
+arm.
+
+| OOS interval (end exclusive) | days | live USD/day | flat before the weekend | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.055783 | +0.011804 | -0.043979 | -0.7398 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.120409 | +0.068585 | -0.051825 | -1.0401 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.033654 | +0.062960 | +0.029306 | +0.5106 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.099935 | +0.151077 | +0.051142 | +0.8217 |
+| pooled | 2,188 | +0.077287 | +0.070922 | -0.006365 | -0.2186 |
+
+Live: 4,192 closes, +169.103126 USD (section 352's baseline reproduced).
+Candidate: 4,394 closes, 766 of them forced before a weekend for +83.69
+USD, +155.176525 USD in total. Daily SD 2.5475 → 2.6096 USD, worst day
+-18.6303 → -16.2566 USD. The weekend moves pay for their three nights:
+cutting them saves the fee and gives up at least as much gross R, and the
+freed slots do not make it back. The two recent samples lose, the two old
+ones gain; no direction holds. Rejected; the bot is unchanged.
+
+The planned 30-minute book (section 29's untested neighbour of 1h) is not
+measurable against this standard: Capital.com serves 30m bars back to
+about 1,000 days (a 17-day page 1,000 days ago returns bars, 1,200 and
+more days ago return HTTP 404, checked on BTCUSD, EURUSD and US500), and
+30m bars cannot be rebuilt from the cached hourly ones. With a 365-day
+ranking window that leaves about two of the four OOS years. Dropped from
+the plan unmeasured.

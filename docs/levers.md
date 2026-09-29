@@ -14,29 +14,31 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 1, live against backtest). Closed: the momentum
+run's (last run: 5, exits and holding). Closed: the momentum
 direction (sections 340, 342), the 4h pins (sections 225, 343),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entries before
-the rollover (section 350), carry on the credited sides (section 351).
-The edge-scaling gate is not a lever (section 195). The shared replay
-books financing at each instrument's own rate since section 352:
-baseline 4,192 closes, +169.103126 USD, +0.077287 USD/day.
+the rollover (section 350), carry on the credited sides (section 351),
+flat before the weekend with financing (section 353). The 30-minute
+book is not measurable: the broker serves 30m bars for about 1,000 days
+only (section 353). The edge-scaling gate is not a lever (section 195).
+The shared replay books financing at each instrument's own rate since
+section 352: baseline 4,192 closes, +169.103126 USD, +0.077287 USD/day.
 
-1. **Universe and timeframes (3) — 30-minute bars.** Observation: the
-   resolution sweep reads 15m worse than 1h (section 29), 2h, 4h and
-   daily worse (the 2h run, sections 302 and 298); 30m, the only step
-   next to the working 1h, was never measured. Hypothesis: the same three
-   strategies on 30m bars, ranked and admitted like the hourly book,
-   earn more per calendar day; needs a paced 30m history fetch.
-2. **Live against backtest (1) — section 337 re-read on the calibrated
+1. **Live against backtest (1) — section 337 re-read on the calibrated
    replay.** Observation: since section 337 the replay gained the
    strategy veto (339), sequential ranking (341), financing (349) and
-   instrument rates (352); the live book since 2026-09-10 made +10.96 USD
-   over 30 closes. Hypothesis: matched by instrument, bar and direction
+   instrument rates (352); the live book since 2026-09-10 made +9.98 USD
+   over 33 closes. Hypothesis: matched by instrument, bar and direction
    on the current rule period, the calibrated replay reproduces the live
    closes and their dollars closer than the uncalibrated one did.
+2. **Execution and costs (6) — defer a late signal past the rollover
+   instead of refusing it.** Observation: section 350's 438 entries at
+   18:00-20:59 UTC pay a full night within three hours (-2.68 USD);
+   refusing them lost the signal (+6.3 %, t +0.34). Hypothesis: entering
+   the same signal at the close of the first bar after 21:00 UTC, with
+   the same stop distance, saves the night and keeps most of the move.
 
 ## Levers already tested before this log existed
 
@@ -8324,3 +8326,41 @@ baseline 4,192 closes, +169.103126 USD, +0.077287 USD/day.
   trade's notional. New replay baseline 4,192 closes, +169.103126 USD,
   +0.077287 USD/day. Research code only; bot unchanged, no restart. Two
   new tests; nineteen replay test modules pass. Section 352.
+
+## 2026-09-29 (evening) — flat before the weekend, now that financing is booked
+
+- **Category:** 5, exits and holding.
+- **Operation:** one bot/watchdog (7753 since 2026-09-29 12:40 UTC, started
+  by the host keepalive after the Charly container restarted), runtime
+  checkout clean on `origin/main` (5a9e045), evaluations failing 0, no
+  HTTP 429. No intervention.
+- **Plan item dropped:** the 30-minute book cannot be measured on seven
+  years: Capital.com returns 30m bars back to about 1,000 days and HTTP
+  404 from 1,200 days on (BTCUSD, EURUSD, US500), and 30m bars cannot be
+  rebuilt from hourly ones. Also checked: the 633 files under `models/`
+  are PocketOption binary-option models and calibrators (OTC pairs,
+  60-3600 s expiries), none for a Capital.com instrument at 1h.
+- **Observation:** in section 352's baseline 782 of 4,192 closes cross a
+  weekend; they hold 3.04 nights and pay 0.0250 R of financing per close
+  against 0.0063 R for the rest (47 % of the book's financing on 19 % of
+  its closes). Section 266 measured flattening before the weekend on a
+  harness without financing.
+- **Lever:** section 266's rule unchanged — close at the close of a bar
+  whose next bar is more than 36 hours away (crypto never gaps),
+  financing charged up to that exit; both arms rank on their own figures.
+  No other gap, no diagnostic arm.
+- **Measurement:** `scripts/weekend_flat_financed.py`, cached seven-year
+  weekly walk-forward (section 352 baseline), 27 instruments, 28,704
+  signals. OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | closes | forced / USD | USD | USD/calendar day |
+  |---|---:|---|---:|---:|
+  | current exit | 4,192 | 0 / 0 | +169.103126 | +0.077287 |
+  | flat before the weekend | 4,394 | 766 / +83.69 | +155.176525 | +0.070922 |
+
+- **Result:** -8.2 % daily gain, delta -0.006365 USD/day, pooled paired
+  t -0.2186; 2/4 samples better (-0.0440, -0.0518, +0.0293, +0.0511).
+  Daily SD 2.5475 → 2.6096 USD, worst day -18.6303 → -16.2566 USD. The
+  weekend moves earn their three nights.
+- **Decision:** rejected (VERDICT=DISCARD); exits and bot unchanged, no
+  restart. Three new tests. Section 353.
