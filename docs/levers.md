@@ -14,17 +14,18 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 5, exits and holding). Closed: the momentum
+run's (last run: 6, execution and costs). Closed: the momentum
 direction (sections 340, 342), the 4h pins (sections 225, 343),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), the FX class removed or capped
-(sections 346, 348), sampled spread costs (section 347), entries before
-the rollover (section 350), carry on the credited sides (section 351),
-flat before the weekend with financing (section 353). The 30-minute
-book is not measurable: the broker serves 30m bars for about 1,000 days
-only (section 353). The edge-scaling gate is not a lever (section 195).
-The shared replay books financing at each instrument's own rate since
-section 352: baseline 4,192 closes, +169.103126 USD, +0.077287 USD/day.
+(sections 346, 348), sampled spread costs (section 347), entry timing
+around the rollover, refused or deferred (sections 350, 354), carry on
+the credited sides (section 351), flat before the weekend with financing
+(section 353). The 30-minute book is not measurable: the broker serves
+30m bars for about 1,000 days only (section 353). The edge-scaling gate
+is not a lever (section 195). The shared replay books financing at each
+instrument's own rate since section 352: baseline 4,192 closes,
++169.103126 USD, +0.077287 USD/day.
 
 1. **Live against backtest (1) — section 337 re-read on the calibrated
    replay.** Observation: since section 337 the replay gained the
@@ -33,12 +34,14 @@ section 352: baseline 4,192 closes, +169.103126 USD, +0.077287 USD/day.
    over 33 closes. Hypothesis: matched by instrument, bar and direction
    on the current rule period, the calibrated replay reproduces the live
    closes and their dollars closer than the uncalibrated one did.
-2. **Execution and costs (6) — defer a late signal past the rollover
-   instead of refusing it.** Observation: section 350's 438 entries at
-   18:00-20:59 UTC pay a full night within three hours (-2.68 USD);
-   refusing them lost the signal (+6.3 %, t +0.34). Hypothesis: entering
-   the same signal at the close of the first bar after 21:00 UTC, with
-   the same stop distance, saves the night and keeps most of the move.
+2. **Universe and timeframes (3) — why BTCUSD barely trades.** Observation:
+   in the calibrated replay BTCUSD yields 89 gated, sized signals in seven
+   years from 60,649 hourly bars, at +0.207 R each net of financing, and
+   closes 26 trades at +0.36 R per close, the best instrument per close.
+   Hypothesis: one refusal (venue minimum size under the 250 USD notional
+   cap, the cost ceiling or the 3-ATR floor) removes most of its signals;
+   counted first, then the one structural change that admits them without
+   raising the 3 USD risk target measured.
 
 ## Levers already tested before this log existed
 
@@ -8364,3 +8367,34 @@ section 352: baseline 4,192 closes, +169.103126 USD, +0.077287 USD/day.
   weekend moves earn their three nights.
 - **Decision:** rejected (VERDICT=DISCARD); exits and bot unchanged, no
   restart. Three new tests. Section 353.
+
+## 2026-09-30 — a late signal entered after the rollover instead of refused
+
+- **Category:** 6, execution and costs.
+- **Operation:** one bot/watchdog (7753 since 2026-09-29 12:40 UTC),
+  runtime checkout clean on `origin/main` (547b8b5), evaluations failing
+  0, no HTTP 429. No intervention.
+- **Observation:** section 350: an entry at 18:00-20:59 UTC pays a full
+  night within three hours; refusing those 438 entries gave up the
+  signal with the fee (+6.3 %, t +0.34). Net of their own instrument's
+  rate they close for -7.84 USD in section 352's baseline.
+- **Lever:** enter a signal whose bar opens at 17:00-19:00 UTC at the close
+  of the instrument's first bar opening at 21:00-23:00 UTC the same day
+  (stop, cost and size at that bar, leash from it); dropped without such a
+  bar. Gate and direction blocks on the signal bar; both arms rank on
+  their own figures. No other window, no diagnostic arm.
+- **Measurement:** `scripts/rollover_deferred_entry.py`, cached seven-year
+  weekly walk-forward (section 352 baseline), 27 instruments, 28,704
+  signals (2,928 late, 2,492 deferred, 436 dropped). OOS [2020-09-23,
+  2026-09-20), 2,188 calendar days.
+
+  | arm | closes | late or deferred / USD | USD | USD/calendar day |
+  |---|---:|---|---:|---:|
+  | current entry | 4,192 | 438 / -7.84 | +169.103126 | +0.077287 |
+  | deferred past the rollover | 4,166 | 379 / -18.13 | +167.168639 | +0.076402 |
+
+- **Result:** -1.1 % daily gain, delta -0.000884 USD/day, pooled paired
+  t -0.0526; 2/4 samples better (-0.0588, +0.0268, -0.0125, +0.0251).
+  Daily SD 2.5475 → 2.5458 USD, worst day unchanged.
+- **Decision:** rejected (VERDICT=DISCARD); entry timing and bot
+  unchanged, no restart. Five new tests. Section 354.

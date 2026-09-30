@@ -12925,3 +12925,38 @@ more days ago return HTTP 404, checked on BTCUSD, EURUSD and US500), and
 30m bars cannot be rebuilt from the cached hourly ones. With a 365-day
 ranking window that leaves about two of the four OOS years. Dropped from
 the plan unmeasured.
+
+## 354. A late signal entered after the rollover does no better than one refused
+
+Section 350 refused signals whose bar closes at 18:00, 19:00 or 20:00 UTC,
+because such an entry pays a full night within three hours. That gave up
+the signal together with the fee (+6.3 %, t +0.34). In section 352's
+baseline the 438 late entries close for -7.84 USD net of their own
+instrument's rate.
+
+`scripts/rollover_deferred_entry.py` keeps the signal and moves its entry
+to the close of the instrument's first bar opening at 21:00, 22:00 or
+23:00 UTC the same day, after the rollover and past its widest-spread
+hour. Stop distance, cost and size are taken at that bar and the 24-bar
+leash counts from it; without such a bar the signal is dropped. The
+regime gate and the direction blocks are judged on the signal bar. Both
+arms rank and admit on their own figures. Preregistered: built in only if
+all four samples are better and pooled paired t > +2; no other window,
+no diagnostic arm. 2,928 of 28,704 signals are late; 2,492 find a bar the
+same night, 436 are dropped.
+
+| OOS interval (end exclusive) | days | live USD/day | deferred entry | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.055783 | -0.003048 | -0.058831 | -1.3458 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.120409 | +0.147167 | +0.026757 | +0.9423 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.033654 | +0.021196 | -0.012458 | -0.3791 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.099935 | +0.125004 | +0.025069 | +0.9408 |
+| pooled | 2,188 | +0.077287 | +0.076402 | -0.000884 | -0.0526 |
+
+Live: 4,192 closes, +169.103126 USD (section 352's baseline reproduced).
+Candidate: 4,166 closes, 379 of them deferred for -18.13 USD, +167.168639
+USD in total. Daily SD 2.5475 → 2.5458 USD, worst day unchanged. The
+deferred trades lose more than the late entries did with their night:
+the move the signal saw is partly gone three hours later. Rejected; the
+bot is unchanged. Entry timing around the rollover is closed (sections
+350, 354).
