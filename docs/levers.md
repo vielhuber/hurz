@@ -14,14 +14,15 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 6, execution and costs). Closed: the momentum
+run's (last run: 3, universe and timeframes). Closed: the momentum
 direction (sections 340, 342), the 4h pins (sections 225, 343),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), carry on
 the credited sides (section 351), flat before the weekend with financing
-(section 353). The 30-minute book is not measurable: the broker serves
+(section 353), the 3-ATR floor widened (section 323) or lifted for crypto
+(section 355). The 30-minute book is not measurable: the broker serves
 30m bars for about 1,000 days only (section 353). The edge-scaling gate
 is not a lever (section 195). The shared replay books financing at each
 instrument's own rate since section 352: baseline 4,192 closes,
@@ -34,14 +35,14 @@ instrument's own rate since section 352: baseline 4,192 closes,
    over 33 closes. Hypothesis: matched by instrument, bar and direction
    on the current rule period, the calibrated replay reproduces the live
    closes and their dollars closer than the uncalibrated one did.
-2. **Universe and timeframes (3) — why BTCUSD barely trades.** Observation:
-   in the calibrated replay BTCUSD yields 89 gated, sized signals in seven
-   years from 60,649 hourly bars, at +0.207 R each net of financing, and
-   closes 26 trades at +0.36 R per close, the best instrument per close.
-   Hypothesis: one refusal (venue minimum size under the 250 USD notional
-   cap, the cost ceiling or the 3-ATR floor) removes most of its signals;
-   counted first, then the one structural change that admits them without
-   raising the 3 USD risk target measured.
+2. **New strategy families (2) — a weekend-drift book on the indices.**
+   Observation: in section 352's baseline the 782 closes that cross a
+   weekend earn +0.0475 R gross per close against +0.0199 R for the rest,
+   and cutting them before the weekend loses (section 353). Hypothesis:
+   holding the week's direction over the weekend is a signal of its own:
+   one index position per instrument at Friday's last bar in the
+   direction of the week's close-to-close move, exited at Monday's first
+   close, charged three nights, ranked after the book.
 
 ## Levers already tested before this log existed
 
@@ -8398,3 +8399,36 @@ instrument's own rate since section 352: baseline 4,192 closes,
   Daily SD 2.5475 → 2.5458 USD, worst day unchanged.
 - **Decision:** rejected (VERDICT=DISCARD); entry timing and bot
   unchanged, no restart. Five new tests. Section 354.
+
+## 2026-09-30 (morning) — crypto past the 3-ATR stop floor
+
+- **Category:** 3, universe and timeframes.
+- **Operation:** one bot/watchdog (7753 since 2026-09-29 12:40 UTC),
+  runtime checkout clean on `origin/main` (7d837ed), nightly selector
+  refresh complete at 07:46 UTC (3/3 backtests), evaluations failing 0,
+  no HTTP 429. No intervention.
+- **Observation:** BTCUSD yields 89 gated, sized signals in seven years
+  from 60,649 hourly bars and closes 26 trades at +0.36 R, the best
+  instrument per close. Counted: the 3-ATR floor refuses 2,072 of its
+  2,161 router-passed signals (ETHUSD 2,190 of 2,205; US500 450 of
+  1,857); crypto's 2-ATR stop clears the venue minimum, so the floor
+  bites where it rarely does elsewhere. Minimum size never binds.
+- **Lever:** lift the ATR floor for BTCUSD and ETHUSD only; stop
+  max(2 ATR, venue minimum), same 3 USD risk target and 250 USD notional
+  cap. No other class or multiple, no diagnostic arm.
+- **Measurement:** `scripts/crypto_floor_exemption.py`, cached seven-year
+  weekly walk-forward (section 352 baseline), 27 instruments, 28,704 →
+  32,962 signals (crypto 104 → 4,362). OOS [2020-09-23, 2026-09-20),
+  2,188 calendar days.
+
+  | arm | closes | crypto closes / USD | USD | USD/calendar day | daily SD |
+  |---|---:|---|---:|---:|---:|
+  | current floor | 4,192 | 29 / +21.99 | +169.103126 | +0.077287 | 2.5475 |
+  | crypto without floor | 5,330 | 1,171 / +43.69 | +187.018502 | +0.085475 | 3.7298 |
+
+- **Result:** +10.6 % daily gain, delta +0.008188 USD/day, pooled paired
+  t +0.1443; 1/4 samples better (-0.0469, +0.1240, -0.0239, -0.1047).
+  The readmitted crypto trades earn +0.013 R per close; one sample carries
+  the pooled figure, and the daily SD rises by half.
+- **Decision:** rejected (VERDICT=DISCARD); floor and bot unchanged, no
+  restart. Two new tests. Section 355.

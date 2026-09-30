@@ -12960,3 +12960,38 @@ deferred trades lose more than the late entries did with their night:
 the move the signal saw is partly gone three hours later. Rejected; the
 bot is unchanged. Entry timing around the rollover is closed (sections
 350, 354).
+
+## 355. Crypto past the 3-ATR floor: more trades, no edge
+
+The 3-ATR floor (section 190) refuses a signal whose stop sits closer than
+three ATR. On the indices and commodities the venue's 1.05 % minimum puts
+most stops far beyond that; on crypto it does not, because the median
+hourly ATR is 0.672 % (BTCUSD) and 0.913 % (ETHUSD) and the strategy's
+2-ATR stop already clears the minimum. Counted over seven years, of the
+router-passed signals the floor refuses 2,072 of 2,161 on BTCUSD and
+2,190 of 2,205 on ETHUSD, against 450 of 1,857 on US500, 247 of 920 on GOLD
+and 15 of 1,629 on EURUSD. Minimum size never binds (BTCUSD 0.0001). The
+89 BTCUSD survivors close 26 trades at +0.36 R in section 352's replay.
+
+`scripts/crypto_floor_exemption.py` lifts the floor for BTCUSD and ETHUSD
+only; their stop stays max(2 ATR, venue minimum), sized to the same 3 USD
+risk target under the 250 USD notional cap. Everything else unchanged;
+both arms rank and admit on their own figures. Preregistered: built in
+only if all four samples are better and pooled paired t > +2; no other
+class or multiple, no diagnostic arm. Crypto signals 104 → 4,362.
+
+| OOS interval (end exclusive) | days | live USD/day | crypto without floor | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.055783 | +0.008852 | -0.046931 | -0.3813 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.120409 | +0.244420 | +0.124011 | +1.2398 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.033654 | +0.009704 | -0.023949 | -0.2427 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.099935 | -0.004748 | -0.104683 | -0.7080 |
+| pooled | 2,188 | +0.077287 | +0.085475 | +0.008188 | +0.1443 |
+
+Live: 4,192 closes, 29 crypto for +21.99 USD (+0.295 R each), +169.103126
+USD. Candidate: 5,330 closes, 1,171 crypto for +43.69 USD (+0.013 R each),
++187.018502 USD. Daily SD 2.5475 → 3.7298 USD, worst day unchanged. The
+readmitted crypto trades earn next to nothing per close; one sample
+(2023-2025) carries the pooled figure and the other three lose, while the
+daily swing rises by half. The floor's survivors were the good crypto
+trades, not a sample of them. Rejected; the bot is unchanged.
