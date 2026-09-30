@@ -12995,3 +12995,43 @@ readmitted crypto trades earn next to nothing per close; one sample
 (2023-2025) carries the pooled figure and the other three lose, while the
 daily swing rises by half. The floor's survivors were the good crypto
 trades, not a sample of them. Rejected; the bot is unchanged.
+
+## 356. The week's direction held over the weekend: a losing book
+
+In section 352's baseline the 782 closes that cross a weekend earn
++0.0475 R gross per close against +0.0199 R for the rest, and closing them
+before the weekend loses (section 353). That left open whether the
+weekend move itself carries an edge that a book of its own could trade.
+
+`scripts/weekend_drift_book.py` enters each index (DE40, US500, US30,
+FR40, UK100, EU50, US100, HK50, J225) at the close of its last bar before a
+data gap longer than 36 hours, in the direction of the close-to-close move
+since the previous such bar, and exits at the close of the first bar after
+the gap; stop and 1.5 R target are live on that bar, a gap through the
+stop is booked at the open. Terms, floor, cost ceiling and sizing through
+`trade_terms`; three nights of the instrument's own rate per trade; short
+blocks apply. The drift combinations join the active order after the
+ranked list and the pins. Preregistered: built in only if all four samples
+are better and pooled paired t > +2; no other gap length or lookback, no
+diagnostic arm. 2,055 drift signals; mean R per signal is negative on
+eight of nine indices (DE40 -0.053, EU50 -0.068, FR40 -0.066, UK100
+-0.029, US100 -0.031, US30 -0.039, US500 -0.029, J225 -0.012; HK50
++0.009).
+
+| OOS interval (end exclusive) | days | live USD/day | with drift book | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.055783 | -0.002728 | -0.058511 | -1.9406 |
+| 2023-09-21 – 2025-09-20 | 730 | +0.120409 | +0.082072 | -0.038337 | -2.8639 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.033654 | +0.015601 | -0.018053 | -1.5046 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.099935 | +0.102849 | +0.002915 | +0.0724 |
+| pooled | 2,188 | +0.077287 | +0.049196 | -0.028091 | -2.7306 |
+
+Live: 4,192 closes, +169.103126 USD (section 352's baseline reproduced).
+Candidate: 4,809 closes, 628 of them drift for -48.60 USD, the 4,181 book
+closes for +156.24 USD, +107.639993 USD in total. Daily SD 2.5475 →
+2.5837 USD, worst day unchanged. The weekend premium of section 352
+belongs to the breakouts that happen to be open, not to the calendar: the
+week's direction alone loses over the weekend once spread and three nights
+are paid, and its slots displace book trades. Rejected; the bot is
+unchanged. Calendar books on the indices are closed (sections 274, 315,
+356).

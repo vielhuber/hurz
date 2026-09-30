@@ -14,7 +14,7 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 3, universe and timeframes). Closed: the momentum
+run's (last run: 2, new strategy families). Closed: the momentum
 direction (sections 340, 342), the 4h pins (sections 225, 343),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), the FX class removed or capped
@@ -22,11 +22,12 @@ book-level risk cuts (section 345), the FX class removed or capped
 around the rollover, refused or deferred (sections 350, 354), carry on
 the credited sides (section 351), flat before the weekend with financing
 (section 353), the 3-ATR floor widened (section 323) or lifted for crypto
-(section 355). The 30-minute book is not measurable: the broker serves
-30m bars for about 1,000 days only (section 353). The edge-scaling gate
-is not a lever (section 195). The shared replay books financing at each
-instrument's own rate since section 352: baseline 4,192 closes,
-+169.103126 USD, +0.077287 USD/day.
+(section 355), calendar books on the indices: overnight, cash session and
+weekend drift (sections 274, 315, 356). The 30-minute book is not
+measurable: the broker serves 30m bars for about 1,000 days only (section
+353). The edge-scaling gate is not a lever (section 195). The shared
+replay books financing at each instrument's own rate since section 352:
+baseline 4,192 closes, +169.103126 USD, +0.077287 USD/day.
 
 1. **Live against backtest (1) — section 337 re-read on the calibrated
    replay.** Observation: since section 337 the replay gained the
@@ -35,14 +36,14 @@ instrument's own rate since section 352: baseline 4,192 closes,
    over 33 closes. Hypothesis: matched by instrument, bar and direction
    on the current rule period, the calibrated replay reproduces the live
    closes and their dollars closer than the uncalibrated one did.
-2. **New strategy families (2) — a weekend-drift book on the indices.**
-   Observation: in section 352's baseline the 782 closes that cross a
-   weekend earn +0.0475 R gross per close against +0.0199 R for the rest,
-   and cutting them before the weekend loses (section 353). Hypothesis:
-   holding the week's direction over the weekend is a signal of its own:
-   one index position per instrument at Friday's last bar in the
-   direction of the week's close-to-close move, exited at Monday's first
-   close, charged three nights, ranked after the book.
+2. **Portfolio and position sizing (4) — the risk budget between the three
+   strategies.** Observation: live, turtle_breakout closed 84 trades at
+   profit factor 0.91 (-8.23 USD) and donchian_breakout 159 at 1.00
+   (+1.23 USD), while all three trade the same 3 USD risk; no run has
+   split the budget between strategies. Hypothesis: sized by each
+   strategy's trailing-year replay expectancy at the weekly re-rank
+   (total risk per trade unchanged on average, 3 USD cap kept), the book
+   earns more per calendar day than at equal risk.
 
 ## Levers already tested before this log existed
 
@@ -8432,3 +8433,36 @@ instrument's own rate since section 352: baseline 4,192 closes,
   the pooled figure, and the daily SD rises by half.
 - **Decision:** rejected (VERDICT=DISCARD); floor and bot unchanged, no
   restart. Two new tests. Section 355.
+
+## 2026-09-30 (afternoon) — the week's direction held over the weekend
+
+- **Category:** 2, new strategy families.
+- **Operation:** one bot/watchdog (24904 since 2026-09-30 09:00 UTC,
+  started by the host keepalive after the Charly container restarted at
+  08:57 UTC), runtime checkout clean on `origin/main` (3375378),
+  evaluations failing 0, no HTTP 429. No intervention.
+- **Observation:** in section 352's baseline the 782 closes that cross a
+  weekend earn +0.0475 R gross per close against +0.0199 R for the rest,
+  and closing them before the weekend loses (section 353: -8.2 %).
+- **Lever:** a weekend-drift book: each index at the close of its last bar
+  before a gap longer than 36 hours, in the direction of the move since
+  the previous such bar, exited at the close of the first bar after the
+  gap (stop and 1.5 R target live on it), three nights of the
+  instrument's own rate, lowest admission priority after ranked list and
+  pins. No other gap or lookback, no diagnostic arm.
+- **Measurement:** `scripts/weekend_drift_book.py`, cached seven-year
+  weekly walk-forward (section 352 baseline), 27 instruments, 28,704 book
+  signals and 2,055 drift signals (mean R negative on eight of nine
+  indices, HK50 +0.009). OOS [2020-09-23, 2026-09-20), 2,188 calendar
+  days.
+
+  | arm | closes | drift closes / USD | USD | USD/calendar day | daily SD |
+  |---|---:|---|---:|---:|---:|
+  | current | 4,192 | 0 / 0 | +169.103126 | +0.077287 | 2.5475 |
+  | with weekend-drift book | 4,809 | 628 / -48.60 | +107.639993 | +0.049196 | 2.5837 |
+
+- **Result:** -36.3 % daily gain, delta -0.028091 USD/day, pooled paired
+  t -2.7306; 1/4 samples better (-0.0585, -0.0383, -0.0181, +0.0029).
+  The weekend premium belongs to the open breakouts, not to the calendar.
+- **Decision:** rejected (VERDICT=DISCARD); no drift book, bot unchanged,
+  no restart. Four new tests. Section 356.
