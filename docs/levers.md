@@ -14,7 +14,7 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 2, new strategy families). Closed: the momentum
+run's (last run: 1, live against backtest). Closed: the momentum
 direction (sections 340, 342), the 4h pins (sections 225, 343),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), the FX class removed or capped
@@ -23,27 +23,30 @@ around the rollover, refused or deferred (sections 350, 354), carry on
 the credited sides (section 351), flat before the weekend with financing
 (section 353), the 3-ATR floor widened (section 323) or lifted for crypto
 (section 355), calendar books on the indices: overnight, cash session and
-weekend drift (sections 274, 315, 356). The 30-minute book is not
-measurable: the broker serves 30m bars for about 1,000 days only (section
-353). The edge-scaling gate is not a lever (section 195). The shared
-replay books financing at each instrument's own rate since section 352:
-baseline 4,192 closes, +169.103126 USD, +0.077287 USD/day.
+weekend drift (sections 274, 315, 356), the strategy veto in USD (section
+357). The 30-minute book is not measurable: the broker serves 30m bars
+for about 1,000 days only (section 353). The edge-scaling gate is not a
+lever (section 195). Since 2026-10-01 02:02 UTC the bot's strategy veto
+retires donchian_breakout and turtle_breakout; the shared replay follows
+it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
++0.003661 USD/day (section 357). The section 352 figures (+0.077287
+USD/day) no longer describe the traded book.
 
-1. **Live against backtest (1) — section 337 re-read on the calibrated
-   replay.** Observation: since section 337 the replay gained the
-   strategy veto (339), sequential ranking (341), financing (349) and
-   instrument rates (352); the live book since 2026-09-10 made +9.98 USD
-   over 33 closes. Hypothesis: matched by instrument, bar and direction
-   on the current rule period, the calibrated replay reproduces the live
-   closes and their dollars closer than the uncalibrated one did.
-2. **Portfolio and position sizing (4) — the risk budget between the three
-   strategies.** Observation: live, turtle_breakout closed 84 trades at
-   profit factor 0.91 (-8.23 USD) and donchian_breakout 159 at 1.00
-   (+1.23 USD), while all three trade the same 3 USD risk; no run has
-   split the budget between strategies. Hypothesis: sized by each
-   strategy's trailing-year replay expectancy at the weekly re-rank
-   (total risk per trade unchanged on average, 3 USD cap kept), the book
-   earns more per calendar day than at equal risk.
+1. **New strategy families (2) — a Brent-WTI relative-value book.**
+   Observation: OIL_BRENT and OIL_CRUDE sit in the same "energy" cluster
+   and both trade in the replay's universe, but no run has traded their
+   spread; the momentum-only book that the veto leaves is flat on most
+   days (81 closes in 2,188 days, daily SD 0.34 USD, section 357).
+   Hypothesis: when the hourly log-spread of the two leaves its trailing
+   z-score of 2, it reverts within 24 bars by more than two spreads and
+   financing; both legs at half the 3 USD risk, lowest priority.
+2. **Live against backtest (1) — the 4h pins in the reference replay.**
+   Observation: since 2026-10-01 five of the bot's seven combinations are
+   4h pins (donchian_breakout_4h and momentum_4h twice, turtle_breakout_4h
+   once); section 343 left them out of the replay as immaterial while the
+   1h book held 26 combinations. Hypothesis: with the 1h breakouts retired
+   they are most of the traded book, and the replay reference changes by
+   more than |t| = 2 once they are included.
 
 ## Levers already tested before this log existed
 
@@ -8466,3 +8469,37 @@ baseline 4,192 closes, +169.103126 USD, +0.077287 USD/day.
   The weekend premium belongs to the open breakouts, not to the calendar.
 - **Decision:** rejected (VERDICT=DISCARD); no drift book, bot unchanged,
   no restart. Four new tests. Section 356.
+
+## 2026-10-01 — the strategy veto summed in USD instead of quote currency
+
+- **Category:** 1, live against backtest.
+- **Operation:** one bot/watchdog (24904 since 2026-09-30 09:00 UTC),
+  runtime checkout clean on `origin/main` (6caff15), evaluations failing
+  0, no HTTP 429. Since 02:03 UTC 7 instead of 26 combinations evaluated
+  (turtle_breakout retired by the strategy veto). Two measurement runs
+  ended with their sessions without output; the third completed. No
+  intervention.
+- **Observation:** the strategy veto sums PnL and risk in each
+  instrument's quote currency; one EURJPY exit of -1.84 USD (-290.9 JPY)
+  retired turtle_breakout at -0.111 R, donchian_breakout went the same way
+  on 2026-09-25 at -0.107 R. In USD (`fill_risk_usd`) they stand at
+  -0.052 R and +0.001 R, above the -0.10 threshold.
+- **Lever:** compute the combination and strategy vetoes with each row's
+  PnL and risk converted to USD; thresholds and counts unchanged. No other
+  weighting, no diagnostic arm.
+- **Measurement:** `scripts/usd_weighted_strategy_veto.py`, cached
+  seven-year weekly walk-forward (section 352 replay), 27 instruments,
+  28,704 signals. OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | closes (donchian / momentum / turtle) | USD | USD/calendar day | daily SD |
+  |---|---|---:|---:|---:|
+  | quote-unit veto (current bot) | 81 (0 / 81 / 0) | +8.010153 | +0.003661 | 0.3409 |
+  | USD veto | 5,057 (3,283 / 15 / 1,759) | +177.627535 | +0.081183 | 2.8262 |
+
+- **Result:** delta +0.077522 USD/day, pooled paired t +1.2871; 4/4
+  samples better (+0.0616, +0.1313, +0.0470, +0.0468), none at |t| > 2.
+  Worst day -4.5385 → -19.4085 USD.
+- **Decision:** rejected by the fixed criteria (VERDICT=DISCARD); the bot
+  keeps the quote-unit veto, no restart. The replay follows the bot, so
+  the reference is now the momentum-only book (+0.003661 USD/day). Two
+  new tests. Section 357.

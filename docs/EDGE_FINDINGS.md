@@ -13035,3 +13035,47 @@ week's direction alone loses over the weekend once spread and three nights
 are paid, and its slots displace book trades. Rejected; the bot is
 unchanged. Calendar books on the indices are closed (sections 274, 315,
 356).
+
+## 357. The strategy veto summed in quote currency: a bug the criteria keep
+
+`pair_selector._realized_expectancy` sums (exit - fill) x size and
+|fill - stop| x size over every instrument of a strategy. Both are in the
+instrument's quote currency, so a yen trade weighs about 157 times a dollar
+trade and an HK50 trade about 7.8 times. At 2026-10-01 02:02 UTC a EURJPY
+stale exit of -1.84 USD (-290.9 JPY) moved turtle_breakout to -0.111 R and
+the bot retired it; donchian_breakout had been retired the same way on
+2026-09-25 (-0.107 R). Since 02:03 UTC the bot evaluates 7 combinations
+instead of 26, and the nightly refresh writes only momentum and 4h pins.
+Weighted by the USD risk the journal records per trade (`fill_risk_usd`,
+since 2026-08-24; older rows keep quote units, almost all USD-quoted):
+
+| strategy | closes | R in quote units | R in USD | realized USD |
+|---|---:|---:|---:|---:|
+| donchian_breakout | 159 | -0.1074 | +0.0014 | +66.55 |
+| turtle_breakout | 86 | -0.1114 | -0.0515 | -3.93 |
+
+Since 2026-09-10 the quote-unit sums give turtle 3,051.85 "USD" of risk over
+18 closes against a 3 USD target per trade. Within one instrument the
+currency cancels, so the combination veto is unaffected.
+
+`scripts/usd_weighted_strategy_veto.py` replays both vetoes on the shared
+replay of section 352: current arm with the vetoes in quote units (the
+bot), candidate with each row's PnL and risk converted by `fill_risk_usd`.
+Thresholds and counts unchanged. Preregistered: built into the bot if all
+four samples are better and pooled paired t > +2.
+
+| OOS interval (end exclusive) | days | quote-unit veto USD/day | USD veto | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.100123 | +0.061623 | +0.4632 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | +0.119750 | +0.131317 | +1.2079 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | +0.050247 | +0.046958 | +0.4327 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.000000 | +0.046789 | +0.046789 | +0.3430 |
+| pooled | 2,188 | +0.003661 | +0.081183 | +0.077522 | +1.2871 |
+
+Current: 81 closes, all momentum, +8.010153 USD, daily SD 0.3409, worst day
+-4.5385. Candidate: 5,057 closes (donchian 3,283, turtle 1,759, momentum
+15), +177.627535 USD, daily SD 2.8262, worst day -19.4085. Every sample is
+better, but the breakout book's daily swing is eight times the
+momentum-only book's and the pooled t stays at +1.29: not built. The bot
+keeps the quote-unit veto; the replay follows it, so the reference for the
+next levers is the momentum-only book at +0.003661 USD/day.
