@@ -14,7 +14,7 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 1, live against backtest). Closed: the momentum
+run's (last run: 4, portfolio and position sizing). Closed: the momentum
 direction (sections 340, 342), the 4h pins (sections 225, 343, 359),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), the FX class removed or capped
@@ -24,7 +24,8 @@ the credited sides (section 351), flat before the weekend with financing
 (section 353), the 3-ATR floor widened (section 323) or lifted for crypto
 (section 355), calendar books on the indices: overnight, cash session and
 weekend drift (sections 274, 315, 356), the strategy veto in USD (section
-357), the Brent-WTI spread (section 358). The 30-minute book is not
+357) or on a trailing window (section 360), the Brent-WTI spread
+(section 358). The 30-minute book is not
 measurable: the broker serves 30m bars for about 1,000 days only (section
 353). The edge-scaling gate is not a
 lever (section 195). Since 2026-10-01 02:02 UTC the bot's strategy veto
@@ -33,21 +34,21 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Portfolio and position sizing (4) — the strategy veto on a trailing
-   window.** Observation: the veto reads every live close since May;
-   turtle_breakout's -0.111 R rests on 86 closes, 68 of them from before
-   the 2026-09-10 rules, and a retired strategy never adds a close, so the
-   veto can never lift (section 357). Hypothesis: a veto judged at each
-   weekly re-rank on the replay's own closes of the trailing 90 days
-   (same -0.10 R and 25-close thresholds) earns more per calendar day than
-   today's fixed retirement of both breakouts.
-2. **Live against backtest (1) — the rule period, strategy by strategy.**
+1. **Live against backtest (1) — the rule period, strategy by strategy.**
    Observation: the live journal since 2026-09-10 holds 38 closes for
-   +8.26 USD while the replay reference earns +0.003661 USD a day, and the
-   veto's live figures differ from the replay's per-strategy R.
-   Hypothesis: matched by instrument, bar and direction on the rule
-   period, the calibrated replay reproduces each strategy's live closes
-   within their spread and financing.
+   +8.26 USD and fills 0.027 R behind the signal price on average
+   (donchian 0.0272, turtle 0.0274), while the replay enters at the signal
+   close and its reference earns +0.003661 USD a day. Hypothesis: matched
+   by instrument, bar and direction on the rule period, the replay
+   reproduces each strategy's live closes within that slippage, spread
+   and financing.
+2. **Exits and holding (5) — momentum's target in the momentum-only
+   book.** Observation: 41 of the 47 live closes since 2026-09-10 left at
+   the leash or a flip ("manual", +1.23 USD in total, 31 h mean hold);
+   only 6 reached stop or target. Momentum is now the only hourly
+   strategy and runs the 1.5 R target fitted on the breakout book
+   (sections 15, 49d). Hypothesis: on momentum alone a 2.5 R target earns
+   more per calendar day.
 
 ## Levers already tested before this log existed
 
@@ -8563,3 +8564,33 @@ USD/day) no longer describe the traded book.
 - **Decision:** immaterial (VERDICT=IMMATERIAL); the replay reference
   stays hourly-only, bot and pins unchanged, no restart. Two new tests.
   Section 359.
+
+## 2026-10-02 (afternoon) — the strategy veto on a trailing 90-day window
+
+- **Category:** 4, portfolio and position sizing.
+- **Operation:** one bot/watchdog (24904 since 2026-09-30 09:00 UTC),
+  runtime checkout clean on `origin/main` (a8faf55), evaluations failing
+  0, no HTTP 429; 7 combinations evaluated. No intervention.
+- **Observation:** the strategy veto reads every live close since May; a
+  retired strategy adds no close, so turtle_breakout (68 of 86 closes from
+  before the 2026-09-10 rules) and donchian_breakout stay retired for
+  good (section 357).
+- **Lever:** judge the veto at each weekly re-rank on the replay's own
+  booked trades exiting in the trailing 90 days (25 closes, -0.10 R
+  capital-weighted, as live), ranked combinations and pins alike; the
+  combination veto unchanged. No other window or threshold.
+- **Measurement:** `scripts/rolling_strategy_veto.py`, cached seven-year
+  weekly walk-forward (section 357 reference), 27 instruments, 28,704
+  signals. OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | closes (donchian / momentum / turtle) | USD | USD/calendar day | daily SD |
+  |---|---|---:|---:|---:|
+  | fixed veto (current) | 81 (0 / 81 / 0) | +8.010153 | +0.003661 | 0.3409 |
+  | 90-day veto | 4,871 (3,320 / 13 / 1,538) | +174.287434 | +0.079656 | 2.7926 |
+
+- **Result:** delta +0.075995 USD/day, pooled paired t +1.2745; 3/4
+  samples better (-0.0287, +0.1668, +0.0521, +0.0468). The window retires
+  turtle in 45 of 313 weeks, donchian in 15. Worst day -4.5385 →
+  -19.4085 USD.
+- **Decision:** rejected (VERDICT=DISCARD); the bot keeps the fixed veto,
+  no restart. Four new tests. Section 360.

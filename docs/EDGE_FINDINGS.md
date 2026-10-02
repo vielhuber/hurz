@@ -13148,3 +13148,34 @@ total; daily SD 0.3409 → 0.9199, worst day -4.5385 → -5.7750. Every pin
 loses over seven years, and only the latest year is positive. The change
 stays below |t| = 2: the replay reference stays hourly-only and the
 omission is documented. The bot is unchanged.
+
+## 360. The strategy veto on a trailing 90-day window: three years of four
+
+The live strategy veto reads every close since May. A retired strategy
+adds no close, so its veto can never lift; turtle_breakout's -0.111 R
+rests on 86 closes, 68 of them from before the 2026-09-10 rules, and since
+2026-10-01 both hourly breakouts are retired for good (section 357).
+
+`scripts/rolling_strategy_veto.py` judges the veto at every weekly re-rank
+on the trades the replay itself booked with an exit in the trailing 90
+days: a strategy with at least 25 such closes at a capital-weighted R of
+-0.10 or worse is retired, ranked combinations and pins alike, and returns
+once that no longer holds. Current arm: today's fixed veto (section 357's
+reference). The combination veto stays today's in both arms.
+Preregistered: built in only if all four samples are better and pooled
+paired t > +2; no other window or threshold.
+
+| OOS interval (end exclusive) | days | fixed veto USD/day | 90-day veto | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.009788 | -0.028712 | -0.2374 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | +0.155209 | +0.166776 | +1.5272 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | +0.055380 | +0.052091 | +0.4800 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.000000 | +0.046789 | +0.046789 | +0.3430 |
+| pooled | 2,188 | +0.003661 | +0.079656 | +0.075995 | +1.2745 |
+
+Fixed veto: 81 closes, all momentum, +8.010153 USD. 90-day veto: 4,871
+closes (donchian 3,320, turtle 1,538, momentum 13), +174.287434 USD; daily
+SD 0.3409 → 2.7926, worst day -4.5385 → -19.4085. The window retires
+turtle_breakout in 45 of 313 weeks and donchian_breakout in 15. The latest
+year is worse than momentum alone, and the pooled gain carries the
+breakout book's daily swing. Rejected; the bot keeps its fixed veto.
