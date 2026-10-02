@@ -45,7 +45,7 @@ USD/day) no longer describe the traded book.
    strategy's live closes within slippage, spread and financing.
 2. **Portfolio and position sizing (4) — momentum's eligibility in the
    momentum-only book.** Observation: of 870 priced momentum signals
-   (+0.045 R each) the reference book trades 81, none before late 2021;
+   (+0.045 R each) the reference book trades 81, none in its first year;
    section 340 found momentum on every instrument displacing the
    breakouts, which the veto has since removed. Hypothesis: with nothing
    left to displace, admitting momentum on every instrument of the
@@ -8623,6 +8623,6 @@ USD/day) no longer describe the traded book.
 
 - **Result:** -32.1 % daily gain, delta -0.001174 USD/day, pooled paired
   t -0.3149; 1/4 samples better (-0.0093, +0.0011, 0, 0: the reference
-  book trades almost no momentum before 2023).
+  book closes nothing in the first sample year).
 - **Decision:** rejected (VERDICT=DISCARD); targets and bot unchanged, no
   restart. Two new tests. Section 361.

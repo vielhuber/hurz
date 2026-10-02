@@ -13206,8 +13206,8 @@ Over all 870 priced momentum signals the mean falls from +0.0450 R to
 | pooled | 2,188 | +0.003661 | +0.002487 | -0.001174 | -0.3149 |
 
 Current: 81 closes, +8.010153 USD. Candidate: 80 closes, +5.442428 USD;
-daily SD 0.3409 → 0.3393, worst day unchanged. The reference book holds no
-momentum trade before late 2021 and almost none before 2023: the selector
-ranks momentum in only when its trailing year qualifies. The wins that
+daily SD 0.3409 → 0.3393, worst day unchanged. The reference book closes
+nothing in the first sample year and identical trades in the second: the
+selector ranks momentum in only when its trailing year qualifies. The wins that
 reach 1.5 R do not run on to 2.5 R within the leash. Rejected; the bot is
 unchanged.
