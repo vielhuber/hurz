@@ -14,8 +14,8 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 2, new strategy families). Closed: the momentum
-direction (sections 340, 342), the 4h pins (sections 225, 343),
+run's (last run: 1, live against backtest). Closed: the momentum
+direction (sections 340, 342), the 4h pins (sections 225, 343, 359),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
@@ -33,21 +33,21 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Live against backtest (1) — the 4h pins in the reference replay.**
-   Observation: since 2026-10-01 five of the bot's seven combinations are
-   4h pins (donchian_breakout_4h and momentum_4h twice, turtle_breakout_4h
-   once); section 343 left them out of the replay as immaterial while the
-   1h book held 26 combinations. Hypothesis: with the 1h breakouts retired
-   they are most of the traded book, and the replay reference changes by
-   more than |t| = 2 once they are included.
-2. **Portfolio and position sizing (4) — the risk split between the 1h
-   momentum combinations and the 4h pins.** Observation: the live book now
-   holds two 1h momentum combinations and five 4h pins at the same 3 USD
-   risk per trade; the replay reference has 81 momentum closes in 2,188
-   days (daily SD 0.34 USD). Hypothesis: once item 1 prices the 4h pins,
-   sizing each part by its trailing-year replay expectancy (3 USD cap per
-   trade kept) earns more per calendar day than equal risk. Depends on
-   item 1.
+1. **Portfolio and position sizing (4) — the strategy veto on a trailing
+   window.** Observation: the veto reads every live close since May;
+   turtle_breakout's -0.111 R rests on 86 closes, 68 of them from before
+   the 2026-09-10 rules, and a retired strategy never adds a close, so the
+   veto can never lift (section 357). Hypothesis: a veto judged at each
+   weekly re-rank on the replay's own closes of the trailing 90 days
+   (same -0.10 R and 25-close thresholds) earns more per calendar day than
+   today's fixed retirement of both breakouts.
+2. **Live against backtest (1) — the rule period, strategy by strategy.**
+   Observation: the live journal since 2026-09-10 holds 38 closes for
+   +8.26 USD while the replay reference earns +0.003661 USD a day, and the
+   veto's live figures differ from the replay's per-strategy R.
+   Hypothesis: matched by instrument, bar and direction on the rule
+   period, the calibrated replay reproduces each strategy's live closes
+   within their spread and financing.
 
 ## Levers already tested before this log existed
 
@@ -8534,3 +8534,32 @@ USD/day) no longer describe the traded book.
   samples better (-0.0692, -0.0373, -0.0546, -0.0164).
 - **Decision:** rejected (VERDICT=DISCARD); no spread book, bot unchanged,
   no restart. Three new tests. Section 358.
+
+## 2026-10-02 (morning) — the 4h pins, financed, in the book the veto leaves
+
+- **Category:** 1, live against backtest.
+- **Operation:** one bot/watchdog (24904 since 2026-09-30 09:00 UTC),
+  runtime checkout clean on `origin/main` (6441136), evaluations failing
+  0, no HTTP 429; active list of 05:45 UTC: momentum US30 and ETHUSD plus
+  the five 4h pins. No intervention.
+- **Observation:** five of the bot's seven combinations are 4h pins, which
+  section 343 left out of the replay (t -0.20) while the hourly book held
+  26 combinations and without financing for the 4h trades.
+- **Lever:** section 343's booking of the live 4h pins plus each 4h
+  trade's instrument rate per rollover; both arms on today's vetoes.
+  Preregistered: the pins join the replay reference if pooled |t| > 2.
+- **Measurement:** `scripts/four_hour_pins_reference.py`, cached
+  seven-year weekly walk-forward (section 357 reference), 561 4h signals
+  (financing -10.25 R). OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | closes | 4h closes / USD | USD | USD/calendar day | daily SD |
+  |---|---:|---|---:|---:|---:|
+  | hourly only | 81 | 0 / 0 | +8.010153 | +0.003661 | 0.3409 |
+  | with the 4h pins | 350 | 269 / -48.27 | -40.261733 | -0.018401 | 0.9199 |
+
+- **Result:** delta -0.022062 USD/day, pooled paired t -1.2005 (+0.0433,
+  -0.0443, -0.0336, -0.0198 by sample). All five pins lose; NZDUSD
+  donchian_breakout_4h -28.72 USD.
+- **Decision:** immaterial (VERDICT=IMMATERIAL); the replay reference
+  stays hourly-only, bot and pins unchanged, no restart. Two new tests.
+  Section 359.

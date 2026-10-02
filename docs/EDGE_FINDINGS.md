@@ -13115,3 +13115,36 @@ in total; daily SD 0.3409 → 0.5509, worst day -4.5385 → -4.1381. A 2-sd
 departure of the hourly Brent-WTI spread carries no reversion edge before
 costs, and two spreads plus two financing charges make it a steady loss.
 Rejected; the bot is unchanged.
+
+## 359. The 4h pins in the book the veto leaves: still immaterial, and losing
+
+Section 343 booked the live 4h pins into the replay while the hourly book
+held 26 combinations and found them immaterial (t -0.20); its 4h trades
+paid no financing. Since section 357 the strategy veto leaves two hourly
+momentum combinations and the five 4h pins on the bot's list (2026-10-02
+05:45 UTC: momentum US30 and ETHUSD; donchian_breakout_4h SILVER and
+NZDUSD, turtle_breakout_4h HK50, momentum_4h COPPER and CHFJPY), while the
+replay reference is momentum alone.
+
+`scripts/four_hour_pins_reference.py` repeats section 343's booking (561
+4h signals from resampled bars, section 302's terms, after the hourly pins,
+sharing every cap and cooldown) and charges each 4h trade its instrument's
+rate per rollover held (-10.25 R over the 561 signals). Both arms read
+today's vetoes. Preregistered: the pins join the replay reference if
+pooled paired |t| > 2.
+
+| OOS interval (end exclusive) | days | hourly only USD/day | with 4h pins | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.081786 | +0.043286 | +1.0367 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | -0.055916 | -0.044349 | -1.3283 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | -0.030293 | -0.033582 | -1.0283 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.000000 | -0.019784 | -0.019784 | -0.4817 |
+| pooled | 2,188 | +0.003661 | -0.018401 | -0.022062 | -1.2005 |
+
+With the pins the book closes 350 trades, 269 of them 4h for -48.27 USD
+(donchian_breakout_4h NZDUSD -28.72, SILVER -2.01; momentum_4h COPPER
+-9.51, CHFJPY -3.28; turtle_breakout_4h HK50 -4.74), -40.261733 USD in
+total; daily SD 0.3409 → 0.9199, worst day -4.5385 → -5.7750. Every pin
+loses over seven years, and only the latest year is positive. The change
+stays below |t| = 2: the replay reference stays hourly-only and the
+omission is documented. The bot is unchanged.
