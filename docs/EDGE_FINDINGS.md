@@ -13179,3 +13179,35 @@ SD 0.3409 → 2.7926, worst day -4.5385 → -19.4085. The window retires
 turtle_breakout in 45 of 313 weeks and donchian_breakout in 15. The latest
 year is worse than momentum alone, and the pooled gain carries the
 breakout book's daily swing. Rejected; the bot keeps its fixed veto.
+
+## 361. Momentum's target at 2.5 R: the target is almost never reached
+
+Since section 357 momentum is the only hourly strategy the bot trades,
+and it runs the 1.5 R target chosen on the breakout book (sections 15,
+49d). Live, 41 of the 47 closes since 2026-09-10 left at the leash or a
+flip; only 6 reached stop or target.
+
+`scripts/momentum_target.py` prices momentum's signals with a 2.5 R target
+and leaves everything else as it is (stop, 24-bar leash, costs,
+financing, sizing; the other strategies keep 1.5 R, so ranking reads each
+arm's own figures). Both arms read today's vetoes. Preregistered: built in
+as `momentum: 2.5` in `_STRATEGY_RISK_REWARD` only if all four samples are
+better and pooled paired t > +2; no other value.
+
+Over all 870 priced momentum signals the mean falls from +0.0450 R to
++0.0351 R: 67 signals end within 0.2 R of a 1.5 R target, 8 of a 2.5 R one.
+
+| OOS interval (end exclusive) | days | 1.5 R USD/day | 2.5 R | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.029243 | -0.009257 | -0.8940 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | -0.010456 | +0.001111 | +0.1122 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | +0.003290 | 0 | – |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | 0 | 0 | – |
+| pooled | 2,188 | +0.003661 | +0.002487 | -0.001174 | -0.3149 |
+
+Current: 81 closes, +8.010153 USD. Candidate: 80 closes, +5.442428 USD;
+daily SD 0.3409 → 0.3393, worst day unchanged. The reference book holds no
+momentum trade before late 2021 and almost none before 2023: the selector
+ranks momentum in only when its trailing year qualifies. The wins that
+reach 1.5 R do not run on to 2.5 R within the leash. Rejected; the bot is
+unchanged.

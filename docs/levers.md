@@ -14,7 +14,7 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 4, portfolio and position sizing). Closed: the momentum
+run's (last run: 5, exits and holding). Closed: the momentum
 direction (sections 340, 342), the 4h pins (sections 225, 343, 359),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), the FX class removed or capped
@@ -25,7 +25,8 @@ the credited sides (section 351), flat before the weekend with financing
 (section 355), calendar books on the indices: overnight, cash session and
 weekend drift (sections 274, 315, 356), the strategy veto in USD (section
 357) or on a trailing window (section 360), the Brent-WTI spread
-(section 358). The 30-minute book is not
+(section 358), momentum's target at 2.5 R (section 361). The 30-minute
+book is not
 measurable: the broker serves 30m bars for about 1,000 days only (section
 353). The edge-scaling gate is not a
 lever (section 195). Since 2026-10-01 02:02 UTC the bot's strategy veto
@@ -34,21 +35,21 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Live against backtest (1) — the rule period, strategy by strategy.**
-   Observation: the live journal since 2026-09-10 holds 38 closes for
-   +8.26 USD and fills 0.027 R behind the signal price on average
-   (donchian 0.0272, turtle 0.0274), while the replay enters at the signal
-   close and its reference earns +0.003661 USD a day. Hypothesis: matched
-   by instrument, bar and direction on the rule period, the replay
-   reproduces each strategy's live closes within that slippage, spread
-   and financing.
-2. **Exits and holding (5) — momentum's target in the momentum-only
-   book.** Observation: 41 of the 47 live closes since 2026-09-10 left at
-   the leash or a flip ("manual", +1.23 USD in total, 31 h mean hold);
-   only 6 reached stop or target. Momentum is now the only hourly
-   strategy and runs the 1.5 R target fitted on the breakout book
-   (sections 15, 49d). Hypothesis: on momentum alone a 2.5 R target earns
-   more per calendar day.
+1. **Live against backtest (1) — the rule period, strategy by strategy,
+   on an extended bar cache.** Observation: the live journal since
+   2026-09-10 holds 38 closes for +8.26 USD and fills 0.027 R behind the
+   signal price on average, but the bar cache ends 2026-09-20, ten days
+   into that period. Hypothesis: with the cache extended to the run's date
+   (a separate copy, so the seven-year reference stays comparable), the
+   replay matched by instrument, bar and direction reproduces each
+   strategy's live closes within slippage, spread and financing.
+2. **Portfolio and position sizing (4) — momentum's eligibility in the
+   momentum-only book.** Observation: of 870 priced momentum signals
+   (+0.045 R each) the reference book trades 81, none before late 2021;
+   section 340 found momentum on every instrument displacing the
+   breakouts, which the veto has since removed. Hypothesis: with nothing
+   left to displace, admitting momentum on every instrument of the
+   universe earns more per calendar day than the ranked combinations.
 
 ## Levers already tested before this log existed
 
@@ -8594,3 +8595,34 @@ USD/day) no longer describe the traded book.
   -19.4085 USD.
 - **Decision:** rejected (VERDICT=DISCARD); the bot keeps the fixed veto,
   no restart. Four new tests. Section 360.
+
+## 2026-10-02 (evening) — momentum's target at 2.5 R in the momentum-only book
+
+- **Category:** 5, exits and holding.
+- **Operation:** one bot/watchdog (20584 since 2026-10-02 16:00 UTC,
+  started by the host keepalive after the Charly container restarted at
+  15:55 UTC), runtime checkout clean on `origin/main` (4b4d751),
+  evaluations failing 0, no HTTP 429. No intervention.
+- **Plan item deferred:** the rule period since 2026-09-10 overlaps the
+  bar cache (ending 2026-09-20) by ten days only; it needs the cache
+  extended first.
+- **Observation:** momentum is the only hourly strategy left (section 357)
+  and runs the 1.5 R target fitted on the breakout book; 41 of 47 live
+  closes since 2026-09-10 left at the leash or a flip.
+- **Lever:** momentum's signals priced with a 2.5 R target; everything
+  else unchanged. No other value, no diagnostic arm.
+- **Measurement:** `scripts/momentum_target.py`, cached seven-year weekly
+  walk-forward (section 357 reference), 870 momentum signals: mean
+  +0.0450 R → +0.0351 R, 67 → 8 near the target. OOS [2020-09-23,
+  2026-09-20), 2,188 calendar days.
+
+  | arm | closes | USD | USD/calendar day | daily SD |
+  |---|---:|---:|---:|---:|
+  | 1.5 R (current) | 81 | +8.010153 | +0.003661 | 0.3409 |
+  | 2.5 R | 80 | +5.442428 | +0.002487 | 0.3393 |
+
+- **Result:** -32.1 % daily gain, delta -0.001174 USD/day, pooled paired
+  t -0.3149; 1/4 samples better (-0.0093, +0.0011, 0, 0: the reference
+  book trades almost no momentum before 2023).
+- **Decision:** rejected (VERDICT=DISCARD); targets and bot unchanged, no
+  restart. Two new tests. Section 361.
