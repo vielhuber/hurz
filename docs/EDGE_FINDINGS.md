@@ -13079,3 +13079,39 @@ better, but the breakout book's daily swing is eight times the
 momentum-only book's and the pooled t stays at +1.29: not built. The bot
 keeps the quote-unit veto; the replay follows it, so the reference for the
 next levers is the momentum-only book at +0.003661 USD/day.
+
+## 358. Brent against WTI: the spread does not revert by more than it costs
+
+OIL_BRENT and OIL_CRUDE share the "energy" cluster and both trade in the
+replay's universe, but the spread between them had never been traded.
+Since section 357 the replay's book is momentum alone (81 closes in 2,188
+days), so a relative-value source would not compete for slots.
+
+`scripts/oil_spread_book.py` takes s = ln(Brent) - ln(WTI) on the shared
+hourly bars and z against the previous 240 of them. It enters at the close
+of the first bar with |z| >= 2 (short Brent / long WTI above, the reverse
+below), exits at the first close where z has crossed zero, at a close 1.5
+sd against the entry, or after 24 shared bars. 1.5 sd is 1 R; each leg is
+3 USD over it, capped at 250 USD notional. Each leg pays its round-trip
+spread (0.0213 % and 0.0225 % per side) and its own overnight rate. One
+spread position at a time, admitted under OIL_BRENT's key after the
+ranked list and the pins. Preregistered: built in only if all four samples
+are better and pooled paired t > +2; no other threshold, window or exit.
+
+387 spread trades in the history: gross -0.026 R per trade (51 % winners),
+-0.233 R after the two legs' spreads, -0.305 R after financing (t -6.85).
+
+| OOS interval (end exclusive) | days | live USD/day | with spread book | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | -0.030699 | -0.069199 | -1.9747 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | -0.048913 | -0.037346 | -2.7556 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | -0.051293 | -0.054583 | -3.0965 |
+| 2020-09-23 – 2021-09-21 | 363 | +0.000000 | -0.016363 | -0.016363 | -0.9362 |
+| pooled | 2,188 | +0.003661 | -0.041269 | -0.044930 | -4.5479 |
+
+Live (section 357's momentum-only book): 81 closes, +8.010153 USD.
+Candidate: 420 closes, 339 of them spread for -98.31 USD, -90.295623 USD
+in total; daily SD 0.3409 → 0.5509, worst day -4.5385 → -4.1381. A 2-sd
+departure of the hourly Brent-WTI spread carries no reversion edge before
+costs, and two spreads plus two financing charges make it a steady loss.
+Rejected; the bot is unchanged.

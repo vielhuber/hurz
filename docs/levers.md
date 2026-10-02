@@ -14,7 +14,7 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 1, live against backtest). Closed: the momentum
+run's (last run: 2, new strategy families). Closed: the momentum
 direction (sections 340, 342), the 4h pins (sections 225, 343),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), the FX class removed or capped
@@ -24,29 +24,30 @@ the credited sides (section 351), flat before the weekend with financing
 (section 353), the 3-ATR floor widened (section 323) or lifted for crypto
 (section 355), calendar books on the indices: overnight, cash session and
 weekend drift (sections 274, 315, 356), the strategy veto in USD (section
-357). The 30-minute book is not measurable: the broker serves 30m bars
-for about 1,000 days only (section 353). The edge-scaling gate is not a
+357), the Brent-WTI spread (section 358). The 30-minute book is not
+measurable: the broker serves 30m bars for about 1,000 days only (section
+353). The edge-scaling gate is not a
 lever (section 195). Since 2026-10-01 02:02 UTC the bot's strategy veto
 retires donchian_breakout and turtle_breakout; the shared replay follows
 it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **New strategy families (2) — a Brent-WTI relative-value book.**
-   Observation: OIL_BRENT and OIL_CRUDE sit in the same "energy" cluster
-   and both trade in the replay's universe, but no run has traded their
-   spread; the momentum-only book that the veto leaves is flat on most
-   days (81 closes in 2,188 days, daily SD 0.34 USD, section 357).
-   Hypothesis: when the hourly log-spread of the two leaves its trailing
-   z-score of 2, it reverts within 24 bars by more than two spreads and
-   financing; both legs at half the 3 USD risk, lowest priority.
-2. **Live against backtest (1) — the 4h pins in the reference replay.**
+1. **Live against backtest (1) — the 4h pins in the reference replay.**
    Observation: since 2026-10-01 five of the bot's seven combinations are
    4h pins (donchian_breakout_4h and momentum_4h twice, turtle_breakout_4h
    once); section 343 left them out of the replay as immaterial while the
    1h book held 26 combinations. Hypothesis: with the 1h breakouts retired
    they are most of the traded book, and the replay reference changes by
    more than |t| = 2 once they are included.
+2. **Portfolio and position sizing (4) — the risk split between the 1h
+   momentum combinations and the 4h pins.** Observation: the live book now
+   holds two 1h momentum combinations and five 4h pins at the same 3 USD
+   risk per trade; the replay reference has 81 momentum closes in 2,188
+   days (daily SD 0.34 USD). Hypothesis: once item 1 prices the 4h pins,
+   sizing each part by its trailing-year replay expectancy (3 USD cap per
+   trade kept) earns more per calendar day than equal risk. Depends on
+   item 1.
 
 ## Levers already tested before this log existed
 
@@ -8503,3 +8504,33 @@ USD/day) no longer describe the traded book.
   keeps the quote-unit veto, no restart. The replay follows the bot, so
   the reference is now the momentum-only book (+0.003661 USD/day). Two
   new tests. Section 357.
+
+## 2026-10-02 — Brent against WTI, traded on the spread
+
+- **Category:** 2, new strategy families.
+- **Operation:** one bot/watchdog (24904 since 2026-09-30 09:00 UTC),
+  runtime checkout clean on `origin/main` (4078f60), evaluations failing
+  0, no HTTP 429; 7 combinations evaluated (strategy veto, section 357).
+  No intervention.
+- **Observation:** OIL_BRENT and OIL_CRUDE share the energy cluster and
+  both trade in the replay, but their spread was never traded; the
+  momentum-only book is flat on most days (81 closes in 2,188 days).
+- **Lever:** a spread book: enter at the first close with |z| >= 2 of
+  ln(Brent) - ln(WTI) against the previous 240 shared bars, exit at the
+  zero cross, 1.5 sd against, or after 24 bars; 3 USD per 1.5 sd per
+  leg (250 USD cap), both legs' spreads and nights charged, lowest
+  priority under OIL_BRENT's key. No other threshold, window or exit.
+- **Measurement:** `scripts/oil_spread_book.py`, cached seven-year weekly
+  walk-forward (section 357 reference), 387 spread trades: gross -0.026 R,
+  after spreads -0.233 R, after financing -0.305 R (t -6.85). OOS
+  [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | closes | spread closes / USD | USD | USD/calendar day | daily SD |
+  |---|---:|---|---:|---:|---:|
+  | current | 81 | 0 / 0 | +8.010153 | +0.003661 | 0.3409 |
+  | with spread book | 420 | 339 / -98.31 | -90.295623 | -0.041269 | 0.5509 |
+
+- **Result:** delta -0.044930 USD/day, pooled paired t -4.5479; 0/4
+  samples better (-0.0692, -0.0373, -0.0546, -0.0164).
+- **Decision:** rejected (VERDICT=DISCARD); no spread book, bot unchanged,
+  no restart. Three new tests. Section 358.
