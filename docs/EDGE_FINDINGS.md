@@ -13310,3 +13310,31 @@ Current: 81 closes, +8.010153 USD. Candidate: 77 closes, -14.845238 USD;
 daily SD 0.3409 → 0.3616, worst day -4.5385 → -2.9042. The doubled
 targets do not make up for the rest of the longer-held trades and their
 extra nights: the mean per signal halves. Rejected; the bot is unchanged.
+
+## 365. The replay's overnight rates against the account's SWAP entries: in line
+
+Since section 352 the replay charges each trade its instrument's and
+side's overnight rate (read 2026-09-29) on every 21:00 UTC rollover held.
+`scripts/swap_financing_calibration.py` puts that charge beside what the
+account booked, instrument by instrument and night by night, from
+2026-09-10 to 2026-10-03: every accepted, filled live position with a
+journaled USD risk (47), the replay's `night_charge` at its fill, stop
+distance and side times its USD risk per rollover held, against the
+account's SWAP entries (54, rounded to 0.01 EUR, converted at the last
+cached EURUSD close). Preregistered: every rate is scaled by the ratio of
+booked to predicted only if the per-(instrument, night) difference has
+|t| > 2.
+
+Over 54 instrument-nights the replay predicts +0.3784 USD of cost, the
+account booked +0.2757 USD (ratio 0.729). The per-night difference is
+-0.0019 USD (t -0.91). The largest gaps are credits the account paid on
+USDJPY (-0.0689 booked against +0.0164 predicted) and USDCHF (-0.0689
+against -0.0366), and a larger HK50 charge (+0.0804 against +0.0417);
+EURJPY's credit of 2026-09-16 offsets its two later charges. Scaled by
+0.729, the reference would read 83 closes, +8.347172 USD, +0.003815
+USD/day against +0.003661.
+
+At the account's 0.01 EUR rounding the replay's rates match what is
+booked; the financing model is unchanged. Together with section 362 the
+replay now matches live on fills, spread and financing over the rule
+period. Research only; the bot is unchanged.

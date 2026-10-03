@@ -14,7 +14,7 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 5, exits and holding). Closed: the momentum
+run's (last run: 1, live against backtest). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins (sections 225, 343, 359),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), the FX class removed or capped
@@ -26,8 +26,8 @@ the credited sides (section 351), flat before the weekend with financing
 weekend drift (sections 274, 315, 356), the strategy veto in USD (section
 357) or on a trailing window (section 360), the Brent-WTI spread
 (section 358), momentum's target at 2.5 R (section 361) or leash at 48 bars (section
-364), execution on the rule period
-(section 362). The 30-minute
+364), execution and financing on the rule
+period (sections 362, 365), the limit entry (section 117). The 30-minute
 book is not
 measurable: the broker serves 30m bars for about 1,000 days only (section
 353). The edge-scaling gate is not a
@@ -37,21 +37,22 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Live against backtest (1) — the replay's financing against the
-   account's SWAP entries.** Observation: on the rule period the account
-   booked -0.0019 R of financing per close (54 SWAP entries, -0.27 USD,
-   section 362), while the replay charges each instrument's 2026-09-29
-   rate on every rollover (section 352). Hypothesis: on the matched
-   rule-period closes the replay's charge differs from the account's by
-   more than |t| = 2, and the rates need recalibrating.
-2. **Execution and costs (6) — a limit entry at the signal price.**
-   Observation: on the rule period live fills land 0.0133 R behind the
-   signal price on average (41 matched closes, section 362); the replay
-   enters at the signal close. Hypothesis: with that slippage charged to
-   market entries, a limit order at the signal close valid for one bar
-   (filled only if the next bar trades back through it) earns more per
-   calendar day, the signals that run away unfilled costing less than
-   the slippage saved.
+1. **New strategy families (2) — a daily time-series momentum book.**
+   Observation: momentum is the only strategy with a positive replay
+   expectancy left (+0.0695 R over 768 out-of-sample signals, section
+   363), and admitting it everywhere raised three of four years; time-
+   series momentum was only ever measured as a direction filter (section
+   272), never as a signal of its own. Hypothesis: one position per
+   instrument in the sign of its 20-day return, re-decided at each daily
+   close, stop at the venue floor and the book's 3 USD risk, earns more
+   per calendar day added to the momentum-only book, its wider stops
+   paying less spread per R.
+2. **Portfolio and position sizing (4) — half the risk on the 4h pins.**
+   Observation: all five live 4h pins lose over seven years in the replay
+   (-48.27 USD over 269 closes, section 359) and make up five of the
+   bot's seven combinations; section 225 measured removing them, not
+   their share of the risk budget. Hypothesis: at 1.5 USD instead of 3 USD
+   per 4h trade the book earns more per calendar day.
 
 ## Levers already tested before this log existed
 
@@ -8718,3 +8719,27 @@ USD/day) no longer describe the traded book.
   samples better (-0.0293, -0.0179, +0.0013, 0).
 - **Decision:** rejected (VERDICT=DISCARD); leash and bot unchanged, no
   restart. Two new tests. Section 364.
+
+## 2026-10-03 (evening) — the replay's overnight rates against the account's SWAP entries
+
+- **Category:** 1, live against backtest.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), bot
+  idle under the holiday guard and the weekend, runtime checkout clean on
+  `origin/main` (9e729c4), evaluations failing 0, no HTTP 429. No
+  intervention.
+- **Plan item dropped:** a limit entry at the signal close was measured on
+  2026-09-09 (section 117: -0.006 R per signal, t -0.33) and is closed.
+- **Observation:** on the rule period the account booked 54 SWAP entries
+  for -0.27 USD (section 362) while the replay charges each instrument's
+  2026-09-29 rate per rollover; the two had never been compared night by
+  night.
+- **Lever:** per (instrument, night) from 2026-09-10, the replay's charge
+  for the 47 live positions against the account's SWAP entries.
+  Preregistered: rates scaled by booked/predicted only if |t| > 2.
+- **Measurement:** `scripts/swap_financing_calibration.py`; 54
+  instrument-nights, predicted cost +0.3784 USD, booked +0.2757 USD
+  (ratio 0.729), difference -0.0019 USD per night (t -0.91). Scaled
+  reference: 83 closes, +0.003815 against +0.003661 USD/day.
+- **Result:** the rates match the account at its 0.01 EUR rounding.
+- **Decision:** immaterial (VERDICT=IMMATERIAL); financing model,
+  reference and bot unchanged, no restart. Three new tests. Section 365.
