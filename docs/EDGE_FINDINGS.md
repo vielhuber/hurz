@@ -13245,6 +13245,6 @@ window, -0.0019 R per close. The calibrated replay would read 78 closes,
 On the rule period both hourly breakouts trade at break-even live, as the
 replay says they should, and the replay's spread charge still covers the
 entry slippage. The residual stays inside noise, so the cost model is
-unchanged. The live
-losses that retire donchian_breakout and turtle_breakout come from before
-2026-09-10 (section 357). Research only; the bot is unchanged.
+unchanged. The retirement of donchian_breakout and turtle_breakout rests
+on the veto's quote-currency weighting (section 357), not on the rule
+period's results. Research only; the bot is unchanged.
