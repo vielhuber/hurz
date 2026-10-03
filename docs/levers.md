@@ -14,8 +14,8 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 1, live against backtest). Closed: the momentum
-direction (sections 340, 342), the 4h pins (sections 225, 343, 359),
+run's (last run: 4, portfolio and position sizing). Closed: the momentum
+direction (sections 340, 342, 363), the 4h pins (sections 225, 343, 359),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
@@ -36,20 +36,19 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Portfolio and position sizing (4) — momentum's eligibility in the
-   momentum-only book.** Observation: of 870 priced momentum signals
-   (+0.045 R each) the reference book trades 81, none in its first year;
-   section 340 found momentum on every instrument displacing the
-   breakouts, which the veto has since removed. Hypothesis: with nothing
-   left to displace, admitting momentum on every instrument of the
-   universe earns more per calendar day than the ranked combinations.
-2. **Live against backtest (1) — the replay's financing against the
+1. **Live against backtest (1) — the replay's financing against the
    account's SWAP entries.** Observation: on the rule period the account
    booked -0.0019 R of financing per close (54 SWAP entries, -0.27 USD,
    section 362), while the replay charges each instrument's 2026-09-29
    rate on every rollover (section 352). Hypothesis: on the matched
    rule-period closes the replay's charge differs from the account's by
    more than |t| = 2, and the rates need recalibrating.
+2. **Exits and holding (5) — momentum's leash in the momentum-only
+   book.** Observation: a 2.5 R target is reached by 8 of 870 momentum
+   signals within the 24-bar leash against 67 at 1.5 R (section 361):
+   momentum's moves are slow, and the leash, fitted on the breakout book,
+   closes most of them. Hypothesis: on momentum alone a 48-bar leash
+   earns more per calendar day.
 
 ## Levers already tested before this log existed
 
@@ -8658,3 +8657,33 @@ USD/day) no longer describe the traded book.
   on the rule period, as the replay predicts.
 - **Decision:** immaterial (VERDICT=IMMATERIAL); cost model, reference
   and bot unchanged, no restart. One new test. Section 362.
+
+## 2026-10-03 (morning) — momentum on every instrument in the vetoed book
+
+- **Category:** 4, portfolio and position sizing.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), bot
+  idle under the holiday guard (2026-10-03) and the weekend, runtime
+  checkout clean on `origin/main` (deb51cf), evaluations failing 0, no
+  HTTP 429. No intervention.
+- **Observation:** of 870 priced momentum signals the momentum-only
+  reference trades 81; section 340 rejected momentum everywhere because
+  it displaced the breakouts, which the strategy veto has since retired
+  (section 357).
+- **Lever:** section 340's rule unchanged: every (momentum, instrument)
+  after the ranked list and the pins, respecting vetoes and exclusive
+  pins. Re-run of `scripts/momentum_everywhere.py` on today's vetoes.
+- **Measurement:** cached seven-year weekly walk-forward (section 357
+  reference), 768 OOS momentum signals at +0.0695 R. OOS [2020-09-23,
+  2026-09-20), 2,188 calendar days.
+
+  | arm | closes | USD | USD/calendar day | daily SD |
+  |---|---:|---:|---:|---:|
+  | ranked momentum (current) | 81 | +8.010153 | +0.003661 | 0.3409 |
+  | momentum everywhere | 592 | +93.518086 | +0.042741 | 1.0140 |
+
+- **Result:** delta +0.039080 USD/day, pooled paired t +2.0287; 3/4
+  samples better (+0.0921 at t +2.08, +0.0582, +0.0377, -0.0499). Worst
+  day -4.5385 → -7.6996 USD.
+- **Decision:** rejected by the four-sample rule (VERDICT=DISCARD);
+  selector and bot unchanged, no restart. No new code; the existing three
+  tests pass. Section 363.

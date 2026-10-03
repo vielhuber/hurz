@@ -13248,3 +13248,34 @@ entry slippage. The residual stays inside noise, so the cost model is
 unchanged. The retirement of donchian_breakout and turtle_breakout rests
 on the veto's quote-currency weighting (section 357), not on the rule
 period's results. Research only; the bot is unchanged.
+
+## 363. Momentum on every instrument in the vetoed book: t +2.03, three years of four
+
+Section 340 admitted momentum on every instrument of the universe after
+the ranked list and the pins and found it displacing as much breakout
+income as it added (+7.6 %, t +0.61). Since 2026-10-01 the strategy veto
+retires both hourly breakouts (section 357), so nothing is left to
+displace. `scripts/momentum_everywhere.py` reads today's vetoes and was
+re-run unchanged, its rules as fixed before section 340's measurement:
+every (momentum, instrument) joins the active order at lowest priority
+unless vetoed or reserved by an exclusive pin; caps, cooldowns, stops and
+sizing unchanged. Preregistered: built in only if all four samples are
+better and pooled paired t > +2.
+
+768 out-of-sample momentum signals at +0.0695 R each.
+
+| OOS interval (end exclusive) | days | ranked momentum USD/day | everywhere | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.130580 | +0.092080 | +2.0751 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | +0.046659 | +0.058226 | +1.7013 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | +0.040984 | +0.037695 | +1.1148 |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | -0.049927 | -0.049927 | -1.0852 |
+| pooled | 2,188 | +0.003661 | +0.042741 | +0.039080 | +2.0287 |
+
+Current: 81 closes, +8.010153 USD, daily SD 0.3409, worst day -4.5385.
+Everywhere: 592 closes, +93.518086 USD, daily SD 1.0140, worst day
+-7.6996; mean planned risk 2.30 USD against 2.35. The three later samples
+gain, the latest at t +2.08, but the first year (2020-09 to 2021-09) loses
+-0.050 USD a day where the ranked book did not trade at all. The pooled t
+clears +2, the four-sample rule does not: rejected; the selector and the
+bot are unchanged.
