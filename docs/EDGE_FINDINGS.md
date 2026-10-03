@@ -13211,3 +13211,40 @@ nothing in the first sample year and identical trades in the second: the
 selector ranks momentum in only when its trailing year qualifies. The wins that
 reach 1.5 R do not run on to 2.5 R within the leash. Rejected; the bot is
 unchanged.
+
+## 362. The rule period since 2026-09-10: execution matches the replay
+
+Section 337 matched live closes to the replay up to the end of the bar
+cache (2026-09-20), ten days into the rule period that began on
+2026-09-10. `scripts/rule_period_calibration.py` extends a separate copy of
+the cache to 2026-10-03 (+200 to +296 hourly bars per instrument; the
+seven-year reference keeps reading the unchanged cache) and repeats section
+337's execution split on the rule period: hourly donchian, turtle and
+momentum closes with a fill and a journaled planned risk, bar_time from
+2026-09-10. Preregistered: the pooled per-close residual (live result from
+the fill minus the replay's net result) is added to every replay trade
+only if its |t| exceeds 2.
+
+All 41 closes match their signal bar (none is momentum: its two live
+combinations closed nothing hourly in the window).
+
+| per matched close | pooled (41) | donchian (22) | turtle (19) |
+|---|---:|---:|---:|
+| live result from fill | +0.0015 | +0.0275 | -0.0287 |
+| replay net result | +0.0247 | +0.0706 | -0.0283 |
+| spread charged by the replay | +0.0143 | +0.0171 | +0.0110 |
+| entry slippage | -0.0133 | -0.0156 | -0.0105 |
+| exit difference | -0.0243 | -0.0445 | -0.0009 |
+| residual (live - replay net) | -0.0233 (t -0.52) | -0.0431 (t -0.51) | -0.0004 (t -0.03) |
+| realized USD | -0.03 | +2.80 | -2.83 |
+
+The account booked 54 SWAP entries for -0.2701 USD over 47 closes in the
+window, -0.0019 R per close. The calibrated replay would read 78 closes,
++6.790190 USD, +0.003103 USD/day against the reference's +0.003661.
+
+On the rule period both hourly breakouts trade at break-even live, as the
+replay says they should, and the replay's spread charge still covers the
+entry slippage. The residual stays inside noise, so the cost model is
+unchanged. The live
+losses that retire donchian_breakout and turtle_breakout come from before
+2026-09-10 (section 357). Research only; the bot is unchanged.

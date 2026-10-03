@@ -14,7 +14,7 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 5, exits and holding). Closed: the momentum
+run's (last run: 1, live against backtest). Closed: the momentum
 direction (sections 340, 342), the 4h pins (sections 225, 343, 359),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), the FX class removed or capped
@@ -25,7 +25,8 @@ the credited sides (section 351), flat before the weekend with financing
 (section 355), calendar books on the indices: overnight, cash session and
 weekend drift (sections 274, 315, 356), the strategy veto in USD (section
 357) or on a trailing window (section 360), the Brent-WTI spread
-(section 358), momentum's target at 2.5 R (section 361). The 30-minute
+(section 358), momentum's target at 2.5 R (section 361), execution on the rule period
+(section 362). The 30-minute
 book is not
 measurable: the broker serves 30m bars for about 1,000 days only (section
 353). The edge-scaling gate is not a
@@ -35,21 +36,20 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Live against backtest (1) — the rule period, strategy by strategy,
-   on an extended bar cache.** Observation: the live journal since
-   2026-09-10 holds 38 closes for +8.26 USD and fills 0.027 R behind the
-   signal price on average, but the bar cache ends 2026-09-20, ten days
-   into that period. Hypothesis: with the cache extended to the run's date
-   (a separate copy, so the seven-year reference stays comparable), the
-   replay matched by instrument, bar and direction reproduces each
-   strategy's live closes within slippage, spread and financing.
-2. **Portfolio and position sizing (4) — momentum's eligibility in the
+1. **Portfolio and position sizing (4) — momentum's eligibility in the
    momentum-only book.** Observation: of 870 priced momentum signals
    (+0.045 R each) the reference book trades 81, none in its first year;
    section 340 found momentum on every instrument displacing the
    breakouts, which the veto has since removed. Hypothesis: with nothing
    left to displace, admitting momentum on every instrument of the
    universe earns more per calendar day than the ranked combinations.
+2. **Live against backtest (1) — the replay's financing against the
+   account's SWAP entries.** Observation: on the rule period the account
+   booked -0.0019 R of financing per close (54 SWAP entries, -0.27 USD,
+   section 362), while the replay charges each instrument's 2026-09-29
+   rate on every rollover (section 352). Hypothesis: on the matched
+   rule-period closes the replay's charge differs from the account's by
+   more than |t| = 2, and the rates need recalibrating.
 
 ## Levers already tested before this log existed
 
@@ -8626,3 +8626,35 @@ USD/day) no longer describe the traded book.
   book closes nothing in the first sample year).
 - **Decision:** rejected (VERDICT=DISCARD); targets and bot unchanged, no
   restart. Two new tests. Section 361.
+
+## 2026-10-03 — the rule period since 2026-09-10 on an extended bar cache
+
+- **Category:** 1, live against backtest.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC); the bot
+  child restarted at 22:00 UTC as planned (weekend close and the bank
+  holiday of 2026-10-03, trading suspended by the holiday guard), runtime
+  checkout clean on `origin/main` (90f7388), evaluations failing 0, no
+  HTTP 429. No intervention.
+- **Observation:** live since 2026-09-10 38 closes for +8.26 USD with 0.027
+  R of entry slippage, but the bar cache ended 2026-09-20, ten days into
+  the rule period.
+- **Lever:** extend a separate copy of the bar cache to 2026-10-03 and
+  repeat section 337's execution split on the rule period, per strategy,
+  with the account's SWAP entries. Preregistered: the pooled residual is
+  added to every replay trade only if |t| > 2.
+- **Measurement:** `scripts/rule_period_calibration.py`; 41 hourly closes,
+  all matched (22 donchian, 19 turtle, no momentum).
+
+  | per close | pooled | donchian | turtle |
+  |---|---:|---:|---:|
+  | live from fill | +0.0015 | +0.0275 | -0.0287 |
+  | replay net | +0.0247 | +0.0706 | -0.0283 |
+  | residual (t) | -0.0233 (-0.52) | -0.0431 (-0.51) | -0.0004 (-0.03) |
+
+  Financing: 54 SWAP entries, -0.2701 USD over 47 closes, -0.0019 R per
+  close. Calibrated reference would read +0.003103 against +0.003661
+  USD/day.
+- **Result:** execution matches; both breakouts trade at break-even live
+  on the rule period, as the replay predicts.
+- **Decision:** immaterial (VERDICT=IMMATERIAL); cost model, reference
+  and bot unchanged, no restart. One new test. Section 362.
