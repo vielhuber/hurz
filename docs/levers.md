@@ -14,7 +14,7 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 4, portfolio and position sizing). Closed: the momentum
+run's (last run: 5, exits and holding). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins (sections 225, 343, 359),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), the FX class removed or capped
@@ -25,7 +25,8 @@ the credited sides (section 351), flat before the weekend with financing
 (section 355), calendar books on the indices: overnight, cash session and
 weekend drift (sections 274, 315, 356), the strategy veto in USD (section
 357) or on a trailing window (section 360), the Brent-WTI spread
-(section 358), momentum's target at 2.5 R (section 361), execution on the rule period
+(section 358), momentum's target at 2.5 R (section 361) or leash at 48 bars (section
+364), execution on the rule period
 (section 362). The 30-minute
 book is not
 measurable: the broker serves 30m bars for about 1,000 days only (section
@@ -43,12 +44,14 @@ USD/day) no longer describe the traded book.
    rate on every rollover (section 352). Hypothesis: on the matched
    rule-period closes the replay's charge differs from the account's by
    more than |t| = 2, and the rates need recalibrating.
-2. **Exits and holding (5) — momentum's leash in the momentum-only
-   book.** Observation: a 2.5 R target is reached by 8 of 870 momentum
-   signals within the 24-bar leash against 67 at 1.5 R (section 361):
-   momentum's moves are slow, and the leash, fitted on the breakout book,
-   closes most of them. Hypothesis: on momentum alone a 48-bar leash
-   earns more per calendar day.
+2. **Execution and costs (6) — a limit entry at the signal price.**
+   Observation: on the rule period live fills land 0.0133 R behind the
+   signal price on average (41 matched closes, section 362); the replay
+   enters at the signal close. Hypothesis: with that slippage charged to
+   market entries, a limit order at the signal close valid for one bar
+   (filled only if the next bar trades back through it) earns more per
+   calendar day, the signals that run away unfilled costing less than
+   the slippage saved.
 
 ## Levers already tested before this log existed
 
@@ -8687,3 +8690,31 @@ USD/day) no longer describe the traded book.
 - **Decision:** rejected by the four-sample rule (VERDICT=DISCARD);
   selector and bot unchanged, no restart. No new code; the existing three
   tests pass. Section 363.
+
+## 2026-10-03 (afternoon) — momentum's leash at 48 bars in the momentum-only book
+
+- **Category:** 5, exits and holding.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), bot
+  idle under the holiday guard and the weekend, runtime checkout clean on
+  `origin/main` (73db0e1), evaluations failing 0, no HTTP 429. No
+  intervention.
+- **Plan order:** the financing comparison (category 1) moved one run
+  back: exits are among the rarest categories since 2026-09-12.
+- **Observation:** within the 24-bar leash a 2.5 R target is reached by 8
+  of 870 momentum signals against 67 at 1.5 R (section 361).
+- **Lever:** momentum's signals priced with a 48-bar leash; everything
+  else unchanged. No other leash, no diagnostic arm.
+- **Measurement:** `scripts/momentum_leash.py`, cached seven-year weekly
+  walk-forward (section 357 reference), 870 momentum signals: mean
+  +0.0450 R → +0.0233 R, targets 67 → 144, mean hold 32.2 h → 58.7 h. OOS
+  [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | closes | USD | USD/calendar day | daily SD |
+  |---|---:|---:|---:|---:|
+  | 24 bars (current) | 81 | +8.010153 | +0.003661 | 0.3409 |
+  | 48 bars | 77 | -14.845238 | -0.006785 | 0.3616 |
+
+- **Result:** delta -0.010446 USD/day, pooled paired t -1.2976; 1/4
+  samples better (-0.0293, -0.0179, +0.0013, 0).
+- **Decision:** rejected (VERDICT=DISCARD); leash and bot unchanged, no
+  restart. Two new tests. Section 364.

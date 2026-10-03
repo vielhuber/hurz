@@ -13279,3 +13279,34 @@ gain, the latest at t +2.08, but the first year (2020-09 to 2021-09) loses
 -0.050 USD a day where the ranked book did not trade at all. The pooled t
 clears +2, the four-sample rule does not: rejected; the selector and the
 bot are unchanged.
+
+## 364. Momentum's leash at 48 bars: more targets, less per trade
+
+Momentum is the only hourly strategy the bot still trades (section 357)
+and runs the 24-bar leash fitted on the breakout book. Within it a 2.5 R
+target is reached by 8 of 870 signals against 67 at 1.5 R (section 361),
+which suggested slow moves cut short by the leash.
+
+`scripts/momentum_leash.py` prices momentum's signals with a 48-bar leash
+and leaves everything else as it is (stop, 1.5 R target, costs, financing
+per rollover held, sizing; the other strategies keep 24 bars). Both arms
+read today's vetoes. Preregistered: built in as `momentum: 48` in
+`holding_period._STRATEGY_MAX_HOLD_BARS` only if all four samples are
+better and pooled paired t > +2; no other leash.
+
+Over all 870 priced momentum signals the mean falls from +0.0450 R to
++0.0233 R although the targets reached double (67 → 144); the mean hold
+grows from 32.2 to 58.7 hours.
+
+| OOS interval (end exclusive) | days | 24 bars USD/day | 48 bars | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.009198 | -0.029302 | -1.2190 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | -0.029481 | -0.017914 | -0.9859 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | +0.004546 | +0.001256 | +0.1210 |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | 0 | 0 | – |
+| pooled | 2,188 | +0.003661 | -0.006785 | -0.010446 | -1.2976 |
+
+Current: 81 closes, +8.010153 USD. Candidate: 77 closes, -14.845238 USD;
+daily SD 0.3409 → 0.3616, worst day -4.5385 → -2.9042. The extra targets
+are paid for by the trades that give back their open gain over the
+second day and by the extra nights. Rejected; the bot is unchanged.
