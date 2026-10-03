@@ -13307,6 +13307,6 @@ grows from 32.2 to 58.7 hours.
 | pooled | 2,188 | +0.003661 | -0.006785 | -0.010446 | -1.2976 |
 
 Current: 81 closes, +8.010153 USD. Candidate: 77 closes, -14.845238 USD;
-daily SD 0.3409 → 0.3616, worst day -4.5385 → -2.9042. The extra targets
-are paid for by the trades that give back their open gain over the
-second day and by the extra nights. Rejected; the bot is unchanged.
+daily SD 0.3409 → 0.3616, worst day -4.5385 → -2.9042. The doubled
+targets do not make up for the rest of the longer-held trades and their
+extra nights: the mean per signal halves. Rejected; the bot is unchanged.
