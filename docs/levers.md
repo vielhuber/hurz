@@ -14,8 +14,9 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 2, new strategy families). Closed: the momentum
-direction (sections 340, 342, 363), the 4h pins (sections 225, 343, 359),
+run's (last run: 4, portfolio and position sizing). Closed: the momentum
+direction (sections 340, 342, 363), the 4h pins removed, booked or at
+half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
@@ -39,27 +40,27 @@ USD/day) no longer describe the traded book.
 
 Build in progress (section 366, VERDICT=BUILD), one step per run beside
 that run's lever, the bot untouched until the last step:
-  a. each instrument's daily session close from the broker's trading
-     hours, so a live bar can be known as the day's last;
-  b. a `tsmom` strategy (20-day sign at the daily close) with no target
-     (far backstop) and no leash, and an exit when the sign changes;
+  a. done 2026-10-04: `session_close.py` names each instrument's last
+     hourly bar of the UTC day from Capital.com's `openingHours`;
+  b. a `tsmom` strategy (20-day sign at that bar) with no target (far
+     backstop) and no leash, and an exit when the sign changes;
   c. the tsmom combinations appended to the active list after ranked list
-     and pins in alphabetical order, exempt from the ADX router;
+     and pins in alphabetical order, exempt from the ADX router, the
+     opening hours fetched once a day;
   d. replay the built code path against `scripts/daily_tsmom_book.py`,
      deploy, restart, verify the first daily-close decisions in the log.
 
-1. **Portfolio and position sizing (4) — half the risk on the 4h pins.**
-   Observation: all five live 4h pins lose over seven years in the replay
-   (-48.27 USD over 269 closes, section 359) and make up five of the
-   bot's seven combinations; section 225 measured removing them, not
-   their share of the risk budget. Hypothesis: at 1.5 USD instead of 3 USD
-   per 4h trade the book earns more per calendar day.
-2. **Live against backtest (1) — the session closes behind the replay's
+1. **Live against backtest (1) — the session closes behind the replay's
    daily bars.** Observation: section 366 takes each instrument's last
-   cached hourly bar of the UTC day as its close; build step a reads the
-   broker's hours. Hypothesis: on the instruments whose broker close falls
-   on another hour, the replay's tsmom result changes by more than
-   |t| = 2.
+   cached hourly bar of the UTC day as its close; the broker's hours put
+   it at 23:00 on most weekdays and 20:00 on Fridays (section 367).
+   Hypothesis: on the bars where the cache's last bar and the broker's
+   close differ, the replay's tsmom result changes by more than |t| = 2.
+2. **Exits and holding (5) — tsmom's stop on the daily range.**
+   Observation: 1,924 of 5,137 tsmom trades end at the stop after a mean
+   hold of 9.6 days (section 366); the stop comes from the hourly ATR and
+   the venue floor while the signal is daily. Hypothesis: a stop at two
+   daily ATRs, risk per trade unchanged, raises the tsmom book's gain.
 
 ## Levers already tested before this log existed
 
@@ -8783,3 +8784,33 @@ that run's lever, the bot untouched until the last step:
   bot cannot tell a daily close from the bars alone, so the build is split
   into steps (plan). Risk named: daily SD 0.34 → 6.85 USD at unchanged
   per-trade risk and caps. Two new tests. Section 366.
+
+## 2026-10-04 (morning) — half the risk on the 4h pins
+
+- **Category:** 4, portfolio and position sizing.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), crypto
+  evaluations running (7 combinations, failing 0), no HTTP 429, runtime
+  checkout clean on `origin/main` (be72fcf). No intervention.
+- **Observation:** all five live 4h pins lose over seven years (-48.27
+  USD, section 359) and are five of the bot's seven combinations; only
+  their removal was ever measured (section 225).
+- **Lever:** the 4h pins sized at 1.5 USD instead of 3 USD target risk;
+  the hourly book unchanged. No other value, no diagnostic arm.
+- **Measurement:** `scripts/half_risk_four_hour_pins.py`, cached
+  seven-year weekly walk-forward with the financed 4h pins of section 359
+  in both arms; 561 → 525 4h signals that fit the minimum size. OOS
+  [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | closes | 4h closes / USD | USD | USD/calendar day | daily SD |
+  |---|---:|---|---:|---:|---:|
+  | 3 USD on 4h (current) | 350 | 269 / -48.27 | -40.261733 | -0.018401 | 0.9199 |
+  | 1.5 USD on 4h | 337 | 256 / -28.61 | -20.596940 | -0.009414 | 0.5225 |
+
+- **Result:** delta +0.008988 USD/day, pooled paired t +0.8382; 3/4
+  samples better (-0.0394, +0.0257, +0.0127, +0.0167): the latest year,
+  where the pins earn, is worse.
+- **Decision:** rejected (VERDICT=DISCARD); sizing and bot unchanged, no
+  restart. One new test. Section 367.
+- **Build step a (section 366) done:** `app/spot_trading/session_close.py`
+  names each instrument's last hourly bar of the UTC day from Capital.com's
+  `openingHours`; four new tests. Not wired into the bot.

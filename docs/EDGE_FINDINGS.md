@@ -13389,3 +13389,36 @@ the bars alone; the build needs each instrument's session close from the
 broker's trading hours, an exit on a changed sign, the tsmom combinations
 appended to the active list in the measured order, a bypass of the ADX
 router and a far target and leash. Built in steps; see the lever log.
+
+## 367. Half the risk on the 4h pins: three years of four
+
+All five live 4h pins lose over seven years in the replay (section 359)
+and make up five of the bot's seven combinations. Section 225 measured
+removing them; their share of the risk budget had not been measured.
+`scripts/half_risk_four_hour_pins.py` books them in both arms as in
+section 359 (financing per rollover, after the hourly pins, every cap and
+cooldown shared) and sizes the candidate's 4h trades at 1.5 USD instead
+of 3 USD through the same `calculate_position_size`; 36 of 561 4h
+signals no longer fit the venue's minimum size and are not taken.
+Preregistered: built in only if all four samples are better and pooled
+paired t > +2; no other risk value.
+
+| OOS interval (end exclusive) | days | 3 USD on 4h USD/day | 1.5 USD | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.081786 | +0.042388 | -0.039398 | -1.2921 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.055916 | -0.030222 | +0.025694 | +1.4423 |
+| 2021-09-21 – 2023-09-21 | 730 | -0.030293 | -0.017631 | +0.012661 | +0.6918 |
+| 2020-09-23 – 2021-09-21 | 363 | -0.019784 | -0.003129 | +0.016655 | +0.6818 |
+| pooled | 2,188 | -0.018401 | -0.009414 | +0.008988 | +0.8382 |
+
+3 USD: 350 closes, 269 4h for -48.27 USD (mean risk 2.64 USD), -40.261733
+USD. 1.5 USD: 337 closes, 256 4h for -28.61 USD (mean risk 1.22 USD),
+-20.596940 USD; daily SD 0.9199 → 0.5225, worst day -5.7750 → -4.5385.
+Halving cuts the loss in the three older years and half the gain of the
+latest, where the pins earn. Rejected; the bot is unchanged.
+
+Build step a of section 366 is done: `app/spot_trading/session_close.py`
+reads Capital.com's `openingHours` (UTC) and names the start hour of an
+instrument's last hourly bar of the day (23:00 on days trading into
+midnight, 20:00 on Fridays ending at 21:00 or 20:59:50, none on closed
+days). Not wired into the bot yet.
