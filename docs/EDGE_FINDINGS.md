@@ -13456,3 +13456,33 @@ decision of a few hundred days by an hour or a session flips one sample,
 which is how thin section 366's pass was. The build stops before any
 step reached the bot; `session_close.py` stays as the research scripts'
 reader of the broker's hours and is not used by the bot.
+
+## 369. Momentum's exit on its own reverse cross: one year of four
+
+Momentum enters when EMA(10) crosses EMA(30) in the direction of the
+10-bar rate of change and is the only hourly strategy the bot still
+trades (section 357). It leaves at the stop, the 1.5 R target or the
+24-bar leash; the adverse EMA(12)/EMA(26) exit of 2026-09-22 was
+measured on the breakout-dominated book. `scripts/momentum_cross_exit.py`
+also closes a momentum trade at the first close where EMA(10) is back on
+the wrong side of EMA(30); a gap, stop or target on that bar keeps
+priority, the leash stays, financing per rollover held. The other
+strategies' trades are untouched; both arms read today's vetoes.
+Preregistered: built in only if all four samples are better and pooled
+paired t > +2; no other cross.
+
+306 of 870 momentum signals leave on the reverse cross; the mean falls
+from +0.0450 R to +0.0414 R.
+
+| OOS interval (end exclusive) | days | current USD/day | cross exit | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.035097 | -0.003403 | -0.2580 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | +0.003290 | +0.014856 | +1.7712 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | -0.000447 | -0.003737 | -1.8123 |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | 0 | 0 | – |
+| pooled | 2,188 | +0.003661 | +0.006803 | +0.003142 | +0.8661 |
+
+Current: 81 closes, +8.010153 USD. Cross exit: 84 closes, +14.885194 USD;
+daily SD 0.3409 → 0.3257, worst day -4.5385 → -3.1536. A third of the
+crosses reverse within the leash, and leaving on the reversal gives back
+as much as it saves. Rejected; the bot is unchanged.

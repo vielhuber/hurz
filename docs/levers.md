@@ -14,7 +14,7 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 1, live against backtest). Closed: the momentum
+run's (last run: 5, exits and holding). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
@@ -26,8 +26,8 @@ the credited sides (section 351), flat before the weekend with financing
 (section 355), calendar books on the indices: overnight, cash session and
 weekend drift (sections 274, 315, 356), the strategy veto in USD (section
 357) or on a trailing window (section 360), the Brent-WTI spread
-(section 358), momentum's target at 2.5 R (section 361) or leash at 48 bars (section
-364), execution and financing on the rule
+(section 358), momentum's target at 2.5 R (section 361), leash at 48 bars (section
+364) or exit on its reverse cross (section 369), execution and financing on the rule
 period (sections 362, 365), the limit entry (section 117), daily
 time-series momentum (sections 366, 368: passed on the cache's daily
 closes, failed on the broker's). The 30-minute
@@ -40,21 +40,18 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Exits and holding (5) — momentum's exit on the reverse EMA cross.**
-   Observation: momentum enters on the EMA(10)/EMA(30) cross and is now
-   the only hourly strategy (section 357); its 870 signals average
-   +0.045 R and leave at the 24-bar leash or the 1.5 R target, neither of
-   which reads the cross it entered on; the adverse EMA(12)/EMA(26) exit
-   of 2026-09-22 was measured on the breakout book. Hypothesis: closing a
-   momentum trade when its own cross reverses earns more per calendar day
-   in the momentum-only book.
-2. **Universe and timeframes (3) — crypto momentum past the 3-ATR floor in
+1. **Universe and timeframes (3) — crypto momentum past the 3-ATR floor in
    the momentum-only book.** Observation: the floor refuses most crypto
    signals (section 355), and BTCUSD's trends carried section 366's
    tsmom result (+1.77 R per trade in the weeks the floor let through);
    section 355 lifted the floor for every crypto signal of the breakout
    book. Hypothesis: lifting it for momentum alone, in the book that is
    left, raises the daily gain.
+2. **Execution and costs (6) — momentum's entry one bar after the cross.**
+   Observation: 306 of 870 momentum trades see their EMA cross reverse
+   within the 24-bar leash (section 369). Hypothesis: entering at the
+   close of the bar after the cross, only if the cross still holds, skips
+   enough false crosses to pay for the later entry.
 
 ## Levers already tested before this log existed
 
@@ -8835,3 +8832,31 @@ USD/day) no longer describe the traded book.
   the four-sample rule fails.
 - **Decision:** the build of section 366 stops (BUILD_CHECK=FAIL); no
   tsmom strategy, bot unchanged, no restart. Two new tests. Section 368.
+
+## 2026-10-04 (evening) — momentum's exit on its own reverse cross
+
+- **Category:** 5, exits and holding.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), crypto
+  evaluations running (failing 0), no HTTP 429, runtime checkout clean on
+  `origin/main` (e303347). No intervention.
+- **Observation:** momentum enters on its EMA(10)/EMA(30) cross and is the
+  only hourly strategy left; its exits never read that cross, and the
+  adverse-cross exit of 2026-09-22 was measured on the breakout book with
+  EMA(12)/EMA(26).
+- **Lever:** close a momentum trade at the first close where EMA(10) is
+  back on the wrong side of EMA(30); gap, stop and target keep priority,
+  leash unchanged. No other cross, no diagnostic arm.
+- **Measurement:** `scripts/momentum_cross_exit.py`, cached seven-year
+  weekly walk-forward (section 357 reference); 306 of 870 momentum signals
+  leave on the cross, mean +0.0450 → +0.0414 R. OOS [2020-09-23,
+  2026-09-20), 2,188 calendar days.
+
+  | arm | closes | USD | USD/calendar day | daily SD |
+  |---|---:|---:|---:|---:|
+  | current exits | 81 | +8.010153 | +0.003661 | 0.3409 |
+  | reverse-cross exit | 84 | +14.885194 | +0.006803 | 0.3257 |
+
+- **Result:** delta +0.003142 USD/day, pooled paired t +0.8661; 1/4
+  samples better (-0.0034, +0.0149, -0.0037, 0).
+- **Decision:** rejected (VERDICT=DISCARD); exits and bot unchanged, no
+  restart. Three new tests. Section 369.
