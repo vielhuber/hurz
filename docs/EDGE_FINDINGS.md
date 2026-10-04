@@ -13422,3 +13422,37 @@ reads Capital.com's `openingHours` (UTC) and names the start hour of an
 instrument's last hourly bar of the day (23:00 on days trading into
 midnight, 20:00 on Fridays ending at 21:00 or 20:59:50, none on closed
 days). Not wired into the bot yet.
+
+## 368. The tsmom book on the broker's session closes: the build stops
+
+Section 366 decides at each instrument's last cached hourly bar of the UTC
+day; live, the bot could only know the day's last bar from Capital.com's
+`openingHours` (section 367: 23:00 UTC on days trading into midnight,
+20:00 on Fridays). `scripts/tsmom_session_closes.py` reruns section 366's
+book with the decision at the bar whose start hour is the instrument's
+`last_bar_hour` for that weekday, read once from today's hours and held
+fixed over seven years (a day missing that bar has no decision).
+Preregistered: the build follows the broker's closes if the two books
+differ by pooled |t| > 2; and against the momentum-only reference the
+broker-close book must still pass the four-sample rule, or the build of
+section 366 stops.
+
+4,942 tsmom trades on the broker's closes (mean -0.0032 R) against 5,137
+on the cache's (-0.0037 R).
+
+| OOS interval (end exclusive) | days | reference USD/day | cache closes | broker closes | broker - reference (t) |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.540550 | +0.534800 | +0.496300 (+1.42) |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | +0.483098 | +0.596001 | +0.607567 (+2.04) |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | +0.066345 | -0.111442 | -0.114731 (-0.73) |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | +0.428194 | +0.367594 | +0.367594 (+0.87) |
+| pooled | 2,188 | +0.003661 | +0.344528 | +0.311868 | +0.308207 (+2.12) |
+
+Broker against cache closes: delta -0.032661 USD/day, t -0.5497, 1/4
+samples better (CALIBRATION=IMMATERIAL). Broker closes against the
+reference: 3/4 samples better, pooled t +2.1248 (BUILD_CHECK=FAIL); the
+2021-2023 sample turns from +0.066 to -0.111 USD a day. Moving the
+decision of a few hundred days by an hour or a session flips one sample,
+which is how thin section 366's pass was. The build stops before any
+step reached the bot; `session_close.py` stays as the research scripts'
+reader of the broker's hours and is not used by the bot.

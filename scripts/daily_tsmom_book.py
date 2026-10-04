@@ -59,13 +59,14 @@ def daily_closes(ts):
     return np.flatnonzero(np.r_[day[1:] != day[:-1], True])
 
 
-def tsmom_signals(frames, floor, meta):
+def tsmom_signals(frames, floor, meta, decision_bars=None):
+    """Tsmom trades; `decision_bars(pair, ts)` names the daily-close bars, by default each day's last."""
     out = []
     for pair, df in frames.items():
         ts = df["timestamp"].values
         O, H, L, C = (df[column].values for column in ("open", "high", "low", "close"))
         n = len(df)
-        last = daily_closes(ts)
+        last = decision_bars(pair, ts) if decision_bars else daily_closes(ts)
         day_of = np.full(n, -1); day_of[last] = np.arange(len(last))
         sign = lambda k: int(np.sign(C[last[k]] - C[last[k - LOOKBACK]]))
         k = LOOKBACK

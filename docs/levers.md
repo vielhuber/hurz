@@ -14,7 +14,7 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 4, portfolio and position sizing). Closed: the momentum
+run's (last run: 1, live against backtest). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
@@ -28,7 +28,9 @@ weekend drift (sections 274, 315, 356), the strategy veto in USD (section
 357) or on a trailing window (section 360), the Brent-WTI spread
 (section 358), momentum's target at 2.5 R (section 361) or leash at 48 bars (section
 364), execution and financing on the rule
-period (sections 362, 365), the limit entry (section 117). The 30-minute
+period (sections 362, 365), the limit entry (section 117), daily
+time-series momentum (sections 366, 368: passed on the cache's daily
+closes, failed on the broker's). The 30-minute
 book is not
 measurable: the broker serves 30m bars for about 1,000 days only (section
 353). The edge-scaling gate is not a
@@ -38,29 +40,21 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-Build in progress (section 366, VERDICT=BUILD), one step per run beside
-that run's lever, the bot untouched until the last step:
-  a. done 2026-10-04: `session_close.py` names each instrument's last
-     hourly bar of the UTC day from Capital.com's `openingHours`;
-  b. a `tsmom` strategy (20-day sign at that bar) with no target (far
-     backstop) and no leash, and an exit when the sign changes;
-  c. the tsmom combinations appended to the active list after ranked list
-     and pins in alphabetical order, exempt from the ADX router, the
-     opening hours fetched once a day;
-  d. replay the built code path against `scripts/daily_tsmom_book.py`,
-     deploy, restart, verify the first daily-close decisions in the log.
-
-1. **Live against backtest (1) — the session closes behind the replay's
-   daily bars.** Observation: section 366 takes each instrument's last
-   cached hourly bar of the UTC day as its close; the broker's hours put
-   it at 23:00 on most weekdays and 20:00 on Fridays (section 367).
-   Hypothesis: on the bars where the cache's last bar and the broker's
-   close differ, the replay's tsmom result changes by more than |t| = 2.
-2. **Exits and holding (5) — tsmom's stop on the daily range.**
-   Observation: 1,924 of 5,137 tsmom trades end at the stop after a mean
-   hold of 9.6 days (section 366); the stop comes from the hourly ATR and
-   the venue floor while the signal is daily. Hypothesis: a stop at two
-   daily ATRs, risk per trade unchanged, raises the tsmom book's gain.
+1. **Exits and holding (5) — momentum's exit on the reverse EMA cross.**
+   Observation: momentum enters on the EMA(10)/EMA(30) cross and is now
+   the only hourly strategy (section 357); its 870 signals average
+   +0.045 R and leave at the 24-bar leash or the 1.5 R target, neither of
+   which reads the cross it entered on; the adverse EMA(12)/EMA(26) exit
+   of 2026-09-22 was measured on the breakout book. Hypothesis: closing a
+   momentum trade when its own cross reverses earns more per calendar day
+   in the momentum-only book.
+2. **Universe and timeframes (3) — crypto momentum past the 3-ATR floor in
+   the momentum-only book.** Observation: the floor refuses most crypto
+   signals (section 355), and BTCUSD's trends carried section 366's
+   tsmom result (+1.77 R per trade in the weeks the floor let through);
+   section 355 lifted the floor for every crypto signal of the breakout
+   book. Hypothesis: lifting it for momentum alone, in the book that is
+   left, raises the daily gain.
 
 ## Levers already tested before this log existed
 
@@ -8814,3 +8808,30 @@ that run's lever, the bot untouched until the last step:
 - **Build step a (section 366) done:** `app/spot_trading/session_close.py`
   names each instrument's last hourly bar of the UTC day from Capital.com's
   `openingHours`; four new tests. Not wired into the bot.
+
+## 2026-10-04 (afternoon) — the tsmom book on the broker's session closes — BUILD STOPPED
+
+- **Category:** 1, live against backtest.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), crypto
+  evaluations running (failing 0), no HTTP 429, runtime checkout clean on
+  `origin/main` (1535d77). No intervention.
+- **Observation:** section 366 decides at the last cached bar of the UTC
+  day; the bot would decide at the broker's session close (section 367).
+- **Lever:** section 366's book with the daily-close bar taken from
+  today's `openingHours`. Preregistered: calibrate if |t| > 2 against the
+  cache-close book; stop the build if the broker-close book fails the
+  four-sample rule against the momentum-only reference.
+- **Measurement:** `scripts/tsmom_session_closes.py`, cached seven-year
+  weekly walk-forward; 4,942 broker-close tsmom trades (-0.0032 R).
+
+  | arm | closes | USD | USD/calendar day |
+  |---|---:|---:|---:|
+  | momentum only (reference) | 81 | +8.010153 | +0.003661 |
+  | tsmom on cache closes (section 366) | 1,538 | +753.828000 | +0.344528 |
+  | tsmom on broker closes | 1,527 | +682.366461 | +0.311868 |
+
+- **Result:** broker against cache t -0.5497 (immaterial); broker against
+  reference 3/4 samples (+0.4963, +0.6076, -0.1147, +0.3676), t +2.1248:
+  the four-sample rule fails.
+- **Decision:** the build of section 366 stops (BUILD_CHECK=FAIL); no
+  tsmom strategy, bot unchanged, no restart. Two new tests. Section 368.
