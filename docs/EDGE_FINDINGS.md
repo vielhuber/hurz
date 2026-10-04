@@ -13338,3 +13338,54 @@ At the account's 0.01 EUR rounding the replay's rates match what is
 booked; the financing model is unchanged. Together with section 362 the
 replay now matches live on fills, spread and financing over the rule
 period. Research only; the bot is unchanged.
+
+## 366. Daily time-series momentum beside the momentum-only book: passes, on BTCUSD
+
+Momentum is the only strategy with a positive replay expectancy left
+(section 363). Time-series momentum had only been measured as a direction
+filter (section 272). `scripts/daily_tsmom_book.py` trades it as a source
+of its own: at each instrument's daily close (its last hourly bar of the
+UTC day) one position in the sign of the close against the close 20 daily
+closes earlier, through `trade_terms` (3-ATR floor, venue minimum stop,
+cost ceiling, 3 USD risk, 250 USD notional cap), no target, exit at the
+first later daily close whose sign differs or at the stop, each rollover
+charged at the instrument's own rate; the next daily close decides again.
+The tsmom combinations join the active order after the ranked list and the
+pins, in alphabetical order, sharing every cap and cooldown.
+Preregistered: built in only if all four samples are better and pooled
+paired t > +2; no other lookback.
+
+5,137 tsmom trades in the history: mean -0.0037 R (t -0.10), 1,924
+stopped, 9.6 days mean hold.
+
+| OOS interval (end exclusive) | days | momentum-only USD/day | with tsmom | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.540550 | +0.502050 | +1.4372 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | +0.483098 | +0.494664 | +1.6674 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | +0.066345 | +0.063055 | +0.3743 |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | +0.428194 | +0.428194 | +0.9859 |
+| pooled | 2,188 | +0.003661 | +0.344528 | +0.340867 | +2.3230 |
+
+Current: 81 closes, +8.010153 USD, daily SD 0.3409, worst day -4.5385.
+With tsmom: 1,538 closes (1,527 tsmom for +746.26 USD), +753.828000 USD,
+daily SD 6.8533, worst day -9.7285. The rule passes (VERDICT=BUILD).
+
+Where the gain comes from. Over the 4,441 out-of-sample tsmom trades the
+mean is -0.0203 R (-100.31 USD); the 1,528 the book admits average +0.1834
+R (+743.56 USD), the 2,913 it cannot admit -0.1272 R. By instrument the
+out-of-sample trades lose on 19 of 27 and win on BTCUSD (118 trades,
++1.774 R each, +545.2 USD), COPPER (+88.3), GOLD (+77.7), ETHUSD (+53.5),
+USDJPY (+51.8), SILVER (+26.0), HK50, EURUSD and OIL_CRUDE. With eight
+concurrent slots and 27 instruments always in the market, the book
+admits a combination when a slot is free, and the alphabetical order puts
+BTCUSD third. The pass rests on BTCUSD's trends under a 1.05 % stop (the
+3-ATR floor lets it through only in quiet weeks) and on that order.
+
+The risk changes: the daily SD rises twenty-fold and the worst day from
+-4.54 to -9.73 USD, at unchanged risk per trade, caps and stops.
+
+Live the bot cannot know a bar is its instrument's last of the day from
+the bars alone; the build needs each instrument's session close from the
+broker's trading hours, an exit on a changed sign, the tsmom combinations
+appended to the active list in the measured order, a bypass of the ADX
+router and a far target and leash. Built in steps; see the lever log.

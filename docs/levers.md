@@ -14,7 +14,7 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 1, live against backtest). Closed: the momentum
+run's (last run: 2, new strategy families). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins (sections 225, 343, 359),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), the FX class removed or capped
@@ -37,22 +37,29 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **New strategy families (2) — a daily time-series momentum book.**
-   Observation: momentum is the only strategy with a positive replay
-   expectancy left (+0.0695 R over 768 out-of-sample signals, section
-   363), and admitting it everywhere raised three of four years; time-
-   series momentum was only ever measured as a direction filter (section
-   272), never as a signal of its own. Hypothesis: one position per
-   instrument in the sign of its 20-day return, re-decided at each daily
-   close, stop at the venue floor and the book's 3 USD risk, earns more
-   per calendar day added to the momentum-only book, its wider stops
-   paying less spread per R.
-2. **Portfolio and position sizing (4) — half the risk on the 4h pins.**
+Build in progress (section 366, VERDICT=BUILD), one step per run beside
+that run's lever, the bot untouched until the last step:
+  a. each instrument's daily session close from the broker's trading
+     hours, so a live bar can be known as the day's last;
+  b. a `tsmom` strategy (20-day sign at the daily close) with no target
+     (far backstop) and no leash, and an exit when the sign changes;
+  c. the tsmom combinations appended to the active list after ranked list
+     and pins in alphabetical order, exempt from the ADX router;
+  d. replay the built code path against `scripts/daily_tsmom_book.py`,
+     deploy, restart, verify the first daily-close decisions in the log.
+
+1. **Portfolio and position sizing (4) — half the risk on the 4h pins.**
    Observation: all five live 4h pins lose over seven years in the replay
    (-48.27 USD over 269 closes, section 359) and make up five of the
    bot's seven combinations; section 225 measured removing them, not
    their share of the risk budget. Hypothesis: at 1.5 USD instead of 3 USD
    per 4h trade the book earns more per calendar day.
+2. **Live against backtest (1) — the session closes behind the replay's
+   daily bars.** Observation: section 366 takes each instrument's last
+   cached hourly bar of the UTC day as its close; build step a reads the
+   broker's hours. Hypothesis: on the instruments whose broker close falls
+   on another hour, the replay's tsmom result changes by more than
+   |t| = 2.
 
 ## Levers already tested before this log existed
 
@@ -8743,3 +8750,36 @@ USD/day) no longer describe the traded book.
 - **Result:** the rates match the account at its 0.01 EUR rounding.
 - **Decision:** immaterial (VERDICT=IMMATERIAL); financing model,
   reference and bot unchanged, no restart. Three new tests. Section 365.
+
+## 2026-10-04 — daily time-series momentum beside the momentum-only book — BUILD VERDICT
+
+- **Category:** 2, new strategy families.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), crypto
+  evaluations resumed at 00:00 UTC (7 combinations, failing 0), no HTTP
+  429, runtime checkout clean on `origin/main` (dba4d32). No
+  intervention.
+- **Observation:** momentum is the only strategy with a positive replay
+  expectancy left (+0.0695 R, section 363); time-series momentum was only
+  ever a direction filter (section 272).
+- **Lever:** at each daily close one position per instrument in the sign
+  of its 20-day return, `trade_terms` sizing and stop, no target, exit on
+  a changed sign or the stop, financing per rollover, combinations after
+  the ranked list and pins in alphabetical order. No other lookback.
+- **Measurement:** `scripts/daily_tsmom_book.py`, cached seven-year weekly
+  walk-forward (section 357 reference), 5,137 tsmom trades (-0.0037 R).
+  OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | closes | tsmom closes / USD | USD | USD/calendar day | daily SD |
+  |---|---:|---|---:|---:|---:|
+  | momentum only (current) | 81 | 0 / 0 | +8.010153 | +0.003661 | 0.3409 |
+  | with tsmom | 1,538 | 1,527 / +746.26 | +753.828000 | +0.344528 | 6.8533 |
+
+- **Result:** delta +0.340867 USD/day, pooled paired t +2.3230; 4/4
+  samples better (+0.5021, +0.4947, +0.0631, +0.4282). Worst day -4.5385
+  → -9.7285 USD. The admitted trades average +0.183 R against -0.020 R for
+  all; BTCUSD alone gives +545 of +746 USD, and the alphabetical admission
+  order puts it third (section 366).
+- **Decision:** passes the fixed rule (VERDICT=BUILD). Not live yet: the
+  bot cannot tell a daily close from the bars alone, so the build is split
+  into steps (plan). Risk named: daily SD 0.34 → 6.85 USD at unchanged
+  per-trade risk and caps. Two new tests. Section 366.
