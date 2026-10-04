@@ -13373,7 +13373,7 @@ daily SD 6.8533, worst day -9.7285. The rule passes (VERDICT=BUILD).
 Where the gain comes from. Over the 4,441 out-of-sample tsmom trades the
 mean is -0.0203 R (-100.31 USD); the 1,528 the book admits average +0.1834
 R (+743.56 USD), the 2,913 it cannot admit -0.1272 R. By instrument the
-out-of-sample trades lose on 19 of 27 and win on BTCUSD (118 trades,
+out-of-sample trades lose on 18 of 27 and win on BTCUSD (118 trades,
 +1.774 R each, +545.2 USD), COPPER (+88.3), GOLD (+77.7), ETHUSD (+53.5),
 USDJPY (+51.8), SILVER (+26.0), HK50, EURUSD and OIL_CRUDE. With eight
 concurrent slots and 27 instruments always in the market, the book
