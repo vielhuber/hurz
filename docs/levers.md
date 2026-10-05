@@ -14,7 +14,7 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 5, exits and holding). Closed: the momentum
+run's (last run: 3, universe and timeframes). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
@@ -23,7 +23,7 @@ book-level risk cuts (section 345), the FX class removed or capped
 around the rollover, refused or deferred (sections 350, 354), carry on
 the credited sides (section 351), flat before the weekend with financing
 (section 353), the 3-ATR floor widened (section 323) or lifted for crypto
-(section 355), calendar books on the indices: overnight, cash session and
+(sections 355, 370), calendar books on the indices: overnight, cash session and
 weekend drift (sections 274, 315, 356), the strategy veto in USD (section
 357) or on a trailing window (section 360), the Brent-WTI spread
 (section 358), momentum's target at 2.5 R (section 361), leash at 48 bars (section
@@ -40,18 +40,19 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Universe and timeframes (3) — crypto momentum past the 3-ATR floor in
-   the momentum-only book.** Observation: the floor refuses most crypto
-   signals (section 355), and BTCUSD's trends carried section 366's
-   tsmom result (+1.77 R per trade in the weeks the floor let through);
-   section 355 lifted the floor for every crypto signal of the breakout
-   book. Hypothesis: lifting it for momentum alone, in the book that is
-   left, raises the daily gain.
-2. **Execution and costs (6) — momentum's entry one bar after the cross.**
+1. **Execution and costs (6) — momentum's entry one bar after the cross.**
    Observation: 306 of 870 momentum trades see their EMA cross reverse
    within the 24-bar leash (section 369). Hypothesis: entering at the
    close of the bar after the cross, only if the cross still holds, skips
    enough false crosses to pay for the later entry.
+2. **New strategy families (2) — weekly cross-sectional momentum on the
+   calibrated replay.** Observation: section 366's 20-day trends paid on a
+   few instruments (BTCUSD, COPPER, GOLD, ETHUSD, USDJPY) and lost on 18
+   of 27; cross-sectional momentum was last measured on the old harness
+   before costs, financing and the weekly replay (sections 31, 33).
+   Hypothesis: each week long the two strongest and short the two weakest
+   20-day returns of the universe, sized and stopped like the book and
+   ranked after it, adds to the daily gain.
 
 ## Levers already tested before this log existed
 
@@ -8860,3 +8861,29 @@ USD/day) no longer describe the traded book.
   samples better (-0.0034, +0.0149, -0.0037, 0).
 - **Decision:** rejected (VERDICT=DISCARD); exits and bot unchanged, no
   restart. Three new tests. Section 369.
+
+## 2026-10-05 — crypto momentum past the 3-ATR floor in the momentum-only book
+
+- **Category:** 3, universe and timeframes.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), 7
+  combinations evaluated (failing 0), no HTTP 429, runtime checkout clean
+  on `origin/main` (d0afc9b). No intervention.
+- **Observation:** the floor refuses most crypto signals (section 355,
+  measured on the breakout book); BTCUSD's trends carried section 366.
+- **Lever:** momentum's BTCUSD and ETHUSD signals priced without the ATR
+  floor; the breakouts' crypto signals keep it. No other class or
+  multiple, no diagnostic arm.
+- **Measurement:** `scripts/crypto_momentum_floor.py`, cached seven-year
+  weekly walk-forward (section 357 reference); crypto momentum signals 5
+  (-0.4294 R) → 320 (-0.0557 R). OOS [2020-09-23, 2026-09-20), 2,188
+  calendar days.
+
+  | arm | closes | crypto closes / USD | USD | USD/calendar day | daily SD |
+  |---|---:|---|---:|---:|---:|
+  | with floor (current) | 81 | 1 / -2.75 | +8.010153 | +0.003661 | 0.3409 |
+  | crypto momentum without floor | 252 | 172 / -31.15 | -20.385220 | -0.009317 | 0.9298 |
+
+- **Result:** delta -0.012978 USD/day, pooled paired t -0.7020; 2/4
+  samples better (+0.0119, +0.0039, -0.0392, -0.0191).
+- **Decision:** rejected (VERDICT=DISCARD); floor and bot unchanged, no
+  restart. One new test. Section 370.

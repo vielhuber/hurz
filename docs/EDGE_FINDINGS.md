@@ -13486,3 +13486,31 @@ Current: 81 closes, +8.010153 USD. Cross exit: 84 closes, +14.885194 USD;
 daily SD 0.3409 → 0.3257, worst day -4.5385 → -3.1536. A third of the
 crosses reverse within the leash, and leaving on the reversal gives back
 as much as it saves. Rejected; the bot is unchanged.
+
+## 370. Crypto momentum past the 3-ATR floor: the readmitted signals lose
+
+The 3-ATR floor refuses most crypto signals (section 355, measured there
+for every crypto signal of the breakout book). With the book down to
+momentum (section 357) and BTCUSD's trends behind section 366's tsmom
+result, `scripts/crypto_momentum_floor.py` prices only momentum's BTCUSD
+and ETHUSD signals without the floor (stop max(2 ATR, venue minimum), 3
+USD risk, 250 USD notional cap); the breakouts' crypto signals keep it.
+Both arms read today's vetoes. Preregistered: built in only if all four
+samples are better and pooled paired t > +2; no other class or multiple.
+
+Crypto momentum signals: 5 with the floor (-0.4294 R), 320 without it
+(-0.0557 R).
+
+| OOS interval (end exclusive) | days | current USD/day | without floor | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.050436 | +0.011936 | +0.3440 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | -0.007702 | +0.003864 | +0.1119 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | -0.035933 | -0.039223 | -1.3205 |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | -0.019120 | -0.019120 | -0.3600 |
+| pooled | 2,188 | +0.003661 | -0.009317 | -0.012978 | -0.7020 |
+
+Current: 81 closes (1 crypto, -2.75 USD), +8.010153 USD. Without the floor:
+252 closes (172 crypto, -31.15 USD), -20.385220 USD; daily SD 0.3409 →
+0.9298, worst day -4.5385 → -6.6670. Crypto's hourly EMA crosses do not
+carry the multi-week trends the daily tsmom rode. Rejected; the bot is
+unchanged.
