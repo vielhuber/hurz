@@ -14,13 +14,14 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 3, universe and timeframes). Closed: the momentum
+run's (last run: 6, execution and costs). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
-around the rollover, refused or deferred (sections 350, 354), carry on
+around the rollover, refused or deferred (sections 350, 354), momentum's
+entry one bar after its cross (section 371), carry on
 the credited sides (section 351), flat before the weekend with financing
 (section 353), the 3-ATR floor widened (section 323) or lifted for crypto
 (sections 355, 370), calendar books on the indices: overnight, cash session and
@@ -40,12 +41,7 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Execution and costs (6) — momentum's entry one bar after the cross.**
-   Observation: 306 of 870 momentum trades see their EMA cross reverse
-   within the 24-bar leash (section 369). Hypothesis: entering at the
-   close of the bar after the cross, only if the cross still holds, skips
-   enough false crosses to pay for the later entry.
-2. **New strategy families (2) — weekly cross-sectional momentum on the
+1. **New strategy families (2) — weekly cross-sectional momentum on the
    calibrated replay.** Observation: section 366's 20-day trends paid on a
    few instruments (BTCUSD, COPPER, GOLD, ETHUSD, USDJPY) and lost on 18
    of 27; cross-sectional momentum was last measured on the old harness
@@ -53,6 +49,13 @@ USD/day) no longer describe the traded book.
    Hypothesis: each week long the two strongest and short the two weakest
    20-day returns of the universe, sized and stopped like the book and
    ranked after it, adds to the daily gain.
+2. **Portfolio and position sizing (4) — momentum's risk by its trailing
+   year.** Observation: momentum everywhere gained in the three later
+   samples and lost in the first (section 363), and the ranked momentum
+   book earns nothing in its first year (section 361): momentum's edge
+   comes and goes by year. Hypothesis: each combination's risk scaled
+   between 1.5 and 3 USD by its trailing-year replay expectancy (never
+   above today's 3 USD) earns more per calendar day.
 
 ## Levers already tested before this log existed
 
@@ -8887,3 +8890,31 @@ USD/day) no longer describe the traded book.
   samples better (+0.0119, +0.0039, -0.0392, -0.0191).
 - **Decision:** rejected (VERDICT=DISCARD); floor and bot unchanged, no
   restart. One new test. Section 370.
+
+## 2026-10-05 (morning) — momentum entered one bar after its cross
+
+- **Category:** 6, execution and costs.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), nightly
+  selector refresh complete at 05:46 UTC (3/3 backtests), 7 combinations
+  evaluated (failing 0), no HTTP 429, runtime checkout clean on
+  `origin/main` (9b3d14b). No intervention.
+- **Observation:** 306 of 870 momentum trades see their cross reverse
+  within the leash (section 369).
+- **Lever:** enter a momentum signal at the next bar's close, only if
+  EMA(10) still sits on the signal's side of EMA(30); terms and leash
+  from that bar, gate and blocks on the signal bar. No other delay, no
+  diagnostic arm.
+- **Measurement:** `scripts/momentum_confirmed_entry.py`, cached
+  seven-year weekly walk-forward (section 357 reference); 20 crosses fail
+  the confirmation, 847 confirmed signals at +0.0296 R against 870 at
+  +0.0450 R. OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | closes | USD | USD/calendar day | daily SD |
+  |---|---:|---:|---:|---:|
+  | entry at the cross (current) | 81 | +8.010153 | +0.003661 | 0.3409 |
+  | entry one bar later if it holds | 83 | +3.176129 | +0.001452 | 0.3419 |
+
+- **Result:** delta -0.002209 USD/day, pooled paired t -0.4910; 1/4
+  samples better (-0.0207, +0.0055, -0.0018, 0).
+- **Decision:** rejected (VERDICT=DISCARD); entry timing and bot unchanged,
+  no restart. Four new tests. Section 371.

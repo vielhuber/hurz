@@ -13514,3 +13514,33 @@ Current: 81 closes (1 crypto, -2.75 USD), +8.010153 USD. Without the floor:
 0.9298, worst day -4.5385 → -6.6670. Crypto's hourly EMA crosses do not
 carry the multi-week trends the daily tsmom rode. Rejected; the bot is
 unchanged.
+
+## 371. Momentum entered one bar after its cross: the delay costs, the filter barely bites
+
+306 of momentum's 870 trades see their EMA cross reverse within the 24-bar
+leash (section 369). `scripts/momentum_confirmed_entry.py` enters a
+momentum signal at the close of the next bar, and only if EMA(10) is
+still on the signal's side of EMA(30) there; stop distance, cost and size
+come from that bar and the leash counts from it, the regime gate and the
+direction blocks are judged on the signal bar, financing per rollover
+held. The other strategies are untouched; both arms read today's vetoes.
+Preregistered: built in only if all four samples are better and pooled
+paired t > +2; no other delay.
+
+Only 20 of the crosses no longer hold one bar later; 847 confirmed
+signals average +0.0296 R against +0.0450 R for the 870 entered at the
+cross.
+
+| OOS interval (end exclusive) | days | current USD/day | confirmed entry | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.017768 | -0.020732 | -1.7227 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | -0.006035 | +0.005532 | +0.5023 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | +0.001502 | -0.001788 | -0.3625 |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | 0 | 0 | – |
+| pooled | 2,188 | +0.003661 | +0.001452 | -0.002209 | -0.4910 |
+
+Current: 81 closes, +8.010153 USD. Confirmed entry: 83 closes, +3.176129
+USD; daily SD 0.3409 → 0.3419, worst day -4.5385 → -4.7857. The crosses
+that fail do so later than one bar, so the delay filters almost nothing
+and pays a bar of the move on every trade. Rejected; the bot is
+unchanged.
