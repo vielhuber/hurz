@@ -13576,3 +13576,29 @@ Current: 81 closes, +8.010153 USD. With xsmom: 415 closes (334 xsmom for
 keep falling for another week; the long side alone is flat after costs.
 Rejected; the bot is unchanged. Cross-sectional ranking stays closed
 (sections 31, 33, 372).
+
+## 373. Momentum's risk by its trailing year: less risk, the same result
+
+Momentum's edge comes and goes by year (sections 361, 363).
+`scripts/momentum_trailing_risk.py` sets each momentum combination's risk
+for the coming week, at every weekly re-rank, to 3 USD times a factor
+from its trailing-year replay expectancy (one trade per combination at a
+time, as the selector ranks): 0.5 at 0 R or below, 1.0 at +0.2 R or above,
+linear in between; fewer than 10 trailing trades keep 1.0. The dollar
+result scales with the risk (the venue's minimum size is not re-checked).
+Other strategies, caps, stops and admission are unchanged; both arms read
+today's vetoes. Preregistered: built in only if all four samples are
+better and pooled paired t > +2; no other mapping.
+
+| OOS interval (end exclusive) | days | 3 USD USD/day | trailing-year risk | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.034622 | -0.003878 | -0.5659 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | -0.006771 | +0.004796 | +1.1071 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | +0.002062 | -0.001227 | -1.5314 |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | 0 | 0 | – |
+| pooled | 2,188 | +0.003661 | +0.004205 | +0.000544 | +0.2920 |
+
+Both arms close the same 81 momentum trades; the mean risk falls from
+2.354 to 1.914 USD, the result from +8.010153 to +9.199690 USD, daily SD
+0.3409 → 0.2843, worst day unchanged. The trailing year does not tell the
+good momentum weeks from the bad ones. Rejected; the bot is unchanged.

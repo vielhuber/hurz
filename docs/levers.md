@@ -14,11 +14,12 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 2, new strategy families). Closed: the momentum
+run's (last run: 4, portfolio and position sizing). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
-book-level risk cuts (section 345), the FX class removed or capped
+book-level risk cuts (section 345), momentum's risk by its trailing year
+(section 373), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -41,21 +42,21 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Portfolio and position sizing (4) — momentum's risk by its trailing
-   year.** Observation: momentum everywhere gained in the three later
-   samples and lost in the first (section 363), and the ranked momentum
-   book earns nothing in its first year (section 361): momentum's edge
-   comes and goes by year. Hypothesis: each combination's risk scaled
-   between 1.5 and 3 USD by its trailing-year replay expectancy (never
-   above today's 3 USD) earns more per calendar day.
-2. **Live against backtest (1) — the bot's momentum list against the
+1. **Live against backtest (1) — the bot's momentum list against the
    replay's.** Observation: the bot's active list of 2026-10-05 holds
-   momentum on two instruments beside the 4h pins, while the reference
-   replay ranks momentum by its own trailing year; section 339 found 41
-   of 42 combinations agreeing before the veto retired the breakouts.
-   Hypothesis: the replay's momentum combinations of the last weekly
-   re-rank match the bot's list; where they do not, the reference is
-   miscalibrated by more than the momentum book earns.
+   momentum on US30 and ETHUSD beside the five 4h pins, while the
+   reference replay ranks momentum by its own trailing year; section 339
+   found 41 of 42 combinations agreeing before the veto retired the
+   breakouts. Hypothesis: the replay's momentum combinations of the last
+   weekly re-rank match the bot's list; where they do not, the reference
+   is miscalibrated by more than the momentum book earns.
+2. **Exits and holding (5) — a profit lock for momentum alone.**
+   Observation: momentum reaches +1.5 R on 67 of 870 signals within the
+   leash (section 361) while a third of its crosses reverse (section 369);
+   the profit lock at +0.5 R after +1 R of 2026-09-19 was measured on the
+   breakout book. Hypothesis: on momentum alone, locking +0.5 R once a
+   trade has reached +1 R keeps more of the reversing winners than it
+   cuts from the runners.
 
 ## Levers already tested before this log existed
 
@@ -8946,3 +8947,28 @@ USD/day) no longer describe the traded book.
   samples better (-0.0657, -0.0498, -0.0825, +0.0065).
 - **Decision:** rejected (VERDICT=DISCARD); no xsmom book, bot unchanged,
   no restart. Three new tests. Section 372.
+
+## 2026-10-05 (evening) — momentum's risk by its trailing year
+
+- **Category:** 4, portfolio and position sizing.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), 7
+  combinations evaluated (failing 0), no HTTP 429, runtime checkout clean
+  on `origin/main` (6df90bb). No intervention.
+- **Observation:** momentum gained in three samples and lost in the first
+  when admitted everywhere (section 363); its edge comes and goes by year.
+- **Lever:** each momentum combination's weekly risk at 3 USD times 0.5 to
+  1.0 by its trailing-year replay expectancy (0.5 at 0 R, 1.0 from +0.2 R);
+  never above 3 USD. No other mapping, no diagnostic arm.
+- **Measurement:** `scripts/momentum_trailing_risk.py`, cached seven-year
+  weekly walk-forward (section 357 reference), sizing assumed
+  proportional. OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | momentum closes | mean risk | USD | USD/calendar day | daily SD |
+  |---|---:|---:|---:|---:|---:|
+  | 3 USD (current) | 81 | 2.354 | +8.010153 | +0.003661 | 0.3409 |
+  | trailing-year risk | 81 | 1.914 | +9.199690 | +0.004205 | 0.2843 |
+
+- **Result:** delta +0.000544 USD/day, pooled paired t +0.2920; 1/4
+  samples better (-0.0039, +0.0048, -0.0012, 0).
+- **Decision:** rejected (VERDICT=DISCARD); sizing and bot unchanged, no
+  restart. Two new tests. Section 373.
