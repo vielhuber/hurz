@@ -14,7 +14,7 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 6, execution and costs). Closed: the momentum
+run's (last run: 2, new strategy families). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
@@ -27,7 +27,7 @@ the credited sides (section 351), flat before the weekend with financing
 (sections 355, 370), calendar books on the indices: overnight, cash session and
 weekend drift (sections 274, 315, 356), the strategy veto in USD (section
 357) or on a trailing window (section 360), the Brent-WTI spread
-(section 358), momentum's target at 2.5 R (section 361), leash at 48 bars (section
+(section 358), cross-sectional momentum (sections 33, 372), momentum's target at 2.5 R (section 361), leash at 48 bars (section
 364) or exit on its reverse cross (section 369), execution and financing on the rule
 period (sections 362, 365), the limit entry (section 117), daily
 time-series momentum (sections 366, 368: passed on the cache's daily
@@ -41,21 +41,21 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **New strategy families (2) — weekly cross-sectional momentum on the
-   calibrated replay.** Observation: section 366's 20-day trends paid on a
-   few instruments (BTCUSD, COPPER, GOLD, ETHUSD, USDJPY) and lost on 18
-   of 27; cross-sectional momentum was last measured on the old harness
-   before costs, financing and the weekly replay (sections 31, 33).
-   Hypothesis: each week long the two strongest and short the two weakest
-   20-day returns of the universe, sized and stopped like the book and
-   ranked after it, adds to the daily gain.
-2. **Portfolio and position sizing (4) — momentum's risk by its trailing
+1. **Portfolio and position sizing (4) — momentum's risk by its trailing
    year.** Observation: momentum everywhere gained in the three later
    samples and lost in the first (section 363), and the ranked momentum
    book earns nothing in its first year (section 361): momentum's edge
    comes and goes by year. Hypothesis: each combination's risk scaled
    between 1.5 and 3 USD by its trailing-year replay expectancy (never
    above today's 3 USD) earns more per calendar day.
+2. **Live against backtest (1) — the bot's momentum list against the
+   replay's.** Observation: the bot's active list of 2026-10-05 holds
+   momentum on two instruments beside the 4h pins, while the reference
+   replay ranks momentum by its own trailing year; section 339 found 41
+   of 42 combinations agreeing before the veto retired the breakouts.
+   Hypothesis: the replay's momentum combinations of the last weekly
+   re-rank match the bot's list; where they do not, the reference is
+   miscalibrated by more than the momentum book earns.
 
 ## Levers already tested before this log existed
 
@@ -8918,3 +8918,31 @@ USD/day) no longer describe the traded book.
   samples better (-0.0207, +0.0055, -0.0018, 0).
 - **Decision:** rejected (VERDICT=DISCARD); entry timing and bot unchanged,
   no restart. Four new tests. Section 371.
+
+## 2026-10-05 (afternoon) — weekly cross-sectional momentum on the calibrated replay
+
+- **Category:** 2, new strategy families.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), 7
+  combinations evaluated (failing 0), no HTTP 429, runtime checkout clean
+  on `origin/main` (43ac149). No intervention.
+- **Observation:** section 366's 20-day trends paid on a few instruments
+  and lost on 18 of 27; cross-sectional strength was last measured on the
+  old harness (section 33).
+- **Lever:** each Friday close, long the two strongest and short the two
+  weakest 20-day returns of the 27 instruments, `trade_terms` sizing and
+  stop, held to the next Friday close, financing charged, after the
+  ranked list and the pins. No other lookback, depth or rebalance.
+- **Measurement:** `scripts/weekly_cross_sectional_momentum.py`, cached
+  seven-year weekly walk-forward (section 357 reference); 379 xsmom
+  trades at -0.1468 R (longs +0.0182, shorts -0.3025). OOS [2020-09-23,
+  2026-09-20), 2,188 calendar days.
+
+  | arm | closes | xsmom closes / USD | USD | USD/calendar day | daily SD |
+  |---|---:|---|---:|---:|---:|
+  | current | 81 | 0 / 0 | +8.010153 | +0.003661 | 0.3409 |
+  | with xsmom | 415 | 334 / -118.23 | -110.215334 | -0.050373 | 1.4491 |
+
+- **Result:** delta -0.054034 USD/day, pooled paired t -1.7876; 1/4
+  samples better (-0.0657, -0.0498, -0.0825, +0.0065).
+- **Decision:** rejected (VERDICT=DISCARD); no xsmom book, bot unchanged,
+  no restart. Three new tests. Section 372.

@@ -13544,3 +13544,35 @@ USD; daily SD 0.3409 → 0.3419, worst day -4.5385 → -4.7857. The crosses
 that fail do so later than one bar, so the delay filters almost nothing
 and pays a bar of the move on every trade. Rejected; the bot is
 unchanged.
+
+## 372. Weekly cross-sectional momentum on the calibrated replay: the short side loses
+
+Section 366's 20-day trends paid on a few instruments and lost on 18 of
+27; cross-sectional strength was last measured in section 33 (252-hour
+lookback, 120-hour rebalance, top and bottom 3 of 14 instruments, one
+year, no cost replay). `scripts/weekly_cross_sectional_momentum.py` ranks
+the 27 instruments at each one's Friday daily close by the return against
+20 daily closes earlier, goes long the two strongest and short the two
+weakest (short-blocked sides skipped), sizes and stops them through
+`trade_terms`, holds to the next Friday close or the stop with each
+rollover charged, and admits them after the ranked list and the pins.
+Preregistered: built in only if all four samples are better and pooled
+paired t > +2; no other lookback, depth or rebalance.
+
+379 xsmom trades (the 3-ATR floor refuses many): mean -0.1468 R (t
+-2.09), longs +0.0182 R, shorts -0.3025 R.
+
+| OOS interval (end exclusive) | days | current USD/day | with xsmom | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | -0.027218 | -0.065718 | -0.8818 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | -0.061360 | -0.049793 | -0.9023 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | -0.079233 | -0.082523 | -1.6969 |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | +0.006479 | +0.006479 | +0.0856 |
+| pooled | 2,188 | +0.003661 | -0.050373 | -0.054034 | -1.7876 |
+
+Current: 81 closes, +8.010153 USD. With xsmom: 415 closes (334 xsmom for
+-118.23 USD), -110.215334 USD; daily SD 0.3409 → 1.4491, worst day
+-4.5385 → -7.8746. The weakest instruments of the past four weeks do not
+keep falling for another week; the long side alone is flat after costs.
+Rejected; the bot is unchanged. Cross-sectional ranking stays closed
+(sections 31, 33, 372).
