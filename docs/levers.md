@@ -14,12 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 4, portfolio and position sizing). Closed: the momentum
+run's (last run: 1, live against backtest). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
-(section 373), the FX class removed or capped
+(section 373), the bot's momentum list against the replay's (section
+374), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -42,21 +43,23 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Live against backtest (1) — the bot's momentum list against the
-   replay's.** Observation: the bot's active list of 2026-10-05 holds
-   momentum on US30 and ETHUSD beside the five 4h pins, while the
-   reference replay ranks momentum by its own trailing year; section 339
-   found 41 of 42 combinations agreeing before the veto retired the
-   breakouts. Hypothesis: the replay's momentum combinations of the last
-   weekly re-rank match the bot's list; where they do not, the reference
-   is miscalibrated by more than the momentum book earns.
-2. **Exits and holding (5) — a profit lock for momentum alone.**
+1. **Exits and holding (5) — a profit lock for momentum alone.**
    Observation: momentum reaches +1.5 R on 67 of 870 signals within the
    leash (section 361) while a third of its crosses reverse (section 369);
    the profit lock at +0.5 R after +1 R of 2026-09-19 was measured on the
    breakout book. Hypothesis: on momentum alone, locking +0.5 R once a
    trade has reached +1 R keeps more of the reversing winners than it
    cuts from the runners.
+2. **Portfolio and position sizing (4) — momentum on the instruments the
+   4h pins reserve.** Observation: at the re-rank of 2026-10-05 HK50
+   holds the most trailing momentum trades of any instrument (19 at
+   +0.080 R in the replay, +0.098 R in the selector), yet the exclusive
+   turtle_breakout_4h pin reserves HK50, as the 4h pins reserve SILVER,
+   NZDUSD, COPPER and CHFJPY (section 374); section 363 admitted momentum
+   everywhere but kept those reservations. Hypothesis: letting the hourly
+   momentum combinations share the five reserved instruments, one
+   position per instrument as now, adds trades without displacing the
+   pins' own.
 
 ## Levers already tested before this log existed
 
@@ -8972,3 +8975,33 @@ USD/day) no longer describe the traded book.
   samples better (-0.0039, +0.0048, -0.0012, 0).
 - **Decision:** rejected (VERDICT=DISCARD); sizing and bot unchanged, no
   restart. Two new tests. Section 373.
+
+## 2026-10-06 — the bot's momentum list against the replay's
+
+- **Category:** 1, live against backtest.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), 7
+  combinations evaluated (failing 0), no HTTP 429, runtime checkout clean
+  on `origin/main` (90b77b7). No intervention.
+- **Observation:** since the strategy veto the reference is the
+  momentum-only book; the bot's list of 2026-10-05 05:46 UTC ranks
+  momentum on US30 (n 11, +0.531 R) and pins it on ETHUSD, and section
+  339's match (41 of 42) predates the veto.
+- **Lever:** the replay's `active_order` at the bot's re-rank of
+  2026-10-05 on a copy of the bar cache extended to today, with today's
+  vetoes and pins, against the written active list; per instrument the
+  replay's sequential momentum n, mean R and profit factor against the
+  selector's persisted backtest. MATCH if both momentum lists are equal,
+  else MISMATCH; no other cut, no diagnostic arm.
+- **Measurement:** `scripts/momentum_list_calibration.py`, extended cache
+  to 2026-10-06, trailing year [2025-10-05, 2026-10-05).
+- **Result:** both lists are momentum US30 and ETHUSD (VERDICT=MATCH). Of
+  28 instruments with a momentum trade, every one on the same side of the
+  10-trade floor; US30 +0.520 R against +0.531 R, HK50 19 trades in both
+  (reserved by the turtle_breakout_4h pin). The replay counts 0.86 fewer
+  trades per instrument (t -2.68; AU200 is blocked, a few FX pairs have
+  1-3 selector trades and none in the replay) and books 0.014 R less per
+  trade (t -2.95, mostly the financing the selector does not charge);
+  neither moves a combination across a threshold.
+- **Decision:** no calibration needed; the reference stands (+0.003661
+  USD/day). Bot unchanged, no restart. Three new tests. Section 374.
+

@@ -13602,3 +13602,47 @@ Both arms close the same 81 momentum trades; the mean risk falls from
 2.354 to 1.914 USD, the result from +8.010153 to +9.199690 USD, daily SD
 0.3409 → 0.2843, worst day unchanged. The trailing year does not tell the
 good momentum weeks from the bad ones. Rejected; the bot is unchanged.
+
+## 374. The bot's momentum list and the replay's agree
+
+With both hourly breakouts retired (section 357) the reference replay is
+the momentum-only book, and its weekly lists decide which momentum trades
+it books. Section 339 matched the live list to the replay's before the
+veto. `scripts/momentum_list_calibration.py` repeats the check at the
+bot's re-rank of 2026-10-05 05:46 UTC: the replay's `active_order` on its
+trailing year before 2026-10-05, read from a copy of the bar cache
+extended to 2026-10-06 (section 362) with today's vetoes and pins,
+against the written active list; and per instrument the replay's
+sequential momentum inputs against the selector's persisted backtest of
+the same morning. Preregistered: MATCH if both momentum lists are equal;
+a calibration only on MISMATCH, in its own run.
+
+Both lists hold momentum on US30 (ranked) and ETHUSD (pinned); the
+replay ranks nothing else, since donchian_breakout and turtle_breakout
+are vetoed and HK50, SILVER, NZDUSD, COPPER and CHFJPY are reserved by
+the exclusive 4h pins.
+
+| instrument | replay n | replay R | replay PF | selector n | selector R | selector PF |
+|---|---:|---:|---:|---:|---:|---:|
+| HK50 | 19 | +0.080 | 1.23 | 19 | +0.098 | 1.29 |
+| US30 | 11 | +0.520 | 4.75 | 11 | +0.531 | 4.83 |
+| AUDJPY | 10 | -0.058 | 0.77 | 10 | -0.056 | 0.77 |
+| US500 | 9 | -0.257 | 0.46 | 9 | -0.250 | 0.47 |
+| US100 | 8 | +0.529 | 4.00 | 8 | +0.534 | 4.08 |
+| UK100 | 8 | +0.144 | 1.47 | 8 | +0.157 | 1.51 |
+| AU200 | 0 | – | – | 8 | +0.047 | 1.27 |
+| DE40 | 6 | +0.918 | 38.14 | 6 | +0.935 | 39.85 |
+| FR40 | 5 | +0.307 | 7.92 | 6 | +0.402 | 12.49 |
+
+All 28 instruments with a momentum trade fall on the same side of the
+10-trade floor in both. The replay counts 0.86 fewer trades per
+instrument (t -2.68): AU200 is a blocked pair the replay never prices,
+and AUDUSD, GBPAUD, GBPCAD, GBPCHF, GBPUSD, USDCAD, EURCAD and COPPER
+have one to three selector trades and none in the replay. Where both
+trade, the replay books 0.0142 R less per trade (t -2.95, 19
+instruments), about the overnight financing the replay charges and the
+selector's backtest does not. Neither difference moves a combination
+across the floor, the profit-factor or the expectancy threshold; AUDJPY
+fails PF 0.8 in both. The reference stands at +0.003661 USD per
+calendar day; research code only, no restart.
+
