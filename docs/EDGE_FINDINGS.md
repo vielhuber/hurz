@@ -13676,3 +13676,36 @@ combination on a reserved instrument reaches the ten-trade floor only in
 the two latest years, and the pins lose no trade to it. One sample of
 four, t +0.46: rejected; the reservations and the bot are unchanged.
 
+## 376. A profit lock on momentum alone: what it keeps, the runners pay for
+
+Section 322 moved the stop to +0.5 R once a bar's extreme had reached
++1.0 R and lost on the breakout book. Since section 357 the reference is
+momentum alone, and a third of momentum's crosses reverse inside the
+leash (section 369), so the lock could keep what the breakouts did not
+need kept. `scripts/momentum_profit_lock.py` books momentum's signals with
+section 322's `profit_lock.book` (armed after the bar's own barrier
+checks, a gap through the locked stop booked at the open); stop, 1.5 R
+target, 24-bar leash, costs, financing and sizing unchanged, today's
+vetoes in both arms. Preregistered: built in only if all four samples are
+better and pooled paired t > +2; no other lock level.
+
+| OOS interval (end exclusive) | days | current USD/day | with lock | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.037872 | -0.000628 | -1.0000 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | -0.010403 | +0.001164 | +0.2470 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | -0.000359 | -0.003649 | -1.0000 |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | 0 | 0 | – |
+| pooled | 2,188 | +0.003661 | +0.002727 | -0.000934 | -0.4692 |
+
+Over the 870 momentum signals the mean falls from +0.0450 to +0.0446 R:
+the lock books 36 more trades near +0.5 R and three fewer reach the
+target. In the book 84 closes instead of 81, +5.966833 USD instead of
++8.010153, daily SD 0.3409 → 0.3555, worst day unchanged at -4.5385. As on
+the breakouts, a trade that has reached +1 R is as likely to run on as to
+fall back. Rejected; the bot is unchanged.
+
+Measured beside the run (diagnostic, decides nothing): the overnight
+financing costs momentum 0.0090 R per signal over the 870 signals, a fifth
+of its mean; 68 % of the signals pay it and they hold 32.2 hours on
+average for the 24-bar leash.
+

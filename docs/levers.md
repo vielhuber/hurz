@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 4, portfolio and position sizing). Closed: the momentum
+run's (last run: 5, exits and holding). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,14 +43,7 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Exits and holding (5) — a profit lock for momentum alone.**
-   Observation: momentum reaches +1.5 R on 67 of 870 signals within the
-   leash (section 361) while a third of its crosses reverse (section 369);
-   the profit lock at +0.5 R after +1 R of 2026-09-19 was measured on the
-   breakout book. Hypothesis: on momentum alone, locking +0.5 R once a
-   trade has reached +1 R keeps more of the reversing winners than it
-   cuts from the runners.
-2. **Live against backtest (1) — the replay ranks as the selector does,
+1. **Live against backtest (1) — the replay ranks as the selector does,
    without financing.** Observation: at the re-rank of 2026-10-05 the
    replay's momentum inputs sit 0.0142 R per trade below the selector's
    (t -2.95 over 19 instruments, section 374), about the overnight
@@ -59,6 +52,15 @@ USD/day) no longer describe the traded book.
    booking financed trades, reproduces the bot's weekly lists over the
    seven years; where a combination crosses the 10-trade, PF 0.8 or
    -0.2 R threshold, the reference moves by more than its noise.
+
+2. **Execution and costs (6) — financing inside momentum's cost ceiling.**
+   Observation: over the 870 out-of-sample momentum signals the overnight
+   financing costs 0.0090 R per signal, a fifth of the +0.0450 R mean;
+   68 % of the signals pay it and they hold 32.2 hours on average for a
+   24-bar leash (diagnostic of section 376's run). The entry's 10 % cost
+   ceiling counts the spread only. Hypothesis: counting one rollover of
+   the instrument's own rate in that ceiling refuses the momentum signals
+   whose financing eats their edge and keeps the rest.
 
 ## Levers already tested before this log existed
 
@@ -9033,4 +9035,32 @@ USD/day) no longer describe the traded book.
   displace no pin trade, but they fall in the two latest years only.
 - **Decision:** rejected (VERDICT=DISCARD); the exclusive reservations
   stay, bot unchanged, no restart. Two new tests. Section 375.
+
+## 2026-10-06 (afternoon) — a profit lock on momentum alone
+
+- **Category:** 5, exits and holding.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), 7
+  combinations evaluated (failing 0), no HTTP 429, runtime checkout clean
+  on `origin/main` (f3d3e44). No intervention.
+- **Observation:** a third of momentum's crosses reverse inside the leash
+  (section 369); section 322's lock was measured on the breakout book only.
+- **Lever:** momentum's signals booked with section 322's lock (stop to
+  +0.5 R once a bar's extreme reached +1.0 R, armed after the bar's own
+  barrier checks); stop, target, leash, costs, financing and sizing
+  unchanged. No other level, no diagnostic arm.
+- **Measurement:** `scripts/momentum_profit_lock.py`, cached seven-year
+  weekly walk-forward (section 357 reference). OOS [2020-09-23,
+  2026-09-20), 2,188 calendar days.
+
+  | arm | closes | USD | USD/calendar day | daily SD |
+  |---|---:|---:|---:|---:|
+  | current | 81 | +8.010153 | +0.003661 | 0.3409 |
+  | lock +0.5 R after +1.0 R | 84 | +5.966833 | +0.002727 | 0.3555 |
+
+- **Result:** delta -0.000934 USD/day (-25.5 %), pooled paired t -0.4692;
+  1/4 samples better (-0.0006, +0.0012, -0.0036, 0). Over all 870
+  momentum signals mean R +0.0450 → +0.0446; 36 more end near +0.5 R,
+  3 fewer reach the target.
+- **Decision:** rejected (VERDICT=DISCARD); exits and bot unchanged, no
+  restart. Two new tests. Section 376.
 
