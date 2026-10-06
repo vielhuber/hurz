@@ -13646,3 +13646,33 @@ across the floor, the profit-factor or the expectancy threshold; AUDJPY
 fails PF 0.8 in both. The reference stands at +0.003661 USD per
 calendar day; research code only, no restart.
 
+## 375. Momentum on the instruments the 4h pins reserve: twenty trades, two years
+
+The five live 4h pins are exclusive, so the selector lists no other
+combination on SILVER, NZDUSD, HK50, COPPER or CHFJPY. At the re-rank of
+2026-10-05 that alone kept momentum off HK50, the instrument with the most
+trailing momentum trades (19 at +0.080 R; section 374).
+`scripts/momentum_shares_reserved.py` lets the weekly ranking ignore the
+reservations. Both arms book the live 4h pins as section 359 does
+(resampled 4h bars, financed, after the ranked list and the hourly pins),
+so a momentum trade and a pin trade compete for the instrument under the
+one-position rule as they would live; caps, cooldowns, stops and sizes
+unchanged, today's vetoes in both. Preregistered: built in only if all
+four samples are better and pooled paired t > +2.
+
+| OOS interval (end exclusive) | days | reserved USD/day | shared | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.081786 | +0.095138 | +0.013351 | +0.5209 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.055916 | -0.056566 | -0.000650 | -0.2728 |
+| 2021-09-21 – 2023-09-21 | 730 | -0.030293 | -0.030293 | 0 | – |
+| 2020-09-23 – 2021-09-21 | 363 | -0.019784 | -0.019784 | 0 | – |
+| pooled | 2,188 | -0.018401 | -0.016391 | +0.002010 | +0.4626 |
+
+Reserved: 350 closes (81 momentum, 269 4h for -48.27 USD), -40.261733
+USD. Shared: 370 closes, 20 of the 101 momentum closes on reserved
+instruments for +4.40 USD, the same 269 4h closes; -35.863130 USD, daily
+SD 0.9199 → 0.9419, worst day unchanged at -5.7750. A momentum
+combination on a reserved instrument reaches the ten-trade floor only in
+the two latest years, and the pins lose no trade to it. One sample of
+four, t +0.46: rejected; the reservations and the bot are unchanged.
+

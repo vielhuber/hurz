@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 1, live against backtest). Closed: the momentum
+run's (last run: 4, portfolio and position sizing). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -50,16 +50,15 @@ USD/day) no longer describe the traded book.
    breakout book. Hypothesis: on momentum alone, locking +0.5 R once a
    trade has reached +1 R keeps more of the reversing winners than it
    cuts from the runners.
-2. **Portfolio and position sizing (4) — momentum on the instruments the
-   4h pins reserve.** Observation: at the re-rank of 2026-10-05 HK50
-   holds the most trailing momentum trades of any instrument (19 at
-   +0.080 R in the replay, +0.098 R in the selector), yet the exclusive
-   turtle_breakout_4h pin reserves HK50, as the 4h pins reserve SILVER,
-   NZDUSD, COPPER and CHFJPY (section 374); section 363 admitted momentum
-   everywhere but kept those reservations. Hypothesis: letting the hourly
-   momentum combinations share the five reserved instruments, one
-   position per instrument as now, adds trades without displacing the
-   pins' own.
+2. **Live against backtest (1) — the replay ranks as the selector does,
+   without financing.** Observation: at the re-rank of 2026-10-05 the
+   replay's momentum inputs sit 0.0142 R per trade below the selector's
+   (t -2.95 over 19 instruments, section 374), about the overnight
+   financing the replay charges in its ranking window and the selector's
+   backtest does not. Hypothesis: ranking on unfinanced R, while still
+   booking financed trades, reproduces the bot's weekly lists over the
+   seven years; where a combination crosses the 10-trade, PF 0.8 or
+   -0.2 R threshold, the reference moves by more than its noise.
 
 ## Levers already tested before this log existed
 
@@ -9004,4 +9003,34 @@ USD/day) no longer describe the traded book.
   neither moves a combination across a threshold.
 - **Decision:** no calibration needed; the reference stands (+0.003661
   USD/day). Bot unchanged, no restart. Three new tests. Section 374.
+
+## 2026-10-06 (morning) — momentum on the instruments the 4h pins reserve
+
+- **Category:** 4, portfolio and position sizing.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), 7
+  combinations evaluated (failing 0), no HTTP 429, runtime checkout clean
+  on `origin/main` (eba843b). No intervention.
+- **Observation:** at the re-rank of 2026-10-05 HK50 held the most
+  trailing momentum trades of any instrument (19 at +0.080 R), left out
+  only because the exclusive turtle_breakout_4h pin reserves it (section
+  374); section 363 kept the reservations.
+- **Lever:** the weekly ranking ignores the exclusive 4h reservations, so
+  ranked momentum may sit on SILVER, NZDUSD, HK50, COPPER or CHFJPY; both
+  arms book the live 4h pins financed (section 359) so momentum and pin
+  compete for the instrument; one position per instrument, caps, stops
+  and sizes unchanged. No diagnostic arm.
+- **Measurement:** `scripts/momentum_shares_reserved.py`, cached
+  seven-year weekly walk-forward, 27 instruments, 561 4h pin signals. OOS
+  [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | closes | momentum (on reserved) | 4h closes / USD | USD | USD/calendar day |
+  |---|---:|---:|---|---:|---:|
+  | reserved (current) | 350 | 81 (0) | 269 / -48.27 | -40.261733 | -0.018401 |
+  | shared | 370 | 101 (20, +4.40 USD) | 269 / -48.27 | -35.863130 | -0.016391 |
+
+- **Result:** delta +0.002010 USD/day, pooled paired t +0.4626; 1/4
+  samples better (+0.0134, -0.0007, 0, 0). The 20 extra momentum trades
+  displace no pin trade, but they fall in the two latest years only.
+- **Decision:** rejected (VERDICT=DISCARD); the exclusive reservations
+  stay, bot unchanged, no restart. Two new tests. Section 375.
 
