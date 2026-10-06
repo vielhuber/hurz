@@ -13709,3 +13709,32 @@ financing costs momentum 0.0090 R per signal over the 870 signals, a fifth
 of its mean; 68 % of the signals pay it and they hold 32.2 hours on
 average for the 24-bar leash.
 
+## 377. Ranking on unfinanced R, as the selector does: seven weeks of 313
+
+Since section 352 the replay charges each trade its overnight financing,
+in the trades it books and in the trailing year it ranks on. The bot's
+selector ranks on `spot_backtest`, which charges none; at the re-rank of
+2026-10-05 that put the replay's momentum inputs 0.0142 R per trade
+below the selector's (section 374). `scripts/unfinanced_ranking.py`
+ranks on each signal's R before financing and books the financed trades,
+everything else unchanged, today's vetoes in both arms. Preregistered:
+adopted into the shared replay only if a weekly list differs and pooled
+paired |t| > 2.
+
+| OOS interval (end exclusive) | days | financed ranking USD/day | unfinanced | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.032142 | -0.006358 | -1.0000 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | -0.011760 | -0.000193 | -0.0527 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | +0.003290 | 0 | – |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | 0 | 0 | – |
+| pooled | 2,188 | +0.003661 | +0.002536 | -0.001125 | -0.6954 |
+
+The 28,704 signals pay 0.0099 R of financing each. Ranking without it
+changes 7 of 313 weekly lists, adding or keeping momentum on DE40, US500
+and USDJPY; the book closes 84 trades instead of 81 for +5.548304 USD
+instead of +8.010153, daily SD 0.3409 → 0.3497, worst day unchanged.
+Immaterial: the replay keeps its financed ranking and the difference to
+the bot stays documented. Read the other way, the bot's selector ranking
+on financed R would gain +0.0011 USD a day in one sample of four at t
++0.70, below the adoption rule; the selector is unchanged.
+

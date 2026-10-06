@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 5, exits and holding). Closed: the momentum
+run's (last run: 1, live against backtest). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,17 +43,7 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Live against backtest (1) — the replay ranks as the selector does,
-   without financing.** Observation: at the re-rank of 2026-10-05 the
-   replay's momentum inputs sit 0.0142 R per trade below the selector's
-   (t -2.95 over 19 instruments, section 374), about the overnight
-   financing the replay charges in its ranking window and the selector's
-   backtest does not. Hypothesis: ranking on unfinanced R, while still
-   booking financed trades, reproduces the bot's weekly lists over the
-   seven years; where a combination crosses the 10-trade, PF 0.8 or
-   -0.2 R threshold, the reference moves by more than its noise.
-
-2. **Execution and costs (6) — financing inside momentum's cost ceiling.**
+1. **Execution and costs (6) — financing inside momentum's cost ceiling.**
    Observation: over the 870 out-of-sample momentum signals the overnight
    financing costs 0.0090 R per signal, a fifth of the +0.0450 R mean;
    68 % of the signals pay it and they hold 32.2 hours on average for a
@@ -61,6 +51,15 @@ USD/day) no longer describe the traded book.
    ceiling counts the spread only. Hypothesis: counting one rollover of
    the instrument's own rate in that ceiling refuses the momentum signals
    whose financing eats their edge and keeps the rest.
+
+2. **Exits and holding (5) — momentum flat before the weekend.**
+   Observation: momentum's 870 out-of-sample signals hold 32.2 hours on
+   average for a 24-bar leash, so many carry over a weekend, and the
+   financing costs them 0.0090 R each, a fifth of their +0.0450 R mean
+   (section 376); section 353 measured the weekend close on the breakout
+   book. Hypothesis: closing momentum at the last bar before the weekly
+   close saves the weekend nights' financing and gap risk for less than
+   the drift it gives up.
 
 ## Levers already tested before this log existed
 
@@ -9063,4 +9062,36 @@ USD/day) no longer describe the traded book.
   3 fewer reach the target.
 - **Decision:** rejected (VERDICT=DISCARD); exits and bot unchanged, no
   restart. Two new tests. Section 376.
+
+## 2026-10-06 (evening) — the replay ranks on unfinanced R, as the selector does
+
+- **Category:** 1, live against backtest.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), 7
+  combinations evaluated (failing 0), no HTTP 429, runtime checkout clean
+  on `origin/main` (c385394). No intervention.
+- **Observation:** at the re-rank of 2026-10-05 the replay's momentum
+  inputs sat 0.0142 R per trade below the selector's (t -2.95, section
+  374): the replay charges financing in its ranking window, the
+  selector's backtest does not.
+- **Lever:** the weekly ranking window reads each signal's R before
+  financing, the booked trades keep it. CALIBRATE (into the shared
+  replay) only if a weekly list differs and pooled paired |t| > 2;
+  otherwise IMMATERIAL. No diagnostic arm.
+- **Measurement:** `scripts/unfinanced_ranking.py`, cached seven-year
+  weekly walk-forward (section 357 reference), 28,704 signals at 0.0099 R
+  of financing each. OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | closes | USD | USD/calendar day | daily SD |
+  |---|---:|---:|---:|---:|
+  | financed ranking (current) | 81 | +8.010153 | +0.003661 | 0.3409 |
+  | unfinanced ranking | 84 | +5.548304 | +0.002536 | 0.3497 |
+
+- **Result:** 7 of 313 weekly lists differ (momentum DE40, US500,
+  USDJPY); delta -0.001125 USD/day (-30.7 %), pooled paired t -0.6954
+  (-0.0064, -0.0002, 0, 0 by sample).
+- **Decision:** IMMATERIAL; the replay keeps its financed ranking, the
+  difference to the bot is documented. The mirror lever, the bot's
+  selector ranking on financed R, would gain the same +0.0011 USD/day in
+  one sample of four at t +0.70 and is not built. Bot unchanged, no
+  restart. Two new tests. Section 377.
 
