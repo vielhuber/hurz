@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 1, live against backtest). Closed: the momentum
+run's (last run: 6, execution and costs). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,23 +43,28 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Execution and costs (6) — financing inside momentum's cost ceiling.**
-   Observation: over the 870 out-of-sample momentum signals the overnight
-   financing costs 0.0090 R per signal, a fifth of the +0.0450 R mean;
-   68 % of the signals pay it and they hold 32.2 hours on average for a
-   24-bar leash (diagnostic of section 376's run). The entry's 10 % cost
-   ceiling counts the spread only. Hypothesis: counting one rollover of
-   the instrument's own rate in that ceiling refuses the momentum signals
-   whose financing eats their edge and keeps the rest.
-
-2. **Exits and holding (5) — momentum flat before the weekend.**
+1. **Exits and holding (5) — momentum flat before the weekend.**
    Observation: momentum's 870 out-of-sample signals hold 32.2 hours on
    average for a 24-bar leash, so many carry over a weekend, and the
    financing costs them 0.0090 R each, a fifth of their +0.0450 R mean
-   (section 376); section 353 measured the weekend close on the breakout
-   book. Hypothesis: closing momentum at the last bar before the weekly
+   (section 376), while one night alone pushes only 2 of 870 signals over
+   the cost ceiling (section 378): the cost comes from the nights held,
+   and a weekend charges three. Section 353 measured the weekend close on
+   the breakout book. Hypothesis: closing momentum at the last bar before the weekly
    close saves the weekend nights' financing and gap risk for less than
    the drift it gives up.
+
+2. **Universe and timeframes (3) — momentum's trade floor at five.**
+   Observation: in the reference replay 83 of momentum's 870 out-of-sample
+   signals come from a listed combination and 81 are booked; admission
+   refuses 2 (diagnostic of section 378's run). The 10-trade floor, set
+   for breakouts that trade 30+ times a year (section 100), is the only
+   filter that binds on momentum, which fires about four times a year per
+   instrument; section 363 removed the list entirely and lost in the
+   first year only, where the ranked book traded nothing. Hypothesis: a
+   floor of five trailing trades for momentum alone, with pf and eR gates
+   unchanged, admits the combinations with a measured edge without the
+   unranked ones that cost section 363 its first year.
 
 ## Levers already tested before this log existed
 
@@ -9094,4 +9099,26 @@ USD/day) no longer describe the traded book.
   selector ranking on financed R, would gain the same +0.0011 USD/day in
   one sample of four at t +0.70 and is not built. Bot unchanged, no
   restart. Two new tests. Section 377.
+
+## 2026-10-07 — one night's financing in momentum's cost ceiling
+
+- **Category:** 6, execution and costs.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), 7
+  combinations evaluated (failing 0), no HTTP 429, runtime checkout clean
+  on `origin/main` (3ab867e). No intervention.
+- **Observation:** the financing costs momentum 0.0090 R per signal, a
+  fifth of its +0.0450 R mean (section 376); the entry's 10 % cost
+  ceiling counts the spread only.
+- **Lever:** a momentum signal is refused when its spread cost plus one
+  21:00 UTC rollover at the instrument's own rate for its side exceeds
+  10 % of the risk; a credited night counts as zero. Everything else
+  unchanged, no diagnostic arm.
+- **Measurement:** `scripts/momentum_financing_ceiling.py`, cached
+  seven-year weekly walk-forward (section 357 reference). OOS
+  [2020-09-23, 2026-09-20), 2,188 calendar days.
+- **Result:** the ceiling refuses 2 of 870 momentum signals (both
+  BTCUSD), neither in the book: 81 closes, +8.010153 USD, +0.003661
+  USD/day in both arms; delta 0, 0/4 samples better.
+- **Decision:** rejected (VERDICT=DISCARD); cost ceiling and bot
+  unchanged, no restart. Three new tests. Section 378.
 

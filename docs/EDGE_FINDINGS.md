@@ -13738,3 +13738,27 @@ the bot stays documented. Read the other way, the bot's selector ranking
 on financed R would gain +0.0011 USD a day in one sample of four at t
 +0.70, below the adoption rule; the selector is unchanged.
 
+## 378. One night's financing in momentum's cost ceiling: it binds twice in 870
+
+The entry refuses a signal whose round-trip spread exceeds 10 % of the
+risk after widening the stop up to twice; it does not count financing,
+which costs momentum 0.0090 R per signal (section 376).
+`scripts/momentum_financing_ceiling.py` refuses a momentum signal when the
+spread cost plus one 21:00 UTC rollover at the instrument's own rate for
+its side exceeds the same 10 %; a credited night counts as zero. Stop,
+target, leash, sizing and every other strategy unchanged; today's vetoes
+in both arms. Preregistered: built in only if all four samples are better
+and pooled paired t > +2.
+
+The ceiling refuses 2 of the 870 out-of-sample momentum signals, both on
+BTCUSD; mean R of the rest +0.0459 against +0.0450. Neither was booked:
+both arms close the same 81 trades for +8.010153 USD, +0.003661 USD per
+calendar day, in every sample. A single night costs momentum far less
+than its 3-ATR stop; the 0.0090 R comes from the nights held, a weekend
+charging three. Rejected; the cost ceiling and the bot are unchanged.
+
+Diagnostic beside the run (decides nothing): in the reference replay 83
+of momentum's 870 signals come from a listed combination and 81 are
+booked; admission refuses 2 (+0.35 R each). The list, not the caps,
+decides how much momentum the book trades.
+
