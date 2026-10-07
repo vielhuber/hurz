@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 3, universe and timeframes). Closed: the momentum
+run's (last run: 6, execution and costs). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,23 +43,25 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Execution and costs (6) — momentum entered only while Europe or the
-   US trades (07:00-21:00 UTC).** Observation: over the 870 out-of-sample
-   momentum signals the 452 fired 13:00-21:00 UTC average +0.0857 R (t
-   +2.73), the 224 fired 07:00-13:00 +0.0198 R, and the 194 fired
-   21:00-07:00 lose (-0.0238 R over 159 at 00-07, -0.0074 R over 35 at
-   21-24; diagnostic of section 380's run). Hypothesis: a cross formed in
-   the thin Asian hours of a European or US instrument is noise; refusing
-   momentum entries outside 07:00-21:00 UTC (crypto included, no other
-   window) removes losers without touching the session signals.
-2. **Live against backtest (1) — the replay's spread by hour.**
+1. **Live against backtest (1) — the replay's spread by hour.**
    Observation: the replay charges each instrument one spread whatever
    the hour, while the night signals above lose; the bot logs a spread
    sample of every traded instrument each minute. Hypothesis: the logged
    spread is wider from 21:00 to 07:00 UTC than the replay's flat figure;
-   if so, the replay understates the night trades' cost and item 1 is
-   partly a cost effect that a calibrated replay should show by itself.
+   if so, the replay understates the night trades' cost, which section
+   381's night signals (-0.024 R) would partly reflect.
    Section 347 sampled spread costs once, not by hour.
+
+2. **Portfolio and position sizing (4) — momentum everywhere while its
+   pooled trailing year earns.** Observation: every filter on momentum's
+   signals shrinks the book through the 10-trade list floor (section 381:
+   mean R +0.0450 → +0.0639, closes 81 → 50); admitting momentum on every
+   instrument gained in three samples and lost only in the first, at
+   -0.050 USD/day, where the ranked book did not trade (section 363).
+   Hypothesis: one gate for the strategy instead of one per combination,
+   momentum on every instrument in a week only while the pooled
+   trailing-year momentum expectancy over the universe is positive,
+   keeps section 363's later years and skips its losing first year.
 
 ## Levers already tested before this log existed
 
@@ -9180,4 +9182,31 @@ USD/day) no longer describe the traded book.
   day -6.85 USD. Selector and bot unchanged, no restart. Two new tests.
   Section 380. The conditional weekend re-measurement of the plan lapses
   with it.
+
+## 2026-10-07 (evening) — momentum entered only 07:00-21:00 UTC
+
+- **Category:** 6, execution and costs.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), 7
+  combinations evaluated (failing 0), no HTTP 429, runtime checkout clean
+  on `origin/main` (5dc1cf4). No intervention.
+- **Observation:** of momentum's 870 signals those fired 13:00-21:00 UTC
+  average +0.0857 R (t +2.73), the 194 fired 21:00-07:00 lose (section
+  380's diagnostic).
+- **Lever:** a momentum signal whose bar starts before 07:00 or at/after
+  21:00 UTC is not taken, crypto included; everything else unchanged,
+  both arms ranking and admitting on their own figures. No other window,
+  no diagnostic arm.
+- **Measurement:** `scripts/momentum_session_window.py`, cached seven-year
+  weekly walk-forward (section 357 reference). OOS [2020-09-23,
+  2026-09-20), 2,188 calendar days.
+
+  | arm | momentum signals (mean R) | closes | USD | USD/calendar day | daily SD |
+  |---|---:|---:|---:|---:|---:|
+  | current | 870 (+0.0450) | 81 | +8.010153 | +0.003661 | 0.3409 |
+  | 07:00-21:00 UTC | 676 (+0.0639) | 50 | +11.360489 | +0.005192 | 0.2753 |
+
+- **Result:** delta +0.001531 USD/day (+41.8 %), pooled paired t +0.4206;
+  2/4 samples better (-0.0019, +0.0053, +0.0002, 0).
+- **Decision:** rejected (VERDICT=DISCARD); entry hours and bot
+  unchanged, no restart. Two new tests. Section 381.
 

@@ -13829,3 +13829,28 @@ By weekday the Friday signals lose (n 169, -0.0301 R). By instrument DE40
 (+0.296 R, 51), US100 (+0.179, 49), CADJPY (+0.169, 45) and US30 (+0.152,
 62) lead; US500 (-0.112, 50) and USDJPY (-0.084, 44) trail.
 
+## 381. Momentum entered only 07:00-21:00 UTC: better signals, a thinner book
+
+Section 380's diagnostic found momentum's night signals losing (21:00-07:00
+UTC, 194 signals) and its 13:00-21:00 signals carrying the edge (+0.0857 R,
+t +2.73). `scripts/momentum_session_window.py` refuses every momentum signal
+whose bar starts before 07:00 or at/after 21:00 UTC, crypto included;
+everything else unchanged, both arms ranking and admitting on their own
+figures, today's vetoes. Preregistered: built in only if all four samples
+are better and pooled paired t > +2; no other window.
+
+| OOS interval (end exclusive) | days | current USD/day | 07:00-21:00 UTC | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.036559 | -0.001941 | -0.1707 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | -0.006230 | +0.005336 | +0.5759 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | +0.003513 | +0.000224 | +0.2265 |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | 0 | 0 | – |
+| pooled | 2,188 | +0.003661 | +0.005192 | +0.001531 | +0.4206 |
+
+The window keeps 676 of 870 signals and lifts their mean from +0.0450 to
++0.0639 R, but the book closes 50 trades instead of 81 (+11.360489 USD
+against +8.010153, daily SD 0.3409 → 0.2753, worst day unchanged): with
+fewer trailing trades fewer combinations reach the list's ten. Rejected;
+the bot is unchanged. Like the floor (380) and the weekend exit (379), a
+filter on momentum's signals moves the book mostly through the list floor.
+
