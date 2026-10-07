@@ -13762,3 +13762,36 @@ of momentum's 870 signals come from a listed combination and 81 are
 booked; admission refuses 2 (+0.35 R each). The list, not the caps,
 decides how much momentum the book trades.
 
+## 379. Momentum flat before the weekend: twice the reference, half the evidence
+
+Section 353 closed every position at the last bar before a gap of more
+than 36 hours and lost on the breakout book. Momentum's signals hold 32.2
+hours on average for a 24-bar leash and pay their financing over the
+nights held (sections 376, 378). `scripts/momentum_weekend_flat.py` books
+momentum's signals with section 353's `flat_signals` (close at the close
+of a bar whose next bar is more than 36 hours away, crypto never gaps,
+financing up to that exit); everything else unchanged, both arms ranking
+and admitting on their own figures, today's vetoes. Preregistered: built
+in only if all four samples are better and pooled paired t > +2.
+
+| OOS interval (end exclusive) | days | current USD/day | flat before the weekend | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.040601 | +0.002101 | +0.3072 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | +0.001370 | +0.012937 | +1.1393 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | +0.002496 | -0.000794 | -0.2548 |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | 0 | 0 | – |
+| pooled | 2,188 | +0.003661 | +0.008063 | +0.004402 | +1.0760 |
+
+159 of the 870 momentum signals are closed before a weekend, at -0.0016 R
+each; the mean of all signals rises from +0.0450 to +0.0470 R. In the book
+85 closes instead of 81, +17.641501 USD instead of +8.010153, daily SD
+0.3409 → 0.3271, worst day -4.5385 → -2.6215. On momentum the weekend
+holds do not pay for their three nights, unlike the breakouts of section
+353; but the gain rests on two samples at t +1.08. Rejected.
+
+The first sample holds no momentum trade in either arm: in 2020-09 to
+2021-09 no momentum combination reaches the ten trailing trades the list
+requires. On this reference no momentum-only lever can be better in that
+sample, so none can meet the four-sample rule. The rule is not relaxed;
+the trade floor (plan item 1) is the lever that addresses it.
+

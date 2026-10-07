@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 6, execution and costs). Closed: the momentum
+run's (last run: 5, exits and holding). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,18 +43,7 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Exits and holding (5) — momentum flat before the weekend.**
-   Observation: momentum's 870 out-of-sample signals hold 32.2 hours on
-   average for a 24-bar leash, so many carry over a weekend, and the
-   financing costs them 0.0090 R each, a fifth of their +0.0450 R mean
-   (section 376), while one night alone pushes only 2 of 870 signals over
-   the cost ceiling (section 378): the cost comes from the nights held,
-   and a weekend charges three. Section 353 measured the weekend close on
-   the breakout book. Hypothesis: closing momentum at the last bar before the weekly
-   close saves the weekend nights' financing and gap risk for less than
-   the drift it gives up.
-
-2. **Universe and timeframes (3) — momentum's trade floor at five.**
+1. **Universe and timeframes (3) — momentum's trade floor at five.**
    Observation: in the reference replay 83 of momentum's 870 out-of-sample
    signals come from a listed combination and 81 are booked; admission
    refuses 2 (diagnostic of section 378's run). The 10-trade floor, set
@@ -64,7 +53,18 @@ USD/day) no longer describe the traded book.
    first year only, where the ranked book traded nothing. Hypothesis: a
    floor of five trailing trades for momentum alone, with pf and eR gates
    unchanged, admits the combinations with a measured edge without the
-   unranked ones that cost section 363 its first year.
+   unranked ones that cost section 363 its first year. Section 379 adds
+   a second reason: the reference books no trade from 2020-09-23 to
+   2021-09-21, so no momentum-only lever can be better in that sample and
+   the four-sample rule cannot be met until the book trades there.
+
+2. **Exits and holding (5) — the weekend exit again, only on a new
+   reference.** Observation: closing momentum before the weekend raised
+   the reference by +0.004402 USD/day (+120 %, t +1.08), better in two
+   samples and level in the empty first year (section 379); the rule
+   could not pass there by construction. Hypothesis: if item 1 changes
+   the reference so that the first year trades, the same exit, unchanged,
+   is better in all four samples. Measured only if item 1 is built.
 
 ## Levers already tested before this log existed
 
@@ -9121,4 +9121,37 @@ USD/day) no longer describe the traded book.
   USD/day in both arms; delta 0, 0/4 samples better.
 - **Decision:** rejected (VERDICT=DISCARD); cost ceiling and bot
   unchanged, no restart. Three new tests. Section 378.
+
+## 2026-10-07 (morning) — momentum flat before the weekend
+
+- **Category:** 5, exits and holding.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), 7
+  combinations evaluated (failing 0), no HTTP 429, runtime checkout clean
+  on `origin/main` (6bc5533). No intervention.
+- **Observation:** momentum's 870 signals hold 32.2 hours for a 24-bar
+  leash and pay 0.0090 R of financing each, built up over the nights
+  held (sections 376, 378); section 353 measured the weekend close on the
+  breakout book only.
+- **Lever:** momentum's signals booked with section 353's exit (close at
+  the close of a bar whose next bar is more than 36 hours away, crypto
+  never gaps, financing up to that exit); everything else unchanged. No
+  other gap, no diagnostic arm.
+- **Measurement:** `scripts/momentum_weekend_flat.py`, cached seven-year
+  weekly walk-forward (section 357 reference). OOS [2020-09-23,
+  2026-09-20), 2,188 calendar days.
+
+  | arm | closes | USD | USD/calendar day | daily SD | worst day |
+  |---|---:|---:|---:|---:|---:|
+  | current | 81 | +8.010153 | +0.003661 | 0.3409 | -4.5385 |
+  | flat before the weekend | 85 | +17.641501 | +0.008063 | 0.3271 | -2.6215 |
+
+- **Result:** delta +0.004402 USD/day (+120.2 %), pooled paired t
+  +1.0760; 2/4 samples better (+0.0021, +0.0129, -0.0008, 0). 159 of the
+  870 momentum signals are closed before a weekend at -0.0016 R each;
+  mean R of all signals +0.0450 → +0.0470.
+- **Decision:** rejected (VERDICT=DISCARD): t below +2 and two samples
+  not better. The first sample (2020-09-23 to 2021-09-21) holds no
+  momentum trade in either arm, so it can never be better on this
+  reference; the rule is not relaxed for that. Exits and bot unchanged,
+  no restart. Two new tests. Section 379.
 
