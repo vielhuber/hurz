@@ -13795,3 +13795,37 @@ requires. On this reference no momentum-only lever can be better in that
 sample, so none can meet the four-sample rule. The rule is not relaxed;
 the trade floor (plan item 1) is the lever that addresses it.
 
+## 380. Momentum's trade floor at five: three years of four, t +1.52
+
+The weekly list admits a combination with ten trades in its trailing year;
+momentum fires about four times a year per instrument, so in the
+reference only 83 of its 870 signals come from a listed combination
+(section 378) and from 2020-09-23 to 2021-09-21 nothing is listed (section
+379). `scripts/momentum_trade_floor.py` lowers the floor to five; the
+profit-factor and expectancy gates, ranking, caps, stops and sizing are
+unchanged, and with both hourly breakouts vetoed the floor binds on
+momentum alone. Preregistered: built in only if all four samples are
+better and pooled paired t > +2; no other floor.
+
+| OOS interval (end exclusive) | days | floor 10 USD/day | floor 5 | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.095322 | +0.056822 | +1.7963 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | -0.002110 | +0.009457 | +0.3631 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | +0.023120 | +0.019831 | +1.0420 |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | -0.003016 | -0.003016 | -0.1629 |
+| pooled | 2,188 | +0.003661 | +0.022411 | +0.018750 | +1.5156 |
+
+Closes by exit year 2020-2026: floor 10 0/0/5/15/29/22/10, floor 5
+3/28/29/62/83/56/29; 290 closes for +49.035392 USD against 81 for
++8.010153. Daily SD 0.3409 → 0.7205, worst day -4.5385 → -6.8524: the
+candidate takes more risk. The first year now trades and loses a little,
+so the four-sample rule fails there instead of being unreachable; the
+pooled t stays below +2. Rejected; selector and bot unchanged.
+
+Diagnostic beside the run (decides nothing): momentum's 870 signals by
+UTC hour of the signal bar: 00-07 n 159 at -0.0238 R, 07-13 n 224 at
++0.0198 R, 13-21 n 452 at +0.0857 R (t +2.73), 21-24 n 35 at -0.0074 R.
+By weekday the Friday signals lose (n 169, -0.0301 R). By instrument DE40
+(+0.296 R, 51), US100 (+0.179, 49), CADJPY (+0.169, 45) and US30 (+0.152,
+62) lead; US500 (-0.112, 50) and USDJPY (-0.084, 44) trail.
+
