@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 4, portfolio and position sizing). Closed: the momentum
+run's (last run: 5, exits and holding). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,18 +43,7 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Exits and holding (5) — momentum's leash at 12 bars.**
-   Observation: doubling momentum's leash to 48 bars halved its mean R
-   (+0.0450 → +0.0233) although targets doubled, the longer-held trades
-   paying more nights (section 364); financing costs momentum 0.0090 R
-   per signal, a fifth of its mean, over the nights held (sections 376,
-   378). Hypothesis: half the leash keeps the early part of the move,
-   where section 364 locates the edge, and pays about half the nights.
-   The first sample holds no momentum trade on the current reference
-   (sections 379, 383), so this can pass only if the leash itself adds
-   trades there.
-
-2. **Live against backtest (1) — the live journal from May to July
+1. **Live against backtest (1) — the live journal from May to July
    against the replay.** Observation: the journal's loss since May
    (dashboard: -93.13 USD on the active book, -372.60 USD on retired
    combinations) was decomposed against the replay only from 2026-08-01
@@ -64,6 +53,18 @@ USD/day) no longer describe the traded book.
    never traded (pre-filter era), not from a replay that is too
    optimistic for today's book; if so, the replay needs no calibration
    for them, and the four-sample comparisons stand as they are.
+
+2. **Execution and costs (6) — momentum's night signals entered at
+   07:00 UTC instead of refused.** Observation: refusing momentum's
+   signals from 21:00 to 07:00 UTC lifted their mean R (+0.0450 →
+   +0.0639) but shrank the book from 81 to 50 closes, because fewer
+   trailing trades reach the list's ten (section 381); the night's losses
+   are not a spread effect (section 382). Hypothesis: entering a night
+   signal at the open of the 07:00 UTC bar, if its cross still holds,
+   keeps the trade count that the list needs and replaces the thin-hour
+   entry by a session entry; leash, stop and target counted from the new
+   entry. Not a repeat of the rollover deferral (sections 350, 354),
+   which moved entries by an hour around 21:00.
 
 ## Levers already tested before this log existed
 
@@ -9280,4 +9281,32 @@ USD/day) no longer describe the traded book.
   relaxed. The candidate would also take more risk (5.3 times the
   closes, daily SD 0.34 → 0.87, worst day -7.31 USD). Bot unchanged, no
   restart. Two new tests. Section 383.
+
+## 2026-10-08 (afternoon) — momentum's leash at 12 bars
+
+- **Category:** 5, exits and holding.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), 7
+  combinations evaluated (failing 0), no HTTP 429, runtime checkout clean
+  on `origin/main` (bd2802c). No intervention.
+- **Observation:** the 48-bar leash halved momentum's mean R (section
+  364); financing costs a fifth of the mean over the nights held
+  (sections 376, 378).
+- **Lever:** momentum's signals priced with a 12-bar leash; stop,
+  target, costs, financing and sizing unchanged, other strategies at 24
+  bars. No other leash, no diagnostic arm.
+- **Measurement:** `scripts/momentum_short_leash.py`, cached seven-year
+  weekly walk-forward (section 357 reference). OOS [2020-09-23,
+  2026-09-20), 2,188 calendar days.
+
+  | arm | momentum mean R (targets, hold) | closes | USD | USD/calendar day | worst day |
+  |---|---:|---:|---:|---:|---:|
+  | 24 bars (current) | +0.0450 (67, 32.2 h) | 81 | +8.010153 | +0.003661 | -4.5385 |
+  | 12 bars | -0.0078 (12, 19.2 h) | 74 | +9.196605 | +0.004203 | -2.7529 |
+
+- **Result:** delta +0.000542 USD/day (+14.8 %), pooled paired t +0.0948;
+  1/4 samples better (-0.0277, +0.0212, -0.0058, 0). Over all 870
+  signals the mean turns negative: the half leash cuts the move before it
+  pays. With 48 bars (+0.0233 R) the 24-bar leash is the best of three.
+- **Decision:** rejected (VERDICT=DISCARD); leash and bot unchanged, no
+  restart. Two new tests. Section 384.
 

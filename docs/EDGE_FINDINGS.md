@@ -13924,3 +13924,33 @@ for any lever that leaves momentum's gate closed there (sections 379, 380,
 383). Such a lever can meet the four-sample rule only by trading, and
 gaining, in 2020-09 to 2021-09.
 
+## 384. Momentum's leash at 12 bars: the move is cut before it pays
+
+Section 364 doubled momentum's leash to 48 bars and halved its mean R;
+financing costs momentum a fifth of its mean over the nights held
+(sections 376, 378). `scripts/momentum_short_leash.py` prices momentum's
+signals with a 12-bar leash through section 364's `with_leash`; stop, 1.5 R
+target, costs, financing per rollover and sizing unchanged, the other
+strategies at 24 bars, today's vetoes in both arms. Preregistered: built
+in only if all four samples are better and pooled paired t > +2.
+
+Over the 870 momentum signals the mean falls from +0.0450 to -0.0078 R,
+the targets reached from 67 to 12 and the mean hold from 32.2 to 19.2
+hours.
+
+| OOS interval (end exclusive) | days | 24 bars USD/day | 12 bars | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.010820 | -0.027680 | -1.7749 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | +0.009680 | +0.021247 | +1.4788 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | -0.002492 | -0.005782 | -1.1438 |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | 0 | 0 | – |
+| pooled | 2,188 | +0.003661 | +0.004203 | +0.000542 | +0.0948 |
+
+74 closes for +9.196605 USD against 81 for +8.010153; daily SD 0.3409 →
+0.2564, worst day -4.5385 → -2.7529. The pooled figure is noise around a
+signal mean that turns negative. With sections 361 (2.5 R target), 364
+(48 bars), 369 (reverse cross), 376 (profit lock) and 379 (weekend), every
+exit change on momentum has now been measured against the 24-bar, 1.5 R
+exit and none improved it in more than two samples. Rejected; the bot is
+unchanged.
+
