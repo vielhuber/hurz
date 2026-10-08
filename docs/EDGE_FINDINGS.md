@@ -13854,3 +13854,39 @@ fewer trailing trades fewer combinations reach the list's ten. Rejected;
 the bot is unchanged. Like the floor (380) and the weekend exit (379), a
 filter on momentum's signals moves the book mostly through the list floor.
 
+## 382. The spread by hour: a real profile, an immaterial cost
+
+The replay charges each instrument one per-side spread from a snapshot
+whatever the hour; section 347 kept it over the sampled medians. The bot's
+12,906 live quotes since 2026-09-08 have a clear hour profile.
+`scripts/hourly_spread_costs.py` scales each signal's snapshot cost by its
+instrument's median half-spread in the signal bar's UTC bucket (00-07,
+07-13, 13-21, 21-24) over the instrument's overall median, both sides at
+the entry bucket (the 24-bar leash exits at the same hour of day); buckets
+with fewer than 20 samples keep the snapshot. Preregistered: adopted into
+the shared replay only if pooled paired |t| > 2.
+
+Ratios to the overall median, where they differ from 1: DE40 x0.45
+(07-13), x0.50 (13-21), x2.02 (21-24); FR40 x3.45 (00-07), x0.62
+(07-13); UK100 x0.34 (07-13), x0.67 (13-21); EU50 x1.32 (00-07); US500
+x0.67 (13-21); at 21-24 AUDNZD x5.90, HK50 x5.85, AUDJPY x4.44, CADJPY
+x4.13, CHFJPY x3.13, GBPJPY x2.27, OIL_BRENT x2.09, EURJPY x1.99,
+EURAUD x1.86, USDJPY x1.83, USDCHF x1.78, SILVER x1.53, NZDUSD x1.51,
+EURUSD x1.43. Crypto, GOLD, COPPER, J225, US30 and US100 are flat.
+
+| OOS interval (end exclusive) | days | snapshot USD/day | hourly | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.038557 | +0.000057 | +1.7504 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | -0.008947 | +0.002620 | +1.0473 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | +0.003310 | +0.000020 | +2.4942 |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | 0 | 0 | – |
+| pooled | 2,188 | +0.003661 | +0.004551 | +0.000890 | +1.0667 |
+
+The hourly cost refuses 13 of 28,704 signals (2 momentum) and lifts
+momentum's mean from +0.0450 to +0.0464 R: the European session is
+cheaper than the snapshot, the rollover hour dearer, and momentum fires
+few signals at 21-24 (35). The book closes 82 trades for +9.958037 USD
+against 81 for +8.010153. Immaterial: the snapshot stays. Before 07:00
+UTC most instruments quote at their median, so momentum's losing night
+signals (section 380) are not explained by spread.
+

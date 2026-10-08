@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 6, execution and costs). Closed: the momentum
+run's (last run: 1, live against backtest). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,16 +43,7 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Live against backtest (1) — the replay's spread by hour.**
-   Observation: the replay charges each instrument one spread whatever
-   the hour, while the night signals above lose; the bot logs a spread
-   sample of every traded instrument each minute. Hypothesis: the logged
-   spread is wider from 21:00 to 07:00 UTC than the replay's flat figure;
-   if so, the replay understates the night trades' cost, which section
-   381's night signals (-0.024 R) would partly reflect.
-   Section 347 sampled spread costs once, not by hour.
-
-2. **Portfolio and position sizing (4) — momentum everywhere while its
+1. **Portfolio and position sizing (4) — momentum everywhere while its
    pooled trailing year earns.** Observation: every filter on momentum's
    signals shrinks the book through the 10-trade list floor (section 381:
    mean R +0.0450 → +0.0639, closes 81 → 50); admitting momentum on every
@@ -62,6 +53,17 @@ USD/day) no longer describe the traded book.
    momentum on every instrument in a week only while the pooled
    trailing-year momentum expectancy over the universe is positive,
    keeps section 363's later years and skips its losing first year.
+
+2. **Exits and holding (5) — momentum's leash at 12 bars.**
+   Observation: doubling momentum's leash to 48 bars halved its mean R
+   (+0.0450 → +0.0233) although targets doubled, the longer-held trades
+   paying more nights (section 364); financing costs momentum 0.0090 R
+   per signal, a fifth of its mean, over the nights held (sections 376,
+   378). Hypothesis: half the leash keeps the early part of the move,
+   where section 364 locates the edge, and pays about half the nights.
+   The first sample holds no momentum trade on the current reference
+   (section 379), so this can pass only if item 1 is built first or the
+   leash itself adds trades there.
 
 ## Levers already tested before this log existed
 
@@ -9209,4 +9211,38 @@ USD/day) no longer describe the traded book.
   2/4 samples better (-0.0019, +0.0053, +0.0002, 0).
 - **Decision:** rejected (VERDICT=DISCARD); entry hours and bot
   unchanged, no restart. Two new tests. Section 381.
+
+## 2026-10-08 — the spread by hour of the signal
+
+- **Category:** 1, live against backtest.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), 7
+  combinations evaluated (failing 0), no HTTP 429, runtime checkout clean
+  on `origin/main` (379c490). No intervention.
+- **Observation:** the replay charges one spread per instrument whatever
+  the hour, while momentum's night signals lose (section 380); 12,906
+  live quotes since 2026-09-08 show the European indices wider before
+  07:00 UTC and most FX crosses, HK50, SILVER and OIL_BRENT wider from
+  21:00.
+- **Lever:** each signal's per-side cost is the snapshot times its
+  instrument's median sampled half-spread in the signal bar's UTC bucket
+  (00-07, 07-13, 13-21, 21-24) over the overall sampled median; buckets
+  under 20 samples keep the snapshot. CALIBRATE only if pooled paired |t|
+  > 2. No diagnostic arm.
+- **Measurement:** `scripts/hourly_spread_costs.py`, cached seven-year
+  weekly walk-forward (section 357 reference). OOS [2020-09-23,
+  2026-09-20), 2,188 calendar days.
+
+  | arm | momentum signals (mean R) | closes | USD | USD/calendar day |
+  |---|---:|---:|---:|---:|
+  | snapshot (current) | 870 (+0.0450) | 81 | +8.010153 | +0.003661 |
+  | hourly spread | 868 (+0.0464) | 82 | +9.958037 | +0.004551 |
+
+- **Result:** delta +0.000890 USD/day, pooled paired t +1.0667 (+0.0001,
+  +0.0026, +0.0000, 0 by sample). The hour profile makes the European
+  session cheaper (DE40 x0.45, UK100 x0.34 at 07-13) and the FX rollover
+  hour dearer (AUDNZD x5.90, HK50 x5.85 at 21-24); before 07:00 most
+  instruments quote at their median, so momentum's night losses are not a
+  spread effect.
+- **Decision:** IMMATERIAL; the replay keeps the snapshot. Bot unchanged,
+  no restart. Three new tests. Section 382.
 
