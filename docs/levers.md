@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 5, exits and holding). Closed: the momentum
+run's (last run: 1, live against backtest). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,18 +43,7 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Live against backtest (1) — the live journal from May to July
-   against the replay.** Observation: the journal's loss since May
-   (dashboard: -93.13 USD on the active book, -372.60 USD on retired
-   combinations) was decomposed against the replay only from 2026-08-01
-   on (sections 337, 339, 362); May to July, when most of the loss was
-   booked, has never been matched trade by trade. Hypothesis: those
-   months' losses come from combinations, sizes or rules the replay
-   never traded (pre-filter era), not from a replay that is too
-   optimistic for today's book; if so, the replay needs no calibration
-   for them, and the four-sample comparisons stand as they are.
-
-2. **Execution and costs (6) — momentum's night signals entered at
+1. **Execution and costs (6) — momentum's night signals entered at
    07:00 UTC instead of refused.** Observation: refusing momentum's
    signals from 21:00 to 07:00 UTC lifted their mean R (+0.0450 →
    +0.0639) but shrank the book from 81 to 50 closes, because fewer
@@ -65,6 +54,17 @@ USD/day) no longer describe the traded book.
    entry by a session entry; leash, stop and target counted from the new
    entry. Not a repeat of the rollover deferral (sections 350, 354),
    which moved entries by an hour around 21:00.
+
+2. **Universe and timeframes (3) — momentum on 2-hour bars.**
+   Observation: momentum's leash has a sharp optimum at one day: 12
+   hourly bars turn its mean R negative (-0.0078), 48 halve it (+0.0233)
+   against +0.0450 at 24 (sections 364, 384). Hypothesis: the same
+   EMA-cross rule on 2-hour bars resampled from the hourly cache, with a
+   12-bar leash (the same 24 hours) and the stop and target scaled by its
+   own ATR, fires fewer whipsaw crosses for the same holding horizon; it
+   replaces hourly momentum in both the list and the bot only if it beats
+   it in all four samples. The first sample needs a 2-hour combination
+   that reaches the list's ten there (section 383).
 
 ## Levers already tested before this log existed
 
@@ -9309,4 +9309,37 @@ USD/day) no longer describe the traded book.
   pays. With 48 bars (+0.0233 R) the 24-bar leash is the best of three.
 - **Decision:** rejected (VERDICT=DISCARD); leash and bot unchanged, no
   restart. Two new tests. Section 384.
+
+## 2026-10-08 (evening) — the journal from May to July against the replay
+
+- **Category:** 1, live against backtest.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), 7
+  combinations evaluated (failing 0), no HTTP 429, runtime checkout clean
+  on `origin/main` (6394ef0). No intervention.
+- **Observation:** most of the journal's loss was booked before
+  2026-08-01, from which date alone live closes had been matched to the
+  replay (sections 337, 339, 362).
+- **Lever:** every live Capital close with bar_time 2026-05-12 to
+  2026-08-01 attributed to exactly one group (strategy outside the
+  replay, instrument outside the replay, replayable); replayable closes
+  through section 337's execution split without the planned risk.
+  CALIBRATE only if the replayable residual has |t| > 2.
+- **Measurement:** `scripts/early_journal_calibration.py` on the journal
+  and the cached bars.
+
+  | group | closes | USD |
+  |---|---:|---:|
+  | strategy outside the replay (bollinger_rev -104.99, stochastic_mr -92.62, rsi_mr -49.56, others) | 227 | -266.51 |
+  | instrument outside the replay | 12 | -7.23 |
+  | replayable (donchian +75.38, momentum +11.78, turtle -1.46) | 78 | +85.71 |
+  | all | 317 | -188.04 |
+
+- **Result:** the 78 replayable closes match the replay: residual
+  -0.0088 R per close, t -0.28 (spread 0.0487 R, entry slippage -0.0805
+  R, exit difference +0.0231 R). The early loss is the retired
+  mean-reversion and experimental strategies, which the replay never
+  traded; the trend book the replay models earned +85.71 USD live.
+- **Decision:** IMMATERIAL; the replay's cost model stands. With
+  sections 337, 362, 365 and 374 the journal is now matched from May to
+  October. Bot unchanged, no restart. Three new tests. Section 385.
 

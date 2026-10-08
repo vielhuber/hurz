@@ -13954,3 +13954,44 @@ exit change on momentum has now been measured against the 24-bar, 1.5 R
 exit and none improved it in more than two samples. Rejected; the bot is
 unchanged.
 
+## 385. The journal from May to July: the loss is the strategies the replay never traded
+
+Live closes had been matched to the replay only from 2026-08-01, the first
+day `planned_risk_usd` was journaled (sections 337, 339, 362), while most
+of the journal's loss was booked before. `scripts/early_journal_calibration.py`
+takes every live Capital close with bar_time from 2026-05-12 to 2026-08-01
+and attributes it to exactly one group: a strategy the replay does not
+trade, an instrument outside the replay universe, or replayable; the
+replayable closes run through section 337's `decompose` (live R from the
+fill against the replay's net R at the journaled entry, stop and target).
+Preregistered: calibrate only if the replayable residual has |t| > 2.
+
+| group | closes | USD |
+|---|---:|---:|
+| strategy outside the replay | 227 | -266.51 |
+| instrument outside the replay | 12 | -7.23 |
+| replayable | 78 | +85.71 |
+| all | 317 | -188.04 |
+
+Outside the replay: bollinger_rev -104.99, stochastic_mr -92.62, rsi_mr
+-49.56, donchian_breakout_v2 -17.72, multi_consensus -15.78,
+keltner_breakout -4.34, donchian_breakout_4h -0.61, donchian_trail +2.76,
+turtle_breakout_4h +2.83, donchian_breakout_v3 +13.53. Replayable:
+donchian_breakout +75.38 (59), momentum +11.78 (2), turtle_breakout -1.46
+(17).
+
+| replayable | n | live R | replay net R | spread | entry slip | exit diff | residual | t |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| pooled | 78 | -0.0424 | -0.0336 | 0.0487 | -0.0805 | +0.0231 | -0.0088 | -0.28 |
+| donchian_breakout | 59 | -0.0482 | -0.0452 | 0.0508 | -0.0874 | +0.0335 | -0.0030 | -0.07 |
+| turtle_breakout | 17 | -0.0544 | -0.0189 | 0.0389 | -0.0642 | -0.0103 | -0.0355 | -1.48 |
+| momentum | 2 | +0.2321 | +0.1824 | 0.0676 | -0.0178 | -0.0001 | +0.0497 | +2.20 |
+
+The replay matches the replayable closes within noise; the momentum line
+rests on two trades. Immaterial: the replay's cost model stands. The
+early loss of -188 USD is the retired mean-reversion and experimental
+strategies (-266.51 USD), which the replay never modelled; the trend book
+it does model earned +85.71 USD live in the same months. With sections
+337, 362, 365 and 374 the journal is now matched to the replay from May to
+October, and the live-against-backtest gap of category 1 is explained.
+
