@@ -13890,3 +13890,37 @@ against 81 for +8.010153. Immaterial: the snapshot stays. Before 07:00
 UTC most instruments quote at their median, so momentum's losing night
 signals (section 380) are not explained by spread.
 
+## 383. Momentum everywhere while its pooled trailing year earns: t +2.78, the first sample empty
+
+Section 363 admitted momentum on every instrument after the ranked list and
+the pins and lost only in the first sample, where the ranked book did not
+trade. `scripts/momentum_everywhere_gated.py` applies section 363's rule in
+a week only if the mean R of all momentum trades in the trailing ranking
+year (one position per combination at a time, as the selector counts) is
+above zero; otherwise the ranked list alone. Caps, cooldowns, stops,
+sizing and risk per trade unchanged; today's vetoes in both arms.
+Preregistered: built in only if all four samples are better and pooled
+paired t > +2; no other threshold.
+
+| OOS interval (end exclusive) | days | ranked USD/day | gated everywhere | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.119118 | +0.080618 | +2.0075 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | +0.047793 | +0.059360 | +1.7352 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | +0.036277 | +0.032988 | +1.2456 |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | 0 | 0 | – |
+| pooled | 2,188 | +0.003661 | +0.047920 | +0.044259 | +2.7813 |
+
+The gate opens 206 of 313 weeks (2022: 23, 2023: 52, 2024: 52, 2025: 42,
+2026: 37) and none before 2022: in the first sample momentum's pooled
+trailing year is not positive and the ranked list is empty, so both arms
+trade nothing. The candidate closes 426 trades for +104.849245 USD against
+81 for +8.010153; daily SD 0.3409 → 0.8661 and worst day -4.5385 →
+-7.3086 USD: it takes markedly more risk. Pooled t clears +2 and three
+samples gain, two of them at t above +1.7; the first sample is equal, not
+better. Rejected under the unchanged rule; the bot is unchanged.
+
+On the momentum-only reference the first sample has no trade in either arm
+for any lever that leaves momentum's gate closed there (sections 379, 380,
+383). Such a lever can meet the four-sample rule only by trading, and
+gaining, in 2020-09 to 2021-09.
+

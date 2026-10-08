@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 1, live against backtest). Closed: the momentum
+run's (last run: 4, portfolio and position sizing). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,18 +43,7 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Portfolio and position sizing (4) — momentum everywhere while its
-   pooled trailing year earns.** Observation: every filter on momentum's
-   signals shrinks the book through the 10-trade list floor (section 381:
-   mean R +0.0450 → +0.0639, closes 81 → 50); admitting momentum on every
-   instrument gained in three samples and lost only in the first, at
-   -0.050 USD/day, where the ranked book did not trade (section 363).
-   Hypothesis: one gate for the strategy instead of one per combination,
-   momentum on every instrument in a week only while the pooled
-   trailing-year momentum expectancy over the universe is positive,
-   keeps section 363's later years and skips its losing first year.
-
-2. **Exits and holding (5) — momentum's leash at 12 bars.**
+1. **Exits and holding (5) — momentum's leash at 12 bars.**
    Observation: doubling momentum's leash to 48 bars halved its mean R
    (+0.0450 → +0.0233) although targets doubled, the longer-held trades
    paying more nights (section 364); financing costs momentum 0.0090 R
@@ -62,8 +51,19 @@ USD/day) no longer describe the traded book.
    378). Hypothesis: half the leash keeps the early part of the move,
    where section 364 locates the edge, and pays about half the nights.
    The first sample holds no momentum trade on the current reference
-   (section 379), so this can pass only if item 1 is built first or the
-   leash itself adds trades there.
+   (sections 379, 383), so this can pass only if the leash itself adds
+   trades there.
+
+2. **Live against backtest (1) — the live journal from May to July
+   against the replay.** Observation: the journal's loss since May
+   (dashboard: -93.13 USD on the active book, -372.60 USD on retired
+   combinations) was decomposed against the replay only from 2026-08-01
+   on (sections 337, 339, 362); May to July, when most of the loss was
+   booked, has never been matched trade by trade. Hypothesis: those
+   months' losses come from combinations, sizes or rules the replay
+   never traded (pre-filter era), not from a replay that is too
+   optimistic for today's book; if so, the replay needs no calibration
+   for them, and the four-sample comparisons stand as they are.
 
 ## Levers already tested before this log existed
 
@@ -9245,4 +9245,39 @@ USD/day) no longer describe the traded book.
   spread effect.
 - **Decision:** IMMATERIAL; the replay keeps the snapshot. Bot unchanged,
   no restart. Three new tests. Section 382.
+
+## 2026-10-08 (morning) — momentum everywhere while its pooled trailing year earns
+
+- **Category:** 4, portfolio and position sizing.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), 7
+  combinations evaluated (failing 0), no HTTP 429, runtime checkout clean
+  on `origin/main` (e72774b). No intervention.
+- **Observation:** momentum on every instrument gained in three samples
+  and lost only in the first (-0.050 USD/day, section 363); filters on
+  momentum's signals act mostly through the list's ten-trade floor
+  (sections 379-381).
+- **Lever:** at each weekly re-rank, if the mean R of all momentum
+  trades in the trailing ranking year (one position per combination) is
+  above zero, section 363's rule applies for the week; otherwise the
+  ranked list alone. Caps, stops, sizing unchanged. No other threshold,
+  no diagnostic arm.
+- **Measurement:** `scripts/momentum_everywhere_gated.py`, cached
+  seven-year weekly walk-forward (section 357 reference). OOS
+  [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | closes | USD | USD/calendar day | daily SD | worst day |
+  |---|---:|---:|---:|---:|---:|
+  | ranked list (current) | 81 | +8.010153 | +0.003661 | 0.3409 | -4.5385 |
+  | everywhere while pooled R > 0 | 426 | +104.849245 | +0.047920 | 0.8661 | -7.3086 |
+
+- **Result:** delta +0.044259 USD/day (+1,209 %), pooled paired t
+  +2.7813; samples +0.0806 (t +2.01), +0.0594 (t +1.74), +0.0330 (t
+  +1.25) and 0. The gate opens 206 of 313 weeks, the first in 2022; in
+  the first sample (2020-09-23 to 2021-09-21) it stays shut and both
+  arms trade nothing.
+- **Decision:** rejected (VERDICT=DISCARD): the first sample is equal,
+  not better, so the four-sample rule is not met; the rule is not
+  relaxed. The candidate would also take more risk (5.3 times the
+  closes, daily SD 0.34 → 0.87, worst day -7.31 USD). Bot unchanged, no
+  restart. Two new tests. Section 383.
 
