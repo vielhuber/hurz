@@ -14017,7 +14017,7 @@ paired t > +2.
 | 2020-09-23 – 2021-09-21 | 363 | 0 | 0 | 0 | – |
 | pooled | 2,188 | +0.003661 | +0.001657 | -0.002004 | -0.5118 |
 
-865 of 870 signals survive (5 crosses undone by the morning) and their mean
+865 of 870 signals remain (5 dropped: cross undone by the session bar or not priceable there) and their mean
 falls from +0.0450 to +0.0347 R, targets reached 67 → 58: the deferred
 night entries are worse than the night entries themselves, as the one-bar
 delay of section 371 was. The book closes 91 trades for +3.625920 USD.
