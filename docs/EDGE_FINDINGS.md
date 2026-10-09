@@ -13995,3 +13995,35 @@ it does model earned +85.71 USD live in the same months. With sections
 337, 362, 365 and 374 the journal is now matched to the replay from May to
 October, and the live-against-backtest gap of category 1 is explained.
 
+## 386. Momentum's night signals deferred to the session: later is worse
+
+Refusing momentum's signals from 21:00 to 07:00 UTC lifted their mean R but
+shrank the book through the list's ten-trade floor (section 381).
+`scripts/momentum_deferred_night.py` keeps the trade count instead: a night
+signal is entered at the close of the first later bar starting between
+07:00 and 21:00 UTC, at most 12 bars later, if the fast EMA is still on its
+side of the slow one; otherwise it is dropped. Stop distance, cost and size
+are priced at that bar and the stop, 1.5 R target, 24-bar leash and
+financing count from it; day signals and the other strategies unchanged,
+both arms ranking and admitting on their own figures, today's vetoes.
+Preregistered: built in only if all four samples are better and pooled
+paired t > +2.
+
+| OOS interval (end exclusive) | days | current USD/day | deferred | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.039488 | +0.000988 | +0.0900 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | -0.020526 | -0.008959 | -0.9145 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | +0.005749 | +0.002459 | +0.7213 |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | 0 | 0 | – |
+| pooled | 2,188 | +0.003661 | +0.001657 | -0.002004 | -0.5118 |
+
+865 of 870 signals survive (5 crosses undone by the morning) and their mean
+falls from +0.0450 to +0.0347 R, targets reached 67 → 58: the deferred
+night entries are worse than the night entries themselves, as the one-bar
+delay of section 371 was. The book closes 91 trades for +3.625920 USD.
+Rejected; the bot is unchanged.
+
+Checked beside the run (decides nothing): 27 of the replay's instruments
+have hourly bars from 2019-09-22, so the empty first sample of the
+momentum-only reference (sections 379, 383) is not a gap in the data.
+

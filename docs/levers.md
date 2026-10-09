@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 1, live against backtest). Closed: the momentum
+run's (last run: 6, execution and costs). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,19 +43,7 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Execution and costs (6) — momentum's night signals entered at
-   07:00 UTC instead of refused.** Observation: refusing momentum's
-   signals from 21:00 to 07:00 UTC lifted their mean R (+0.0450 →
-   +0.0639) but shrank the book from 81 to 50 closes, because fewer
-   trailing trades reach the list's ten (section 381); the night's losses
-   are not a spread effect (section 382). Hypothesis: entering a night
-   signal at the open of the 07:00 UTC bar, if its cross still holds,
-   keeps the trade count that the list needs and replaces the thin-hour
-   entry by a session entry; leash, stop and target counted from the new
-   entry. Not a repeat of the rollover deferral (sections 350, 354),
-   which moved entries by an hour around 21:00.
-
-2. **Universe and timeframes (3) — momentum on 2-hour bars.**
+1. **Universe and timeframes (3) — momentum on 2-hour bars.**
    Observation: momentum's leash has a sharp optimum at one day: 12
    hourly bars turn its mean R negative (-0.0078), 48 halve it (+0.0233)
    against +0.0450 at 24 (sections 364, 384). Hypothesis: the same
@@ -65,6 +53,17 @@ USD/day) no longer describe the traded book.
    replaces hourly momentum in both the list and the bot only if it beats
    it in all four samples. The first sample needs a 2-hour combination
    that reaches the list's ten there (section 383).
+
+2. **New strategy families (2) — momentum on 4-hour bars across the
+   universe.** Observation: momentum's edge sits in a one-day holding
+   horizon (12 hourly bars -0.0078 R, 24 bars +0.0450 R, 48 bars +0.0233
+   R; sections 364, 384), and a delayed entry loses it (sections 371,
+   386); the bot runs 4-hour momentum only as two exclusive pins (COPPER
+   and CHFJPY, -12.79 USD over seven years, section 359), never ranked.
+   Hypothesis: the same cross on 4-hour bars with a 6-bar leash (the
+   same 24 hours), ranked on the universe like the hourly strategies,
+   adds trades in years the hourly list leaves empty. Measured after item
+   1 and only if item 1 does not already show the coarser bars losing.
 
 ## Levers already tested before this log existed
 
@@ -9342,4 +9341,34 @@ USD/day) no longer describe the traded book.
 - **Decision:** IMMATERIAL; the replay's cost model stands. With
   sections 337, 362, 365 and 374 the journal is now matched from May to
   October. Bot unchanged, no restart. Three new tests. Section 385.
+
+## 2026-10-09 — momentum's night signals deferred to the session
+
+- **Category:** 6, execution and costs.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), 7
+  combinations evaluated (failing 0), no HTTP 429, runtime checkout clean
+  on `origin/main` (4fa83ac). No intervention.
+- **Observation:** refusing momentum's night signals lifted their mean R
+  but shrank the book from 81 to 50 closes through the list's ten-trade
+  floor (section 381).
+- **Lever:** a momentum signal whose bar starts before 07:00 or at/after
+  21:00 UTC is entered at the close of the first later bar starting
+  07:00-21:00 UTC (at most 12 bars later) if the fast EMA is still on its
+  side; otherwise dropped. Priced and booked from that bar. No other
+  window, no diagnostic arm.
+- **Measurement:** `scripts/momentum_deferred_night.py`, cached
+  seven-year weekly walk-forward (section 357 reference). OOS
+  [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | momentum signals (mean R) | closes | USD | USD/calendar day |
+  |---|---:|---:|---:|---:|
+  | current | 870 (+0.0450) | 81 | +8.010153 | +0.003661 |
+  | night signals at the session | 865 (+0.0347) | 91 | +3.625920 | +0.001657 |
+
+- **Result:** delta -0.002004 USD/day (-54.7 %), pooled paired t -0.5118;
+  2/4 samples better (+0.0010, -0.0090, +0.0025, 0). The deferred entries
+  are worse than the night entries they replace: the move a night cross
+  starts is partly gone by 07:00.
+- **Decision:** rejected (VERDICT=DISCARD); entry timing and bot
+  unchanged, no restart. Three new tests. Section 386.
 
