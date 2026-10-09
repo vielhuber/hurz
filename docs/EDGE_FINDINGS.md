@@ -14093,3 +14093,33 @@ against 81 for +8.010153, daily SD 0.3409 → 0.5804, worst day -4.5385 →
 sample, where the momentum book trades nothing; the latest year loses and
 the pooled t is +0.96. Rejected; the bot is unchanged.
 
+## 389. The pre-holiday session on the European indices: the US effect does not travel
+
+Section 388's US pre-holiday book earned +0.0789 R per trade and gained
+in the first sample. `scripts/european_pre_holiday_book.py` applies the
+same rule (`pre_holiday_drift_book.drift_trades`, now taking a calendar
+per instrument and the decision hour as arguments) to DE40 and EU50 on the
+Xetra calendar, FR40 on the TARGET closing days that Euronext follows and
+UK100 on the England bank holidays on which the London Stock Exchange
+closes, with the decision at the hourly bar starting 15:00 UTC (the
+European cash close). Long only, `trade_terms` pricing, stop bar by bar,
+no target, financing per rollover; the trades join the active order after
+the list and the pins. Judged on its own four samples, not stacked on
+section 388. Preregistered: built in only if all four samples are better
+and pooled paired t > +2.
+
+106 priced trades at -0.0675 R (t -1.08), 20 stopped, held 1.1 days.
+
+| OOS interval (end exclusive) | days | momentum only USD/day | with European pre-holiday | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.028818 | -0.009682 | -0.4423 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | -0.016325 | -0.004758 | -0.3275 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | +0.006596 | +0.003307 | +0.2000 |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | -0.000411 | -0.000411 | -0.0242 |
+| pooled | 2,188 | +0.003661 | +0.001493 | -0.002168 | -0.2501 |
+
+86 of them are admitted for -5.40 USD; 166 closes for +3.267340 USD,
+worst day -7.4528. The European pre-holiday sessions lose where the US
+ones earned; with t +1.69 on 132 US trades, section 388's edge is as
+likely a US-specific effect as noise. Rejected; the bot is unchanged.
+

@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 2, new strategy families). Closed: the momentum
+run's (last run: 3, universe and timeframes). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,16 +43,18 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Universe and timeframes (3) — the pre-holiday session on the
-   European indices.** Observation: the US pre-holiday book of section 388
-   earns +0.0789 R over 132 trades (t +1.69) and is the first lever since
-   section 357 to gain in the empty first sample (+0.0317 USD/day), but
-   loses in the latest year. Hypothesis: the same rule on DE40, EU50,
-   FR40 and UK100 with their own exchange calendars (XETR for DE40 and
-   EU50, the Paris and London exchange holidays for FR40 and UK100;
-   decision at the 15:00 UTC bar, the cash close) adds an independent set
-   of pre-holiday sessions; built only on its own four samples, not
-   stacked on section 388 after the fact.
+1. **New strategy families (2) — the turn of the month on the US
+   indices as a book.** Observation: of the calendar books measured on
+   the indices only the US pre-holiday session earns per trade (+0.0789
+   R, t +1.69, section 388); the same rule on the European indices loses
+   (-0.0675 R, section 389), and the overnight, cash-session and weekend
+   drifts did not pass (sections 274, 315, 356). The turn of the month
+   was measured only as a filter on index shorts (section 273), never as
+   a long book. Hypothesis: long US500, US30 and US100 from the close of
+   the 20:00 UTC bar on the last trading day of a month to the close of
+   the 20:00 UTC bar on the third trading day of the next (NYSE days),
+   priced as section 388, trades every month including the empty first
+   sample and earns in all four.
 2. **Live against backtest (1) — the momentum-only live period.**
    Observation: since 2026-10-01 the bot trades momentum and the five 4h
    pins only; the journal holds 5 closes since then (-1.72 USD), too few
@@ -9434,4 +9436,35 @@ USD/day) no longer describe the traded book.
 - **Decision:** rejected (VERDICT=DISCARD): the latest year is worse and
   t stays below +2. More risk taken: worst day -7.62 USD. Bot unchanged,
   no restart. Three new tests. Section 388.
+
+## 2026-10-09 (evening) — the pre-holiday session on the European indices
+
+- **Category:** 3, universe and timeframes.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), 7
+  combinations evaluated (failing 0), no HTTP 429, runtime checkout clean
+  on `origin/main` (4987660). No intervention.
+- **Observation:** the US pre-holiday book earns +0.0789 R per trade and
+  gains in the first sample (section 388).
+- **Lever:** section 388's rule unchanged on DE40 and EU50 (Xetra
+  calendar), FR40 (TARGET closing days) and UK100 (England bank
+  holidays), decision at the 15:00 UTC bar; judged on its own four
+  samples, not stacked on section 388. No other instrument, calendar or
+  hour, no diagnostic arm. `pre_holiday_drift_book.drift_trades` now takes
+  the calendar per pair and the hour as arguments, NYSE and 20:00 by
+  default.
+- **Measurement:** `scripts/european_pre_holiday_book.py`, cached
+  seven-year weekly walk-forward (section 357 reference). OOS
+  [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | closes (pre-holiday) | USD | USD/calendar day | worst day |
+  |---|---:|---:|---:|---:|
+  | momentum only (current) | 81 (0) | +8.010153 | +0.003661 | -4.5385 |
+  | with the European pre-holiday book | 166 (86, -5.40 USD) | +3.267340 | +0.001493 | -7.4528 |
+
+- **Result:** 106 priced trades at -0.0675 R (t -1.08, 20 stopped);
+  delta -0.002168 USD/day (-59.2 %), pooled paired t -0.2501; 1/4
+  samples better. The US effect of section 388 does not carry to the
+  European indices.
+- **Decision:** rejected (VERDICT=DISCARD); bot unchanged, no restart.
+  One new test. Section 389.
 

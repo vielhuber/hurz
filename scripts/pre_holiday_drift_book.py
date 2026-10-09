@@ -77,15 +77,16 @@ def sessions(holiday_dates):
     return sorted(set(out))
 
 
-def decision_bar(ts, day):
-    """Index of the bar starting at DECISION_HOUR UTC on `day`, else the last one before it that day."""
+def decision_bar(ts, day, hour=DECISION_HOUR):
+    """Index of the bar starting at `hour` UTC on `day`, else the last one before it that day."""
     start = np.datetime64(day.isoformat()) + np.timedelta64(0, "h")
-    upper = start + np.timedelta64(DECISION_HOUR, "h")
+    upper = start + np.timedelta64(hour, "h")
     i = int(np.searchsorted(ts, upper, side="right")) - 1
     return i if i >= 0 and ts[i] >= start else None
 
 
-def drift_trades(frames, floor, meta, pairs):
+def drift_trades(frames, floor, meta, pairs, calendars=None, hour=DECISION_HOUR):
+    """Long trades over each pair's pre-holiday sessions; `calendars` maps a pair to its holidays (NYSE by default)."""
     out = []
     for pair in pairs:
         if pair not in frames or direction_blocked(pair, 1):
@@ -94,8 +95,8 @@ def drift_trades(frames, floor, meta, pairs):
         ts = df["timestamp"].values
         hours = ts.astype("datetime64[h]")
         O, H, L, C = (df[column].values for column in ("open", "high", "low", "close"))
-        for entry_day, session in sessions(HOLIDAYS):
-            e, x = decision_bar(hours, entry_day), decision_bar(hours, session)
+        for entry_day, session in sessions((calendars or {}).get(pair, HOLIDAYS)):
+            e, x = decision_bar(hours, entry_day, hour), decision_bar(hours, session, hour)
             if e is None or x is None or x <= e:
                 continue
             terms = trade_terms(df, e, pair, meta, floor)
