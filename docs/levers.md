@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 6, execution and costs). Closed: the momentum
+run's (last run: 3, universe and timeframes). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,27 +43,24 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Universe and timeframes (3) — momentum on 2-hour bars.**
-   Observation: momentum's leash has a sharp optimum at one day: 12
-   hourly bars turn its mean R negative (-0.0078), 48 halve it (+0.0233)
-   against +0.0450 at 24 (sections 364, 384). Hypothesis: the same
-   EMA-cross rule on 2-hour bars resampled from the hourly cache, with a
-   12-bar leash (the same 24 hours) and the stop and target scaled by its
-   own ATR, fires fewer whipsaw crosses for the same holding horizon; it
-   replaces hourly momentum in both the list and the bot only if it beats
-   it in all four samples. The first sample needs a 2-hour combination
-   that reaches the list's ten there (section 383).
-
-2. **New strategy families (2) — momentum on 4-hour bars across the
-   universe.** Observation: momentum's edge sits in a one-day holding
-   horizon (12 hourly bars -0.0078 R, 24 bars +0.0450 R, 48 bars +0.0233
-   R; sections 364, 384), and a delayed entry loses it (sections 371,
-   386); the bot runs 4-hour momentum only as two exclusive pins (COPPER
-   and CHFJPY, -12.79 USD over seven years, section 359), never ranked.
-   Hypothesis: the same cross on 4-hour bars with a 6-bar leash (the
-   same 24 hours), ranked on the universe like the hourly strategies,
-   adds trades in years the hourly list leaves empty. Measured after item
-   1 and only if item 1 does not already show the coarser bars losing.
+1. **New strategy families (2) — the pre-holiday drift of the US
+   indices.** Observation: the bot's bank-holiday guard (2026-09-08,
+   nineteenth run; `app/utils/holiday_window.py`) stops trading around DE,
+   US, GB and CH holidays and was measured only as a guard on the trend
+   book; the session before a US exchange holiday has never been traded
+   or measured as a book of its own, while the overnight, cash-session and
+   weekend drifts were (sections 274, 315, 356). Hypothesis: a long on
+   US500, US30 and US100 from the close of the last session before a US
+   exchange holiday to the close of the next session, priced with the
+   replay's stop, sizing, cost and financing, earns in all four samples
+   beside the momentum book.
+2. **Live against backtest (1) — the momentum-only live period.**
+   Observation: since 2026-10-01 the bot trades momentum and the five 4h
+   pins only; the journal holds 5 closes since then (-1.72 USD), too few
+   to match. Hypothesis: once 10 or more closes exist since 2026-10-01,
+   the execution split of section 337 on them shows a residual within
+   noise, so the momentum-only reference describes the live book; measured
+   only when that count is reached.
 
 ## Levers already tested before this log existed
 
@@ -9371,4 +9368,37 @@ USD/day) no longer describe the traded book.
   starts is partly gone by 07:00.
 - **Decision:** rejected (VERDICT=DISCARD); entry timing and bot
   unchanged, no restart. Three new tests. Section 386.
+
+## 2026-10-09 (morning) — momentum on 2-hour bars
+
+- **Category:** 3, universe and timeframes.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), 7
+  combinations evaluated (failing 0), no HTTP 429, runtime checkout clean
+  on `origin/main` (15d6663). No intervention.
+- **Observation:** momentum's leash has a sharp optimum at one day (12
+  hourly bars -0.0078 R, 24 bars +0.0450 R, 48 bars +0.0233 R; sections
+  364, 384).
+- **Lever:** the hourly cache resampled to UTC-anchored 2-hour bars,
+  indicators recomputed, momentum rule, gate and blocks applied, priced by
+  `trade_terms` on the 2-hour ATR and booked at a 12-bar leash (24 hours),
+  stamped at each bar's last hourly bar; replacing hourly momentum under
+  the same name. No other bar size, no diagnostic arm. (The breakout book
+  at 2h bars was measured on 2026-09-12; this is momentum alone.)
+- **Measurement:** `scripts/momentum_two_hour_bars.py`, cached seven-year
+  weekly walk-forward (section 357 reference). OOS [2020-09-23,
+  2026-09-20), 2,188 calendar days.
+
+  | arm | momentum signals (mean R) | closes | USD | USD/calendar day |
+  |---|---:|---:|---:|---:|
+  | hourly (current) | 870 (+0.0450) | 81 | +8.010153 | +0.003661 |
+  | 2-hour | 457 (-0.0206) | 0 | 0 | 0 |
+
+- **Result:** delta -0.003661 USD/day (-100 %), pooled paired t -0.5024;
+  1/4 samples better. On 2-hour bars momentum fires about five times a
+  year per instrument at a negative mean (CADJPY 39, US30 36 at -0.095 R,
+  USDCHF 35 at -0.107 R); no combination reaches the list's ten trailing
+  trades, and the ETHUSD pin has no 2-hour signal.
+- **Decision:** rejected (VERDICT=DISCARD); bot unchanged, no restart.
+  Coarser bars lose, so plan item 2 (4-hour momentum ranked across the
+  universe) lapses as preregistered. Two new tests. Section 387.
 

@@ -14027,3 +14027,38 @@ Checked beside the run (decides nothing): 27 of the replay's instruments
 have hourly bars from 2019-09-22, so the empty first sample of the
 momentum-only reference (sections 379, 383) is not a gap in the data.
 
+## 387. Momentum on 2-hour bars: half the signals, a negative mean, an empty list
+
+Momentum's edge sits in a one-day holding horizon (sections 364, 384).
+`scripts/momentum_two_hour_bars.py` resamples the hourly cache to
+UTC-anchored 2-hour bars, recomputes the indicators, applies the momentum
+rule, regime gate and short blocks, prices each signal with the replay's
+`trade_terms` on the 2-hour ATR (3-ATR floor, venue minimum, cost ceiling,
+3 USD risk) and books it with the replay's `book` at a 12-bar leash (24
+hours) and 1.5 R target, financing per rollover held. Each trade is
+stamped at its 2-hour bar's last hourly bar, and the 2-hour signals
+replace the hourly momentum signals under the same strategy name. Today's
+vetoes in both arms. Preregistered: built in only if all four samples are
+better and pooled paired t > +2.
+
+The 2-hour rule yields 457 signals against 870 hourly, at -0.0206 R
+against +0.0450, with 15 near the target against 67; the mean hold is
+32.9 hours against 32.2. By instrument: CADJPY 39 (-0.029 R), US30 36
+(-0.095), USDCHF 35 (-0.107), EURJPY 33 (+0.050), GBPJPY 31 (-0.044),
+USDJPY 30 (+0.015), down to BTCUSD 1 and COPPER 1; ETHUSD has none. No
+combination reaches the list's ten trailing trades with a passing profit
+factor, so the candidate book trades nothing.
+
+| OOS interval (end exclusive) | days | hourly USD/day | 2-hour | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | 0 | -0.038500 | -1.3673 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | 0 | +0.011567 | +0.7489 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | 0 | -0.003290 | -0.5211 |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | 0 | 0 | – |
+| pooled | 2,188 | +0.003661 | 0 | -0.003661 | -0.5024 |
+
+Coarser bars do not clean momentum's crosses; they lose the edge the
+hourly cross has over its first day. Rejected; the bot is unchanged. The
+4-hour variant across the universe, planned only if 2-hour bars did not
+already lose, lapses.
+
