@@ -14062,3 +14062,34 @@ hourly cross has over its first day. Rejected; the bot is unchanged. The
 4-hour variant across the universe, planned only if 2-hour bars did not
 already lose, lapses.
 
+## 388. The pre-holiday session of the US indices: positive, and not enough
+
+The overnight, cash-session and weekend drifts of the indices were measured
+as books (sections 274, 315, 356); the bank-holiday guard only as a guard.
+`scripts/pre_holiday_drift_book.py` buys US500, US30 and US100 for the
+session before each NYSE holiday (`holidays.financial_holidays("NYSE")`):
+in at the close of the hourly bar starting 20:00 UTC on the trading day
+before the pre-holiday session, out at the close of the 20:00 UTC bar on
+the pre-holiday session (or the last bar before it that day), priced
+through `trade_terms`, stop checked bar by bar (a gap through it booked at
+the open), no target, each rollover charged at the long rate. The trades
+join the active order after the ranked list and the pins, sharing every
+cap and cooldown. Today's vetoes in both arms. Preregistered: built in
+only if all four samples are better and pooled paired t > +2.
+
+132 priced trades at +0.0789 R (t +1.69), 11 stopped, held one day.
+
+| OOS interval (end exclusive) | days | momentum only USD/day | with pre-holiday | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.028455 | -0.010045 | -0.4744 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | -0.002324 | +0.009243 | +0.5331 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | +0.011926 | +0.008637 | +0.6835 |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | +0.031727 | +0.031727 | +0.8856 |
+| pooled | 2,188 | +0.003661 | +0.013214 | +0.009553 | +0.9604 |
+
+The book admits 115 of them for +20.90 USD; 196 closes for +28.912871 USD
+against 81 for +8.010153, daily SD 0.3409 → 0.5804, worst day -4.5385 →
+-7.6163. It is the first lever since section 357 to gain in the first
+sample, where the momentum book trades nothing; the latest year loses and
+the pooled t is +0.96. Rejected; the bot is unchanged.
+

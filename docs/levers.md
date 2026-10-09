@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 3, universe and timeframes). Closed: the momentum
+run's (last run: 2, new strategy families). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,17 +43,16 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **New strategy families (2) — the pre-holiday drift of the US
-   indices.** Observation: the bot's bank-holiday guard (2026-09-08,
-   nineteenth run; `app/utils/holiday_window.py`) stops trading around DE,
-   US, GB and CH holidays and was measured only as a guard on the trend
-   book; the session before a US exchange holiday has never been traded
-   or measured as a book of its own, while the overnight, cash-session and
-   weekend drifts were (sections 274, 315, 356). Hypothesis: a long on
-   US500, US30 and US100 from the close of the last session before a US
-   exchange holiday to the close of the next session, priced with the
-   replay's stop, sizing, cost and financing, earns in all four samples
-   beside the momentum book.
+1. **Universe and timeframes (3) — the pre-holiday session on the
+   European indices.** Observation: the US pre-holiday book of section 388
+   earns +0.0789 R over 132 trades (t +1.69) and is the first lever since
+   section 357 to gain in the empty first sample (+0.0317 USD/day), but
+   loses in the latest year. Hypothesis: the same rule on DE40, EU50,
+   FR40 and UK100 with their own exchange calendars (XETR for DE40 and
+   EU50, the Paris and London exchange holidays for FR40 and UK100;
+   decision at the 15:00 UTC bar, the cash close) adds an independent set
+   of pre-holiday sessions; built only on its own four samples, not
+   stacked on section 388 after the fact.
 2. **Live against backtest (1) — the momentum-only live period.**
    Observation: since 2026-10-01 the bot trades momentum and the five 4h
    pins only; the journal holds 5 closes since then (-1.72 USD), too few
@@ -9401,4 +9400,38 @@ USD/day) no longer describe the traded book.
 - **Decision:** rejected (VERDICT=DISCARD); bot unchanged, no restart.
   Coarser bars lose, so plan item 2 (4-hour momentum ranked across the
   universe) lapses as preregistered. Two new tests. Section 387.
+
+## 2026-10-09 (afternoon) — the pre-holiday session of the US indices
+
+- **Category:** 2, new strategy families.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), 7
+  combinations evaluated (failing 0), no HTTP 429, runtime checkout clean
+  on `origin/main` (1b07ea8). No intervention.
+- **Observation:** the bank-holiday guard was measured only as a guard
+  (2026-09-08, nineteenth run); the overnight, cash-session and weekend
+  drifts were measured as books (sections 274, 315, 356), the session
+  before a US exchange holiday never.
+- **Lever:** long US500, US30 and US100 from the close of the 20:00 UTC
+  bar on the trading day before the pre-holiday session to the close of
+  the 20:00 UTC bar on the pre-holiday session (NYSE calendar), priced by
+  `trade_terms`, stop bar by bar, no target, financing per rollover;
+  joining the active order after the list and the pins. No other
+  instrument, window or calendar, no diagnostic arm. (The plan's
+  holiday-spanning hold was replaced by the pre-holiday session itself
+  before any data were read.)
+- **Measurement:** `scripts/pre_holiday_drift_book.py`, cached
+  seven-year weekly walk-forward (section 357 reference). OOS
+  [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | arm | closes (pre-holiday) | USD | USD/calendar day | daily SD | worst day |
+  |---|---:|---:|---:|---:|---:|
+  | momentum only (current) | 81 (0) | +8.010153 | +0.003661 | 0.3409 | -4.5385 |
+  | with the pre-holiday book | 196 (115, +20.90 USD) | +28.912871 | +0.013214 | 0.5804 | -7.6163 |
+
+- **Result:** 132 priced trades at +0.0789 R (t +1.69, 11 stopped, one
+  day held); delta +0.009553 USD/day (+261 %), pooled paired t +0.9604;
+  3/4 samples better (-0.0100, +0.0092, +0.0086, +0.0317).
+- **Decision:** rejected (VERDICT=DISCARD): the latest year is worse and
+  t stays below +2. More risk taken: worst day -7.62 USD. Bot unchanged,
+  no restart. Three new tests. Section 388.
 
