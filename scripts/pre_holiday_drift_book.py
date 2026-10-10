@@ -85,8 +85,10 @@ def decision_bar(ts, day, hour=DECISION_HOUR):
     return i if i >= 0 and ts[i] >= start else None
 
 
-def drift_trades(frames, floor, meta, pairs, calendars=None, hour=DECISION_HOUR):
-    """Long trades over each pair's pre-holiday sessions; `calendars` maps a pair to its holidays (NYSE by default)."""
+def drift_trades(frames, floor, meta, pairs, calendars=None, hour=DECISION_HOUR, windows=None):
+    """Long trades over each pair's pre-holiday sessions; `calendars` maps a pair to its holidays (NYSE by default).
+
+    `windows`, if given, replaces the pre-holiday sessions by these (entry day, exit day) pairs."""
     out = []
     for pair in pairs:
         if pair not in frames or direction_blocked(pair, 1):
@@ -95,7 +97,7 @@ def drift_trades(frames, floor, meta, pairs, calendars=None, hour=DECISION_HOUR)
         ts = df["timestamp"].values
         hours = ts.astype("datetime64[h]")
         O, H, L, C = (df[column].values for column in ("open", "high", "low", "close"))
-        for entry_day, session in sessions((calendars or {}).get(pair, HOLIDAYS)):
+        for entry_day, session in windows or sessions((calendars or {}).get(pair, HOLIDAYS)):
             e, x = decision_bar(hours, entry_day, hour), decision_bar(hours, session, hour)
             if e is None or x is None or x <= e:
                 continue

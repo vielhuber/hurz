@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 3, universe and timeframes). Closed: the momentum
+run's (last run: 2, new strategy families). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the turn of the month on the US indices as a book (section 390), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,18 +43,17 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **New strategy families (2) — the turn of the month on the US
-   indices as a book.** Observation: of the calendar books measured on
-   the indices only the US pre-holiday session earns per trade (+0.0789
-   R, t +1.69, section 388); the same rule on the European indices loses
-   (-0.0675 R, section 389), and the overnight, cash-session and weekend
-   drifts did not pass (sections 274, 315, 356). The turn of the month
-   was measured only as a filter on index shorts (section 273), never as
-   a long book. Hypothesis: long US500, US30 and US100 from the close of
-   the 20:00 UTC bar on the last trading day of a month to the close of
-   the 20:00 UTC bar on the third trading day of the next (NYSE days),
-   priced as section 388, trades every month including the empty first
-   sample and earns in all four.
+1. **Portfolio and position sizing (4) — momentum's sizing classes.**
+   Observation: of momentum's 870 signals the 625 whose planned risk the
+   venue's size step, the 250 USD notional cap or the quote conversion
+   leaves below 2.5 USD earn +0.0800 R (t +2.89), while the 245 sized at
+   2.5 to 2.95 USD lose -0.0442 R (t -0.92); none reaches the 3 USD
+   target (diagnostic of section 390's run). Hypothesis: the split marks
+   which sizing rule binds (the notional cap with the 1.05 % venue-minimum
+   stop on the indices against the size step elsewhere); measured first
+   as a decomposition of the two classes by instrument and binding rule,
+   then, if one rule separates them, as sizing momentum's losing class at
+   the other class's risk. No risk above today's 3 USD target.
 2. **Live against backtest (1) — the momentum-only live period.**
    Observation: since 2026-10-01 the bot trades momentum and the five 4h
    pins only; the journal holds 5 closes since then (-1.72 USD), too few
@@ -9467,4 +9466,36 @@ USD/day) no longer describe the traded book.
   European indices.
 - **Decision:** rejected (VERDICT=DISCARD); bot unchanged, no restart.
   One new test. Section 389.
+
+## 2026-10-10 — the turn of the month on the US indices as a book
+
+- **Category:** 2, new strategy families.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), 7
+  combinations evaluated (failing 0), no HTTP 429, runtime checkout clean
+  on `origin/main` (57f57c4). No intervention.
+- **Observation:** of the calendar books on the indices only the US
+  pre-holiday session earns per trade (section 388); the turn of the
+  month was measured only as a filter on index shorts (section 273).
+- **Lever:** long US500, US30 and US100 from the close of the 20:00 UTC
+  bar on the last NYSE trading day of each month to the close of that bar
+  on the third trading day of the next, through section 388's
+  `drift_trades` (now also taking explicit entry/exit day windows):
+  `trade_terms` pricing, stop bar by bar, no target, financing per
+  rollover; joining the active order after the list and the pins. No
+  other window, no diagnostic arm.
+- **Measurement:** `scripts/turn_of_month_book.py`, cached seven-year
+  weekly walk-forward (section 357 reference). OOS [2020-09-23,
+  2026-09-20), 2,188 calendar days.
+
+  | arm | closes (turn of month) | USD | USD/calendar day | daily SD | worst day |
+  |---|---:|---:|---:|---:|---:|
+  | momentum only (current) | 81 (0) | +8.010153 | +0.003661 | 0.3409 | -4.5385 |
+  | with the turn-of-month book | 201 (123, +8.92 USD) | +12.542086 | +0.005732 | 1.0843 | -8.3663 |
+
+- **Result:** 141 priced trades at +0.0161 R (t +0.15), 62 stopped,
+  held 4.1 days; delta +0.002071 USD/day (+56.6 %), pooled paired t
+  +0.0924; 3/4 samples better (+0.0721, +0.0007, -0.0424, +0.0238).
+- **Decision:** rejected (VERDICT=DISCARD); more risk for nothing
+  measurable (daily SD 0.34 → 1.08, worst day -8.37 USD). Bot unchanged,
+  no restart. Three new tests. Section 390.
 

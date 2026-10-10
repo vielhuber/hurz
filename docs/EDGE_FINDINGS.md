@@ -14123,3 +14123,38 @@ worst day -7.4528. The European pre-holiday sessions lose where the US
 ones earned; with t +1.69 on 132 US trades, section 388's edge is as
 likely a US-specific effect as noise. Rejected; the bot is unchanged.
 
+## 390. The turn of the month on the US indices: a coin flip with a tight stop
+
+Section 273 measured the turn of the month only as a filter on index
+shorts. `scripts/turn_of_month_book.py` trades it as a long book on US500,
+US30 and US100: in at the close of the hourly bar starting 20:00 UTC on
+the last NYSE trading day of each month, out at the close of that bar on
+the third trading day of the next, through section 388's `drift_trades`
+(which now also accepts explicit entry and exit days): `trade_terms`
+pricing, stop checked bar by bar, no target, financing per rollover. The
+trades join the active order after the list and the pins. Today's vetoes
+in both arms. Preregistered: built in only if all four samples are better
+and pooled paired t > +2.
+
+141 priced trades at +0.0161 R (t +0.15); 62 are stopped, as the hourly
+book's stop (at least 1.05 % of price) is narrow for a four-day hold.
+
+| OOS interval (end exclusive) | days | momentum only USD/day | with turn of month | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | +0.110636 | +0.072136 | +1.1293 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | -0.010867 | +0.000700 | +0.0164 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | -0.039093 | -0.042383 | -1.4381 |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | +0.023776 | +0.023776 | +0.4174 |
+| pooled | 2,188 | +0.003661 | +0.005732 | +0.002071 | +0.0924 |
+
+123 are admitted for +8.92 USD; 201 closes for +12.542086 USD, daily SD
+0.3409 → 1.0843, worst day -4.5385 → -8.3663. Rejected; the bot is
+unchanged. With sections 273, 274, 315, 356, 388 and 389 the calendar
+books on the indices are closed.
+
+Diagnostic beside the run (decides nothing): momentum's 870 signals split
+by the planned risk the venue leaves: 625 below 2.5 USD at +0.0800 R (t
++2.89), 245 at 2.5 to 2.95 USD at -0.0442 R (t -0.92), none at 3 USD;
+the entry spread costs a median 0.0095 R and the stop sits at a median
+4.72 ATR.
+
