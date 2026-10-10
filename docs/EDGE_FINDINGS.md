@@ -14158,3 +14158,29 @@ by the planned risk the venue leaves: 625 below 2.5 USD at +0.0800 R (t
 the entry spread costs a median 0.0095 R and the stop sits at a median
 4.72 ATR.
 
+## 391. Momentum's sizing classes are instruments, and the cap binds on every trade
+
+Section 390's diagnostic split momentum's signals by the planned risk the
+venue leaves: below 2.5 USD +0.0800 R, 2.5 to 2.95 USD -0.0442 R.
+`scripts/momentum_capped_half_risk.py` first classes each momentum signal
+by the sizing rule that binds — the 250 USD notional cap when the stop is
+narrower than 1.2 % of the entry (3 / 250), the 3 USD risk otherwise —
+and preregistered the notional-capped class at half risk, the risk-sized
+class unchanged, today's vetoes in both arms.
+
+The cap binds on all 870 signals (mean planned risk 2.316 USD): with the
+3-ATR floor and the 1.05 % venue minimum, momentum's stops all sit below
+1.2 % of price. The planned-risk spread comes from the venue's size steps
+after the cap: the JPY crosses trade in 100-unit steps (CHFJPY 1.99 USD,
+USDJPY 2.05, GBPJPY 2.09, EURJPY 2.16, CADJPY 2.22), FR40 and UK100 at
+2.05-2.07, the fine-step indices and metals near 2.6 (US30 2.44, DE40
+2.50, US100 2.52, J225 2.61). Mean R by instrument runs from DE40 +0.296,
+US100 +0.179, CADJPY +0.169 and US30 +0.152 to US500 -0.112, GOLD -0.173
+and J225 -0.239, inside both risk classes.
+
+The candidate therefore halves every momentum trade: 81 closes for
++4.005076 USD, +0.001830 USD per calendar day against +0.003661; daily SD
+0.3409 → 0.1704; pooled paired t -0.5024, one sample of four better.
+Rejected. The sizing split is an instrument split, the per-instrument
+selection the ranking direction has closed.
+

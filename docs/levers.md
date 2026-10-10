@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 2, new strategy families). Closed: the momentum
+run's (last run: 4, portfolio and position sizing). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the turn of the month on the US indices as a book (section 390), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the turn of the month on the US indices as a book (section 390), momentum's sizing classes (section 391), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,17 +43,26 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Portfolio and position sizing (4) — momentum's sizing classes.**
-   Observation: of momentum's 870 signals the 625 whose planned risk the
-   venue's size step, the 250 USD notional cap or the quote conversion
-   leaves below 2.5 USD earn +0.0800 R (t +2.89), while the 245 sized at
-   2.5 to 2.95 USD lose -0.0442 R (t -0.92); none reaches the 3 USD
-   target (diagnostic of section 390's run). Hypothesis: the split marks
-   which sizing rule binds (the notional cap with the 1.05 % venue-minimum
-   stop on the indices against the size step elsewhere); measured first
-   as a decomposition of the two classes by instrument and binding rule,
-   then, if one rule separates them, as sizing momentum's losing class at
-   the other class's risk. No risk above today's 3 USD target.
+1. **Live against backtest (1) — the idle live book since the veto.**
+   Observation: since the strategy veto of 2026-10-01 the bot has opened
+   no position at all (journal: no Capital entry from 2026-10-01 to
+   2026-10-10; heartbeat "0 signals in last 24h"); the 4h pins closed 2
+   trades since 2026-09-10, momentum none. The momentum-only reference
+   expects about one close a month (81 in 2,188 days). Hypothesis: the
+   replay on the bar cache extended to today (section 362) also takes no
+   momentum or pin entry from 2026-10-01 to today; if it does take some,
+   the live path refuses signals the replay books, which is a defect,
+   not a lever, and is fixed first.
+3. **Portfolio and position sizing (4) — the breakouts gated by their
+   replay year.** Observation: the live strategy veto (quote-unit live R)
+   leaves the bot idle, while the replay's breakouts earned +0.20
+   USD/day in the first sample (section 339) and the USD veto readmitting
+   them was better in all four samples at t +1.29 (section 357).
+   Hypothesis: readmitting donchian_breakout and turtle_breakout in a
+   week only while their pooled trailing-year replay expectancy is
+   positive (the gate of section 383, applied to the breakouts) keeps
+   their good years and skips the bad ones; not a repeat of sections 357
+   (USD veto) or 360 (trailing live window).
 2. **Live against backtest (1) — the momentum-only live period.**
    Observation: since 2026-10-01 the bot trades momentum and the five 4h
    pins only; the journal holds 5 closes since then (-1.72 USD), too few
@@ -9498,4 +9507,31 @@ USD/day) no longer describe the traded book.
 - **Decision:** rejected (VERDICT=DISCARD); more risk for nothing
   measurable (daily SD 0.34 → 1.08, worst day -8.37 USD). Bot unchanged,
   no restart. Three new tests. Section 390.
+
+## 2026-10-10 (morning) — momentum's sizing classes
+
+- **Category:** 4, portfolio and position sizing.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), 7
+  combinations evaluated (failing 0), no HTTP 429, runtime checkout clean
+  on `origin/main` (e369b99). No intervention. The bot has opened no
+  position since 2026-10-01 (plan item 1).
+- **Observation:** momentum's signals sized below 2.5 USD earn +0.0800 R
+  (t +2.89), those at 2.5 to 2.95 USD lose -0.0442 R (section 390).
+- **Lever:** decomposition by the binding sizing rule (notional cap when
+  the stop is below 1.2 % of price), then the notional-capped class at
+  half risk. No risk raised; the first sample was known to hold no
+  momentum trade. No other share, no diagnostic arm.
+- **Measurement:** `scripts/momentum_capped_half_risk.py`, cached
+  seven-year weekly walk-forward (section 357 reference). OOS
+  [2020-09-23, 2026-09-20), 2,188 calendar days.
+- **Result:** the notional cap binds on all 870 momentum signals (mean
+  planned risk 2.316 USD); the planned-risk split of section 390 comes
+  from the venue's size steps per instrument (JPY crosses at 100 units
+  around 2.0-2.2 USD, fine-step indices near 2.6 USD), not from the rule
+  that binds. The candidate therefore halves every momentum trade: 81
+  closes, +4.005076 USD, +0.001830 USD/day; delta -0.001830 (-50 %),
+  pooled paired t -0.5024, 1/4 samples better.
+- **Decision:** rejected (VERDICT=DISCARD); the sizing split is an
+  instrument split, which the ranking direction already closed. Bot
+  unchanged, no restart. Two new tests. Section 391.
 
