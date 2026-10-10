@@ -53,7 +53,7 @@ USD/day) no longer describe the traded book.
    momentum or pin entry from 2026-10-01 to today; if it does take some,
    the live path refuses signals the replay books, which is a defect,
    not a lever, and is fixed first.
-3. **Portfolio and position sizing (4) — the breakouts gated by their
+2. **Portfolio and position sizing (4) — the breakouts gated by their
    replay year.** Observation: the live strategy veto (quote-unit live R)
    leaves the bot idle, while the replay's breakouts earned +0.20
    USD/day in the first sample (section 339) and the USD veto readmitting
@@ -63,7 +63,7 @@ USD/day) no longer describe the traded book.
    positive (the gate of section 383, applied to the breakouts) keeps
    their good years and skips the bad ones; not a repeat of sections 357
    (USD veto) or 360 (trailing live window).
-2. **Live against backtest (1) — the momentum-only live period.**
+3. **Live against backtest (1) — the momentum-only live period.**
    Observation: since 2026-10-01 the bot trades momentum and the five 4h
    pins only; the journal holds 5 closes since then (-1.72 USD), too few
    to match. Hypothesis: once 10 or more closes exist since 2026-10-01,
