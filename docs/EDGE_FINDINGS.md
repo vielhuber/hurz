@@ -14215,3 +14215,32 @@ live closes since 2026-09-10), which concerns sections 343, 359, 367 and
 375; the hourly momentum reference books no pins and is unaffected.
 Nothing in the bot changes.
 
+## 393. The breakouts readmitted by their replay year: the gate opens on the losing years
+
+The live strategy veto retires donchian_breakout and turtle_breakout and
+leaves the bot idle (section 392). `scripts/breakouts_gated_by_replay_year.py`
+readmits each of them to the ranked list for a week when the mean R of its
+trades in the replay's trailing ranking year, one position per combination
+as the selector counts, is above zero; their pins stay retired, and
+momentum, caps, cooldowns, stops and sizing are unchanged. Not section 357
+(USD-weighted live veto) nor 360 (trailing live window): the gate reads
+the replay's own year. Preregistered: built in only if all four samples
+are better and pooled paired t > +2.
+
+| OOS interval (end exclusive) | days | momentum only USD/day | breakouts gated | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.038500 | -0.018396 | -0.056896 | -0.7710 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.011567 | +0.064002 | +0.075569 | +0.8787 |
+| 2021-09-21 – 2023-09-21 | 730 | +0.003290 | +0.028513 | +0.025223 | +0.2918 |
+| 2020-09-23 – 2021-09-21 | 363 | 0 | -0.123486 | -0.123486 | -1.9760 |
+| pooled | 2,188 | +0.003661 | +0.007311 | +0.003650 | +0.0834 |
+
+donchian is readmitted in 209 of 313 weeks, turtle in 228. The candidate
+closes 2,917 trades (donchian +43.91 USD, turtle -27.13, momentum -0.78,
+displaced), +15.995692 USD; daily SD 0.3409 → 2.0694, worst day -4.5385
+→ -17.5974. The gate opens late in 2020 after a good year and the
+breakouts then lose the first sample; in the latest year they lose too.
+A trailing year of the breakouts says nothing about their next one, as a
+trailing year of momentum did not (section 373). Rejected; the veto
+stays.
+
