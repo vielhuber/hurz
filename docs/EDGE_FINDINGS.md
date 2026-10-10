@@ -14184,3 +14184,34 @@ The candidate therefore halves every momentum trade: 81 closes for
 Rejected. The sizing split is an instrument split, the per-instrument
 selection the ranking direction has closed.
 
+## 392. The idle live book: momentum is gated, the 4h pins are floored
+
+Since the strategy veto of 2026-10-01 the bot has opened no position.
+`scripts/idle_book_check.py` extends a copy of the bar cache to 2026-10-10
+14:00 UTC, runs the shared replay with the live 4h pins booked as in
+section 359, and lists the entries it takes from 2026-10-01 together with
+every momentum cross and 4h pin signal on the bot's seven combinations.
+Preregistered: DEFECT if the replay books an entry the journal lacks.
+
+Momentum fired seven crosses on the two listed combinations (US30
+2026-10-07 10:00 and 2026-10-08 20:00; ETHUSD 2026-10-01 16:00 and 17:00,
+2026-10-02 17:00, 2026-10-05 16:00, 2026-10-10 14:00 UTC). The replay drops
+every one at the regime gate, and the journal records the same skips live
+("trend-following needs ADX>=30", ADX between 13.0 and 30.0). The momentum
+book is idle because the market is.
+
+The replay books four entries from the 4h pins: NZDUSD donchian_breakout_4h
+(2026-10-01, -0.009 R), HK50 turtle_breakout_4h (2026-10-02, -0.080 R;
+2026-10-08, -1.014 R) and CHFJPY momentum_4h (2026-10-02, -0.365 R). The
+bot took none, so the verdict is DEFECT by the rule, but the journal's
+skip rows explain all four: the NZDUSD and both HK50 signals "stop
+distance below 3×ATR floor", CHFJPY "ADX>=30, got 28.6". The live path
+applies its rules; the replay does not reproduce them for the 4h pins.
+Its 4h pricing (`four_hour_stream.daily_terms`) widens the stop to the
+3-ATR floor where the live path refuses the signal, and its resampled,
+UTC-anchored 4h ADX passed CHFJPY where the broker's bars did not. The
+live 4h pins therefore trade far less than the replay books them (two
+live closes since 2026-09-10), which concerns sections 343, 359, 367 and
+375; the hourly momentum reference books no pins and is unaffected.
+Nothing in the bot changes.
+
