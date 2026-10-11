@@ -14297,3 +14297,27 @@ those then trade their ADX 30 crosses as well. Daily SD 0.9199 → 1.4417,
 worst day -5.7750 → -7.3086. Rejected (3/4, t +1.83); the floor stays at
 30. The mechanism points at the ranking input, not at the gate.
 
+## 396. Momentum ranked on its crosses from ADX 25: t clears 2, the oldest year does not
+
+Section 395 found that lowering momentum's ADX floor to 25 adds crosses
+worth about nothing per trade but lets more combinations clear the
+ten-trade list floor. `scripts/momentum_ranked_wider.py` separates the
+two: the weekly ranking reads momentum's crosses from ADX 25, the book
+trades only those the live ADX 30 gate passes. Preregistered: build only
+with all four samples better and pooled paired t > +2.
+
+| OOS interval (end exclusive) | days | ranked from 30 USD/day | ranked from 25 | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.081786 | +0.154771 | +0.072984 | +2.1497 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.055916 | -0.025020 | +0.030895 | +1.0842 |
+| 2021-09-21 – 2023-09-21 | 730 | -0.030293 | +0.004038 | +0.034331 | +1.3812 |
+| 2020-09-23 – 2021-09-21 | 363 | -0.019784 | -0.032906 | -0.013122 | -0.6500 |
+| pooled | 2,188 | -0.018401 | +0.013359 | +0.031760 | +2.2319 |
+
+Momentum's closes grow from 81 to 345 and its USD from +8.01 to +78.06;
+daily SD 0.9199 → 1.1325, worst day -5.7750 → -7.3086. Pooled the
+separation is significant, but the oldest sample is worse, as it was for
+section 395; rejected. Both momentum levers fail in the one year in which
+the reference books no momentum trade, which is the next thing to
+decompose.
+

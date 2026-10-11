@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 6, execution and costs). Closed: the momentum
+run's (last run: 4, portfolio and position sizing). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the turn of the month on the US indices as a book (section 390), momentum's sizing classes (section 391), the idle live book since the veto (section 392), the breakouts readmitted by their replay year (section 393), the 4h pins priced by the live rule (section 394), momentum's regime gate at ADX 25 (section 395), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the turn of the month on the US indices as a book (section 390), momentum's sizing classes (section 391), the idle live book since the veto (section 392), the breakouts readmitted by their replay year (section 393), the 4h pins priced by the live rule (section 394), momentum's regime gate at ADX 25 (section 395), momentum ranked on its crosses from ADX 25 (section 396), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,15 +43,16 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Portfolio and position sizing (4) — momentum ranked on the 25-30
-   band, traded at 30.** Observation: at ADX 25 the momentum book closes
-   750 trades instead of 81 and earns +101.61 USD instead of +8.01, yet
-   the 1,090 added crosses average about -0.002 R against +0.045 R for
-   those at ADX 30 (section 395); the gain comes from combinations that
-   clear the ten-trade list floor, not from better crosses. Hypothesis:
-   the weekly ranking reads momentum's crosses from ADX 25, the bot still
-   enters only at ADX 30, so the list fills without the band's flat
-   trades. Every cap, stop and size unchanged.
+1. **Live against backtest (1) — the oldest sample decomposed.**
+   Observation: momentum at ADX 25 (section 395) and momentum ranked on
+   its crosses from ADX 25 (section 396) gain in the three newer samples
+   and lose only in 2020-09-23 to 2021-09-21 (-0.0025 and -0.0131
+   USD/day), the year in which the reference books no momentum trade.
+   Hypothesis: that year's replay differs from the later ones in its
+   inputs (instruments with bars, spreads, financing), not in momentum's
+   edge; decompose its added momentum trades by instrument, cost and
+   financing against the later years, and calibrate the replay if an
+   input proves out of line. Measured on the section 396 candidate.
 2. **Live against backtest (1) — the momentum-only live period.**
    Observation: since 2026-10-01 the bot trades momentum and the five 4h
    pins only; the journal holds 5 closes since then (-1.72 USD), too few
@@ -9651,4 +9652,35 @@ USD/day) no longer describe the traded book.
 - **Decision:** rejected (VERDICT=DISCARD): the oldest sample is worse and
   t stays below +2. Floor stays at 30, bot unchanged, no restart. One new
   test. Section 395.
+
+## 2026-10-11 (afternoon) — momentum ranked on its crosses from ADX 25
+
+- **Category:** 4, portfolio and position sizing (the list's selection).
+- **Operation:** one watchdog (20584) and one bot process, 7
+  combinations evaluated per minute (failing 0), no HTTP 429, runtime
+  checkout clean on `origin/main` (d439f65). No intervention.
+- **Observation:** at ADX 25 the 1,090 added crosses averaged about
+  -0.002 R, but momentum's closes rose from 81 to 750 because more
+  combinations cleared the ten-trade list floor (section 395).
+- **Lever:** the weekly ranking reads momentum's crosses from ADX 25
+  (ceiling 50), the book enters only the crosses the live ADX 30 gate
+  passes; the live 4h pins as in section 359, today's vetoes, every cap,
+  stop and size unchanged. No other floor, no diagnostic arm.
+- **Measurement:** `scripts/momentum_ranked_wider.py`, cached seven-year
+  weekly walk-forward, 27 instruments. OOS [2020-09-23, 2026-09-20),
+  2,188 calendar days. The reference arm reproduces section 394's
+  figures exactly.
+
+  | momentum ranking | closes (momentum) | momentum USD | USD/calendar day | daily SD | worst day |
+  |---|---:|---:|---:|---:|---:|
+  | crosses from ADX 30 (live) | 350 (81) | +8.0102 | -0.018401 | 0.9199 | -5.7750 |
+  | crosses from ADX 25 | 612 (345) | +78.0609 | +0.013359 | 1.1325 | -7.3086 |
+
+- **Result:** delta +0.031760 USD/day (+173 %), pooled paired t +2.2319,
+  3/4 samples better (+0.0730 at t +2.15, +0.0309, +0.0343, -0.0131 at
+  t -0.65 by sample from the newest). Daily SD +23 %, worst day -7.31
+  USD.
+- **Decision:** rejected (VERDICT=DISCARD): t clears +2, the oldest sample
+  is worse. The ranking stays on the traded crosses, bot unchanged, no
+  restart. One new test. Section 396.
 
