@@ -14271,3 +14271,29 @@ pin measurements of sections 343, 359, 367 and 375 stand with the caveat
 that they overstate how often the pins trade by a factor of about four.
 The live pins lose under either pricing; the bot is unchanged.
 
+## 395. Momentum's regime gate at ADX 25: more trades, no proof
+
+Since the strategy veto of 2026-10-01 momentum is the only hourly book,
+and every one of its live crosses since then failed the ADX 30 gate
+(section 392). The floor sweeps of sections 197 and 237 ran on the merged
+breakout book. `scripts/momentum_adx_floor.py` moves momentum's floor to
+25 (ceiling 50, other gates unchanged) beside the momentum-only reference
+with the live 4h pins. Preregistered: build only with all four samples
+better and pooled paired t > +2.
+
+| OOS interval (end exclusive) | days | ADX 30 USD/day | ADX 25 | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.081786 | +0.155262 | +0.073475 | +1.6150 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.055916 | -0.001372 | +0.054544 | +1.1276 |
+| 2021-09-21 – 2023-09-21 | 730 | -0.030293 | +0.013812 | +0.044104 | +0.9526 |
+| 2020-09-23 – 2021-09-21 | 363 | -0.019784 | -0.022262 | -0.002478 | -0.0658 |
+| pooled | 2,188 | -0.018401 | +0.026358 | +0.044759 | +1.8345 |
+
+Momentum's signals grow from 870 (+0.0450 R) to 1,960 (+0.0186 R): the
+1,090 crosses of the 25-30 band average about -0.002 R. Yet momentum's
+closes grow from 81 to 750 and its USD from +8.01 to +101.61, because the
+larger sample lets more combinations clear the ten-trade list floor, and
+those then trade their ADX 30 crosses as well. Daily SD 0.9199 → 1.4417,
+worst day -5.7750 → -7.3086. Rejected (3/4, t +1.83); the floor stays at
+30. The mechanism points at the ranking input, not at the gate.
+
