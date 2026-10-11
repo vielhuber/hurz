@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 4, portfolio and position sizing). Closed: the momentum
+run's (last run: 1, live against backtest). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the turn of the month on the US indices as a book (section 390), momentum's sizing classes (section 391), the idle live book since the veto (section 392), the breakouts readmitted by their replay year (section 393), the 4h pins priced by the live rule (section 394), momentum's regime gate at ADX 25 (section 395), momentum ranked on its crosses from ADX 25 (section 396), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the turn of the month on the US indices as a book (section 390), momentum's sizing classes (section 391), the idle live book since the veto (section 392), the breakouts readmitted by their replay year (section 393), the 4h pins priced by the live rule (section 394), momentum's regime gate at ADX 25 (section 395), momentum ranked on its crosses from ADX 25 (section 396), the oldest sample's replay inputs (section 397), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,16 +43,18 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Live against backtest (1) — the oldest sample decomposed.**
-   Observation: momentum at ADX 25 (section 395) and momentum ranked on
-   its crosses from ADX 25 (section 396) gain in the three newer samples
-   and lose only in 2020-09-23 to 2021-09-21 (-0.0025 and -0.0131
-   USD/day), the year in which the reference books no momentum trade.
-   Hypothesis: that year's replay differs from the later ones in its
-   inputs (instruments with bars, spreads, financing), not in momentum's
-   edge; decompose its added momentum trades by instrument, cost and
-   financing against the later years, and calibrate the replay if an
-   input proves out of line. Measured on the section 396 candidate.
+1. **New strategy families (2) — momentum gated by the universe's
+   breadth.** Observation: the momentum trades section 396's candidate
+   adds earn gross +0.33, +0.07 and +0.15 R in the three newer samples
+   and -0.07 R in 2020-09 to 2021-09, at the same cost (0.010-0.012 R) and
+   financing (0.007-0.011 R) and on all 27 instruments (section 397): the
+   oldest year's shortfall is momentum's outcome, not the replay's
+   inputs. Hypothesis: a momentum cross pays when many instruments trend
+   at once; a breadth signal (the share of the universe whose own
+   momentum agrees with the cross's direction over the trailing week),
+   computed from bars the replay already holds, separates the years and
+   gates momentum on the live list. Measured on the momentum-only
+   reference.
 2. **Live against backtest (1) — the momentum-only live period.**
    Observation: since 2026-10-01 the bot trades momentum and the five 4h
    pins only; the journal holds 5 closes since then (-1.72 USD), too few
@@ -9683,4 +9685,41 @@ USD/day) no longer describe the traded book.
 - **Decision:** rejected (VERDICT=DISCARD): t clears +2, the oldest sample
   is worse. The ranking stays on the traded crosses, bot unchanged, no
   restart. One new test. Section 396.
+
+## 2026-10-11 (evening) — the oldest sample's replay inputs
+
+- **Category:** 1, live against backtest (replay calibration).
+- **Operation:** one watchdog (20584) and one bot process, 7
+  combinations evaluated per minute (failing 0), no HTTP 429, runtime
+  checkout clean on `origin/main` (7f8e1b3). No intervention.
+- **Observation:** sections 395 and 396 gain in the three newer samples
+  and lose only in 2020-09-23 to 2021-09-21, the year in which the
+  reference books no momentum trade.
+- **Lever:** decompose section 396's delta per sample into the trades
+  only the candidate books and those only the reference books, and the
+  added momentum trades into gross, cost and financing R, with the
+  instruments that hold a full ranking year. Preregistered: CALIBRATE
+  the replay if the oldest sample's cost or financing R per added trade
+  exceeds the newer samples' largest by more than half, or fewer
+  instruments hold bars; else EDGE. No diagnostic arm.
+- **Measurement:** `scripts/oldest_sample_decomposition.py`, cached
+  seven-year weekly walk-forward, 27 instruments. OOS [2020-09-23,
+  2026-09-20). The first run counted the oldest sample's instruments
+  from 2019-09-22 (before the OOS start) and returned 0/27 and CALIBRATE;
+  the sample start was clipped to the OOS start and the run repeated.
+
+  | OOS sample | added (USD) | displaced (USD) | added momentum | net R | gross R | cost R | financing R | instruments |
+  |---|---:|---:|---:|---:|---:|---:|---:|---:|
+  | 2025-09-20 – 2026-09-20 | 38 (+27.67) | 4 (+1.03) | 38 | +0.3118 | +0.3325 | 0.0102 | 0.0105 | 27/27 |
+  | 2023-09-21 – 2025-09-20 | 128 (+12.72) | 12 (-9.84) | 126 | +0.0542 | +0.0735 | 0.0100 | 0.0093 | 27/27 |
+  | 2021-09-21 – 2023-09-21 | 89 (+26.49) | 1 (+1.43) | 89 | +0.1309 | +0.1494 | 0.0113 | 0.0071 | 27/27 |
+  | 2020-09-23 – 2021-09-21 | 24 (-4.76) | 0 | 24 | -0.0900 | -0.0701 | 0.0122 | 0.0077 | 27/27 |
+
+- **Result:** VERDICT=EDGE. The oldest sample's cost (0.0122 R) and
+  financing (0.0077 R) are in line with the newer samples, all 27
+  instruments hold a ranking year, and nothing is displaced there; its
+  24 added momentum trades lose before costs (-0.0701 R gross, CADJPY
+  +5.07 USD against -9.84 on seven others).
+- **Decision:** the replay's inputs stay; no calibration. Bot unchanged,
+  no restart. Two new tests. Section 397.
 

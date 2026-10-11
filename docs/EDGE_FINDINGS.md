@@ -14321,3 +14321,27 @@ section 395; rejected. Both momentum levers fail in the one year in which
 the reference books no momentum trade, which is the next thing to
 decompose.
 
+## 397. The oldest sample's replay inputs are in line
+
+Both momentum levers of sections 395 and 396 lose only in 2020-09-23 to
+2021-09-21. `scripts/oldest_sample_decomposition.py` reruns section 396's
+arms and splits each sample's delta into trades only the candidate books
+and trades only the reference books, then the added momentum trades into
+gross, cost and financing R. Preregistered: CALIBRATE if the oldest
+sample's cost or financing R exceeds the newer samples' largest by more
+than half or fewer instruments hold a ranking year; else EDGE.
+
+| OOS sample | added momentum | net R | gross R | cost R | financing R | displaced USD |
+|---|---:|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 38 | +0.3118 | +0.3325 | 0.0102 | 0.0105 | +1.03 |
+| 2023-09-21 – 2025-09-20 | 126 | +0.0542 | +0.0735 | 0.0100 | 0.0093 | -9.84 |
+| 2021-09-21 – 2023-09-21 | 89 | +0.1309 | +0.1494 | 0.0113 | 0.0071 | +1.43 |
+| 2020-09-23 – 2021-09-21 | 24 | -0.0900 | -0.0701 | 0.0122 | 0.0077 | 0.00 |
+
+EDGE: costs and financing are flat across the years, all 27 instruments
+hold a ranking year, and nothing is displaced in the oldest sample. Its
+24 added trades lose before costs; the shortfall is momentum's outcome in
+that year, not a replay input. A first run started the oldest sample
+before the OOS start and miscounted its instruments (0/27, CALIBRATE);
+clipped and repeated. The replay stays.
+
