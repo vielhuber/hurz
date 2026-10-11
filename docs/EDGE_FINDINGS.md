@@ -14244,3 +14244,30 @@ A trailing year of the breakouts says nothing about their next one, as a
 trailing year of momentum did not (section 373). Rejected; the veto
 stays.
 
+## 394. The 4h pins priced by the live rule: a quarter of the trades, still losing
+
+The replay's 4h pin booking (`four_hour_stream.daily_terms`) sets the stop
+at the 3-ATR floor; the live path sets it at 2 ATR, widens it to the 1.05 %
+venue minimum and refuses the signal if it is still below 3 ATR, which is
+the replay's hourly `trade_terms` (section 392). `scripts/four_hour_pins_live_pricing.py`
+books the live 4h pins both ways beside the momentum-only reference, the
+pins after the ranked list and the hourly pins as in section 359, today's
+vetoes. Preregistered: adopt the live rule into the shared 4h booking only
+if the pooled paired |t| > 2.
+
+| OOS interval (end exclusive) | days | floor-set stop USD/day | live rule | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.081786 | +0.073897 | -0.007890 | -0.2241 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.055916 | -0.033764 | +0.022152 | +0.8006 |
+| 2021-09-21 – 2023-09-21 | 730 | -0.030293 | -0.005789 | +0.024503 | +0.7559 |
+| 2020-09-23 – 2021-09-21 | 363 | -0.019784 | -0.002143 | +0.017641 | +0.4354 |
+| pooled | 2,188 | -0.018401 | -0.001225 | +0.017177 | +1.0237 |
+
+The live rule prices 124 of the 561 4h signals (mean -0.1184 R against
+-0.0493 R); the book closes 64 pin trades for -10.69 USD instead of 269 for
+-48.27. Daily SD 0.9199 → 0.5000, worst day -5.7750 → -4.5385. The change
+stays below |t| = 2: the shared booking keeps `daily_terms`, and the
+pin measurements of sections 343, 359, 367 and 375 stand with the caveat
+that they overstate how often the pins trade by a factor of about four.
+The live pins lose under either pricing; the bot is unchanged.
+

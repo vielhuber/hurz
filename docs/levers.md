@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 4, portfolio and position sizing). Closed: the momentum
+run's (last run: 1, live against backtest). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the turn of the month on the US indices as a book (section 390), momentum's sizing classes (section 391), the idle live book since the veto (section 392), the breakouts readmitted by their replay year (section 393), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the turn of the month on the US indices as a book (section 390), momentum's sizing classes (section 391), the idle live book since the veto (section 392), the breakouts readmitted by their replay year (section 393), the 4h pins priced by the live rule (section 394), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,17 +43,16 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Live against backtest (1) — the 4h pins priced as the live path
-   prices them.** Observation: since 2026-10-01 the replay books four 4h
-   pin entries the bot refused; the bot journaled three of them as "stop
-   distance below 3×ATR floor" and one (CHFJPY momentum_4h) at ADX 28.6
-   against the replay's pass (section 392). The replay's 4h pricing
-   (`four_hour_stream.daily_terms`) sets the stop at the floor, while the
-   live path refuses a 4h signal whose own stop falls below it.
-   Hypothesis: pricing the 4h pins with the live rule removes most of
-   their replay trades, which sections 343, 359, 367 and 375 counted;
-   the hourly reference is unaffected. CALIBRATE the shared 4h booking if
-   the pins' replay result changes by |t| > 2.
+1. **Execution and costs (6) — momentum's regime gate at ADX 25.**
+   Observation: since 2026-10-01 all seven momentum crosses on the bot's
+   list were refused by the ADX 30 gate (ADX 13.0 to 30.0, section 392),
+   and the momentum-only book closes 81 trades in 2,188 days; the floor
+   was last measured on the breakout book (2026-09-11, fourth run), where
+   lowering it cost in the three older samples. Hypothesis: on momentum
+   alone the 25-30 band adds crosses with the edge of the rest and fills
+   the list in years the ten-trade floor leaves empty; the gate is the
+   bot's execution condition for momentum, so this is filed under
+   execution. Measured for momentum only, other strategies unchanged.
 2. **Live against backtest (1) — the momentum-only live period.**
    Observation: since 2026-10-01 the bot trades momentum and the five 4h
    pins only; the journal holds 5 closes since then (-1.72 USD), too few
@@ -9588,4 +9587,35 @@ USD/day) no longer describe the traded book.
   not tell the breakouts' next year, and the candidate takes six times
   the daily swing (worst day -17.60 USD). The veto stays; bot unchanged,
   no restart. Two new tests. Section 393.
+
+## 2026-10-11 — the 4h pins priced by the live rule
+
+- **Category:** 1, live against backtest.
+- **Operation:** one watchdog (20584 since 2026-10-02 16:00 UTC), 7
+  combinations evaluated (failing 0), no HTTP 429, runtime checkout clean
+  on `origin/main` (3530828). No intervention.
+- **Observation:** since 2026-10-01 the bot refused three 4h pin signals
+  as "stop distance below 3×ATR floor" that the replay booked with the
+  stop set at the floor (section 392).
+- **Lever:** the live 4h pins priced by the replay's hourly
+  `trade_terms` (stop 2 ATR, widened to the 1.05 % venue minimum,
+  refused below 3 ATR: the live rule) instead of `daily_terms`, both arms
+  with the momentum-only reference. CALIBRATE the shared 4h booking only
+  if the pooled paired |t| > 2. No diagnostic arm.
+- **Measurement:** `scripts/four_hour_pins_live_pricing.py`, cached
+  seven-year weekly walk-forward. OOS [2020-09-23, 2026-09-20), 2,188
+  calendar days.
+
+  | 4h pricing | 4h signals (mean R) | closes (4h) | USD (4h) | USD/calendar day | worst day |
+  |---|---:|---:|---:|---:|---:|
+  | stop set at the floor (current) | 561 (-0.0493) | 350 (269) | -40.261733 (-48.27) | -0.018401 | -5.7750 |
+  | live rule | 124 (-0.1184) | 145 (64) | -2.679446 (-10.69) | -0.001225 | -4.5385 |
+
+- **Result:** the live rule prices 124 of the 561 4h signals; delta
+  +0.017177 USD/day, pooled paired t +1.0237 (-0.0079, +0.0222, +0.0245,
+  +0.0176 by sample). The pins trade a quarter as often as the replay had
+  them and still lose per trade.
+- **Decision:** IMMATERIAL; the shared 4h booking keeps `daily_terms`,
+  the deviation stays documented for any pin measurement. Bot unchanged,
+  no restart. One new test. Section 394.
 
