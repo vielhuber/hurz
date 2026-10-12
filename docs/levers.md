@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 6, execution and costs). Closed: the momentum
+run's (last run: 3, universe and time frames). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the turn of the month on the US indices as a book (section 390), momentum's sizing classes (section 391), the idle live book since the veto (section 392), the breakouts readmitted by their replay year (section 393), the 4h pins priced by the live rule (section 394), momentum's regime gate at ADX 25 (section 395), momentum ranked on its crosses from ADX 25 (section 396), the oldest sample's replay inputs (section 397), the bank-holiday guard on the book (section 398), momentum entered by a stop order beyond its signal bar (section 399), momentum gated by market breadth (section 178 on the breakout book; dropped from the plan as a retest), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the turn of the month on the US indices as a book (section 390), momentum's sizing classes (section 391), the idle live book since the veto (section 392), the breakouts readmitted by their replay year (section 393), the 4h pins priced by the live rule (section 394), momentum's regime gate at ADX 25 (section 395), momentum ranked on its crosses from ADX 25 (section 396), the oldest sample's replay inputs (section 397), the bank-holiday guard on the book (section 398), momentum entered by a stop order beyond its signal bar (section 399), NZDJPY and AUDCAD in the universe (section 400; the other FX crosses were blocked in section 344, so the plan's six-pair item was a retest), momentum gated by market breadth (section 178 on the breakout book; dropped from the plan as a retest), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,15 +43,17 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Universe and time frames (3) — momentum on six more FX pairs.**
+1. **Portfolio and position sizing (4) — momentum ranked on two years.**
    Observation: the momentum book is held back by the ten-trade list
    floor, not by its crosses: more evidence per combination put 345
-   instead of 81 momentum trades on the list (sections 395, 396), and the
-   replay's universe holds 14 FX pairs while USDCAD, EURGBP, EURCHF,
-   GBPCHF, NZDJPY and AUDCAD were never in it. Hypothesis: momentum on
-   these six adds combinations that clear the floor with the edge of the
-   rest; first checked that the venue lists them and serves seven years
-   of hourly bars, then fetched paced into the cache.
+   instead of 81 momentum trades on the list (sections 395, 396), fewer
+   took it to 24 (section 399), and NZDJPY and AUDCAD fire 3 to 9
+   momentum crosses a year and never reach the floor (section 400). The
+   730-day window was measured on the merged breakout book only (section
+   231). Hypothesis: on momentum alone a two-year window lets more
+   combinations clear the floor with the same per-trade edge. Both arms
+   start their OOS on the same day (the 730-day window's first), the
+   ten-trade floor and every gate unchanged.
 2. **Live against backtest (1) — the momentum-only live period.**
    Observation: since 2026-10-01 the bot trades momentum and the five 4h
    pins only; the journal holds 5 closes since then (-1.72 USD, unchanged
@@ -9793,4 +9795,44 @@ USD/day) no longer describe the traded book.
   2/4 samples better (-0.0478, +0.0084, +0.0009, 0 from the newest).
 - **Decision:** rejected (VERDICT=DISCARD); entry at market stays. Bot
   unchanged, no restart. Three new tests. Section 399.
+
+## 2026-10-12 (afternoon) — NZDJPY and AUDCAD in the universe
+
+- **Category:** 3, universe and time frames.
+- **Operation:** one watchdog (20584) and one bot process, trading
+  suspended today by the bank-holiday guard (Columbus Day), no HTTP 429
+  also during the paced fetch of this run, runtime checkout clean on
+  `origin/main` (c7c092e). No intervention.
+- **Plan item corrected:** the planned six FX pairs were not new:
+  USDCAD, EURGBP, EURCHF and GBPCHF (with EURCAD and GBPAUD) were
+  measured in the selector's universe and blocked in section 344
+  (`UNIVERSE_BLOCKED_PAIRS`); the plan's "never in it" was wrong.
+  Measuring them again would retest section 344. Only NZDJPY and AUDCAD
+  were in neither universe.
+- **Observation:** the momentum book is held back by its ten-trade list
+  floor (sections 395, 396, 399); new instruments add combinations.
+- **Lever:** NZDJPY and AUDCAD join the 27 (seven years of hourly bars
+  fetched paced, 2.0 s per page, into the shared cache; venue size and
+  USD rate from the venue; per-side cost half the spread quoted at the
+  fetch: NZDJPY 0.000180 at 88.667/88.699, AUDCAD 0.000126 at
+  0.99361/0.99386; 43,551 bars each from 2019-10-14; both in the risk_on
+  cluster). Every strategy, gate, veto, cap, stop and size
+  unchanged, the live 4h pins in both arms. No diagnostic arm.
+- **Measurement:** `scripts/two_fx_crosses_book.py`, cached seven-year
+  weekly walk-forward. OOS [2020-09-23, 2026-09-20), 2,188 calendar
+  days. 28,704 → 31,471 signals (2,767 on the two).
+
+  | arm | closes (momentum) | on NZDJPY/AUDCAD | USD/calendar day |
+  |---|---:|---:|---:|
+  | 27 instruments (current) | 350 (81) | — | -0.018401 |
+  | 29 instruments | 350 (81) | 0 | -0.018401 |
+
+- **Result:** identical books, delta 0. Checked that this is no defect:
+  after the ADX gate and the 3-ATR floor momentum fires 34 crosses on
+  NZDJPY (-0.049 R) and 22 on AUDCAD (+0.000 R) in seven years, at most
+  6 and 9 sequential trades in a calendar year, so neither combination
+  ever reaches the ten-trade list floor; their breakouts are vetoed.
+- **Decision:** rejected (VERDICT=DISCARD); universe and bot unchanged, no
+  restart. The two histories stay in the cache. One new test. Section
+  400.
 

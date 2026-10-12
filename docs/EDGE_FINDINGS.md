@@ -14390,3 +14390,20 @@ fewer combinations clear the ten-trade list floor (24 momentum closes
 instead of 81). Rejected; the reversal share of section 369 is not a
 matter of the entry order.
 
+## 400. NZDJPY and AUDCAD add nothing: momentum never lists them
+
+`scripts/two_fx_crosses_book.py` adds the two FX crosses that were in
+neither the replay's nor the selector's universe (section 344 blocked
+the others) to the 27 instruments, seven years of hourly bars fetched
+paced, the cost at half the quoted spread, both in the risk_on cluster.
+Preregistered: build only with all four samples better and pooled paired
+t > +2.
+
+The books are identical (350 closes, -0.018401 USD/day in both arms):
+of 2,767 new signals, the breakouts are vetoed and momentum fires only
+34 crosses on NZDJPY (-0.049 R) and 22 on AUDCAD (+0.000 R) in seven
+years, at most 6 and 9 sequential trades in a calendar year, so neither
+reaches the selector's ten-trade floor. Rejected. Low-volatility FX
+crosses pass the ADX 30 gate and the 3-ATR floor too rarely to feed the
+momentum list.
+
