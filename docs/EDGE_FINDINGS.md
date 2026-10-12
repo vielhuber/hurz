@@ -14367,3 +14367,26 @@ holidays; the guard removes 4 of 81 momentum closes and 10 of 269 pin
 closes. The guard stays, and the replay's omission of it overstates the
 live book by a margin inside noise.
 
+## 399. Momentum entered by a stop order: the same R on fewer trades
+
+`scripts/momentum_stop_entry.py` replaces momentum's market entry on the
+cross with a stop order at the signal bar's high (long) or low (short),
+valid three hourly bars, filled at the level or a gapping open, terms
+measured from the fill, a stop on the fill bar counted and a target on it
+not. Preregistered: build only with all four samples better and pooled
+paired t > +2.
+
+| OOS interval (end exclusive) | days | market USD/day | stop order | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.081786 | +0.033984 | -0.047802 | -1.6523 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.055916 | -0.047537 | +0.008379 | +0.6237 |
+| 2021-09-21 – 2023-09-21 | 730 | -0.030293 | -0.029423 | +0.000870 | +0.1401 |
+| 2020-09-23 – 2021-09-21 | 363 | -0.019784 | -0.019784 | 0.000000 | — |
+| pooled | 2,188 | -0.018401 | -0.023290 | -0.004888 | -0.7073 |
+
+632 of 870 orders fill at +0.0436 R against +0.0450 R at market: the
+order filters nothing out by quality, it only thins the evidence, and
+fewer combinations clear the ten-trade list floor (24 momentum closes
+instead of 81). Rejected; the reversal share of section 369 is not a
+matter of the entry order.
+
