@@ -59,11 +59,15 @@ _NIGHTLY_STRATEGIES = [
 # wall clock is the same short-timeout pattern run_loop uses reliably in
 # the same event loop, and is immune to GC, host suspend and clock jumps.
 _POLL_SECONDS = 60
-# Generous against the ~5 min a single strategy needs over the full
-# instrument list. The window is `spot_backtest.py`'s 365-day default —
-# this job passes no --days. Measured at 180 / 365 / 730 in section 231:
-# the samples disagree and 365 stays.
-_BACKTEST_TIMEOUT_SECONDS = 1800
+# The ranking window. 365 days (the script's default) until 2026-10-13:
+# on the momentum-only book the list is bound by the ten-trade floor, and
+# ranking on two years was better on all four walk-forward samples at
+# t +2.80 (EDGE_FINDINGS 401); section 231 had measured 730 on the
+# merged breakout book only.
+_BACKTEST_DAYS = 730
+# Generous against the ~6 min a strategy took at 365 days, doubled with
+# the window.
+_BACKTEST_TIMEOUT_SECONDS = 3600
 
 
 async def _run_one_backtest(platform: str, strategy: str) -> tuple[bool, str]:
@@ -77,6 +81,7 @@ async def _run_one_backtest(platform: str, strategy: str) -> tuple[bool, str]:
         sys.executable, script,
         "--platform", platform,
         "--strategy", strategy,
+        "--days", str(_BACKTEST_DAYS),
         "--persist",
         cwd=project_root,
         stdout=asyncio.subprocess.PIPE,
@@ -90,7 +95,8 @@ async def _run_one_backtest(platform: str, strategy: str) -> tuple[bool, str]:
         # A hung fetch would otherwise stall the nightly refresh until the
         # process is restarted, leaving the active list frozen with no
         # visible symptom. One strategy over the full instrument list takes
-        # about five minutes at the 180-day window, so this is generous.
+        # about six minutes at 365 days and twice that at 730, so this is
+        # generous.
         proc.kill()
         await proc.wait()
         return False, (

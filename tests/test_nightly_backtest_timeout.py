@@ -50,6 +50,14 @@ class NightlyBacktestTimeoutTest(IsolatedAsyncioTestCase):
     def test_the_timeout_allows_for_the_longer_window(self):
         self.assertGreaterEqual(scheduler._BACKTEST_TIMEOUT_SECONDS, 900)
 
+    async def test_the_backtest_ranks_on_two_years(self):
+        launch = AsyncMock(return_value=MagicMock(
+            communicate=AsyncMock(return_value=(b"", b"")), returncode=0))
+        with patch.object(scheduler.asyncio, "create_subprocess_exec", launch):
+            await scheduler._run_one_backtest("capital_com", "momentum")
+        argv = list(launch.call_args.args)
+        self.assertEqual("730", argv[argv.index("--days") + 1])
+
 
 if __name__ == "__main__":
     unittest.main()

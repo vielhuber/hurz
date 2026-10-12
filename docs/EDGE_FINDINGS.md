@@ -14407,3 +14407,28 @@ reaches the selector's ten-trade floor. Rejected. Low-volatility FX
 crosses pass the ADX 30 gate and the 3-ATR floor too rarely to feed the
 momentum list.
 
+## 401. Momentum ranked on two years: 4/4 samples, t +2.80 — built in
+
+The momentum-only book is bound by the ten-trade list floor (sections
+395, 396, 399, 400). `scripts/momentum_two_year_ranking.py` lets the
+weekly ranking read the trailing 730 days (all history where shorter, so
+both arms trade the same OOS days). Preregistered: build with all four
+samples better and pooled paired t > +2.
+
+| OOS interval (end exclusive) | days | 365-day ranking USD/day | 730-day | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.081786 | +0.154771 | +0.072984 | +2.0232 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.055916 | -0.002182 | +0.053734 | +1.9793 |
+| 2021-09-21 – 2023-09-21 | 730 | -0.030293 | -0.019766 | +0.010527 | +0.5452 |
+| 2020-09-23 – 2021-09-21 | 363 | -0.019784 | -0.006215 | +0.013568 | +1.0450 |
+| pooled | 2,188 | -0.018401 | +0.017465 | +0.035866 | +2.7967 |
+
+Momentum closes 81 → 319, momentum USD +8.01 → +87.15, mean R +0.0405 →
++0.1180, 11 → 16 combinations; daily SD 0.9199 → 1.1174, worst day
+-5.7750 → -6.1142. Unlike lowering the ADX floor (section 395), the
+longer window adds evidence for the same crosses instead of adding
+weaker crosses, and the oldest sample gains too. Section 231's
+rejection on the merged breakout book does not carry over to the book
+the bot trades since the strategy veto. Built in: the nightly selector
+backtests on 730 days.
+
