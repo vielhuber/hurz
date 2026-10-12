@@ -14345,3 +14345,25 @@ that year, not a replay input. A first run started the oldest sample
 before the OOS start and miscounted its instruments (0/27, CALIBRATE);
 clipped and repeated. The replay stays.
 
+## 398. The bank-holiday guard costs the book nothing measurable
+
+The live loop stands still on every DE, US, GB or CH (Zurich) bank
+holiday; the replay never applied it. `scripts/holiday_guard_book.py`
+refuses signals whose bar falls on a guarded holiday (Europe/Berlin
+date) in the reference, hourly and 4h, with the ranking reading every
+signal, and books every signal in the candidate. Preregistered: drop the
+guard only with all four samples better and pooled paired t > +2.
+
+| OOS interval (end exclusive) | days | guard USD/day | no guard | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.065472 | +0.081786 | +0.016314 | +0.9773 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.053226 | -0.055916 | -0.002690 | -0.2671 |
+| 2021-09-21 – 2023-09-21 | 730 | -0.031727 | -0.030293 | +0.001434 | +0.2341 |
+| 2020-09-23 – 2021-09-21 | 363 | -0.023609 | -0.019784 | +0.003825 | +0.2703 |
+| pooled | 2,188 | -0.021338 | -0.018401 | +0.002937 | +0.5482 |
+
+1,871 of 28,704 hourly signals and 40 of 561 4h signals fall on guarded
+holidays; the guard removes 4 of 81 momentum closes and 10 of 269 pin
+closes. The guard stays, and the replay's omission of it overstates the
+live book by a margin inside noise.
+

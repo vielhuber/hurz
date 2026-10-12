@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 1, live against backtest). Closed: the momentum
+run's (last run: 3, universe and time frames). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the turn of the month on the US indices as a book (section 390), momentum's sizing classes (section 391), the idle live book since the veto (section 392), the breakouts readmitted by their replay year (section 393), the 4h pins priced by the live rule (section 394), momentum's regime gate at ADX 25 (section 395), momentum ranked on its crosses from ADX 25 (section 396), the oldest sample's replay inputs (section 397), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the turn of the month on the US indices as a book (section 390), momentum's sizing classes (section 391), the idle live book since the veto (section 392), the breakouts readmitted by their replay year (section 393), the 4h pins priced by the live rule (section 394), momentum's regime gate at ADX 25 (section 395), momentum ranked on its crosses from ADX 25 (section 396), the oldest sample's replay inputs (section 397), the bank-holiday guard on the book (section 398), momentum gated by market breadth (section 178 on the breakout book; dropped from the plan as a retest), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,25 +43,23 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **New strategy families (2) — momentum gated by the universe's
-   breadth.** Observation: the momentum trades section 396's candidate
-   adds earn gross +0.33, +0.07 and +0.15 R in the three newer samples
-   and -0.07 R in 2020-09 to 2021-09, at the same cost (0.010-0.012 R) and
-   financing (0.007-0.011 R) and on all 27 instruments (section 397): the
-   oldest year's shortfall is momentum's outcome, not the replay's
-   inputs. Hypothesis: a momentum cross pays when many instruments trend
-   at once; a breadth signal (the share of the universe whose own
-   momentum agrees with the cross's direction over the trailing week),
-   computed from bars the replay already holds, separates the years and
-   gates momentum on the live list. Measured on the momentum-only
-   reference.
-2. **Live against backtest (1) — the momentum-only live period.**
+1. **Live against backtest (1) — the momentum-only live period.**
    Observation: since 2026-10-01 the bot trades momentum and the five 4h
    pins only; the journal holds 5 closes since then (-1.72 USD), too few
    to match. Hypothesis: once 10 or more closes exist since 2026-10-01,
    the execution split of section 337 on them shows a residual within
    noise, so the momentum-only reference describes the live book; measured
    only when that count is reached.
+2. **Universe and time frames (3) — momentum on six more FX pairs.**
+   Observation: the momentum book is held back by the ten-trade list
+   floor, not by its crosses: more evidence per combination put 345
+   instead of 81 momentum trades on the list (sections 395, 396), and the
+   replay's universe holds 14 FX pairs while USDCAD, EURGBP, EURCHF,
+   GBPCHF, NZDJPY and AUDCAD were never in it. Hypothesis: momentum on
+   these six adds combinations that clear the floor with the edge of the
+   rest; first checked that the venue lists them and serves seven years
+   of hourly bars, then fetched paced into the cache. Not before the run after next
+   (this run was category 3).
 
 ## Levers already tested before this log existed
 
@@ -9722,4 +9720,42 @@ USD/day) no longer describe the traded book.
   +5.07 USD against -9.84 on seven others).
 - **Decision:** the replay's inputs stay; no calibration. Bot unchanged,
   no restart. Two new tests. Section 397.
+
+## 2026-10-12 — the bank-holiday guard on the book
+
+- **Category:** 3, universe and time frames (trading days).
+- **Operation:** one watchdog (20584) and one bot process (restarted by
+  the nightly cycle at 2026-10-11 22:00 UTC), trading suspended today by
+  the bank-holiday guard (Columbus Day), no HTTP 429, runtime checkout
+  clean on `origin/main` (8ec5141). No intervention: the guard is
+  intended behaviour.
+- **Plan item dropped:** momentum gated by the universe's breadth would
+  retest section 178 (directional market breadth at the signal,
+  2026-09-10 third run: every cut flips sign between samples).
+- **Observation:** the bot stands still today although the US exchanges
+  are open; the guard idles it on every DE, US, GB or CH holiday (about
+  7 % of weekdays) and was measured only on the journal (2026-09-08,
+  nineteenth run). The replay never applied it.
+- **Lever:** reference = the live guard (signals whose bar falls on a
+  guarded holiday, Europe/Berlin date, refused, hourly and 4h; the
+  ranking reads every signal; open positions run on); candidate = no
+  guard. Momentum-only reference with the live 4h pins, today's vetoes.
+  No other calendar, no diagnostic arm.
+- **Measurement:** `scripts/holiday_guard_book.py`, cached seven-year
+  weekly walk-forward, 27 instruments, 1,871 of 28,704 hourly and 40 of
+  561 4h signals on guarded holidays. OOS [2020-09-23, 2026-09-20),
+  2,188 calendar days.
+
+  | arm | closes (momentum) | momentum USD | USD/calendar day | daily SD | worst day |
+  |---|---:|---:|---:|---:|---:|
+  | guard (live) | 336 (77) | +4.7973 | -0.021338 | 0.9027 | -5.7750 |
+  | no guard | 350 (81) | +8.0102 | -0.018401 | 0.9199 | -5.7750 |
+
+- **Result:** delta +0.002937 USD/day, pooled paired t +0.5482, 3/4
+  samples better (+0.0163, -0.0027, +0.0014, +0.0038 from the newest).
+  The guard costs four momentum trades in six years.
+- **Decision:** rejected (VERDICT=DISCARD); the guard stays. The shared
+  replay keeps booking holidays: it overstates the live book by
+  +0.0029 USD/day at t +0.55, inside noise. Bot unchanged, no restart.
+  One new test. Section 398.
 
