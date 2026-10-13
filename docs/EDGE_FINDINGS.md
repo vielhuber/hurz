@@ -14449,3 +14449,24 @@ HK50 (29 trades, +0.19 R) is excluded by its 4h pin in both. Section
 401's result stands; FR40's one-trade divergence is calibrated in its own
 run.
 
+## 403. Momentum on the reserved instruments, on the two-year ranking: 2/4
+
+Section 375 rejected letting momentum rank on the instruments the
+exclusive 4h pins reserve, on the 365-day ranking. With the 730-day
+ranking of section 401, HK50 holds the most momentum trades of any
+instrument (section 402). `scripts/two_year_shares_reserved.py` reruns
+section 375's design with both arms on 730 days. Preregistered: build
+with all four samples better and pooled paired t > +2.
+
+| OOS interval (end exclusive) | days | exclusive USD/day | shared | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.154771 | +0.174033 | +0.019262 | +0.7229 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.002182 | +0.024361 | +0.026543 | +1.8117 |
+| 2021-09-21 – 2023-09-21 | 730 | -0.019766 | -0.023586 | -0.003819 | -0.9821 |
+| 2020-09-23 – 2021-09-21 | 363 | -0.006215 | -0.006215 | 0.000000 | — |
+| pooled | 2,188 | +0.017465 | +0.028260 | +0.010795 | +1.6029 |
+
+The shared ranking adds 55 momentum closes on CHFJPY, HK50 and NZDUSD
+(+20.99 USD) and displaces no pin trade (268 4h closes in both). Rejected
+(2/4, t +1.60); the reservation stays.
+
