@@ -14432,3 +14432,20 @@ rejection on the merged breakout book does not carry over to the book
 the bot trades since the strategy veto. Built in: the nightly selector
 backtests on 730 days.
 
+## 402. The bot's two-year momentum list against the replay's: one combination apart
+
+`scripts/two_year_list_calibration.py` ranks the replay's trailing 730
+days at the cut of 2026-10-12 22:00 UTC (today's vetoes and pins) and
+compares its momentum combinations with the list the bot trades since
+the 730-day refresh of 22:30 UTC. Preregistered: MATCH if equal.
+
+Replay: DE40, ETHUSD, EU50, FR40, UK100, US100, US30. Bot: the same
+without FR40. MISMATCH by one combination: FR40 counts 13 trades at
++0.002 R (pf 1.01) in the replay and 12 at -0.112 R (pf 0.66) in the
+selector, so only the replay clears the 0.8 profit-factor floor; J225
+and US30 differ by one trade as well. Over the 24 shared instruments the
+inputs agree within noise (-0.04 trades, t -0.57; -0.0127 R, t -1.41).
+HK50 (29 trades, +0.19 R) is excluded by its 4h pin in both. Section
+401's result stands; FR40's one-trade divergence is calibrated in its own
+run.
+
