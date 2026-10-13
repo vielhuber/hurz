@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 4, portfolio and position sizing). Closed: the momentum
+run's (last run: 1, live against backtest). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the turn of the month on the US indices as a book (section 390), momentum's sizing classes (section 391), the idle live book since the veto (section 392), the breakouts readmitted by their replay year (section 393), the 4h pins priced by the live rule (section 394), momentum's regime gate at ADX 25 (section 395), momentum ranked on its crosses from ADX 25 (section 396), the oldest sample's replay inputs (section 397), the bank-holiday guard on the book (section 398), momentum entered by a stop order beyond its signal bar (section 399), momentum ranked on two years (section 401, BUILT IN), the bot's two-year list against the replay's (section 402), momentum on the reserved instruments on the two-year ranking (section 403), NZDJPY and AUDCAD in the universe (section 400; the other FX crosses were blocked in section 344, so the plan's six-pair item was a retest), momentum gated by market breadth (section 178 on the breakout book; dropped from the plan as a retest), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the turn of the month on the US indices as a book (section 390), momentum's sizing classes (section 391), the idle live book since the veto (section 392), the breakouts readmitted by their replay year (section 393), the 4h pins priced by the live rule (section 394), momentum's regime gate at ADX 25 (section 395), momentum ranked on its crosses from ADX 25 (section 396), the oldest sample's replay inputs (section 397), the bank-holiday guard on the book (section 398), momentum entered by a stop order beyond its signal bar (section 399), momentum ranked on two years (section 401, BUILT IN), the bot's two-year list against the replay's (section 402), momentum on the reserved instruments on the two-year ranking (section 403), FR40's divergence traced to the selector's indicator warm-up (section 404), NZDJPY and AUDCAD in the universe (section 400; the other FX crosses were blocked in section 344, so the plan's six-pair item was a retest), momentum gated by market breadth (section 178 on the breakout book; dropped from the plan as a retest), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,14 +43,23 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Live against backtest (1) — FR40's momentum inputs.** Observation:
-   at the cut of 2026-10-12 22:00 UTC the replay counts 13 FR40 momentum
-   trades at +0.002 R (pf 1.01), the selector 12 at -0.112 R (pf 0.66),
-   so only the replay lists FR40; J225 and US30 differ by one trade too
-   (section 402). Hypothesis: one trade at the window's edge or a bar the
-   two histories disagree on; find it and calibrate the replay if the
-   difference is systematic.
-2. **Live against backtest (1) — the momentum-only live period.**
+1. **Exits and holding (5) — momentum flat before the weekend on the
+   two-year book.** Observation: on the 365-day reference section 379
+   measured +0.0044 USD/day at t +1.08 with the oldest sample at exactly
+   0, because that book held no momentum trade there, so 4/4 was out of
+   reach; the two-year ranking of section 401 trades 319 momentum closes
+   including the oldest sample. Hypothesis: on the book the bot now
+   trades, closing momentum before the weekend gap saves the gap and two
+   nights' financing in every sample. Section 379's rule unchanged.
+2. **Live against backtest (1) — the selector's indicator warm-up.**
+   Observation: every trade behind section 402's divergence enters in
+   the first 64 bars of the selector's 730-day window, where ADX and EMAs
+   are computed on that window alone (FR40 ADX 51.2 cold against 30.8
+   warm, section 404). Hypothesis: the selector fetching a warm-up span
+   before its window and simulating only signals inside it reproduces
+   the replay's inputs; check the list match and measure the change
+   before building it. Not before the run after next.
+3. **Live against backtest (1) — the momentum-only live period.**
    Observation: since 2026-10-01 the bot trades momentum and the five 4h
    pins only; the journal holds 5 closes since then (-1.72 USD, unchanged
    on 2026-10-12), too few
@@ -9954,4 +9963,43 @@ USD/day) no longer describe the traded book.
 - **Decision:** rejected (VERDICT=DISCARD); the reservation stays, bot
   unchanged, no restart. No new test (the script composes section 375's
   tested design with section 401's `ranked_replay`). Section 403.
+
+## 2026-10-13 (evening) — the trades behind FR40's divergence
+
+- **Category:** 1, live against backtest.
+- **Operation:** one watchdog (2654621) and one bot process, 11
+  combinations evaluated per minute (failing 0), no HTTP 429, runtime
+  checkout clean on `origin/main` (5239f24). No intervention.
+- **Observation:** at the cut of 2026-10-12 22:00 UTC the replay counts
+  13 FR40 momentum trades at +0.002 R, the selector 12 at -0.112 R; J225
+  and US30 differ by one trade (section 402).
+- **Lever:** for FR40, J225 and US30, the replay's sequential momentum
+  trades in the 730-day window against `spot_backtest._simulate_trades`
+  run locally on the same cached bars cut to the selector's fetch window
+  (22:24 UTC minus 730 days) with indicators computed on that window
+  alone; trades matched by entry bar. Preregistered: WARMUP if every
+  unmatched trade enters within the first 500 bars of the selector's
+  window, else OTHER; a calibration only in its own run.
+- **Measurement:** `scripts/selector_window_divergence.py`. The local
+  run reproduces the selector's persisted figures exactly (FR40 12 at
+  -0.112 R, J225 6 at +0.642 R, US30 23 at +0.365 R).
+
+  | instrument | unmatched trade | R | bar of the selector window | ADX warm / cold |
+  |---|---|---:|---:|---|
+  | FR40 | replay only, 2024-10-15 09:00 | +1.491 | 30 | 30.8 / 51.2 (cold above the 50 ceiling) |
+  | J225 | selector only, 2024-10-15 09:00 | +1.486 | 34 | 27.3 / 39.1 (warm below the 30 floor) |
+  | US30 | replay only, 2024-10-15 15:00 | -0.237 | 40 | 31.4 / 33.9 |
+  | US30 | selector only, 2024-10-15 14:00 | -0.089 | 39 | 31.1 / 33.5 |
+  | US30 | selector only, 2024-10-16 16:00 | +0.615 | 64 | 40.6 / 42.5 |
+
+- **Result:** VERDICT=WARMUP. Every divergent trade enters in the first
+  64 bars of the selector's window, where its ADX(14) and EMAs start
+  cold; FR40's one missing winner (+1.49 R) moves its profit factor
+  from 1.01 to 0.66 and takes it off the bot's list. Inside the window
+  the two paths take the same trades.
+- **Decision:** the replay is right about the warm indicators; the
+  selector's cold start is the defect. The fix (a warm-up span fetched
+  before the window, signals simulated only inside it) goes to the plan
+  as a measured change. Bot unchanged, no restart. Two new tests.
+  Section 404.
 

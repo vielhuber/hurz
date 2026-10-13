@@ -14470,3 +14470,21 @@ The shared ranking adds 55 momentum closes on CHFJPY, HK50 and NZDUSD
 (+20.99 USD) and displaces no pin trade (268 4h closes in both). Rejected
 (2/4, t +1.60); the reservation stays.
 
+## 404. FR40's divergence is the selector's indicator warm-up
+
+`scripts/selector_window_divergence.py` matches, trade by trade, the
+replay's momentum trades in the 730-day window at the cut of 2026-10-12
+22:00 UTC against `spot_backtest._simulate_trades` run locally on the
+same bars cut to the selector's fetch window, for FR40, J225 and US30.
+The local run reproduces the selector's persisted n and E[R] exactly.
+
+All five unmatched trades enter within the first 64 bars of the
+selector's window (2024-10-15/16), where ADX(14) and the EMAs are
+computed from a cold start: FR40's 2024-10-15 09:00 winner (+1.49 R)
+reads ADX 51.2 cold, above the 50 ceiling, against 30.8 on the full
+history, so the selector drops it and FR40's profit factor falls from
+1.01 to 0.66; J225 gains a winner the warm ADX (27.3) would refuse.
+Preregistered verdict WARMUP. The replay's warm indicators are what the
+live loop sees; the selector should fetch a warm-up span before its
+window. Planned as a measured change.
+
