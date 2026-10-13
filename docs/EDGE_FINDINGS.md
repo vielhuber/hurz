@@ -14488,3 +14488,26 @@ Preregistered verdict WARMUP. The replay's warm indicators are what the
 live loop sees; the selector should fetch a warm-up span before its
 window. Planned as a measured change.
 
+## 405. Momentum flat before the weekend on the two-year book: 4/4, t +1.60
+
+Section 379's rule (momentum closed at the last bar before a gap of more
+than 36 hours, crypto exempt, financing to the exit) failed on the
+365-day reference partly because its oldest sample held no momentum
+trade. `scripts/two_year_weekend_flat.py` repeats it with both arms on
+section 401's 730-day ranking. Preregistered: build with all four samples
+better and pooled paired t > +2.
+
+| OOS interval (end exclusive) | days | held USD/day | flat | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.154771 | +0.157471 | +0.002700 | +0.1441 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.002182 | +0.012417 | +0.014599 | +0.9778 |
+| 2021-09-21 – 2023-09-21 | 730 | -0.019766 | -0.006566 | +0.013200 | +0.9614 |
+| 2020-09-23 – 2021-09-21 | 363 | -0.006215 | +0.007639 | +0.013855 | +2.0589 |
+| pooled | 2,188 | +0.017465 | +0.029489 | +0.012024 | +1.5960 |
+
+63 of the book's 330 momentum closes are cut before a weekend; momentum
+USD +87.15 → +113.46, daily SD 1.1174 → 1.0928, worst day unchanged.
+Every sample gains, but the pooled t stays at +1.60; rejected under the
+fixed rule. The direction is consistent with section 379 (+0.0044 at
+t +1.08), now on a book four times larger.
+
