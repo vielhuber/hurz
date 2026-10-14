@@ -14533,3 +14533,24 @@ The warm-up would not help: the live cold start is marginally better
 selector stays as it is, and the replay's warm reference is
 conservative against the live selector by 0.0034 USD/day.
 
+## 407. Momentum's ADX gate at 25 on the two-year book: 2/4
+
+Section 395 failed only in the oldest sample of the 365-day reference.
+`scripts/two_year_adx_floor.py` repeats it with both arms on section
+401's 730-day ranking. Preregistered: build with all four samples better
+and pooled paired t > +2.
+
+| OOS interval (end exclusive) | days | ADX 30 USD/day | ADX 25 | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.154771 | +0.137423 | -0.017348 | -0.4645 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.002182 | +0.039766 | +0.041948 | +1.0634 |
+| 2021-09-21 – 2023-09-21 | 730 | -0.019766 | +0.024629 | +0.044395 | +0.9228 |
+| 2020-09-23 – 2021-09-21 | 363 | -0.006215 | -0.030515 | -0.024299 | -0.6378 |
+| pooled | 2,188 | +0.017465 | +0.039347 | +0.021882 | +0.9695 |
+
+Momentum closes 319 → 902, daily SD 1.1174 → 1.5521, worst day -6.11 →
+-7.31. Where section 395's band filled a list starved by the ten-trade
+floor, the two-year ranking has already filled it, and the band's crosses
+(about 0 R) add trades and risk without a consistent gain. Rejected; the
+ADX floor of 30 stands for momentum on both rankings.
+
