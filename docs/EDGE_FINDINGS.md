@@ -14511,3 +14511,25 @@ Every sample gains, but the pooled t stays at +1.60; rejected under the
 fixed rule. The direction is consistent with section 379 (+0.0044 at
 t +1.08), now on a book four times larger.
 
+## 406. The selector's cold-started indicators cost nothing
+
+Section 404 found the live selector ranking the first bars of its 730-day
+window on cold-started ADX and EMAs. `scripts/selector_warmup_book.py`
+replays that per weekly cut: the momentum trades of each window's first
+500 bars per instrument recomputed on the window's first 700 bars alone
+(12.8 per cut), against warm indicators throughout. Preregistered: give
+the selector a warm-up span with all four samples better and t > +2.
+
+| OOS interval (end exclusive) | days | cold USD/day | warm | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.161464 | +0.154771 | -0.006693 | -1.1663 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.001493 | -0.002182 | -0.000689 | -0.7838 |
+| 2021-09-21 – 2023-09-21 | 730 | -0.013668 | -0.019766 | -0.006098 | -1.5548 |
+| 2020-09-23 – 2021-09-21 | 363 | -0.006215 | -0.006215 | 0.000000 | — |
+| pooled | 2,188 | +0.020846 | +0.017465 | -0.003381 | -2.0519 |
+
+The warm-up would not help: the live cold start is marginally better
+(586 closes, +94.54 momentum USD against 587 and +87.15). Rejected; the
+selector stays as it is, and the replay's warm reference is
+conservative against the live selector by 0.0034 USD/day.
+
