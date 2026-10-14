@@ -14554,3 +14554,24 @@ floor, the two-year ranking has already filled it, and the band's crosses
 (about 0 R) add trades and risk without a consistent gain. Rejected; the
 ADX floor of 30 stands for momentum on both rankings.
 
+## 408. Tighter list floors on the two-year momentum book: fewer dollars
+
+The live list admits combinations at pf >= 0.8 and E[R] >= -0.2 and so
+holds flat momentum combinations (UK100, FR40). `scripts/two_year_list_floors.py`
+measures section 217's 1.0/0.0 variant with both arms on section 401's
+730-day ranking. Preregistered: build with all four samples better and
+pooled paired t > +2.
+
+| OOS interval (end exclusive) | days | live floors USD/day | pf 1.0, E[R] 0 | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.154771 | +0.165289 | +0.010518 | +0.6535 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.002182 | -0.021076 | -0.018894 | -1.7165 |
+| 2021-09-21 – 2023-09-21 | 730 | -0.019766 | -0.017435 | +0.002332 | +0.3156 |
+| 2020-09-23 – 2021-09-21 | 363 | -0.006215 | -0.005393 | +0.000823 | +0.1906 |
+| pooled | 2,188 | +0.017465 | +0.013830 | -0.003635 | -0.6955 |
+
+Momentum closes 319 → 265 at a higher mean R (+0.118 → +0.131) but
+fewer dollars (+87.15 → +79.19). Rejected; section 217's finding holds
+on the momentum-only two-year book: a combination's in-sample edge does
+not carry far enough to pay for the trades the floor removes.
+
