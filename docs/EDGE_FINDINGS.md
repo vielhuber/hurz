@@ -14575,3 +14575,24 @@ fewer dollars (+87.15 → +79.19). Rejected; section 217's finding holds
 on the momentum-only two-year book: a combination's in-sample edge does
 not carry far enough to pay for the trades the floor removes.
 
+## 409. Momentum half out at +1 R: what it saves it gives back
+
+`scripts/momentum_half_out.py` closes half of a momentum position the
+first time a bar reaches +1 R and leaves the rest on the live stop, 1.5 R
+target and 24-bar leash (stop first within a bar, cost once, financing
+per half), both arms on section 401's 730-day ranking. Preregistered:
+build with all four samples better and pooled paired t > +2.
+
+| OOS interval (end exclusive) | days | full USD/day | half out | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.154771 | +0.137689 | -0.017082 | -1.4193 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.002182 | -0.002457 | -0.000275 | -0.0682 |
+| 2021-09-21 – 2023-09-21 | 730 | -0.019766 | -0.016730 | +0.003036 | +0.7600 |
+| 2020-09-23 – 2021-09-21 | 363 | -0.006215 | -0.001450 | +0.004765 | +1.1627 |
+| pooled | 2,188 | +0.017465 | +0.016327 | -0.001138 | -0.3999 |
+
+169 of 870 momentum signals bank half; mean R +0.0450 → +0.0425, daily
+SD 1.1174 → 1.0934. Rejected. With the profit lock (section 376) this
+closes the in-trade exits of momentum: neither moving the stop nor
+banking part of the position beats the plain stop, target and leash.
+
