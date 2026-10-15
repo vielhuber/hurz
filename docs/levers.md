@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 4, portfolio and position sizing). Closed: the momentum
+run's (last run: 1, live against backtest). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the turn of the month on the US indices as a book (section 390), momentum's sizing classes (section 391), the idle live book since the veto (section 392), the breakouts readmitted by their replay year (section 393), the 4h pins priced by the live rule (section 394), momentum's regime gate at ADX 25 (section 395), momentum ranked on its crosses from ADX 25 (section 396), the oldest sample's replay inputs (section 397), the bank-holiday guard on the book (section 398), momentum entered by a stop order beyond its signal bar (section 399), momentum ranked on two years (section 401, BUILT IN), the bot's two-year list against the replay's (section 402), momentum on the reserved instruments on the two-year ranking (section 403), FR40's divergence traced to the selector's indicator warm-up (section 404), momentum flat before the weekend on the two-year book (section 405), the selector's indicator warm-up on the book (section 406), momentum's ADX gate at 25 on the two-year book (section 407), the list's floors at pf 1.0 and E[R] 0 on the two-year book (section 408), momentum half out at +1 R on the two-year book (section 409), the 4h pins retired with their reservation on the two-year book (section 410), the 4h pins priced by the live rule on the two-year book (section 411), the 4h pins re-qualified weekly on their trailing two years (section 412), NZDJPY and AUDCAD in the universe (section 400; the other FX crosses were blocked in section 344, so the plan's six-pair item was a retest), momentum gated by market breadth (section 178 on the breakout book; dropped from the plan as a retest), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the turn of the month on the US indices as a book (section 390), momentum's sizing classes (section 391), the idle live book since the veto (section 392), the breakouts readmitted by their replay year (section 393), the 4h pins priced by the live rule (section 394), momentum's regime gate at ADX 25 (section 395), momentum ranked on its crosses from ADX 25 (section 396), the oldest sample's replay inputs (section 397), the bank-holiday guard on the book (section 398), momentum entered by a stop order beyond its signal bar (section 399), momentum ranked on two years (section 401, BUILT IN), the bot's two-year list against the replay's (section 402), momentum on the reserved instruments on the two-year ranking (section 403), FR40's divergence traced to the selector's indicator warm-up (section 404), momentum flat before the weekend on the two-year book (section 405), the selector's indicator warm-up on the book (section 406), momentum's ADX gate at 25 on the two-year book (section 407), the list's floors at pf 1.0 and E[R] 0 on the two-year book (section 408), momentum half out at +1 R on the two-year book (section 409), the 4h pins retired with their reservation on the two-year book (section 410), the 4h pins priced by the live rule on the two-year book (section 411), the 4h pins re-qualified weekly on their trailing two years (section 412), the 4h pins' survivorship in the newest sample (section 413, none), NZDJPY and AUDCAD in the universe (section 400; the other FX crosses were blocked in section 344, so the plan's six-pair item was a retest), momentum gated by market breadth (section 178 on the breakout book; dropped from the plan as a retest), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,23 +43,23 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Live against backtest (1) — the 4h pins' survivorship in the newest
-   sample.** Observation: the five 4h pins earn only in the newest OOS
-   sample (2025-09 to 2026-09; sections 410, 411), and re-qualifying them
-   on their own trailing two years drops exactly those earnings (section
-   412). The pin file was chosen on cost, but the live expectancy veto
-   has since retired every 4h pin that lost over its live trades (May to
-   September 2026), which lie inside that newest sample. Hypothesis: the
-   five survivors' newest-sample earnings are the veto's selection, not
-   an edge: split each pin's newest-sample replay trades into those
-   before and after its live start, and compare with the pins the veto
-   retired over the same span. A survivorship bias found here would
-   calibrate how the replay may read the newest sample for pinned
-   combinations.
+1. **Universe and time frames (3) — the 4h strategies ranked across the
+   universe on the two-year ranking.** Observation: the five fixed 4h
+   pins earn only in the newest sample, and neither retiring them
+   (section 410), re-qualifying them on their own record (section 412)
+   nor their survivorship (section 413) explains it; the 4h resolution
+   was only ever traded through a fixed pin list, and section 387's plan
+   item "4-hour momentum ranked across the universe" lapsed without a
+   measurement. Hypothesis: donchian_breakout_4h, turtle_breakout_4h and
+   momentum_4h on all 27 instruments, ranked weekly with the hourly
+   combinations on 730 days under the same floors, replace the fixed
+   pins with combinations that earn their place. Pins and reservation
+   dropped in the candidate; the shared 4h booking, vetoes, caps, stops
+   and sizes unchanged.
 2. **Live against backtest (1) — the momentum-only live period.**
    Observation: since 2026-10-01 the bot trades momentum and the five 4h
    pins only; the journal holds 6 closes since then (-0.96 USD on
-   2026-10-15, US30 +0.76 USD at its leash), too few
+   2026-10-16, US30 +0.76 USD at its leash), too few
    to match. Hypothesis: once 10 or more closes exist since 2026-10-01,
    the execution split of section 337 on them shows a residual within
    noise, so the momentum-only reference describes the live book; measured
@@ -10281,4 +10281,41 @@ USD/day) no longer describe the traded book.
   expectancy veto has retired every 4h pin that lost live since May; the
   survivors' newest-sample earnings overlap their live period, which
   points at survivorship rather than edge (plan item 1).
+
+## 2026-10-16 — the 4h pins' survivorship in the newest sample
+
+- **Category:** 1, live against backtest.
+- **Operation:** one watchdog (14406) and one bot process, 12
+  combinations evaluated per minute (failing 0), no HTTP 429, runtime
+  checkout clean on `origin/main` (7267a8f); an ETHUSD momentum cross at
+  2026-10-15 20:00 UTC refused at the 3-ATR floor. No intervention.
+- **Observation:** the five 4h pins earn only in the newest OOS sample
+  (sections 410-412); the live expectancy veto retires a 4h pin after at
+  least eight losing live trades, and the pins' live period (from
+  2026-07-10) lies inside that sample.
+- **Lever:** the pin trades of the two-year reference (section 401) in
+  the newest sample, split by exit before and on or after 2026-07-10, per
+  pin, beside each pin's live closes. Preregistered: SURVIVORSHIP if the
+  pins lose before 2026-07-10 and earn on or after it, else NONE;
+  nothing calibrated in this run.
+- **Measurement:** `scripts/four_hour_pin_survivorship.py`. The veto has
+  retired one 4h pin from the pin file, turtle_breakout_4h WHEAT (9 live
+  closes, -4.24 USD), an instrument outside the replay's universe.
+
+  | pin | replay closes (newest sample) | USD before 2026-07-10 | USD from 2026-07-10 | live closes (USD) |
+  |---|---:|---:|---:|---:|
+  | donchian_breakout_4h SILVER | 10 | +12.80 | +1.41 | 7 (-5.42) |
+  | donchian_breakout_4h NZDUSD | 16 | +6.98 | -0.96 | 4 (-0.20) |
+  | turtle_breakout_4h HK50 | 16 | -3.39 | -5.19 | 6 (+2.44) |
+  | momentum_4h COPPER | 0 | 0 | 0 | 0 |
+  | momentum_4h CHFJPY | 3 | +4.15 | 0 | 0 |
+  | all | 45 | +20.54 | -4.74 | 17 (-3.18) |
+
+- **Result:** VERDICT=NONE. The pins' newest-sample earnings come before
+  their live period (SILVER and NZDUSD from September 2025 to July 2026),
+  where the veto could not select; over the live window the replay books
+  -4.74 USD against -3.18 USD live. The newest sample's pin earnings are
+  out of sample for the veto, so sections 410 and 412 stand as measured.
+- **Decision:** no calibration; bot unchanged, no restart. One new test.
+  Section 413.
 

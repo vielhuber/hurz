@@ -14662,3 +14662,18 @@ Rejected. Together with sections 410 and 411 this points at the newest
 sample's pin earnings as a selection effect of the live expectancy veto,
 which retired the 4h pins that lost live since May 2026.
 
+## 413. The 4h pins' newest-sample earnings are not the veto's selection
+
+The five 4h pins earn only in the newest OOS sample (sections 410-412).
+`scripts/four_hour_pin_survivorship.py` splits their two-year-reference
+trades in that sample at 2026-07-10, the first live 4h pin entry, from
+which on the live expectancy veto could select. Preregistered:
+SURVIVORSHIP if they lose before and earn after, else NONE.
+
+Before 2026-07-10 the pins book +20.54 USD (SILVER +12.80, NZDUSD +6.98,
+CHFJPY +4.15, HK50 -3.39), from it -4.74 USD, against -3.18 USD over 17
+live closes in the same window. The veto has retired one 4h pin (WHEAT,
+outside the replay universe). VERDICT=NONE: the pins' newest-sample
+earnings precede their live period and are out of sample for the veto;
+the rejections of sections 410 and 412 stand.
+
