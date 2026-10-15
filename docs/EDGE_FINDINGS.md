@@ -14619,3 +14619,23 @@ day -6.11 → -5.10. The pins earn only in the newest sample, which keeps
 the change from all four. Rejected under the fixed rule; the pattern
 points at the pins as a fixed list that is never re-qualified.
 
+## 411. The 4h pins priced by the live rule on the two-year book: immaterial
+
+`scripts/two_year_pins_live_pricing.py` repeats section 394 on section
+401's 730-day ranking: the live 4h pins priced by the live rule (stop 2
+ATR, venue minimum, refused below 3 ATR) instead of the shared booking's
+stop at the floor. Preregistered: calibrate the shared booking only at
+pooled |t| > 2.
+
+| OOS interval (end exclusive) | days | floor-set USD/day | live rule | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.154771 | +0.146881 | -0.007890 | -0.2241 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.002182 | +0.017228 | +0.019410 | +0.6980 |
+| 2021-09-21 – 2023-09-21 | 730 | -0.019766 | +0.004737 | +0.024503 | +0.7559 |
+| 2020-09-23 – 2021-09-21 | 363 | -0.006215 | +0.011426 | +0.017641 | +0.4354 |
+| pooled | 2,188 | +0.017465 | +0.033727 | +0.016262 | +0.9677 |
+
+The live rule leaves 124 of 561 pin signals and 63 of 268 pin closes
+(-11.35 USD instead of -48.93). Immaterial at t +0.97; the shared booking
+stays. Under either pricing the pins pay only in the newest sample.
+
