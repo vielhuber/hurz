@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 1, live against backtest). Closed: the momentum
+run's (last run: 4, portfolio and position sizing). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the turn of the month on the US indices as a book (section 390), momentum's sizing classes (section 391), the idle live book since the veto (section 392), the breakouts readmitted by their replay year (section 393), the 4h pins priced by the live rule (section 394), momentum's regime gate at ADX 25 (section 395), momentum ranked on its crosses from ADX 25 (section 396), the oldest sample's replay inputs (section 397), the bank-holiday guard on the book (section 398), momentum entered by a stop order beyond its signal bar (section 399), momentum ranked on two years (section 401, BUILT IN), the bot's two-year list against the replay's (section 402), momentum on the reserved instruments on the two-year ranking (section 403), FR40's divergence traced to the selector's indicator warm-up (section 404), momentum flat before the weekend on the two-year book (section 405), the selector's indicator warm-up on the book (section 406), momentum's ADX gate at 25 on the two-year book (section 407), the list's floors at pf 1.0 and E[R] 0 on the two-year book (section 408), momentum half out at +1 R on the two-year book (section 409), the 4h pins retired with their reservation on the two-year book (section 410), the 4h pins priced by the live rule on the two-year book (section 411), NZDJPY and AUDCAD in the universe (section 400; the other FX crosses were blocked in section 344, so the plan's six-pair item was a retest), momentum gated by market breadth (section 178 on the breakout book; dropped from the plan as a retest), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the turn of the month on the US indices as a book (section 390), momentum's sizing classes (section 391), the idle live book since the veto (section 392), the breakouts readmitted by their replay year (section 393), the 4h pins priced by the live rule (section 394), momentum's regime gate at ADX 25 (section 395), momentum ranked on its crosses from ADX 25 (section 396), the oldest sample's replay inputs (section 397), the bank-holiday guard on the book (section 398), momentum entered by a stop order beyond its signal bar (section 399), momentum ranked on two years (section 401, BUILT IN), the bot's two-year list against the replay's (section 402), momentum on the reserved instruments on the two-year ranking (section 403), FR40's divergence traced to the selector's indicator warm-up (section 404), momentum flat before the weekend on the two-year book (section 405), the selector's indicator warm-up on the book (section 406), momentum's ADX gate at 25 on the two-year book (section 407), the list's floors at pf 1.0 and E[R] 0 on the two-year book (section 408), momentum half out at +1 R on the two-year book (section 409), the 4h pins retired with their reservation on the two-year book (section 410), the 4h pins priced by the live rule on the two-year book (section 411), the 4h pins re-qualified weekly on their trailing two years (section 412), NZDJPY and AUDCAD in the universe (section 400; the other FX crosses were blocked in section 344, so the plan's six-pair item was a retest), momentum gated by market breadth (section 178 on the breakout book; dropped from the plan as a retest), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,16 +43,19 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Portfolio and position sizing (4) — the 4h pins re-qualified weekly
-   on the two-year ranking.** Observation: retiring the five pins gains
-   in three samples (+0.0816 USD/day at t +2.14 in 2023-25) and loses
-   only in the newest, where they earn (section 410); the pins are a
-   fixed list, never re-qualified by the floors the hourly list passes.
-   Hypothesis: keeping a pin only while its own trailing 730 days clear
-   the list's floors (ten trades, pf 0.8, E[R] -0.2) keeps the newest
-   year's pins and drops the losing years'. Under the live pricing the
-   pins still earn only in the newest sample (section 411), so the
-   re-qualification is measured on the shared floor-set booking.
+1. **Live against backtest (1) — the 4h pins' survivorship in the newest
+   sample.** Observation: the five 4h pins earn only in the newest OOS
+   sample (2025-09 to 2026-09; sections 410, 411), and re-qualifying them
+   on their own trailing two years drops exactly those earnings (section
+   412). The pin file was chosen on cost, but the live expectancy veto
+   has since retired every 4h pin that lost over its live trades (May to
+   September 2026), which lie inside that newest sample. Hypothesis: the
+   five survivors' newest-sample earnings are the veto's selection, not
+   an edge: split each pin's newest-sample replay trades into those
+   before and after its live start, and compare with the pins the veto
+   retired over the same span. A survivorship bias found here would
+   calibrate how the replay may read the newest sample for pinned
+   combinations.
 2. **Live against backtest (1) — the momentum-only live period.**
    Observation: since 2026-10-01 the bot trades momentum and the five 4h
    pins only; the journal holds 6 closes since then (-0.96 USD on
@@ -10242,4 +10245,40 @@ USD/day) no longer describe the traded book.
   the 365-day reference. Bot unchanged, no restart. No new test (the
   script composes the tested `four_hour_trades` and `ranked_replay`).
   Section 411.
+
+## 2026-10-15 (evening) — the 4h pins re-qualified weekly on their trailing two years
+
+- **Category:** 4, portfolio and position sizing.
+- **Operation:** one watchdog (14406) and one bot process, 12
+  combinations evaluated per minute (failing 0), no HTTP 429, runtime
+  checkout clean on `origin/main` (b5eb340); one momentum cross since
+  (DE40, 15:00 UTC) refused by the ADX gate. No intervention.
+- **Observation:** the five 4h pins lose in the three older samples and
+  earn in the newest (sections 410, 411); they are a fixed list, while
+  the hourly list is re-qualified weekly.
+- **Lever:** at each weekly cut a 4h pin trades and reserves its
+  instrument only while its own sequential 4h trades closed in the
+  trailing 730 days clear the list's floors (10 trades, pf 0.8, E[R]
+  -0.2); reference: the five pins fixed. Both on the 730-day ranking
+  with the shared 4h booking, the ETHUSD hourly pin and today's vetoes.
+  No other floor, no diagnostic arm.
+- **Measurement:** `scripts/two_year_pins_requalified.py`, cached
+  seven-year weekly walk-forward; 1.77 pins qualify per week on average
+  (never none). OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+  | 4h pins | closes (momentum) | momentum USD | 4h closes (USD) | USD/calendar day | daily SD |
+  |---|---:|---:|---:|---:|---:|
+  | fixed (live) | 587 (319) | +87.1474 | 268 (-48.93) | +0.017465 | 1.1174 |
+  | re-qualified weekly | 494 (346) | +87.9544 | 148 (-38.18) | +0.022749 | 0.9728 |
+
+- **Result:** delta +0.005284 USD/day, pooled paired t +0.4397, 2/4
+  samples better (-0.0411, +0.0214, +0.0152, -0.0006 from the newest).
+  The pins that qualify on their trailing years lose like the rest; the
+  newest year's earnings come from pins that would not have qualified.
+- **Decision:** rejected (VERDICT=DISCARD); the pins stay fixed, bot
+  unchanged, no restart. One new test. Section 412.
+- **Note for the plan:** the pin file was chosen on cost, but the live
+  expectancy veto has retired every 4h pin that lost live since May; the
+  survivors' newest-sample earnings overlap their live period, which
+  points at survivorship rather than edge (plan item 1).
 

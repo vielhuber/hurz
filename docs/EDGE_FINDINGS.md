@@ -14639,3 +14639,26 @@ The live rule leaves 124 of 561 pin signals and 63 of 268 pin closes
 (-11.35 USD instead of -48.93). Immaterial at t +0.97; the shared booking
 stays. Under either pricing the pins pay only in the newest sample.
 
+## 412. The 4h pins re-qualified on their trailing two years: 2/4
+
+`scripts/two_year_pins_requalified.py` lets a 4h pin trade, and reserve
+its instrument, only in weeks in which its own sequential 4h trades of
+the trailing 730 days clear the list's floors (10 trades, pf 0.8, E[R]
+-0.2), on section 401's two-year book. Preregistered: build with all
+four samples better and pooled paired t > +2.
+
+| OOS interval (end exclusive) | days | fixed pins USD/day | re-qualified | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.154771 | +0.113709 | -0.041062 | -1.6797 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.002182 | +0.019243 | +0.021425 | +0.9617 |
+| 2021-09-21 – 2023-09-21 | 730 | -0.019766 | -0.004533 | +0.015233 | +0.7482 |
+| 2020-09-23 – 2021-09-21 | 363 | -0.006215 | -0.006799 | -0.000584 | -0.0189 |
+| pooled | 2,188 | +0.017465 | +0.022749 | +0.005284 | +0.4397 |
+
+1.77 pins qualify per week; the pins' closes fall from 268 to 148
+(-48.93 → -38.18 USD). The newest sample loses most: its pin earnings
+come from pins whose trailing record would not have qualified them.
+Rejected. Together with sections 410 and 411 this points at the newest
+sample's pin earnings as a selection effect of the live expectancy veto,
+which retired the 4h pins that lost live since May 2026.
+
