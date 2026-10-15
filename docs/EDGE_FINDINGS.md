@@ -14596,3 +14596,26 @@ SD 1.1174 → 1.0934. Rejected. With the profit lock (section 376) this
 closes the in-trade exits of momentum: neither moving the stop nor
 banking part of the position beats the plain stop, target and leash.
 
+## 410. The 4h pins retired on the two-year book: better in three years, not the last
+
+`scripts/two_year_pins_retired.py` removes the five live 4h pins and
+their exclusive reservation, so momentum may rank on SILVER, NZDUSD,
+HK50, COPPER and CHFJPY, both arms on section 401's 730-day ranking.
+Preregistered: build with all four samples better and pooled paired
+t > +2.
+
+| OOS interval (end exclusive) | days | with pins USD/day | retired | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.154771 | +0.119189 | -0.035582 | -0.7248 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.002182 | +0.079454 | +0.081636 | +2.1419 |
+| 2021-09-21 – 2023-09-21 | 730 | -0.019766 | +0.009611 | +0.029377 | +0.8979 |
+| 2020-09-23 – 2021-09-21 | 363 | -0.006215 | +0.013568 | +0.019784 | +0.4817 |
+| pooled | 2,188 | +0.017465 | +0.051849 | +0.034385 | +1.7310 |
+
+Without the pins the book closes 382 momentum trades (+113.45 USD; 65 on
+the formerly reserved instruments, +26.79 USD) instead of 319 momentum
+and 268 pin trades (+38.21 USD), with daily SD 1.1174 → 0.8108 and worst
+day -6.11 → -5.10. The pins earn only in the newest sample, which keeps
+the change from all four. Rejected under the fixed rule; the pattern
+points at the pins as a fixed list that is never re-qualified.
+
