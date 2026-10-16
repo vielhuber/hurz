@@ -14698,3 +14698,42 @@ The ranked book lists 54 4h combinations over the years and closes 1,529
 worst day -6.11 → -10.49. The 4h strategies at -0.0200 R per signal are
 carried by the older years and lose the newest; rejected.
 
+
+## 415. The replay over the journal's filter period, rule by rule: in line
+
+The journal since the filter state of 2026-09-10 had never been set
+beside the book the replay would have traded on the same days.
+`scripts/journal_period_replay.py` extends a copy of the bar cache to
+2026-10-16 11:00 UTC and runs the shared weekly-ranked replay with the
+live 4h pins and today's combination vetoes in four regimes keyed by
+entry: all three hourly strategies until 2026-09-25, turtle_breakout and
+momentum until 2026-10-01 02:00 UTC, momentum ranked on 365 days until
+2026-10-13, then on 730 days. Journal: every accepted, filled close with
+a signal bar from 2026-09-10 and an exit before 2026-10-16, hourly and
+4h. A close matches a replay trade of the same strategy and instrument
+whose signal bar lies within four hours. Preregistered: CALIBRATE only
+if the paired daily difference has |t| > 2.
+
+| window [2026-09-10, 2026-10-16), 36 days | closes | USD | USD/calendar day | daily SD |
+|---|---:|---:|---:|---:|
+| journal | 44 | +1.47 | +0.0408 | 2.0376 |
+| replay, rules in force | 47 | +6.74 | +0.1872 | 1.8656 |
+
+By regime the replay books 33 closes (+6.29 USD) with all three
+strategies, 10 (+4.65) with turtle and momentum, 4 (-4.20) with momentum
+on 365 days (the live book closed none of these, section 392) and none
+on 730 days (live: US30 momentum +0.76 USD). 24 closes match: live +2.34
+USD, replay +7.17 USD. 20 are live only (-0.87 USD: turtle_breakout
+-5.00, donchian_breakout +2.10, donchian_breakout_4h +1.27, momentum
++0.76), 23 replay only (-0.43 USD: turtle_breakout +6.79,
+donchian_breakout -4.66, turtle_breakout_4h -3.23, donchian_breakout_4h
++1.61, momentum_4h -0.95). The gap journal minus replay is -4.83 USD on
+the matched closes, -0.87 and +0.43 on the unmatched groups.
+
+Paired daily difference -0.1464 USD (t -0.62): IMMATERIAL. Over the
+journal's filter period the replay with the rules in force books a daily
+figure within noise of the journal; the reference and the cost model
+stand. Five closes from signals of 2026-09-10 (-7.55 USD) precede the
+dashboard's filter state, so the dashboard's +9.02 USD over 39 closes and
+this window's +1.47 USD over 44 describe the same book. Research only;
+the bot is unchanged.
