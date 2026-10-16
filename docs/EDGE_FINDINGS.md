@@ -14737,3 +14737,28 @@ stand. Five closes from signals of 2026-09-10 (-7.55 USD) precede the
 dashboard's filter state, so the dashboard's +9.02 USD over 39 closes and
 this window's +1.47 USD over 44 describe the same book. Research only;
 the bot is unchanged.
+
+## 416. The book's risk scaled down in volatile weeks: rejected
+
+Over the journal's filter period the replay's daily SD is 1.87 USD
+against 1.12 over seven years (section 415), while every trade risks its
+full budget. `scripts/book_volatility_target.py` keeps section 401's
+book trade for trade and multiplies each trade's risk by min(1, SD of
+the book's daily USD over every OOS day before its entry day / SD over
+the 20 calendar days before it), read from the unscaled book's closed
+days only, factor 1 for the first 60 OOS days. Down-only: no trade risks
+more than today's budget; admission is count-based, so both arms take
+the same 587 trades. Preregistered: all four samples better and pooled
+paired daily t > +2. OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+| arm | USD | USD/calendar day | daily SD | worst day |
+|---|---:|---:|---:|---:|
+| reference (section 401) | +38.2131 | +0.017465 | 1.1174 | -6.1142 |
+| risk scaled down after volatile weeks | +31.3715 | +0.014338 | 0.9727 | -6.1142 |
+
+53 % of the trades are scaled, at a mean factor of 0.860. Delta -0.003127
+USD/day, pooled t -0.57, 2/4 samples better (-0.0220 at t -2.00,
++0.0042, +0.0014, -0.0079 from the newest). The newest year, the only
+one that earns, is cut most: its volatile stretches are the ones that
+pay. The worst day stays at -6.11 USD because it does not follow a
+volatile stretch. Rejected; research only, the bot is unchanged.
