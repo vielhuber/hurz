@@ -14677,3 +14677,24 @@ outside the replay universe). VERDICT=NONE: the pins' newest-sample
 earnings precede their live period and are out of sample for the veto;
 the rejections of sections 410 and 412 stand.
 
+## 414. The 4h strategies ranked across the universe: three years up, the last one down hard
+
+`scripts/four_hour_ranked_universe.py` replaces the five fixed 4h pins by
+all three 4h strategies on all 27 instruments, ranked weekly beside the
+hourly signals on section 401's 730 days under the same floors.
+Preregistered: build with all four samples better and pooled paired
+t > +2.
+
+| OOS interval (end exclusive) | days | fixed pins USD/day | ranked 4h | delta | paired t |
+|---|---:|---:|---:|---:|---:|
+| 2025-09-20 – 2026-09-20 | 365 | +0.154771 | -0.041295 | -0.196065 | -1.9414 |
+| 2023-09-21 – 2025-09-20 | 730 | -0.002182 | +0.045387 | +0.047569 | +0.5337 |
+| 2021-09-21 – 2023-09-21 | 730 | -0.019766 | +0.086961 | +0.106727 | +1.0879 |
+| 2020-09-23 – 2021-09-21 | 363 | -0.006215 | +0.018159 | +0.024375 | +0.2064 |
+| pooled | 2,188 | +0.017465 | +0.040280 | +0.022815 | +0.4453 |
+
+The ranked book lists 54 4h combinations over the years and closes 1,529
+4h trades (+16.90 USD) beside 285 hourly ones; daily SD 1.1174 → 2.3883,
+worst day -6.11 → -10.49. The 4h strategies at -0.0200 R per signal are
+carried by the older years and lose the newest; rejected.
+
