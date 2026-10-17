@@ -14817,3 +14817,28 @@ at t -0.98, +0.0226, +0.0082, +0.0003 from the newest). The 66
 weekend-crossing momentum closes lose -17.62 USD over seven years but
 earn in the newest year, the only one in which the book earns. Rejected
 under the fixed rule; research only, the bot is unchanged.
+
+## 419. Only losing momentum positions flat before the weekend: rejected
+
+Refusing weekend-crossing momentum entries (section 418) removed trades
+that lose over seven years but earn in the newest year; flattening every
+momentum position before the weekend (sections 379, 405) gave up the
+winners too. `scripts/momentum_losers_weekend_flat.py` closes a momentum
+position still open at the close of a bar whose next bar is more than 36
+hours away (section 266's rule; crypto never gaps) only if that close
+stands against its entry, holding the rest as today; financing to the
+exit; both arms rank and admit on their own figures on section 401's
+book. Preregistered: all four samples better and pooled paired daily
+t > +2. OOS [2020-09-23, 2026-09-20), 2,188 calendar days; 77 momentum
+signals would be closed early, at -0.2407 R on average.
+
+| arm | closes | momentum closes (forced) | momentum USD | USD | USD/calendar day | daily SD | worst day |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| reference (section 401) | 587 | 319 (0) | +87.1474 | +38.2131 | +0.017465 | 1.1174 | -6.1142 |
+| losers flat before the weekend | 597 | 329 (29) | +89.4060 | +40.4717 | +0.018497 | 1.1066 | -6.1142 |
+
+Delta +0.001032 USD/day, pooled t +0.19, 3/4 samples better (+0.0075,
++0.0114, -0.0147 at t -1.31, +0.0053 from the newest). Losing positions
+recover over the weekend about as often as they fall further; the rule
+mostly trades one weekend outcome for another. Rejected; research only,
+the bot is unchanged.
