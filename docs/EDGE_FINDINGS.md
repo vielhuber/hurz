@@ -14762,3 +14762,33 @@ USD/day, pooled t -0.57, 2/4 samples better (-0.0220 at t -2.00,
 one that earns, is cut most: its volatile stretches are the ones that
 pay. The worst day stays at -6.11 USD because it does not follow a
 volatile stretch. Rejected; research only, the bot is unchanged.
+
+## 417. Intraday momentum on the index cash session: rejected
+
+Six of the seven live momentum combinations trade equity indices; their
+intraday drift was measured only unconditionally (section 315) and
+across sessions (sections 274, 356). `scripts/index_session_momentum.py`
+takes each weekday cash session in local time (US30, US100, US500
+09:30-16:00 New York; DE40, EU50 09:00-17:30 Frankfurt; FR40 Paris;
+UK100 08:00-16:30 London), reads the move from the open of its first
+full hourly bar to the close of the bar before its last full bar, and
+trades its sign for that last bar only with the live stop, cost, size,
+1.5 R target and financing; no threshold, no gate, sessions with a
+missing bar skipped. The candidate offers `session_momentum` on these
+seven indices beside the 4h pins of section 401's book, every cap and
+one position per instrument unchanged. Preregistered: all four samples
+better and pooled paired daily t > +2. OOS [2020-09-23, 2026-09-20),
+2,188 calendar days.
+
+7,711 session signals in the OOS span average -0.0099 R net (t -4.10,
+-170.01 USD).
+
+| arm | closes (session) | session USD | USD | USD/calendar day | daily SD | worst day |
+|---|---:|---:|---:|---:|---:|---:|
+| reference (section 401) | 587 (0) | 0 | +38.2131 | +0.017465 | 1.1174 | -6.1142 |
+| with session momentum | 7,085 (6,499) | -119.9133 | -81.6527 | -0.037318 | 1.6160 | -8.5775 |
+
+Delta -0.054783 USD/day, pooled t -2.18, 1/4 samples better (-0.0999
+at t -1.95, -0.1431 at t -3.14, +0.0406, -0.0236 from the newest). A
+one-bar hold pays the full spread on a move that does not cover it.
+Rejected; research only, the bot is unchanged.
