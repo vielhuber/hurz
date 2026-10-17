@@ -14792,3 +14792,28 @@ Delta -0.054783 USD/day, pooled t -2.18, 1/4 samples better (-0.0999
 at t -1.95, -0.1431 at t -3.14, +0.0406, -0.0236 from the newest). A
 one-bar hold pays the full spread on a move that does not cover it.
 Rejected; research only, the bot is unchanged.
+
+## 418. No momentum entry whose leash would cross the weekend: rejected
+
+The live book's only open position, US30 momentum, was entered at the
+19:00 UTC bar of Friday 2026-10-16 and carries the weekend. Sections 379
+and 405 closed open positions before the weekend; refusing the entries
+alone was never measured. `scripts/momentum_weekend_entry.py` refuses a
+momentum entry when any of the 24 bars of its leash is followed by a gap
+of more than 36 hours (section 266's weekend rule; crypto never gaps);
+the weekly ranking still reads every signal, as the selector's backtest
+does; breakouts, the 4h pins, caps, stops and sizes unchanged.
+Preregistered: all four samples better and pooled paired daily t > +2.
+OOS [2020-09-23, 2026-09-20), 2,188 calendar days; 174 of 870 momentum
+signals are refused.
+
+| arm | closes | momentum closes | momentum USD | USD | USD/calendar day | daily SD | worst day |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| reference (section 401) | 587 | 319 | +87.1474 | +38.2131 | +0.017465 | 1.1174 | -6.1142 |
+| no entry into the weekend | 521 | 253 | +104.7693 | +55.8351 | +0.025519 | 1.0794 | -6.1142 |
+
+Delta +0.008054 USD/day, pooled t +1.32, 3/4 samples better (-0.0136
+at t -0.98, +0.0226, +0.0082, +0.0003 from the newest). The 66
+weekend-crossing momentum closes lose -17.62 USD over seven years but
+earn in the newest year, the only one in which the book earns. Rejected
+under the fixed rule; research only, the bot is unchanged.
