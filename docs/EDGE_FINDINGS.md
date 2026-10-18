@@ -14865,3 +14865,27 @@ ever opened). The 30 refused momentum trades net to zero; the newest
 year loses most. The worst day stays at -6.11 USD for the fourth lever
 in a row (sections 416, 418-420): it does not come from crowded index
 momentum. Rejected; research only, the bot is unchanged.
+
+## 421. The 4h pins flat before the weekend: rejected
+
+The two-year book's worst day was unchanged by four levers on momentum
+and sizing (sections 416, 418-420); the five 4h pins hold up to four days
+and cross most weekends. `scripts/four_hour_pins_weekend_flat.py` books
+each 4h pin trade with `flat_before_weekend.book_flat` on its 4h bars:
+closed at the close of a bar whose next bar is more than 36 hours away
+(section 266's rule; crypto never gaps), financing to that exit; hourly
+signals, ranking, caps, stops and sizes unchanged. Preregistered: all
+four samples better and pooled paired daily t > +2. OOS [2020-09-23,
+2026-09-20), 2,188 calendar days; 293 pin signals in the OOS span would
+be closed before a weekend, at +0.0883 R on average.
+
+| arm | closes | 4h closes (forced) | 4h USD | USD | USD/calendar day | daily SD | worst day |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| reference (section 401) | 587 | 268 (0) | -48.9343 | +38.2131 | +0.017465 | 1.1174 | -6.1142 |
+| 4h pins flat before the weekend | 620 | 300 (163) | -46.4077 | +40.4580 | +0.018491 | 1.0648 | -7.0196 |
+
+Delta +0.001026 USD/day, pooled t +0.06, 3/4 samples better (+0.0002,
++0.0086, -0.0167, +0.0224 from the newest). The pins reach the weekend in
+profit on average; closing them frees slots that the book refills, and
+the refills produce a worse worst day (-7.02 USD). The weekend is not
+where the pins lose. Rejected; research only, the bot is unchanged.
