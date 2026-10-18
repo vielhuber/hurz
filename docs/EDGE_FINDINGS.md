@@ -14919,3 +14919,31 @@ sized on the hourly ATR: held for eleven days, a daily breakout meets it
 inside the daily range far more often than its 10-session exit, so the
 signal pays a full R where the breakout needs room. Rejected; research
 only, the bot is unchanged.
+
+## 423. The bot's list after the refresh of 2026-10-18 against the replay's: match
+
+The nightly refresh of 2026-10-18 (momentum backtest 05:51 UTC on 730
+days, list written 06:02 UTC) dropped FR40 momentum.
+`scripts/refreshed_list_calibration.py` repeats section 402's comparison
+at the cut 2026-10-18 05:00 UTC on the bar cache extended to today.
+Preregistered: MATCH if both momentum lists are equal; a calibration only
+on MISMATCH.
+
+Both lists hold DE40, ETHUSD, EU50, UK100, US100 and US30 momentum:
+MATCH. FR40 leaves both on its profit factor (replay n 12, E[R] -0.122,
+pf 0.64; selector n 12, -0.112, 0.66, under the 0.8 floor); HK50 (n 29,
++0.191) stays reserved by the turtle_breakout_4h pin, as in both. Per
+instrument the replay counts 0.17 fewer trades (t -2.14) at 0.0104 R
+lower expectancy (t -5.85) than the selector over 24 shared instruments:
+the replay stays slightly conservative, as section 406 found, without
+changing a single list entry. Nine instruments the selector backtests
+(AU200, AUDUSD, the GBP and EUR crosses, USDCAD) are outside the replay
+universe; none has a qualifying momentum row except AU200 (n 14, pf
+1.15), which would need E[R] and rank to enter. The reference stands.
+
+The journal records why the live US30 momentum position of 2026-10-16
+19:00 UTC closed at -0.35 USD: the bot's stale exit counts 24 wall-clock
+hours, suspended the exit at 2026-10-17 20:01 UTC while the market was
+closed and closed it at the reopen after 50.1 hours; the replay counts 24
+bars. Section "2026-09-08 (thirty-first run)" measured the difference on
+the breakout book only.
