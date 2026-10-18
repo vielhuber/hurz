@@ -14889,3 +14889,33 @@ Delta +0.001026 USD/day, pooled t +0.06, 3/4 samples better (+0.0002,
 profit on average; closing them frees slots that the book refills, and
 the refills produce a worse worst day (-7.02 USD). The weekend is not
 where the pins lose. Rejected; research only, the bot is unchanged.
+
+## 422. A 20-session breakout on the indices' session closes: rejected
+
+A daily-bar trend signal on the indices had been measured only as
+12-month time-series momentum (sections 366, 368).
+`scripts/index_daily_breakout.py` decides at each index's broker session
+close (section 368, today's `openingHours`): a close above the highest
+(below the lowest) of the previous 20 session closes enters long (short)
+with the live stop, cost and size; the stop (a gap through it at the
+open) or a close beyond the opposite 10-session extreme exits; financing
+per rollover; one position per instrument. The candidate offers
+`daily_breakout` on DE40, EU50, FR40, HK50, J225, UK100, US100, US30 and
+US500 (AU200 is not cached) beside the 4h pins of section 401's book.
+Preregistered: all four samples better and pooled paired daily t > +2.
+OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+699 breakout signals in the OOS span average -0.2645 R (t -3.76,
+-427.31 USD) and last 11.2 days.
+
+| arm | closes (breakout) | breakout USD | USD | USD/calendar day | daily SD | worst day |
+|---|---:|---:|---:|---:|---:|---:|
+| reference (section 401) | 587 (0) | 0 | +38.2131 | +0.017465 | 1.1174 | -6.1142 |
+| with the daily breakout | 801 (378) | -194.5543 | -176.1439 | -0.080505 | 2.2253 | -9.7529 |
+
+Delta -0.097969 USD/day, pooled t -2.24, 0/4 samples better (-0.3042 at
+t -2.67, -0.0706, -0.0655, -0.0109 from the newest). The live stop is
+sized on the hourly ATR: held for eleven days, a daily breakout meets it
+inside the daily range far more often than its 10-session exit, so the
+signal pays a full R where the breakout needs room. Rejected; research
+only, the bot is unchanged.
