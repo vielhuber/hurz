@@ -14842,3 +14842,26 @@ Delta +0.001032 USD/day, pooled t +0.19, 3/4 samples better (+0.0075,
 recover over the weekend about as often as they fall further; the rule
 mostly trades one weekend outcome for another. Rejected; research only,
 the bot is unchanged.
+
+## 420. The cluster direction cap at 2 on the two-year momentum book: rejected
+
+Six of the seven live momentum combinations are equity indices in the
+risk_on cluster; the cluster direction cap (3, section 239) was last
+measured on the breakout book (sections 283-295).
+`scripts/two_year_cluster_cap.py` replays section 401's book with at most
+2 open positions per correlation cluster and direction instead of 3, a
+refused signal skipped as today, everything else unchanged.
+Preregistered: all four samples better and pooled paired daily t > +2.
+OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+| arm | closes | momentum closes | momentum USD | USD | USD/calendar day | daily SD | worst day |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| reference, cap 3 (section 401) | 587 | 319 | +87.1474 | +38.2131 | +0.017465 | 1.1174 | -6.1142 |
+| cap 2 | 556 | 289 | +87.1001 | +38.6664 | +0.017672 | 1.0835 | -6.1142 |
+
+Delta +0.000207 USD/day, pooled t +0.05, 2/4 samples better (-0.0130 at
+t -1.21, +0.0013, +0.0058, 0 in the oldest, where no third position
+ever opened). The 30 refused momentum trades net to zero; the newest
+year loses most. The worst day stays at -6.11 USD for the fourth lever
+in a row (sections 416, 418-420): it does not come from crowded index
+momentum. Rejected; research only, the bot is unchanged.
