@@ -14936,7 +14936,7 @@ pf 0.64; selector n 12, -0.112, 0.66, under the 0.8 floor); HK50 (n 29,
 instrument the replay counts 0.17 fewer trades (t -2.14) at 0.0104 R
 lower expectancy (t -5.85) than the selector over 24 shared instruments:
 the replay stays slightly conservative, as section 406 found, without
-changing a single list entry. Nine instruments the selector backtests
+changing a single list entry. Ten instruments the selector backtests
 (AU200, AUDUSD, the GBP and EUR crosses, USDCAD) are outside the replay
 universe; none has a qualifying momentum row except AU200 (n 14, pf
 1.15), which would need E[R] and rank to enter. The reference stands.
