@@ -14975,3 +14975,32 @@ bar leash is not built; the bot keeps its wall-clock stale exit. Read the
 other way, the replay with the bot's leash books +0.0098 USD/day more than
 the reference, inside the noise (|t| 1.48 < 2): the reference stays on
 bars, conservative by that amount. Research only; the bot is unchanged.
+
+## 425. A suspended stale exit at the close of the reopen hour: rejected
+
+The bot's wall-clock stale exit (section 424) closes a position whose
+deadline fell on a closed market at the reopen. The plan priced the
+reopen with the sampled spread by hour (section 382); the bot's hourly
+quotes hold one or two samples from a reopen's first hour per instrument
+(US30 1, DE40 2, UK100 2, EU50 1, US100 2, ETHUSD 1; ratios to the
+instrument's median 0.99 to 2.02), too few for a cost, so this run
+measures the price effect alone at the replay's flat cost.
+`scripts/reopen_stale_exit.py` holds such a position through the reopen
+bar (stop and 1.5 R target checked) and closes it at that bar's close; a
+deadline in an open market still closes at the next bar's open.
+Baseline: section 424's wall-clock book. Preregistered: all four samples
+better and pooled paired daily t > +2. OOS [2020-09-23, 2026-09-20),
+2,188 calendar days; 135 momentum signals in the span reach a deadline in
+a closed market, at +0.0196 R closed at the reopen's open against
+-0.0058 R at its close.
+
+| exit of a suspended stale position | closes | momentum USD | USD | USD/calendar day | daily SD | worst day |
+|---|---:|---:|---:|---:|---:|---:|
+| at the reopen bar's open (the bot) | 589 | +108.6274 | +59.6931 | +0.027282 | 1.0958 | -6.1589 |
+| at the reopen bar's close | 589 | +100.4371 | +51.5028 | +0.023539 | 1.0948 | -6.1589 |
+
+Delta -0.003743 USD/day, pooled t -2.56, 0/4 samples better (-0.0014,
+-0.0087 at t -2.27, -0.0016, -0.0004 from the newest). The reopen hour
+moves against the position by 0.025 R on average, more than a spread
+premium of the observed size would cost; the bot keeps closing at the
+reopen. Research only; the bot is unchanged.

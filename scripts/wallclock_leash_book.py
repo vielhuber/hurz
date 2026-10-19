@@ -68,7 +68,7 @@ def book_wallclock(O, H, L, C, ts, e, d, entry, stop_d, cost_r, n):
     return None, None
 
 
-def wallclock_signals(frames, floor, meta):
+def wallclock_signals(frames, floor, meta, book=book_wallclock):
     """`ews.all_signals` booked with the live wall-clock leash."""
     out = []
     for pair, df in frames.items():
@@ -81,7 +81,7 @@ def wallclock_signals(frames, floor, meta):
                 terms = ews.trade_terms(df, x.index, pair, meta, floor)
                 if terms is None: continue
                 entry, stop_d, cost_r, risk_usd = terms
-                r, xb = book_wallclock(O, H, L, C, ts, x.index, x.direction, entry, stop_d, cost_r, n)
+                r, xb = book(O, H, L, C, ts, x.index, x.direction, entry, stop_d, cost_r, n)
                 if r is None: continue
                 if ews.CHARGE_FINANCING:
                     r -= ews.night_charge(pair, x.direction, entry, stop_d) * ews.rollovers(
