@@ -14947,3 +14947,31 @@ hours, suspended the exit at 2026-10-17 20:01 UTC while the market was
 closed and closed it at the reopen after 50.1 hours; the replay counts 24
 bars. Section "2026-09-08 (thirty-first run)" measured the difference on
 the breakout book only.
+
+## 424. The stale exit in bars instead of wall-clock hours: the wall clock stays
+
+The bot closes a stale position 24 wall-clock hours after its order,
+suspended while the market is closed and executed at the reopen (US30,
+2026-10-18 22:04 UTC, after 50.1 hours, section 423); the replay counts 24
+bars. `scripts/wallclock_leash_book.py` books every hourly signal with the
+live leash (stop and 1.5 R target as today; at the first bar that opens
+25 hours or more after the signal bar's open the position closes at that
+bar's open; financing to that exit) and replays section 401's book with
+both leashes, ranking on the bar-booked signals as the selector does.
+Preregistered: the bot counts bars only if the bar leash beats the
+wall-clock leash in all four samples at pooled paired daily t > +2.
+OOS [2020-09-23, 2026-09-20), 2,188 calendar days; 464 momentum signals
+in the span exit at another bar under the wall clock (+0.0941 R against
++0.0835 R with bars).
+
+| leash | closes | momentum closes | momentum USD | USD | USD/calendar day | daily SD | worst day |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 24 wall-clock hours (the bot) | 589 | 321 | +108.6274 | +59.6931 | +0.027282 | 1.0958 | -6.1589 |
+| 24 bars (the replay, section 401) | 587 | 319 | +87.1474 | +38.2131 | +0.017465 | 1.1174 | -6.1142 |
+
+Bars against the wall clock: delta -0.009817 USD/day, pooled t -1.48, 1/4
+samples better (+0.0038, -0.0181, -0.0094, -0.0078 from the newest). The
+bar leash is not built; the bot keeps its wall-clock stale exit. Read the
+other way, the replay with the bot's leash books +0.0098 USD/day more than
+the reference, inside the noise (|t| 1.48 < 2): the reference stays on
+bars, conservative by that amount. Research only; the bot is unchanged.
