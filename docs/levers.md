@@ -45,7 +45,7 @@ USD/day) no longer describe the traded book.
 
 1. **Live against backtest (1) — the selector's instruments missing from
    the replay.** Observation: the nightly selector backtests momentum on
-   nine instruments the replay universe lacks (AU200, AUDUSD, EURCAD,
+   ten instruments the replay universe lacks (AU200, AUDUSD, EURCAD,
    EURCHF, EURGBP, GBPAUD, GBPCAD, GBPCHF, GBPUSD, USDCAD; section 423),
    and AU200 has a qualifying momentum row there (n 14, pf 1.15, E[R]
    +0.026); the replay can never list a combination the bot may trade.
