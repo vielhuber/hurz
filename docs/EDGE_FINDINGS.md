@@ -15004,3 +15004,23 @@ Delta -0.003743 USD/day, pooled t -2.56, 0/4 samples better (-0.0014,
 moves against the position by 0.025 R on average, more than a spread
 premium of the observed size would cost; the bot keeps closing at the
 reopen. Research only; the bot is unchanged.
+
+## 426. The selector's instruments missing from the replay: blocked live, no calibration
+
+Section 423 found the nightly selector backtesting momentum on ten
+instruments the replay universe lacks (AU200, AUDUSD, EURCAD, EURCHF,
+EURGBP, GBPAUD, GBPCAD, GBPCHF, GBPUSD, USDCAD), AU200 with a qualifying
+row (n 14, pf 1.15, E[R] +0.026). Preregistered: if the bot could trade
+them, the replay is calibrated to the wider universe; if not, it stands.
+
+All ten are in `trading_blocks.BLOCKED_PAIRS`: AU200, AUDUSD, GBPCAD and
+GBPUSD on expectancy (sections 70, 192), the other six with section 344's
+universe block (-0.038 USD/day at t -2.86 when added to the replay).
+`pair_selector` drops blocked instruments when it writes the list
+(`score.pair in BLOCKED_PAIRS`), and `autotrade` refuses blocked
+instruments at entry. The list written 2026-10-19 06:07 UTC holds none of
+them. The journal's last accepted fills on them predate the blocks
+(AU200 5, last 2026-08-25; AUDUSD 15, 2026-08-26; GBPAUD 1, 2026-08-26;
+GBPCAD 6, 2026-08-25; GBPUSD 7, 2026-07-01); none since. The selector
+only backtests them; the replay's universe is the bot's tradeable one,
+and the reference stands. Research only; the bot is unchanged.
