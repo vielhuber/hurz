@@ -15052,3 +15052,25 @@ Delta +0.006594 USD/day, pooled t +0.92, 3/4 samples better (-0.0083,
 earn +14.43 USD without displacing a momentum trade, but lose in the newest
 year, the one the book earns in. Rejected under the fixed rule; research
 only, the bot is unchanged.
+
+## 428. No momentum entry on the bar that reopens after a weekend: immaterial
+
+The reopen bar after a weekend retraces a wide gap (section 427);
+`scripts/momentum_reopen_entry.py` refuses momentum signals whose signal
+bar is the first bar after a gap of more than 36 hours (crypto never
+gaps), the weekly ranking still reading every signal. Preregistered: all
+four samples better and pooled paired daily t > +2. OOS [2020-09-23,
+2026-09-20), 2,188 calendar days.
+
+Only 2 momentum signals in seven years complete their cross on a reopen
+bar (-0.1200 R on average); the book takes one of them.
+
+| arm | closes | momentum closes | momentum USD | USD | USD/calendar day | daily SD | worst day |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| reference (section 401) | 587 | 319 | +87.1474 | +38.2131 | +0.017465 | 1.1174 | -6.1142 |
+| no entry on the reopen bar | 586 | 318 | +85.6373 | +36.7031 | +0.016775 | 1.1157 | -6.1142 |
+
+Delta -0.000690 USD/day, pooled t -1.00, 0/4 samples better (-0.0041 in
+the newest, no difference in the other three). Momentum's crosses almost
+never complete on a reopen bar; the rule has nothing to act on.
+Rejected; research only, the bot is unchanged.
