@@ -15074,3 +15074,25 @@ Delta -0.000690 USD/day, pooled t -1.00, 0/4 samples better (-0.0041 in
 the newest, no difference in the other three). Momentum's crosses almost
 never complete on a reopen bar; the rule has nothing to act on.
 Rejected; research only, the bot is unchanged.
+
+## 429. The ETHUSD momentum pin ranked like the other combinations: immaterial
+
+ETHUSD momentum is the only hourly pin still traded and holds its slot
+whatever its trailing figures. `scripts/ethusd_pin_ranked.py` removes it
+from the pins and the pin order of section 401's book, so it enters the
+weekly list only when its trailing 730 days pass the floors and rank;
+everything else unchanged. Preregistered: all four samples better and
+pooled paired daily t > +2. OOS [2020-09-23, 2026-09-20), 2,188 calendar
+days.
+
+| arm | closes | momentum closes | momentum USD | ETHUSD closes (USD) | USD | USD/calendar day | daily SD | worst day |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| reference, ETHUSD pinned (section 401) | 587 | 319 | +87.1474 | 1 (-2.7529) | +38.2131 | +0.017465 | 1.1174 | -6.1142 |
+| ETHUSD ranked | 586 | 318 | +89.9003 | 0 | +40.9660 | +0.018723 | 1.1158 | -6.1142 |
+
+Delta +0.001258 USD/day, pooled t +1.00, 1/4 samples better (only
+2021-2023 differs). Pinned, ETHUSD momentum books a single trade in six
+years: its crosses rarely pass the regime gate, as the live book showed in
+October (5 ETHUSD crosses, all refused by the gate, section 392's run).
+The pin costs one trade; ranking it changes nothing measurable. Rejected
+under the fixed rule; research only, the bot is unchanged.
