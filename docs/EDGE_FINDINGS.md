@@ -15096,3 +15096,33 @@ years: its crosses rarely pass the regime gate, as the live book showed in
 October (5 ETHUSD crosses, all refused by the gate, section 392's run).
 The pin costs one trade; ranking it changes nothing measurable. Rejected
 under the fixed rule; research only, the bot is unchanged.
+
+## 430. A short-term reversal on the indices' session closes: the signal earns, the book does not
+
+The indices' reopen hour retraces wide gaps (section 427); a daily
+reversal on them was never measured. `scripts/index_daily_reversal.py`
+decides at each index's broker session close (section 368): long when the
+2-session RSI is below 10 and the close is above its 200-session average;
+stop at the larger of 2 x the 14-session true range (sessions built from
+the hourly bars) and the venue's 1.05 % minimum, sized to the live 3 USD
+risk and 250 USD notional cap; exit at the first session close above the
+5-session average or the 10th session close; financing per rollover; one
+position per index. The candidate offers `daily_reversal` on nine indices
+beside the 4h pins of section 401's book, every cap unchanged.
+Preregistered: all four samples better and pooled paired daily t > +2.
+OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+578 reversal signals in the OOS span average +0.0692 R (t +2.55, +103.44
+USD) and last 3.3 days.
+
+| arm | closes (reversal) | reversal USD | USD | USD/calendar day | daily SD | worst day |
+|---|---:|---:|---:|---:|---:|---:|
+| reference (section 401) | 587 (0) | 0 | +38.2131 | +0.017465 | 1.1174 | -6.1142 |
+| with the daily reversal | 927 (401) | +7.2271 | +1.0206 | +0.000466 | 1.4102 | -10.2115 |
+
+Delta -0.016998 USD/day, pooled t -0.84, 2/4 samples better (+0.0498,
++0.0042, -0.0386, -0.0834 from the newest). The book admits 401 of the
+578 reversals for only +7.23 USD and closes 61 fewer of its own trades:
+the multi-day reversal positions hold slots momentum and the pins would
+have used, and the displaced trades cost about 44 USD. The newest year
+gains. Rejected under the fixed rule; research only, the bot is unchanged.
