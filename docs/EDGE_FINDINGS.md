@@ -15024,3 +15024,31 @@ them. The journal's last accepted fills on them predate the blocks
 GBPCAD 6, 2026-08-25; GBPUSD 7, 2026-07-01); none since. The selector
 only backtests them; the replay's universe is the bot's tradeable one,
 and the reference stands. Research only; the bot is unchanged.
+
+## 427. The weekend gap faded in the indices' reopen hour: rejected
+
+Held momentum positions lose 0.025 R in the reopen bar after a closed
+market (section 425); the reopen was never a signal.
+`scripts/weekend_gap_fade.py` takes, on the nine cached equity indices,
+the first bar after a gap of more than 36 hours whose open lies more than
+0.5 x the hourly ATR(14) away from the last close, and fades the gap:
+entered at that bar's open with the live stop distance, cost and size of
+the last bar before the gap, stop checked before the 1.5 R target, closed
+at the bar's close, financed. The candidate offers `gap_fade` beside the
+4h pins of section 401's book, every cap unchanged. Preregistered: all
+four samples better and pooled paired daily t > +2. OOS [2020-09-23,
+2026-09-20), 2,188 calendar days.
+
+753 gap fades in the OOS span average +0.0206 R (t +2.45, +36.22 USD):
+the reopen hour retraces part of a wide weekend gap.
+
+| arm | closes (gap fade) | gap fade USD | USD | USD/calendar day | daily SD | worst day |
+|---|---:|---:|---:|---:|---:|---:|
+| reference (section 401) | 587 (0) | 0 | +38.2131 | +0.017465 | 1.1174 | -6.1142 |
+| with the gap fade | 1,124 (537) | +14.4277 | +52.6408 | +0.024059 | 1.1672 | -6.1142 |
+
+Delta +0.006594 USD/day, pooled t +0.92, 3/4 samples better (-0.0083,
++0.0204, +0.0022, +0.0026 from the newest). The 537 fades the book admits
+earn +14.43 USD without displacing a momentum trade, but lose in the newest
+year, the one the book earns in. Rejected under the fixed rule; research
+only, the bot is unchanged.
