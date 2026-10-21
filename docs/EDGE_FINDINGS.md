@@ -15150,3 +15150,31 @@ the channel left is one position per instrument, a reversal on an index
 blocking that index's momentum (not separated in this run). The admitted reversals lose, so the choice of which
 signals the limit keeps is not neutral. Rejected; research only, the bot
 is unchanged.
+
+## 432. The daily reversal on the indices momentum does not list: closest since section 401, rejected
+
+With at most two open reversals the book still lost 34 of its own trades
+(section 431). `scripts/reversal_unlisted_indices.py` restricts section
+430's daily reversal to US500, FR40 and J225, the cached indices on which
+today's two-year list carries no combination (section 423), and offers it
+beside the 4h pins of section 401's book, every cap unchanged. The set is
+fixed from today's list for all seven years, so it uses knowledge from the
+end of the span. Preregistered: all four samples better and pooled paired
+daily t > +2. OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+189 reversal signals on the three indices average +0.1066 R (t +2.33,
++48.15 USD).
+
+| arm | closes | own closes (USD) | reversal closes (USD) | USD | USD/calendar day | daily SD | worst day |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| reference (section 401) | 587 | 587 (+38.2131) | 0 | +38.2131 | +0.017465 | 1.1174 | -6.1142 |
+| reversal on US500, FR40, J225 | 747 | 569 (+39.8749) | 178 (+37.6894) | +77.5643 | +0.035450 | 1.2336 | -6.9957 |
+
+Delta +0.017985 USD/day (+103 %), pooled t +1.55, 3/4 samples better
+(+0.0464 at t +1.43, +0.0232 at t +1.30, +0.0093, -0.0036 from the
+newest). The book admits 178 of the 189 reversals for +37.69 USD and
+keeps its own result (+39.87 against +38.21 USD, 18 fewer own trades).
+The oldest sample and the pooled t fail the fixed rule; rejected. The
+fixed instrument set reads today's list into the past; a rule that only
+reads the list in force each week is the clean form. Research only; the
+bot is unchanged.
