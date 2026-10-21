@@ -14,13 +14,13 @@ the section numbers below point there.
 ## Plan
 
 Next levers, in order. Each run takes a category other than the previous
-run's (last run: 2, new strategy families). Closed: the momentum
+run's (last run: 4, portfolio and position sizes). Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
 book-level risk cuts (section 345), momentum's risk by its trailing year
 (section 373), the bot's momentum list against the replay's (section
-374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the turn of the month on the US indices as a book (section 390), momentum's sizing classes (section 391), the idle live book since the veto (section 392), the breakouts readmitted by their replay year (section 393), the 4h pins priced by the live rule (section 394), momentum's regime gate at ADX 25 (section 395), momentum ranked on its crosses from ADX 25 (section 396), the oldest sample's replay inputs (section 397), the bank-holiday guard on the book (section 398), momentum entered by a stop order beyond its signal bar (section 399), momentum ranked on two years (section 401, BUILT IN), the bot's two-year list against the replay's (section 402), momentum on the reserved instruments on the two-year ranking (section 403), FR40's divergence traced to the selector's indicator warm-up (section 404), momentum flat before the weekend on the two-year book (section 405), the selector's indicator warm-up on the book (section 406), momentum's ADX gate at 25 on the two-year book (section 407), the list's floors at pf 1.0 and E[R] 0 on the two-year book (section 408), momentum half out at +1 R on the two-year book (section 409), the 4h pins retired with their reservation on the two-year book (section 410), the 4h pins priced by the live rule on the two-year book (section 411), the 4h pins re-qualified weekly on their trailing two years (section 412), the 4h pins' survivorship in the newest sample (section 413, none), the 4h strategies ranked across the universe on two years (section 414), the replay over the journal's filter period rule by rule (section 415, in line), the book's risk scaled down in volatile weeks (section 416), intraday momentum on the index cash session (section 417), no momentum entry whose leash would cross the weekend (section 418), only losing momentum positions flat before the weekend (section 419), the cluster direction cap at 2 on the two-year book (section 420), the 4h pins flat before the weekend (section 421), a 20-session breakout on the indices' session closes (section 422), the bot's list after the refresh of 2026-10-18 against the replay's (section 423, match), the stale exit in bars instead of wall-clock hours (section 424, the wall clock stays), a suspended stale exit at the close of the reopen hour (section 425; the reopen spread is not measurable from the bot's hourly quotes), the selector's instruments missing from the replay (section 426, blocked live), the weekend gap faded in the indices' reopen hour (section 427), no momentum entry on the reopen bar (section 428, two signals in seven years), the ETHUSD momentum pin ranked like the other combinations (section 429, one trade in six years), a short-term reversal on the indices' session closes (section 430), NZDJPY and AUDCAD in the universe (section 400; the other FX crosses were blocked in section 344, so the plan's six-pair item was a retest), momentum gated by market breadth (section 178 on the breakout book; dropped from the plan as a retest), the FX class removed or capped
+374), momentum on the instruments the 4h pins reserve (section 375), the profit lock on breakouts (section 322) and on momentum alone (section 376), the replay ranking on unfinanced R as the selector does (section 377), one night's financing in momentum's cost ceiling (section 378), momentum flat before the weekend on the current reference (section 379), momentum's trade floor at five (section 380), momentum entered only 07:00-21:00 UTC (section 381), the spread by hour of the signal (section 382), momentum everywhere while its pooled trailing year earns (section 383), momentum's leash at 12 bars (section 384), the journal from May to July against the replay (section 385), momentum's night signals deferred to the session (section 386), momentum on 2-hour bars (section 387; 4-hour momentum ranked across the universe dropped with it), the pre-holiday session of the US indices (section 388) and of the European indices (section 389), the turn of the month on the US indices as a book (section 390), momentum's sizing classes (section 391), the idle live book since the veto (section 392), the breakouts readmitted by their replay year (section 393), the 4h pins priced by the live rule (section 394), momentum's regime gate at ADX 25 (section 395), momentum ranked on its crosses from ADX 25 (section 396), the oldest sample's replay inputs (section 397), the bank-holiday guard on the book (section 398), momentum entered by a stop order beyond its signal bar (section 399), momentum ranked on two years (section 401, BUILT IN), the bot's two-year list against the replay's (section 402), momentum on the reserved instruments on the two-year ranking (section 403), FR40's divergence traced to the selector's indicator warm-up (section 404), momentum flat before the weekend on the two-year book (section 405), the selector's indicator warm-up on the book (section 406), momentum's ADX gate at 25 on the two-year book (section 407), the list's floors at pf 1.0 and E[R] 0 on the two-year book (section 408), momentum half out at +1 R on the two-year book (section 409), the 4h pins retired with their reservation on the two-year book (section 410), the 4h pins priced by the live rule on the two-year book (section 411), the 4h pins re-qualified weekly on their trailing two years (section 412), the 4h pins' survivorship in the newest sample (section 413, none), the 4h strategies ranked across the universe on two years (section 414), the replay over the journal's filter period rule by rule (section 415, in line), the book's risk scaled down in volatile weeks (section 416), intraday momentum on the index cash session (section 417), no momentum entry whose leash would cross the weekend (section 418), only losing momentum positions flat before the weekend (section 419), the cluster direction cap at 2 on the two-year book (section 420), the 4h pins flat before the weekend (section 421), a 20-session breakout on the indices' session closes (section 422), the bot's list after the refresh of 2026-10-18 against the replay's (section 423, match), the stale exit in bars instead of wall-clock hours (section 424, the wall clock stays), a suspended stale exit at the close of the reopen hour (section 425; the reopen spread is not measurable from the bot's hourly quotes), the selector's instruments missing from the replay (section 426, blocked live), the weekend gap faded in the indices' reopen hour (section 427), no momentum entry on the reopen bar (section 428, two signals in seven years), the ETHUSD momentum pin ranked like the other combinations (section 429, one trade in six years), a short-term reversal on the indices' session closes (section 430), the daily reversal with at most two open positions (section 431), NZDJPY and AUDCAD in the universe (section 400; the other FX crosses were blocked in section 344, so the plan's six-pair item was a retest), momentum gated by market breadth (section 178 on the breakout book; dropped from the plan as a retest), the FX class removed or capped
 (sections 346, 348), sampled spread costs (section 347), entry timing
 around the rollover, refused or deferred (sections 350, 354), momentum's
 entry one bar after its cross (section 371), carry on
@@ -43,14 +43,15 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Portfolio (4) — the daily reversal with at most two open positions.**
-   Observation: the daily reversal on the indices earns +0.0692 R per
-   signal (t +2.55, section 430), but the book admits it into the shared
-   cap of 8 and its 3.3-day positions displace 61 momentum and pin trades
-   worth about 44 USD; the gap fade's one-hour trades displaced nothing
-   (section 427). Hypothesis: limiting the reversal to two open positions
-   inside the unchanged cap of 8 keeps most of its edge and stops the
-   displacement; adopted only under the fixed rule.
+1. **New strategy family (2) — the daily reversal on the indices momentum
+   does not list.** Observation: with at most two open reversals the book
+   still loses 34 of its own trades (section 431): a reversal on an index
+   blocks that index's momentum through one position per instrument. The
+   two-year list trades momentum on US30, DE40, US100, EU50 and UK100 and
+   reserves HK50 for a 4h pin, while US500, FR40 and J225 carry no listed
+   combination (section 423). Hypothesis: the reversal on US500, FR40 and
+   J225 only cannot block a listed trade and adds its edge to the book;
+   adopted only under the fixed rule.
 2. **Live against backtest (1) — the momentum-only live period.**
    Observation: since 2026-10-01 the bot has opened 3 momentum trades
    (US30 +0.76 and -0.35, UK100 +0.97 USD, all closed by the stale exit);
@@ -10842,3 +10843,31 @@ USD/day) no longer describe the traded book.
 - **Decision:** rejected (VERDICT=DISCARD); bot unchanged, no restart.
   Risk named: the candidate would have raised the daily SD to 1.41 and
   deepened the worst day to -10.21 USD. Three new tests. Section 430.
+
+## 2026-10-21 — the daily reversal with at most two open positions
+
+- **Category:** 4, portfolio and position sizes (previous run: 2).
+- **Operation:** one bot/watchdog (6799/6794 since 2026-10-16 15:55 UTC),
+  runtime checkout clean on `origin/main` (eb79ea3), evaluations failing
+  0, no HTTP 429, no open position. No intervention.
+- **Observation:** the daily reversal earns +0.0692 R per signal (t +2.55)
+  but displaced 61 of the book's own trades through the shared cap
+  (section 430).
+- **Lever:** the reversal refused while two reversal positions are open,
+  inside the unchanged cap of 8 and every other limit.
+- **Measurement:** `scripts/reversal_slot_limit.py`, cached seven-year
+  weekly walk-forward on section 401's book, OOS [2020-09-23,
+  2026-09-20), 2,188 calendar days. The reference arm reproduces section
+  401 exactly.
+
+  | arm | closes | own closes (USD) | reversal closes (USD) | USD | USD/calendar day | daily SD | worst day |
+  |---|---:|---:|---:|---:|---:|---:|---:|
+  | reference (section 401) | 587 | 587 (+38.2131) | 0 | +38.2131 | +0.017465 | 1.1174 | -6.1142 |
+  | reversal, at most two open | 872 | 553 (+16.4990) | 319 (-7.3544) | +9.1446 | +0.004179 | 1.3566 | -8.6514 |
+
+- **Result:** delta -0.013285 USD/day (-76 %), pooled t -0.78, 1/4
+  samples better (+0.0306, -0.0030, -0.0339, -0.0366 from the newest);
+  34 own trades still displaced, through one position per instrument.
+- **Decision:** rejected (VERDICT=DISCARD); bot unchanged, no restart.
+  Risk named: the candidate would have raised the daily SD to 1.36 and
+  deepened the worst day to -8.65 USD. Two new tests. Section 431.
