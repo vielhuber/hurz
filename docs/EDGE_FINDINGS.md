@@ -15178,3 +15178,28 @@ The oldest sample and the pooled t fail the fixed rule; rejected. The
 fixed instrument set reads today's list into the past; a rule that only
 reads the list in force each week is the clean form. Research only; the
 bot is unchanged.
+
+## 433. The daily reversal on the indices the week's list leaves free: the edge was the hindsight
+
+Section 432's three indices were fixed from today's list. 
+`scripts/reversal_free_indices.py` activates section 430's daily
+reversal at each weekly re-rank only on indices that week's two-year list
+neither trades nor reserves, so it reads only the list in force; every
+cap, stop and size unchanged, nine cached indices. Preregistered: all
+four samples better and pooled paired daily t > +2. OOS [2020-09-23,
+2026-09-20), 2,188 calendar days.
+
+| arm | closes | own closes (USD) | reversal closes (USD) | USD | USD/calendar day | daily SD | worst day |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| reference (section 401) | 587 | 587 (+38.2131) | 0 | +38.2131 | +0.017465 | 1.1174 | -6.1142 |
+| reversal where the week's list is free | 782 | 568 (+12.5451) | 214 (+2.9700) | +15.5152 | +0.007091 | 1.3100 | -10.2115 |
+
+Delta -0.010374 USD/day, pooled t -0.71, 1/4 samples better (+0.0438 at
+t +1.67, -0.0014, -0.0156, -0.0724 from the newest). Read week by week,
+the reversal trades on eight of the nine indices and earns only +2.97 USD
+over 214 closes, and the book's own result falls from +38.21 to +12.55
+USD: a reversal opened while an index was free holds up to ten sessions
+and blocks that index's momentum once a later list takes it up again.
+Section 432's +37.69 USD came from choosing US500, FR40 and J225 with
+today's list. Rejected; the daily reversal direction (sections 430-433)
+is closed. Research only; the bot is unchanged.
