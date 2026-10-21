@@ -45,8 +45,9 @@ USD/day) no longer describe the traded book.
 
 1. **New strategy family (2) — the daily reversal on the indices momentum
    does not list.** Observation: with at most two open reversals the book
-   still loses 34 of its own trades (section 431): a reversal on an index
-   blocks that index's momentum through one position per instrument. The
+   still loses 34 of its own trades (section 431); with the cap leaving
+   room, the channel left is one position per instrument, a reversal on
+   an index blocking that index's momentum. The
    two-year list trades momentum on US30, DE40, US100, EU50 and UK100 and
    reserves HK50 for a 4h pin, while US500, FR40 and J225 carry no listed
    combination (section 423). Hypothesis: the reversal on US500, FR40 and
@@ -10867,7 +10868,8 @@ USD/day) no longer describe the traded book.
 
 - **Result:** delta -0.013285 USD/day (-76 %), pooled t -0.78, 1/4
   samples better (+0.0306, -0.0030, -0.0339, -0.0366 from the newest);
-  34 own trades still displaced, through one position per instrument.
+  34 own trades still displaced; the channel left is one position per
+  instrument (not separated in this run).
 - **Decision:** rejected (VERDICT=DISCARD); bot unchanged, no restart.
   Risk named: the candidate would have raised the daily SD to 1.36 and
   deepened the worst day to -8.65 USD. Two new tests. Section 431.

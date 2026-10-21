@@ -15145,8 +15145,8 @@ all four samples better and pooled paired daily t > +2. OOS
 Delta -0.013285 USD/day, pooled t -0.78, 1/4 samples better (+0.0306,
 -0.0030, -0.0339, -0.0366 from the newest). The limit cuts the admitted
 reversals from 401 to 319 but still displaces 34 of the book's own trades
-(-21.71 USD): the displacement runs mainly through one position per
-instrument, a reversal on an index blocking that index's momentum, not
-through the cap of 8. The admitted reversals lose, so the choice of which
+(-21.71 USD). With at most two reversals open the cap of 8 leaves room;
+the channel left is one position per instrument, a reversal on an index
+blocking that index's momentum (not separated in this run). The admitted reversals lose, so the choice of which
 signals the limit keeps is not neutral. Rejected; research only, the bot
 is unchanged.
