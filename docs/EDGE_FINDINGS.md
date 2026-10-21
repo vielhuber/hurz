@@ -15203,3 +15203,26 @@ and blocks that index's momentum once a later list takes it up again.
 Section 432's +37.69 USD came from choosing US500, FR40 and J225 with
 today's list. Rejected; the daily reversal direction (sections 430-433)
 is closed. Research only; the bot is unchanged.
+
+## 434. The 4h pins' leash at 12 four-hour bars: rejected
+
+The five 4h pins hold up to 24 four-hour bars and lose -48.93 USD over
+seven years (section 401); pin trades still open at a weekend stood at
++0.0883 R (section 421). `scripts/four_hour_pins_short_leash.py` books
+each pin trade with `four_hour_stream.book` at a leash of 12 bars, closed
+at the 12th bar's close and counted in bars like the reference; stop,
+target, financing, hourly signals, ranking, caps and sizes unchanged.
+Preregistered: all four samples better and pooled paired daily t > +2.
+OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+| arm | closes | 4h pin closes (USD, mean R) | USD | USD/calendar day | daily SD | worst day |
+|---|---:|---:|---:|---:|---:|---:|
+| reference (section 401) | 587 | 268 (-48.9343, -0.0666) | +38.2131 | +0.017465 | 1.1174 | -6.1142 |
+| 4h leash at 12 bars | 632 | 311 (-49.8200, -0.0543) | +35.4102 | +0.016184 | 1.0305 | -6.8652 |
+
+Delta -0.001281 USD/day, pooled t -0.08, 2/4 samples better (-0.0153,
++0.0152, -0.0195, +0.0162 from the newest). The pins' mean R rises from
+-0.0666 to -0.0543, but the shorter hold frees their instruments for 43
+more pin trades, so the pins still lose -49.82 USD, and the hourly
+closes fall from +87.15 to +85.23 USD. Rejected. Research only; the bot
+is unchanged.
