@@ -15311,3 +15311,31 @@ seven strategies), so the active list, the bot's entries and the replay
 are unchanged; section 401's reference reproduces exactly (587 closes,
 +38.213092 USD, +0.017465 USD/day, daily SD 1.1174, worst day -6.1142).
 Four new tests on an in-memory journal; the existing veto suites pass.
+
+## 438. One USD ledger for the journal; the dashboard by evidence phase
+
+Repair, not a lever. `app/spot_trading/journal_ledger.py` gives every
+accepted live close one USD result: `realized_pnl` from 2026-09-07 23:05
+UTC (booked in USD); older rows recomputed from fill and exit (they were
+booked against the signal price), USD-quoted instruments as is, rows with
+a journaled USD risk at its rate, the rest at fixed rates of 2026-10-12
+(EUR 1.14866, GBP 1.33946, JPY 0.0063743, CHF 1.21643, HKD 0.127455, AUD
+0.7125, CAD 0.70709). Paper rows are excluded (none on Capital.com).
+
+Opening balance (2026-10-22): whole history 582 closes, -458.96 USD
+(461 USD-quoted, 56 fixed rate, 6 journaled rate, 59 booked in USD, 0
+unconverted); retired strategies 548 closes, -487.87; current strategies
+before the veto regime 31 closes, +27.53; current bot since 2026-10-01
+02:02 UTC 3 closes, +1.37 (all since the two-year ranking); since the
+probation start none; Kraken research 19 closes, -10.62.
+
+Against the old dashboard formula (-464.36 USD with Kraken) the ledger
+differs by -5.22 USD, entirely from the 56 fixed-rate rows that the old
+formula summed in their quote currency. The old "All-time (aktives
+Buch)" of -91.76 USD held -122.66 USD of strategies retired since. The
+dashboard now leads with the current bot, lists the probation phase and
+the two-year ranking, shows the backtest reference as research data,
+marks financing as open and lists history separately; the "Projected
+Gains" tile, which presented the three best live combinations as an
+expected daily gain, is removed. Financing and broker account movements
+remain open.

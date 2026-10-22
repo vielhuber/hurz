@@ -43,25 +43,14 @@ settings.load_env()
 # +193.59 USD for +1.20. Rows closed after the switch read the column.
 # Kept on one line so it can be substituted into any expression position.
 _USD_BOOKING_FROM = "2026-09-07 23:05:00"
-# The filter set that now trades was completed on 2026-09-10: the ADX
-# ceiling (EDGE_FINDINGS 188), the 3 x ATR volatility floor (190) and the
-# instrument block (192). Rolling windows average trading days from before
-# those builds, so the 30-day rate cannot show their effect for weeks. This
-# card row is the figure that can: realised PnL and per-day rate over
-# entries accepted since the builds only.
-_FILTER_EPOCH = "2026-09-10 17:00:00"
 _PNL = ("(CASE WHEN exit_time >= '" + _USD_BOOKING_FROM + "' "
         "AND realized_pnl IS NOT NULL THEN realized_pnl "
         "WHEN exit_price IS NOT NULL AND fill_price IS NOT NULL "
         "THEN (exit_price - fill_price) * direction * size "
         "ELSE realized_pnl END)")
-# Return on notional for the projection, free of currency: prices cancel
-# it, whereas the USD-booked result over a quote-currency notional would
-# understate a yen trade 150-fold.
-_RETURN = ("(CASE WHEN exit_price IS NOT NULL AND fill_price IS NOT NULL "
-           "THEN (exit_price - fill_price) * direction / fill_price "
-           "ELSE realized_pnl / NULLIF(ABS(COALESCE(fill_price, entry_price) * size), 0) END)")
-
+from app.spot_trading.journal_ledger import (
+    PROBATION_FROM, TWO_YEAR_RANKING_FROM, VETO_REGIME_FROM, balance, ledger,
+)
 from app.spot_trading.holding_period import stale_exit_after_seconds
 
 # Same calendars as app/utils/holiday_window.py — the dashboard must agree
@@ -138,65 +127,11 @@ def _rows(cur, query, params=None):
     return [dict(row) for row in cur.fetchall()]
 
 
-# Retired strategies (mean-reversion, removed from the live rotation
-# 2026-07-10). Excluded from the STAT views — PnL curve, per-platform
-# summary/all-time, per-strategy & per-combo performance, projection — so
-# the dashboard reflects the active (trend-only) book. The live "Offene
-# Positionen" / "Letzte abgeschlossene Trades" tables stay unfiltered so
-# the winding-down MR positions remain visible until they close.
-_MR_EXCL = ("AND strategy NOT IN "
-            "('bollinger_rev','stochastic_mr','rsi_mr')")
-
-
 def _fetch(days) -> dict:
     conn = _connect()
     cur = conn.cursor()
-    # All-time when days is None: drop the rolling-window clause entirely.
-    win = "" if days is None else "AND exit_time >= datetime('now', %s)"
-    win_params = () if days is None else (f"-{days} days",)
     try:
-        closed = _rows(cur, f"""
-            SELECT platform, exit_time, {_PNL} AS realized_pnl
-            FROM spot_trades
-            WHERE accepted=1 AND realized_pnl IS NOT NULL AND exit_time IS NOT NULL
-              AND platform <> 'kraken_futures'
-              {_MR_EXCL}
-              {win}
-            ORDER BY exit_time ASC
-        """, win_params)
-        summary = _rows(cur, f"""
-            SELECT platform,
-                   COUNT(*) AS trades,
-                   SUM({_PNL} > 0) AS wins,
-                   SUM({_PNL} <= 0) AS losses,
-                   ROUND(SUM({_PNL}), 2) AS pnl
-            FROM spot_trades
-            WHERE accepted=1 AND realized_pnl IS NOT NULL
-              AND platform <> 'kraken_futures'
-              {_MR_EXCL}
-              {win}
-            GROUP BY platform
-        """, win_params)
-        # The retired book, so the excluded loss stays visible. Without
-        # this the dashboard showed -92.95 USD over 292 trades and called
-        # it all-time, while the journal held -465.56 over 519 — the
-        # retired mean-reversion strategies alone account for -372.60.
-        retired = _rows(cur, f"""
-            SELECT COUNT(*) AS trades, ROUND(SUM({_PNL}), 2) AS pnl
-            FROM spot_trades
-            WHERE accepted=1 AND realized_pnl IS NOT NULL
-              AND exit_time IS NOT NULL
-              AND (strategy IN ('bollinger_rev','stochastic_mr','rsi_mr')
-                   OR platform = 'kraken_futures')
-        """, ())
-        alltime = _rows(cur, f"""
-            SELECT platform, ROUND(SUM({_PNL}), 2) AS pnl
-            FROM spot_trades
-            WHERE accepted=1 AND realized_pnl IS NOT NULL
-              AND platform <> 'kraken_futures'
-              {_MR_EXCL}
-            GROUP BY platform
-        """)
+        rows = ledger(conn)
         open_pos = _rows(cur, """
             SELECT platform, pair, strategy, direction, entry_price, created_at
             FROM spot_trades
@@ -213,75 +148,51 @@ def _fetch(days) -> dict:
             ORDER BY exit_time DESC
             LIMIT 15
         """)
-        # Forward (realized) performance per STRATEGY — which style class
-        # actually earns live. This is the signal that counts (backtests
-        # proved non-predictive).
-        by_strategy = _rows(cur, f"""
-            SELECT strategy,
-                   COUNT(*) AS trades,
-                   SUM({_PNL} > 0) AS wins,
-                   ROUND(SUM({_PNL}), 2) AS pnl,
-                   ROUND(SUM(CASE WHEN {_PNL} > 0 THEN {_PNL} ELSE 0 END)
-                         / NULLIF(-SUM(CASE WHEN {_PNL} <= 0 THEN {_PNL} ELSE 0 END), 0), 2) AS pf,
-                   ROUND(SUM(CASE WHEN exit_time >= datetime('now', '-30 days') THEN {_PNL} ELSE 0 END), 2) AS pnl30,
-                   ROUND(SUM(CASE WHEN exit_time >= datetime('now', '-14 days') THEN {_PNL} ELSE 0 END), 2) AS pnl14,
-                   ROUND(SUM(CASE WHEN exit_time >= datetime('now', '-7 days') THEN {_PNL} ELSE 0 END), 2) AS pnl7
-            FROM spot_trades
-            WHERE accepted=1 AND realized_pnl IS NOT NULL
-              AND platform <> 'kraken_futures'
-              {_MR_EXCL}
-            GROUP BY strategy
-            ORDER BY pnl DESC
-        """)
-        # Forward performance per (pair, strategy) COMBO — the granular
-        # view for filtering down to the profitable combos over time.
-        by_combo = _rows(cur, f"""
-            SELECT platform, pair, strategy,
-                   COUNT(*) AS trades,
-                   SUM({_PNL} > 0) AS wins,
-                   ROUND(SUM({_PNL}), 2) AS pnl,
-                   SUM({_RETURN}) AS return_sum
-            FROM spot_trades
-            WHERE accepted=1 AND realized_pnl IS NOT NULL
-              AND platform <> 'kraken_futures'
-              {_MR_EXCL}
-            GROUP BY platform, pair, strategy
-            HAVING trades >= 2
-            ORDER BY pnl DESC
-        """)
-        # Since the current filter set shipped — see _FILTER_EPOCH.
-        since_filters = _rows(cur, f"""
-            SELECT COUNT(*) AS trades,
-                   ROUND(SUM({_PNL}), 2) AS pnl,
-                   MIN(exit_time) AS "mn [TIMESTAMP]"
-            FROM spot_trades
-            WHERE accepted=1 AND realized_pnl IS NOT NULL AND exit_time IS NOT NULL
-              AND platform = 'capital_com'
-              {_MR_EXCL}
-              AND created_at >= '{_FILTER_EPOCH}'
-        """)
-        # Full-period span for the projection tile (how many days the
-        # realized PnL was earned over — the daily-rate denominator).
-        span = _rows(cur, f"""
-            SELECT MIN(exit_time) AS "mn [TIMESTAMP]",
-                   MAX(exit_time) AS "mx [TIMESTAMP]",
-                   COUNT(*) AS n
-            FROM spot_trades
-            WHERE accepted=1 AND realized_pnl IS NOT NULL AND exit_time IS NOT NULL
-              AND platform <> 'kraken_futures'
-              {_MR_EXCL}
-        """)
-        return {
-            "closed": closed, "summary": summary, "alltime": alltime,
-            "retired": retired,
-            "open": open_pos, "recent": recent,
-            "by_strategy": by_strategy, "by_combo": by_combo,
-            "span": span[0] if span else None,
-            "since_filters": since_filters[0] if since_filters else None,
-        }
     finally:
         cur.close()
         conn.close()
+    capital = [row for row in rows if row["platform"] == "capital_com" and row["usd"] is not None]
+    cutoff = None if days is None else datetime.now(timezone.utc).replace(tzinfo=None).timestamp() - days * 86400
+    closed = []
+    for row in capital:
+        exit_time = datetime.fromisoformat(row["exit_time"][:19])
+        if cutoff is not None and exit_time.replace(tzinfo=timezone.utc).timestamp() < cutoff:
+            continue
+        closed.append({"platform": row["platform"], "exit_time": exit_time, "realized_pnl": row["usd"]})
+    return {"closed": closed, "ledger": rows, "open": open_pos, "recent": recent,
+            "by_strategy": _by_strategy(capital), "by_combo": _by_combo(capital)}
+
+
+def _by_strategy(rows: list) -> list:
+    """Realised USD per strategy over the whole history, newest windows beside it."""
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    groups: dict = {}
+    for row in rows:
+        groups.setdefault(row["strategy"], []).append(row)
+    out = []
+    for strategy, trades in groups.items():
+        results = [t["usd"] for t in trades]
+        gains = sum(r for r in results if r > 0)
+        losses = -sum(r for r in results if r <= 0)
+
+        def recent(days):
+            return round(sum(t["usd"] for t in trades
+                             if (now - datetime.fromisoformat(t["exit_time"][:19])).days < days), 2)
+        out.append({"strategy": strategy, "retired": trades[0]["cohort"] == "retired strategies",
+                    "trades": len(trades), "wins": sum(1 for r in results if r > 0),
+                    "pnl": round(sum(results), 2), "pf": round(gains / losses, 2) if losses else None,
+                    "pnl30": recent(30), "pnl14": recent(14), "pnl7": recent(7)})
+    return sorted(out, key=lambda row: row["pnl"], reverse=True)
+
+
+def _by_combo(rows: list) -> list:
+    groups: dict = {}
+    for row in rows:
+        groups.setdefault((row["platform"], row["pair"], row["strategy"]), []).append(row["usd"])
+    out = [{"platform": platform, "pair": pair, "strategy": strategy, "trades": len(results),
+            "wins": sum(1 for r in results if r > 0), "pnl": round(sum(results), 2)}
+           for (platform, pair, strategy), results in groups.items() if len(results) >= 2]
+    return sorted(out, key=lambda row: row["pnl"], reverse=True)
 
 
 def _cumulative_series(closed: list) -> list:
@@ -401,69 +312,52 @@ def _render_chart(series: list, width: int = 920, height: int = 340) -> str:
     return "".join(parts) + "".join(leg)
 
 
-def _since_filters_row(since: Optional[dict]) -> str:
-    """PnL since the current filter set shipped — see _FILTER_EPOCH. Rolling
-    windows cannot show it yet, so it is stated separately or not at all."""
-    if not since:
-        return ""
-    trades = int(since.get("trades") or 0)
-    epoch = datetime.strptime(_FILTER_EPOCH, "%Y-%m-%d %H:%M:%S")
-    days = max(1.0, (datetime.now() - epoch).total_seconds() / 86400.0)
-    if not trades:
-        return (f'<div class="row"><span>seit Filterstand '
-                f'{epoch:%d.%m.%Y} ({days:.1f} T.)</span>'
-                f'<b class="dim">noch kein Trade</b></div>')
-    pnl = float(since.get("pnl") or 0.0)
-    return (f'<div class="row"><span>seit Filterstand {epoch:%d.%m.%Y} '
-            f'({trades} Trades, {days:.1f} T.)</span>'
-            f'<b class="{_money_class(pnl)}">{_fmt_money(pnl)} '
-            f'({_fmt_money(pnl / days)}/T.)</b></div>')
+# Section 401's walk-forward reference on the bar cache of 2026-10-12:
+# research data searched many times, not an untouched test (docs/STATUS.md).
+_REFERENCE_USD_PER_DAY = 0.017465
 
 
-def _render_cards(summary: list, alltime: list, open_pos: list,
-                  period: str, retired: Optional[list] = None,
-                  since_filters: Optional[dict] = None) -> str:
-    by_plat = {r["platform"]: r for r in summary}
-    alltime_by = {r["platform"]: float(r["pnl"] or 0.0) for r in alltime}
-    open_count: dict = {}
-    for p in open_pos:
-        open_count[p["platform"]] = open_count.get(p["platform"], 0) + 1
-    cards = []
-    for plat in ("capital_com",):  # Kraken retired 2026-07-02
-        s = by_plat.get(plat, {})
-        trades = int(s.get("trades") or 0)
-        wins = int(s.get("wins") or 0)
-        pnl = float(s.get("pnl") or 0.0)
-        wr = (wins / trades * 100) if trades else 0.0
-        at = alltime_by.get(plat, 0.0)
-        # The stat views exclude retired strategies by design. Showing the
-        # excluded total keeps "all-time" from reading as the whole book.
-        retired_row = ""
-        r = (retired or [{}])[0]
-        r_trades = int(r.get("trades") or 0)
-        if r_trades:
-            r_pnl = float(r.get("pnl") or 0.0)
-            retired_row = (
-                f'<div class="row"><span>stillgelegt ({r_trades} Trades)</span>'
-                f'<b class="{_money_class(r_pnl)}">{_fmt_money(r_pnl)}</b></div>'
-                f'<div class="row"><span>Gesamt inkl. stillgelegt</span>'
-                f'<b class="{_money_class(at + r_pnl)}">'
-                f'{_fmt_money(at + r_pnl)}</b></div>'
-            )
-        cards.append(f"""
+def _cohort_row(label: str, result: dict, start: Optional[str] = None) -> str:
+    """One cohort: closes, realised USD and, from a start date, USD per calendar day."""
+    closes = result["closes"]
+    pnl = result["usd"]
+    rate = ""
+    if start is not None:
+        begun = datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
+        days = max(1.0, (datetime.now(timezone.utc).replace(tzinfo=None) - begun).total_seconds() / 86400.0)
+        rate = f" · {days:.1f} T. · {_fmt_money(pnl / days)}/T."
+    value = (f'<b class="dim">noch kein Trade</b>' if not closes
+             else f'<b class="{_money_class(pnl)}">{_fmt_money(pnl)}</b>')
+    return (f'<div class="row"><span>{label} ({closes} Trades{rate})</span>{value}</div>')
+
+
+def _render_cards(rows: list, open_pos: list) -> str:
+    """Realised USD by evidence phase; old cohorts are history, not the current bot's record."""
+    capital = [row for row in rows if row["platform"] == "capital_com"]
+    current = [row for row in capital if row["cohort"] == "current bot"]
+    regime = balance(current)
+    fixed = sum(1 for row in capital if row["conversion"] == "fixed rate")
+    open_count = sum(1 for p in open_pos if p["platform"] == "capital_com")
+    begun = datetime.strptime(VETO_REGIME_FROM, "%Y-%m-%d %H:%M:%S")
+    regime_days = max(1.0, (datetime.now(timezone.utc).replace(tzinfo=None) - begun).total_seconds() / 86400.0)
+    return f"""
         <div class="card">
-          <h2>{_LABELS[plat]}</h2>
-          <div class="big {_money_class(pnl)}">{_fmt_money(pnl)}</div>
-          <div class="sub">realisiert · {period}</div>
-          <div class="row"><span>Trades</span><b>{trades}</b></div>
-          <div class="row"><span>Win-Rate</span><b>{wr:.0f}%</b></div>
-          <div class="row"><span>Offen</span><b>{open_count.get(plat, 0)}</b></div>
-          <div class="row"><span>All-time (aktives Buch)</span>
-            <b class="{_money_class(at)}">{_fmt_money(at)}</b></div>
-          {retired_row}
-          {_since_filters_row(since_filters)}
-        </div>""")
-    return "".join(cards)
+          <h2>{_LABELS["capital_com"]}</h2>
+          <div class="big {_money_class(regime["usd"])}">{_fmt_money(regime["usd"])}</div>
+          <div class="sub">aktueller Bot seit {begun:%d.%m.%Y} (Momentum + 4h-Pins) ·
+            {regime["closes"]} Trades · {_fmt_money(regime["usd"] / regime_days)}/Tag</div>
+          {_cohort_row("Bewährungsfrist seit 22.10.2026", balance(current, PROBATION_FROM), PROBATION_FROM)}
+          {_cohort_row("seit Zwei-Jahres-Auswahl 13.10.2026", balance(current, TWO_YEAR_RANKING_FROM), TWO_YEAR_RANKING_FROM)}
+          <div class="row"><span>Offen</span><b>{open_count}</b></div>
+          <div class="row"><span>Backtest-Referenz (Forschungsdaten)</span>
+            <b class="{_money_class(_REFERENCE_USD_PER_DAY)}">{_REFERENCE_USD_PER_DAY:+.4f} USD/T.</b></div>
+          <div class="row"><span>Finanzierung (Swap)</span><b class="dim">nicht im Journal – offen</b></div>
+          <div class="sub" style="margin-top:10px">Historie (kein Nachweis für den aktuellen Bot)</div>
+          {_cohort_row("aktuelle Strategien vor 01.10.", balance(c for c in capital if c["cohort"] == "current strategies before the veto regime"))}
+          {_cohort_row("stillgelegte Strategien", balance(c for c in capital if c["cohort"] == "retired strategies"))}
+          {_cohort_row("Gesamtgeschichte seit 08.05.", balance(capital))}
+          <div class="sub">USD; {fixed} Alt-Trades in Nicht-USD-Instrumenten zum festen Kurs umgerechnet</div>
+        </div>"""
 
 
 def _fmt_duration(minutes: float) -> str:
@@ -741,7 +635,7 @@ def _render_status(stats: dict) -> str:
           <div class="row"><span>Trades heute</span><b>{t_n} ({t_wr:.0f}% Gewinn)</b></div>
           <div class="row"><span>PnL heute</span>
             <b class="{_money_class(t_pnl)}">{_fmt_money(t_pnl)}</b></div>
-          <div class="row"><span>All-time</span>
+          <div class="row"><span>Gesamtgeschichte</span>
             <b class="{_money_class(at)}">{_fmt_money(at)}</b></div>
           <div class="row"><span>Ziel {_TARGET_EUR_PER_DAY:.0f} EUR/Tag</span>
             <b class="{_money_class(t_pnl)}">{_target_share(t_pnl)}</b></div>
@@ -780,7 +674,7 @@ def _render_strategy_perf(by_strategy: list, by_combo: list) -> str:
         pf = r.get("pf")
         pf_s = "∞" if pf is None else f"{float(pf):.2f}"
         strat_rows.append(f"""<tr>
-          <td>{r['strategy']}</td>
+          <td>{r['strategy']}{' <span class="dim">stillgelegt</span>' if r.get('retired') else ''}</td>
           <td>{int(r['trades'] or 0)}</td>
           <td>{wr(r):.0f}%</td>
           <td>{pf_s}</td>
@@ -824,128 +718,6 @@ def _render_strategy_perf(by_strategy: list, by_combo: list) -> str:
   </div>"""
 
 
-# --- Projected-gains tile -------------------------------------------------
-# "If this were a live account, with a reasonable stake, running only the
-# top-3 performer combos — how many EUR/day net?" Computed live from the
-# realized (demo-fill) results, so it self-updates. Assumptions surfaced in
-# the tile's caption. Costs are already inside the realized fills (spread);
-# overnight CFD financing is NOT, hence the conservative haircut.
-_PROJ_STAKE_EUR = 1000      # "reasonable" stake per trade
-_PROJ_HAIRCUT = 0.5         # conservative discount: small samples + live costs
-
-
-def _render_projection(by_combo: list, span, by_strategy: list) -> str:
-    # Only project the WINNERS: combos from strategy classes that are net
-    # positive over their whole live history. This drops lucky pairs of
-    # net-losing strategies (e.g. a single good EURUSD run inside the
-    # −$108 stochastic_mr book) — analysis 2026-07-10 showed mean-reversion
-    # loses in every regime, so it is not projectable edge.
-    winner_strats = {r["strategy"] for r in (by_strategy or [])
-                     if float(r.get("pnl") or 0) > 0}
-    top3 = [r for r in (by_combo or [])
-            if r["strategy"] in winner_strats and float(r.get("pnl") or 0) > 0][:3]
-    if not top3 or not span or not span.get("mn") or not span.get("mx"):
-        return """
-  <div class="panel proj">
-    <h3>Projected Gains</h3>
-    <div class="muted">Noch nicht genug profitable Daten für eine Projektion.</div>
-  </div>"""
-    period_days = max(1, (span["mx"] - span["mn"]).days)
-    total_return = sum(float(r.get("return_sum") or 0) for r in top3)
-
-    def eur_day(return_sum: float) -> float:
-        return (return_sum / period_days) * _PROJ_STAKE_EUR
-
-    opt = eur_day(total_return)
-    cons = opt * _PROJ_HAIRCUT
-
-    rows = []
-    for r in top3:
-        t = int(r["trades"] or 0)
-        wr = (int(r["wins"] or 0) / t * 100) if t else 0.0
-        warn = ' <span class="pwarn">⚠</span>' if t < 5 else ""
-        rows.append(f"""<tr>
-          <td>{r['strategy']} <span class="dim">{r['pair']}</span>{warn}</td>
-          <td>{t} · {wr:.0f}%</td>
-          <td class="pos">{_fmt_money(r['pnl'])}</td>
-          <td class="pos">€{eur_day(float(r.get('return_sum') or 0)):.2f}</td></tr>""")
-
-    # Compact band chart: net EUR/day vs stake (linear through ~origin).
-    W, H, ml, mr, mt, mb = 470, 196, 42, 12, 14, 30
-    x0, x1, yb, yt = ml, W - mr, H - mb, mt
-    smin, smax = 250, 5000
-    ymax = max(10.0, opt * (smax / _PROJ_STAKE_EUR))
-    # round ymax up to a clean step
-    step = 10 if ymax <= 50 else 20
-    ymax = (int(ymax / step) + 1) * step
-
-    def sx(s):
-        return x0 + (s - smin) / (smax - smin) * (x1 - x0)
-
-    def sy(v):
-        return yb - v / ymax * (yb - yt)
-
-    def dv(s):
-        return opt * (s / _PROJ_STAKE_EUR)
-
-    svg = [f'<svg viewBox="0 0 {W} {H}" class="pchart" role="img" '
-           f'aria-label="Projiziertes Netto pro Tag nach Einsatz">']
-    for gv in range(0, int(ymax) + 1, step):
-        svg.append(f'<line class="pgrid" x1="{x0}" y1="{sy(gv):.1f}" '
-                   f'x2="{x1}" y2="{sy(gv):.1f}"/>')
-        svg.append(f'<text class="pax" x="{x0-8}" y="{sy(gv)+3:.1f}" '
-                   f'text-anchor="end">€{gv}</text>')
-    for sv in (250, 1000, 2500, 5000):
-        lab = f"€{sv//1000}k" if sv >= 1000 else f"€{sv}"
-        svg.append(f'<text class="pax" x="{sx(sv):.1f}" y="{yb+18}" '
-                   f'text-anchor="middle">{lab}</text>')
-    # band (cons .. opt)
-    band = (f'M{sx(smin):.1f},{sy(dv(smin)):.1f} L{sx(smax):.1f},{sy(dv(smax)):.1f} '
-            f'L{sx(smax):.1f},{sy(dv(smax)*_PROJ_HAIRCUT):.1f} '
-            f'L{sx(smin):.1f},{sy(dv(smin)*_PROJ_HAIRCUT):.1f} Z')
-    svg.append(f'<path d="{band}" class="pband"/>')
-    svg.append(f'<line class="pcons" x1="{sx(smin):.1f}" y1="{sy(dv(smin)*_PROJ_HAIRCUT):.1f}" '
-               f'x2="{sx(smax):.1f}" y2="{sy(dv(smax)*_PROJ_HAIRCUT):.1f}"/>')
-    svg.append(f'<line class="popt" x1="{sx(smin):.1f}" y1="{sy(dv(smin)):.1f}" '
-               f'x2="{sx(smax):.1f}" y2="{sy(dv(smax)):.1f}"/>')
-    # highlight the reasonable stake
-    hx = sx(_PROJ_STAKE_EUR)
-    svg.append(f'<line class="phair" x1="{hx:.1f}" y1="{sy(0):.1f}" x2="{hx:.1f}" y2="{sy(opt):.1f}"/>')
-    svg.append(f'<circle cx="{hx:.1f}" cy="{sy(opt):.1f}" r="4" class="pdot-o"/>')
-    svg.append(f'<circle cx="{hx:.1f}" cy="{sy(cons):.1f}" r="4" class="pdot-c"/>')
-    svg.append('</svg>')
-    chart = "".join(svg)
-
-    return f"""
-  <div class="panel proj">
-    <h3>Projected Gains <span class="dim">— hypothetisches Live-Konto</span></h3>
-    <div class="proj-grid">
-      <div class="proj-left">
-        <div class="proj-hero">
-          <div class="proj-num">€{cons:.0f}–{opt:.0f}<span class="proj-unit">/ Tag</span></div>
-          <div class="proj-sub">netto · Top-3 Trend-Kombos · €{_PROJ_STAKE_EUR:,}/Trade ·
-            ≈ €{cons*30:.0f}–{opt*30:.0f}/Monat</div>
-        </div>
-        <div style="overflow-x:auto;"><table class="proj-table">
-          <thead><tr><th>Strategie · Pair</th><th>Trades</th>
-            <th>Netto {period_days}T</th><th>€/Tag</th></tr></thead>
-          <tbody>{''.join(rows)}</tbody>
-        </table></div>
-        <div class="proj-note">Basis: nur profitable Strategie-Klassen (Mean-Reversion
-          verliert in jedem Regime → ausgeschlossen). Kleine Stichproben (⚠),
-          Hochrechnung über realisierte Rendite auf tatsächliches Fill-Notional;
-          Overnight-Kosten &amp; Slippage nicht enthalten, Vergangenheit ≠ Zukunft.
-          Keine Anlageberatung.</div>
-      </div>
-      <div class="proj-right">
-        <div class="proj-clabel"><span><i class="li-o"></i>optimistisch</span>
-          <span><i class="li-c"></i>konservativ</span></div>
-        {chart}
-      </div>
-    </div>
-  </div>"""
-
-
 def _render_html(data: dict, days) -> str:
     period = _period_label(days, data["closed"])
     series = _cumulative_series(data["closed"])
@@ -972,20 +744,16 @@ def _render_html(data: dict, days) -> str:
         "today_n": len(tc),
         "today_win": sum(1 for c in tc if float(c["realized_pnl"] or 0) > 0),
         "today_pnl": sum(float(c["realized_pnl"] or 0) for c in tc),
-        "alltime": sum(float(r["pnl"] or 0) for r in data["alltime"]),
+        "alltime": balance(r for r in data["ledger"] if r["platform"] == "capital_com")["usd"],
         "signals_24h": sig24,
         "vetoes_24h": veto24,
     }
     status = _render_status(stats)
-    cards = _render_cards(data["summary"], data["alltime"], data["open"],
-                          period, data.get("retired"),
-                          data.get("since_filters"))
+    cards = _render_cards(data["ledger"], data["open"])
     open_rows = _render_open(data["open"])
     recent_rows = _render_recent(data["recent"])
     strategy_perf = _render_strategy_perf(
         data.get("by_strategy", []), data.get("by_combo", []))
-    projection = _render_projection(
-        data.get("by_combo", []), data.get("span"), data.get("by_strategy", []))
     # Marker for the browser sound-on-close: latest closed trade's id + win.
     _recent = data.get("recent") or []
     latest_id = str(_recent[0]["id"]) if _recent else ""
@@ -1068,35 +836,6 @@ def _render_html(data: dict, days) -> str:
   .smeta {{ display: flex; flex-wrap: wrap; gap: 14px; margin-top: 4px;
             padding-left: 18px; color: #8b91a0; font-size: 12px; }}
   .dim {{ color: #6b7280; }}
-  /* Projected-gains tile */
-  .proj-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: center; }}
-  .proj-hero {{ margin-bottom: 12px; }}
-  .proj-num {{ font-size: 34px; font-weight: 700; color: #34d399; letter-spacing: -.02em;
-               font-variant-numeric: tabular-nums; line-height: 1; }}
-  .proj-num .proj-unit {{ font-size: 14px; color: #8b91a0; font-weight: 500; margin-left: 8px; }}
-  .proj-sub {{ color: #aab0bd; font-size: 12.5px; margin-top: 7px; }}
-  .proj-table {{ margin-top: 4px; }}
-  .proj-table th, .proj-table td {{ padding: 6px 8px; font-variant-numeric: tabular-nums; }}
-  .proj-table td:nth-child(n+2), .proj-table th:nth-child(n+2) {{ text-align: right; }}
-  .pwarn {{ color: #d9a441; }}
-  .proj-note {{ margin-top: 10px; color: #7e8794; font-size: 11.5px; line-height: 1.5; }}
-  .proj-right {{ min-width: 0; }}
-  .proj-clabel {{ display: flex; gap: 16px; justify-content: flex-end; font-size: 12px;
-                  color: #aab0bd; margin-bottom: 2px; }}
-  .proj-clabel span {{ display: inline-flex; align-items: center; gap: 6px; }}
-  .proj-clabel i {{ width: 12px; height: 3px; border-radius: 2px; display: inline-block; }}
-  .li-o {{ background: #34d399; }}
-  .li-c {{ background: #d9a441; }}
-  .pchart {{ width: 100%; height: auto; display: block; }}
-  .pgrid {{ stroke: #232833; stroke-width: 1; }}
-  .pax {{ fill: #8b91a0; font-size: 10px; }}
-  .pband {{ fill: rgba(52,211,153,.13); }}
-  .popt {{ stroke: #34d399; stroke-width: 2.5; }}
-  .pcons {{ stroke: #d9a441; stroke-width: 2; stroke-dasharray: 5 4; }}
-  .phair {{ stroke: #3a424e; stroke-width: 1; stroke-dasharray: 2 3; }}
-  .pdot-o {{ fill: #34d399; stroke: #171a21; stroke-width: 2; }}
-  .pdot-c {{ fill: #d9a441; stroke: #171a21; stroke-width: 2; }}
-  @media (max-width: 760px) {{ .proj-grid {{ grid-template-columns: 1fr; }} }}
   .dot {{ width: 10px; height: 10px; border-radius: 50%; display: inline-block; }}
   .dot.ok {{ background: #34d399; }}
   .dot.idle {{ background: #6b7280; }}
@@ -1162,9 +901,8 @@ def _render_html(data: dict, days) -> str:
       </div>
     </div>
   </div>
-  {projection}
   <footer>hurz · statisch generiert · Auto-Update alle 30s · Zeiten in Berliner Zeit ·
-    Stats zeigen nur aktive Strategien (Mean-Reversion 2026-07-10 stillgelegt, läuft aus)</footer>
+    Ergebnisse in USD aus dem Journal, ohne Finanzierung · stillgelegte Strategien sind Historie</footer>
 </div>
 <script>
   // Sound on trade close: SUCCESS (win) = ascending chime, FAIL (loss) =

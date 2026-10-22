@@ -211,7 +211,7 @@ class SQLiteDatabaseTest(unittest.TestCase):
                     1,
                     f"deal-{exit_time.day}",
                     100.0,
-                    1,
+                    0,
                     exit_price,
                     exit_time,
                     "win" if exit_price > 100 else "loss",
@@ -224,10 +224,10 @@ class SQLiteDatabaseTest(unittest.TestCase):
         result = _fetch(None)
 
         self.assertEqual(2, len(result["closed"]))
-        self.assertEqual(2, result["summary"][0]["trades"])
+        self.assertEqual(2, result["by_strategy"][0]["trades"])
         self.assertEqual("momentum", result["by_strategy"][0]["strategy"])
-        self.assertIsInstance(result["span"]["mn"], datetime)
-        self.assertIsInstance(result["span"]["mx"], datetime)
+        self.assertAlmostEqual(1.0, sum(row["usd"] for row in result["ledger"]))
+        self.assertIsInstance(result["closed"][0]["exit_time"], datetime)
 
     def test_migration_uses_runtime_index_name(self) -> None:
         source = MagicMock()

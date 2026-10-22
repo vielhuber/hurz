@@ -44,18 +44,29 @@ Section 401's book on the bar cache of 2026-10-12, OOS 2020-09-23 to
 (momentum 319 closes +87.15 USD, 4h pins 268 closes -48.93 USD). This
 history has been searched over 430 times; it is research data.
 
-## Journal (realized, Capital.com, accepted live fills)
+## Journal (realised USD, opening balance of 2026-10-22, section 438)
 
-- Whole history since 2026-05-08: 506 closes, -196.67 USD, mostly from
-  strategies retired since — not evidence for the current bot.
-- Current bot (momentum-only veto regime since 2026-10-01 02:02 UTC,
-  two-year ranking since 2026-10-13): 3 closes, +1.37 USD; open: NZDUSD
-  donchian_breakout_4h long since 2026-10-21 20:00 UTC.
-- Financing is not in the journal (account SWAP entries, section 337);
-  open.
-- The dashboard's totals (all-time -91.76 active, -372.60 retired, +9.64
-  USD since 2026-09-10 over 41 trades) use other filters than the
-  figures above; reconciling them is on the plan.
+One ledger (`app/spot_trading/journal_ledger.py`, `scripts/journal_balance.py`)
+converts every accepted live close to USD: booked USD since 2026-09-07
+23:05 UTC; older rows recomputed from fill and exit, USD-quoted as is, by
+the journaled USD risk, or at a fixed rate of 2026-10-12 (56 legacy closes
+in EUR, GBP, JPY, CHF, HKD, AUD, CAD instruments; 0 unconverted).
+
+| cohort | closes | USD |
+|---|---:|---:|
+| current bot since the veto regime 2026-10-01 02:02 UTC | 3 | +1.37 |
+| of it since the two-year ranking 2026-10-12 22:25 UTC | 3 | +1.37 |
+| of it since the probation start 2026-10-22 | 0 | 0 |
+| current strategies before 2026-10-01 (history) | 31 | +27.53 |
+| retired strategies (history) | 548 | -487.87 |
+| whole history Capital.com since 2026-05-08 | 582 | -458.96 |
+| Kraken Futures research (retired) | 19 | -10.62 |
+
+Open: NZDUSD donchian_breakout_4h long since 2026-10-21 20:00 UTC.
+Financing (account SWAP entries) is not in the journal; broker account
+movements are not reconciled yet — both open. The figure -196.67 USD given
+earlier on 2026-10-22 read `realized_pnl` as booked (signal price, quote
+units) and is superseded.
 
 ## Known deviations between replay, selector and bot
 
@@ -67,7 +78,7 @@ history has been searched over 430 times; it is research data.
 | indicator warm-up | selector warm-up | cache warm-up | open (sections 404, 406) |
 | selection rhythm | nightly | weekly | open |
 | financing | broker SWAP | modelled per night | open (section 337) |
-| journal vs dashboard totals | — | — | open |
+| journal vs dashboard totals | — | — | fixed 2026-10-22 (section 438) |
 
 ## Test suite
 

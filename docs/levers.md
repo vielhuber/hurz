@@ -24,11 +24,11 @@ Phase 1, in order (due dates are the checkpoints):
 
 1. Done 2026-10-22: canonical status (`STATUS.md`); strategy veto summed
    in USD with all earlier retirements kept explicitly (section 437).
-2. By 2026-10-29: opening balance — reconcile the journal's totals with
-   the dashboard's (filters, currency of old rows, abandoned rows) and
-   separate journal PnL, financing (account SWAP), execution and currency
-   conversion; dashboard labels for whole history, retired book, current
-   reference and forward phase.
+2. Done 2026-10-22: opening balance in one USD ledger, reconciled with
+   the old dashboard, dashboard cards by evidence phase, the projection of
+   selected combinations removed (section 438). Still open for 2026-10-29:
+   financing from the account's SWAP entries and the broker account
+   movements against the journal.
 3. By 2026-10-29: case check of the live trades since 2026-10-01 (3
    momentum closes, the 4h pin entries and refusals) against the replay,
    instrument, strategy, direction and signal time, with stated
@@ -11056,3 +11056,25 @@ USD/day) no longer describe the traded book.
   c7d172b (listed in `STATUS.md`).
 - **Decision:** deployed; bot restarted so the running process uses the
   corrected code. Section 437.
+
+## 2026-10-22 (evening) — repair: one USD ledger and the dashboard by evidence phase (probation, phase 1)
+
+- **Type:** repair, not a lever.
+- **Operation:** one watchdog/bot (522543/522547 since 2026-10-22 13:37
+  UTC), runtime checkout clean on `origin/main` (0533bd0), evaluations
+  failing 0, no HTTP 429; open: NZDUSD donchian_breakout_4h long.
+- **Finding:** the dashboard's totals summed 56 legacy closes in EUR, GBP,
+  JPY, CHF, HKD, AUD and CAD instruments in their quote currency as USD
+  (-5.22 USD of difference, exactly), its "active book" (-91.76 USD)
+  contained -122.66 USD of retired strategies, and a "Projected Gains"
+  tile showed the three best live combinations as an expected EUR/day.
+- **Change:** `app/spot_trading/journal_ledger.py` (one USD result per
+  close, its conversion, its cohort) and `scripts/journal_balance.py`; the
+  dashboard's cards, chart and strategy tables read the ledger; headline is
+  the current bot since 2026-10-01 with probation and two-year-ranking
+  rows, the backtest reference marked as research data, financing marked
+  open; history cohorts listed separately; the projection removed.
+- **Evidence:** ledger minus old dashboard formula is -5.22 USD, all from
+  the fixed-rate rows; 0 unconverted closes; new ledger and card tests,
+  dashboard and veto suites pass. Bot not restarted (the dashboard runs as
+  a subprocess; the bot does not import the ledger). Section 438.
