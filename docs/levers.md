@@ -11,10 +11,47 @@ decision. Read this before testing anything — an idea listed here is not
 tested a second time. Detailed measurements live in `EDGE_FINDINGS.md`;
 the section numbers below point there.
 
-## Plan
+## Plan — probation period 2026-10-22 to 2026-11-21
 
-Next levers, in order. Each run takes a category other than the previous
-run's (last run: 1, live against backtest). Closed: the momentum
+Canonical status: `STATUS.md`. Per the order of 2026-10-22 the rule of one
+new trading lever per run and the category rotation are suspended. Phase 1
+repairs the measurement base; no timing filters, rankings or exit
+variants meanwhile. Repairs need technical evidence and an impact
+analysis, not a gain. Edge research (phase 2) only after acceptance, at
+most two pre-registered strategy hypotheses in the whole period.
+
+Phase 1, in order (due dates are the checkpoints):
+
+1. Done 2026-10-22: canonical status (`STATUS.md`); strategy veto summed
+   in USD with all earlier retirements kept explicitly (section 437).
+2. By 2026-10-29: opening balance — reconcile the journal's totals with
+   the dashboard's (filters, currency of old rows, abandoned rows) and
+   separate journal PnL, financing (account SWAP), execution and currency
+   conversion; dashboard labels for whole history, retired book, current
+   reference and forward phase.
+3. By 2026-10-29: case check of the live trades since 2026-10-01 (3
+   momentum closes, the 4h pin entries and refusals) against the replay,
+   instrument, strategy, direction and signal time, with stated
+   tolerances; unexplained gaps stay open.
+4. By 2026-11-05: decision-level parity in one canonical reference, one
+   step each: 4h signals under the 3-ATR floor refused as live; the
+   wall-clock stale exit; the selector's indicator warm-up; the nightly
+   selection rhythm; then pins, reservations, sizes, limits, financing
+   and spread re-checked. Research stays isolated from runtime data and
+   the active list.
+5. 2026-11-05: measurement base accepted or "not accepted"; freeze the
+   corrected reference (cost model, data state) before any phase-2 work.
+
+Alpha research of the last five runs before the probation (compact):
+4h pin leash at 12 bars (434, -7.3 %, rejected), concurrent cap at 6
+(435, no effect), cash-close slippage (436, immaterial), daily reversal
+on free indices (433, -59 %), daily reversal on three indices (432,
+hindsight). The observation on 4h pin entries from the 00:00 UTC bar
+(section 436) is parked: it is a timing filter chosen on the data.
+
+### Closed directions before the probation
+
+Closed: the momentum
 direction (sections 340, 342, 363), the 4h pins removed, booked or at
 half risk (sections 225, 343, 359, 367),
 spread-dependent waiting (section 246), the signal price (section 340),
@@ -43,22 +80,6 @@ it, so the reference is the momentum-only book: 81 closes, +8.010153 USD,
 +0.003661 USD/day (section 357). The section 352 figures (+0.077287
 USD/day) no longer describe the traded book.
 
-1. **Execution and costs (6) — no 4h pin entry from the 00:00 UTC bar.**
-   Observation: on section 401's book the 76 pin trades entered at the
-   close of the 4h bar 00:00-04:00 UTC lose -41.04 USD (-0.1998 R), most
-   of the pins' -48.93 USD; that bar spans the thin hours after the
-   daily rollover for SILVER, COPPER, NZDUSD and CHFJPY. One of six
-   bars, so chosen on the data; the fixed rule (4/4, t > +2) guards it.
-   Hypothesis: refusing the pins' entries from that bar, everything else
-   unchanged, raises the daily gain.
-2. **Live against backtest (1) — the momentum-only live period.**
-   Observation: since 2026-10-01 the bot has opened 3 momentum trades
-   (US30 +0.76 and -0.35, UK100 +0.97 USD, all closed by the stale exit)
-   and one 4h pin (NZDUSD, open since 2026-10-21); the other closes since
-   then are turtle positions opened 2026-09-30.
-   Hypothesis: once 10 or more trades opened since 2026-10-01 have
-   closed, the execution split of section 337 on them shows a residual
-   within noise; measured only when that count is reached.
 
 ## Levers already tested before this log existed
 
@@ -11017,3 +11038,21 @@ USD/day) no longer describe the traded book.
   -0.029, HK50 -0.039, ETHUSD -0.028 R).
 - **Decision:** no calibration; the reference (section 401) stands, bot
   unchanged, no restart. One new test. Section 436.
+
+## 2026-10-22 (afternoon) — repair: strategy veto in USD (probation, phase 1)
+
+- **Type:** repair, not a lever; probation period 2026-10-22 to 2026-11-21.
+- **Operation:** one watchdog/bot (1872/1877), runtime checkout clean on
+  `origin/main` (c7d172b), evaluations failing 0, no HTTP 429; open:
+  NZDUSD donchian_breakout_4h long since 2026-10-21 20:00 UTC.
+- **Change:** canonical status in `STATUS.md`; the strategy veto sums PnL
+  and risk in USD and leaves out trades without a USD risk; all seven
+  earlier retirements kept explicitly (bollinger_rev, donchian_breakout,
+  donchian_breakout_v3, keltner_breakout, rsi_mr, stochastic_mr,
+  turtle_breakout). Plan replaced by the dated remediation plan.
+- **Evidence:** vetoed set unchanged; section 401's reference reproduces
+  exactly (587 closes, +38.213092 USD); four new tests, veto and selector
+  suites pass; five pre-existing test failures or hangs unchanged on
+  c7d172b (listed in `STATUS.md`).
+- **Decision:** deployed; bot restarted so the running process uses the
+  corrected code. Section 437.

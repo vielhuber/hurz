@@ -15276,3 +15276,38 @@ pins' 268 closes lose -41.04 USD on the 76 entered from the 4h bar
 00:00-04:00 UTC (-0.1998 R) and -24.77 USD on the 54 from 12:00-16:00
 UTC (-0.1763 R); the other four bars earn +16.89 USD on 138. Live 4h
 bars share the replay's UTC phase (bar times 00, 04, ... UTC).
+
+## 437. The strategy veto summed in USD; the earlier retirements kept
+
+Repair, not a lever (probation order of 2026-10-22). Section 357 showed
+`pair_selector._realized_expectancy` summing PnL and risk in each
+instrument's quote currency across instruments. `strategy_expectancy_veto`
+now converts each trade by its USD risk — `fill_risk_usd`, else
+`planned_risk_usd`, else the price-unit risk of a USD-quoted instrument —
+and leaves out trades without one instead of mixing currencies. The
+combination veto keeps quote units: within one instrument the currency
+cancels, and dropping rows there would thin combinations below their
+floor.
+
+On the live journal (2026-10-22, closes with n >= 25 in either unit):
+
+| strategy | closes quote / USD | R in quote units | R in USD |
+|---|---:|---:|---:|
+| bollinger_rev | 121 / 110 | -0.1680 | -0.1634 |
+| donchian_breakout | 159 / 156 | -0.1074 | +0.0007 |
+| donchian_breakout_v3 | 35 / 35 | -0.3222 | -0.3222 |
+| keltner_breakout | 33 / 23 | -0.2548 | -0.3763 |
+| rsi_mr | 25 / 19 | -0.5220 | -0.5679 |
+| stochastic_mr | 62 / 49 | -0.3101 | -0.3426 |
+| turtle_breakout | 89 / 81 | -0.1112 | -0.0384 |
+
+In USD donchian_breakout and turtle_breakout no longer reach -0.10 R,
+and keltner_breakout and rsi_mr fall under the 25-trade floor once 10
+and 6 rows without a USD risk (non-USD instruments before 2026-08-01)
+are left out. All seven retirements are kept explicitly in
+`_PRESERVED_STRATEGY_RETIREMENTS`; readmitting any of them is a separate,
+validated strategy change. Impact: the vetoed set is unchanged (same
+seven strategies), so the active list, the bot's entries and the replay
+are unchanged; section 401's reference reproduces exactly (587 closes,
++38.213092 USD, +0.017465 USD/day, daily SD 1.1174, worst day -6.1142).
+Four new tests on an in-memory journal; the existing veto suites pass.

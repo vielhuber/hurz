@@ -90,6 +90,31 @@ _VETO_MAX_EXPECTANCY_R = -0.15
 _STRATEGY_VETO_MIN_TRADES = 25
 _STRATEGY_VETO_MAX_EXPECTANCY_R = -0.10
 
+# Retirements decided by the strategy veto while it still summed PnL and
+# risk in each instrument's quote currency (EDGE_FINDINGS 357, 437): a yen
+# trade weighed about 157 times a dollar trade. In USD, donchian_breakout
+# and turtle_breakout no longer reach the threshold, and keltner_breakout
+# and rsi_mr fall below the trade floor once rows without a USD risk are
+# left out. Correcting the arithmetic is not a readmission: all seven stay
+# retired as a separate safety decision until a validated strategy change
+# readmits one. Values are the quote-unit R of 2026-10-22.
+_PRESERVED_STRATEGY_RETIREMENTS = {
+    "bollinger_rev": -0.1680,
+    "donchian_breakout": -0.1074,
+    "donchian_breakout_v3": -0.3222,
+    "keltner_breakout": -0.2548,
+    "rsi_mr": -0.5220,
+    "stochastic_mr": -0.3101,
+    "turtle_breakout": -0.1112,
+}
+
+# Instruments quoted in USD, whose price-unit risk is already USD. Every
+# other instrument needs a journaled USD risk to enter a cross-instrument
+# sum; rows without one are left out rather than mixed in another currency.
+_USD_QUOTED_SQL = """(pair LIKE '%USD' OR pair IN (
+    'US30', 'US100', 'US500', 'GOLD', 'SILVER', 'COPPER', 'PALLADIUM',
+    'PLATINUM', 'OIL_BRENT', 'OIL_CRUDE', 'WHEAT', 'CORN', 'NATURALGAS'))"""
+
 # Mirrors the entry path: the same cost ceiling, and the same cap on how
 # far a stop may be widened to reach it. Kept here as plain numbers
 # rather than imported, because importing autotrade from the selector
@@ -431,17 +456,24 @@ def strategy_expectancy_veto(platform: Optional[str] = None) -> Dict[str, float]
     across every instrument they traded.
 
     Same asymmetry as `live_expectancy_veto`, applied one level up: a
-    strategy is only ever retired, never promoted."""
+    strategy is only ever retired, never promoted. A strategy spans
+    instruments in different quote currencies, so PnL and risk are summed
+    in USD; the retirements made before that are kept explicitly."""
     return {
-        row["strategy"]: row["mean_r"]
-        for row in _realized_expectancy("strategy", platform,
-                                        _STRATEGY_VETO_MIN_TRADES)
-        if row["mean_r"] <= _STRATEGY_VETO_MAX_EXPECTANCY_R
+        **_PRESERVED_STRATEGY_RETIREMENTS,
+        **{
+            row["strategy"]: row["mean_r"]
+            for row in _realized_expectancy("strategy", platform,
+                                            _STRATEGY_VETO_MIN_TRADES,
+                                            in_usd=True)
+            if row["mean_r"] <= _STRATEGY_VETO_MAX_EXPECTANCY_R
+        },
     }
 
 
 def _realized_expectancy(
     group_by: str, platform: Optional[str], min_trades: int,
+    in_usd: bool = False,
 ) -> List[Dict]:
     """Mean realized R per group, for groups with enough closed trades.
 
@@ -456,12 +488,23 @@ def _realized_expectancy(
     column against the SIGNAL price, which understates the loss by
     entry slippage — roughly 216 USD across 360 trades. Reading the
     column would make this veto systematically too lenient on exactly
-    the combos it exists to retire."""
+    the combos it exists to retire.
+
+    Prices are in the instrument's quote currency, which cancels within
+    one instrument. `in_usd` converts each trade by its USD risk
+    (`fill_risk_usd`, else `planned_risk_usd`, else the price-unit risk
+    of a USD-quoted instrument) and drops trades without one, so groups
+    spanning currencies sum one unit."""
     result = """
         CASE WHEN exit_price IS NOT NULL AND fill_price IS NOT NULL
              THEN (exit_price - fill_price) * direction * size
              ELSE realized_pnl END
     """
+    risk = "ABS(COALESCE(fill_price, entry_price) - stop_loss) * size"
+    usd_risk = "1"
+    if in_usd:
+        usd_risk = f"""COALESCE(fill_risk_usd, planned_risk_usd,
+            CASE WHEN {_USD_QUOTED_SQL} THEN {risk} END) / ({risk})"""
     query = f"""
         SELECT {group_by},
                COUNT(*) AS n,
@@ -473,9 +516,8 @@ def _realized_expectancy(
                -- closed trades. The weighted figure is what the account
                -- actually experiences, which is what a retire decision is
                -- about.
-               SUM({result}) AS total_pnl,
-               SUM(ABS(COALESCE(fill_price, entry_price) - stop_loss) * size)
-                   AS total_risk
+               SUM({result} * {usd_risk}) AS total_pnl,
+               SUM({risk} * {usd_risk}) AS total_risk
         FROM spot_trades
         WHERE accepted = 1 AND paper_mode = 0 AND exit_time IS NOT NULL
           AND realized_pnl IS NOT NULL AND size > 0
@@ -484,6 +526,7 @@ def _realized_expectancy(
           -- written off rather than closed; as R=0 they read as neutral
           -- trades and dilute the veto's evidence.
           AND COALESCE(outcome, '') <> 'abandoned'
+          AND {usd_risk} IS NOT NULL
           {{platform_clause}}
         GROUP BY {group_by}
         HAVING COUNT(*) >= %s

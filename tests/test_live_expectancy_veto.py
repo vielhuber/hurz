@@ -151,11 +151,11 @@ class StrategyExpectancyVetoTest(unittest.TestCase):
 
     def test_near_breakeven_strategy_survives(self):
         database = StubDatabase([
-            {"strategy": "donchian_breakout", "n": 110, "total_pnl": -0.99, "total_risk": 330},
+            {"strategy": "carry", "n": 110, "total_pnl": -0.99, "total_risk": 330},
         ])
 
         with patch.object(singletons, "database", database):
-            self.assertEqual({}, pair_selector.strategy_expectancy_veto("capital_com"))
+            self.assertNotIn("carry", pair_selector.strategy_expectancy_veto("capital_com"))
 
     def test_strategy_veto_uses_the_higher_trade_floor(self):
         database = StubDatabase([])

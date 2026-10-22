@@ -1,0 +1,78 @@
+# Hurz — canonical status
+
+Updated 2026-10-22. Short and current; history lives in `levers.md` and
+`EDGE_FINDINGS.md`.
+
+## Probation period
+
+2026-10-22 to 2026-11-21 (Europe/Berlin). Goal: a robustly shown,
+economically relevant daily net gain at unchanged risk limits. Phase 1
+repairs the measurement base; edge research (at most two pre-registered
+strategy hypotheses) only after its acceptance. Checkpoints: 2026-10-29
+(opening balance, unit fix, parity status), 2026-11-05 (measurement base
+accepted or not), 2026-11-12 (research and forward phase), 2026-11-21
+(final grade A/B/C). No autonomous research after 2026-11-21 without a
+new order.
+
+## Live configuration
+
+- Demo account on Capital.com, one bot instance from `/host/data/hurz`
+  (watchdog `scripts/_session_watchdog.sh`, host keepalive restarts it
+  after a container restart).
+- Strategies: momentum (1h) on the ranked list, plus five exclusive 4h
+  pins. Active list of 2026-10-22 06:06 UTC: momentum on US30, DE40,
+  US100, EU50, UK100 and ETHUSD (pinned); donchian_breakout_4h SILVER and
+  NZDUSD, turtle_breakout_4h HK50, momentum_4h COPPER and CHFJPY.
+- Selection: nightly refresh at 05:30 UTC over donchian_breakout,
+  momentum and turtle_breakout, ranked on two years of history since
+  2026-10-13 (commit 6fe17ae; section 401, the last adopted lever).
+- Retired strategies: donchian_breakout (2026-09-25), turtle_breakout
+  (2026-10-01 02:02 UTC) and the mean-reversion and keltner strategies.
+  Since 2026-10-22 the strategy veto sums in USD; all seven earlier
+  retirements are kept explicitly (section 437). Readmission is a
+  separate, validated strategy change.
+- Risk per trade 3 USD target, stop at least 3 ATR and the venue
+  minimum, cost ceiling 10 % of risk, at most 8 open positions, three per
+  cluster and direction, one per instrument, 24-hour wall-clock stale
+  exit (4h strategies: 24 four-hour bars).
+
+## Reference (research data, not an untouched test)
+
+Section 401's book on the bar cache of 2026-10-12, OOS 2020-09-23 to
+2026-09-20 (2,188 calendar days), weekly re-ranking: 587 closes,
++38.2131 USD, +0.017465 USD/day, daily SD 1.1174, worst day -6.1142
+(momentum 319 closes +87.15 USD, 4h pins 268 closes -48.93 USD). This
+history has been searched over 430 times; it is research data.
+
+## Journal (realized, Capital.com, accepted live fills)
+
+- Whole history since 2026-05-08: 506 closes, -196.67 USD, mostly from
+  strategies retired since — not evidence for the current bot.
+- Current bot (momentum-only veto regime since 2026-10-01 02:02 UTC,
+  two-year ranking since 2026-10-13): 3 closes, +1.37 USD; open: NZDUSD
+  donchian_breakout_4h long since 2026-10-21 20:00 UTC.
+- Financing is not in the journal (account SWAP entries, section 337);
+  open.
+- The dashboard's totals (all-time -91.76 active, -372.60 retired, +9.64
+  USD since 2026-09-10 over 41 trades) use other filters than the
+  figures above; reconciling them is on the plan.
+
+## Known deviations between replay, selector and bot
+
+| item | bot | replay | status |
+|---|---|---|---|
+| strategy veto units | quote currency summed across instruments | follows the bot | fixed 2026-10-22 (section 437) |
+| 4h signal below the 3-ATR floor | refused | stop set to the floor | open |
+| stale exit | 24 wall-clock hours | 24 bars | open (section 424: wall clock +0.0098 USD/day) |
+| indicator warm-up | selector warm-up | cache warm-up | open (sections 404, 406) |
+| selection rhythm | nightly | weekly | open |
+| financing | broker SWAP | modelled per night | open (section 337) |
+| journal vs dashboard totals | — | — | open |
+
+## Test suite
+
+`tests.test_runtime_guard_wiring.test_cluster_cap_journals_the_blocked_signal`
+errors (TypeError) and `test_duplicate_instrument_entries`,
+`test_reconcile_adoption`, `test_trade_cost_filter` and
+`test_stale_exit_market_status` do not finish within 90 s — identical on
+commit c7d172b, so not caused by the 2026-10-22 changes; open.
