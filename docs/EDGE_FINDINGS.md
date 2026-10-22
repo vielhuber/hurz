@@ -15226,3 +15226,20 @@ Delta -0.001281 USD/day, pooled t -0.08, 2/4 samples better (-0.0153,
 more pin trades, so the pins still lose -49.82 USD, and the hourly
 closes fall from +87.15 to +85.23 USD. Rejected. Research only; the bot
 is unchanged.
+
+## 435. The concurrent cap at 6 on the two-year book: it never binds
+
+The cap of 6 was rejected twice on the breakout book (fifteenth run of
+2026-09-08; section 289). `scripts/concurrent_cap_two_year.py` sets
+`cluster_rotate_worst.MAX_CONCURRENT` to 6 for section 401's two-year
+book (eleven combinations, one position per instrument), everything else
+unchanged. Preregistered: all four samples better and pooled paired
+daily t > +2. OOS [2020-09-23, 2026-09-20), 2,188 calendar days.
+
+Both arms are identical day by day: 587 closes, +38.2131 USD, +0.017465
+USD/day, daily SD 1.1174, worst day -6.1142. The book's peak is 5
+simultaneous positions in seven years, so a cap of 6 or 8 never refuses
+an entry. A check at 3 (decides nothing) shows the cap reaches the
+replay: 563 closes, +49.5192 USD, +0.022632 USD/day, t +1.06, 2/4
+samples better. Rejected as without effect; the concurrent cap is no
+lever on this book. Research only; the bot is unchanged.
