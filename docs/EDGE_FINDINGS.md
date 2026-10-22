@@ -15243,3 +15243,36 @@ an entry. A check at 3 (decides nothing) shows the cap reaches the
 replay: 563 closes, +49.5192 USD, +0.022632 USD/day, t +1.06, 2/4
 samples better. Rejected as without effect; the concurrent cap is no
 lever on this book. Research only; the bot is unchanged.
+
+## 436. Entry slippage at the home cash close: none beyond the other index fills
+
+`scripts/cash_close_slippage.py` reads the 507 accepted live Capital.com
+fills with a signal price and a stop (2026-05-08 to 2026-10-21) and
+measures (signal - fill) * dir over the planned stop distance. An index
+fill counts as a cash-close entry when its signal bar (1h, or 4h for the
+4h strategies) ends within the hour after the home exchange's regular
+close in local time (New York 16:00, Frankfurt and Paris 17:30, London
+16:30, Tokyo 15:30, Hong Kong and Sydney 16:00). Preregistered:
+CALIBRATE only if the cash-close fills are worse than the other index
+fills at Welch t < -2.
+
+| fills | n | mean R | median R | t |
+|---|---:|---:|---:|---:|
+| index, bar ends at the cash close | 5 | -0.0137 | -0.0228 | -0.68 |
+| index, other bars | 64 | -0.0118 | -0.0032 | -1.92 |
+| not an index | 438 | -0.1227 | -0.0662 | -12.55 |
+
+Difference -0.0019 R, Welch t -0.09: immaterial. The five cash-close
+fills are DE40 (2), UK100, HK50 and the US30 momentum short of
+2026-10-16 (-0.0724 R, the worst of them). The non-index slippage comes
+from instruments no longer traded (crypto alts -0.176 R over 247 fills
+including BTCUSD and ETHUSD, PALLADIUM -0.295 R); the live 4h pins slip
+-0.007 to -0.039 R and ETHUSD -0.028 R, about half their spread, which
+the replay's round-trip charge covers. The reference stands; the bot is
+unchanged.
+
+Checked beside the run on section 401's book (decides nothing): the 4h
+pins' 268 closes lose -41.04 USD on the 76 entered from the 4h bar
+00:00-04:00 UTC (-0.1998 R) and -24.77 USD on the 54 from 12:00-16:00
+UTC (-0.1763 R); the other four bars earn +16.89 USD on 138. Live 4h
+bars share the replay's UTC phase (bar times 00, 04, ... UTC).
