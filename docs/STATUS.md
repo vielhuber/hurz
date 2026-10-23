@@ -38,11 +38,15 @@ new order.
 
 ## Reference (research data, not an untouched test)
 
-Section 401's book on the bar cache of 2026-10-12, OOS 2020-09-23 to
-2026-09-20 (2,188 calendar days), weekly re-ranking: 587 closes,
-+38.2131 USD, +0.017465 USD/day, daily SD 1.1174, worst day -6.1142
-(momentum 319 closes +87.15 USD, 4h pins 268 closes -48.93 USD). This
-history has been searched over 430 times; it is research data.
+Canonical since 2026-10-23 (section 439): section 401's book with the 4h
+pins priced by the live entry rule, on the bar cache of 2026-10-12, OOS
+2020-09-23 to 2026-09-20 (2,188 calendar days), weekly re-ranking: 383
+closes, +73.7940 USD, +0.033727 USD/day, daily SD 0.8134, worst day
+-5.1024 (momentum 320 closes +85.15 USD, 4h pins 63 closes -11.35 USD).
+Reproduced by `scripts/momentum_two_year_ranking.py` (the 730-day arm).
+The previous figure (+0.017465 USD/day, 587 closes) booked 4h signals the
+bot refuses. This history has been searched over 430 times; it is
+research data.
 
 ## Journal (realised USD, opening balance of 2026-10-22, section 438)
 
@@ -73,12 +77,27 @@ units) and is superseded.
 | item | bot | replay | status |
 |---|---|---|---|
 | strategy veto units | quote currency summed across instruments | follows the bot | fixed 2026-10-22 (section 437) |
-| 4h signal below the 3-ATR floor | refused | stop set to the floor | open |
+| 4h signal below the 3-ATR floor | refused | stop set to the floor | fixed 2026-10-23 (section 439) |
 | stale exit | 24 wall-clock hours | 24 bars | open (section 424: wall clock +0.0098 USD/day) |
 | indicator warm-up | selector warm-up | cache warm-up | open (sections 404, 406) |
 | selection rhythm | nightly | weekly | open |
 | financing | broker SWAP | modelled per night | open (section 337) |
 | journal vs dashboard totals | — | — | fixed 2026-10-22 (section 438) |
+
+## Case check of the live decisions (2026-10-23, section 439)
+
+`scripts/live_decision_check.py`, journal only (no broker access): 57
+signals since 2026-10-01 02:02 UTC — 46 refused by the ADX gate, 7 by the
+3-ATR floor (5 of them 4h pins the old replay would have traded), 4
+entered. All four entries within tolerance on fill (|slip| <= 0.10 R),
+size, stale exit and realised USD; planned risk of the US30 short of
+2026-10-16 is 6.3 % above the replay's because the bot prices it at the
+live quote 49 s after the cash close, not at the bar close (same size).
+One refusal reads ADX 30.0 at a floor of 30: the reason prints one
+decimal. After the restart of 2026-10-22 05:20 UTC three refusals were
+journaled twice. Open: the replay's own signals for these weeks need bars
+after 2026-09-20 (broker fetch, planned for the weekend when the bot is
+idle).
 
 ## Test suite
 

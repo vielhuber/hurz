@@ -312,9 +312,10 @@ def _render_chart(series: list, width: int = 920, height: int = 340) -> str:
     return "".join(parts) + "".join(leg)
 
 
-# Section 401's walk-forward reference on the bar cache of 2026-10-12:
+# The canonical walk-forward reference (section 439: section 401's book with
+# the 4h pins priced by the live rule) on the bar cache of 2026-10-12:
 # research data searched many times, not an untouched test (docs/STATUS.md).
-_REFERENCE_USD_PER_DAY = 0.017465
+_REFERENCE_USD_PER_DAY = 0.033727
 
 
 def _cohort_row(label: str, result: dict, start: Optional[str] = None) -> str:

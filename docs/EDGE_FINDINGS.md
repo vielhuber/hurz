@@ -15339,3 +15339,37 @@ marks financing as open and lists history separately; the "Projected
 Gains" tile, which presented the three best live combinations as an
 expected daily gain, is removed. Financing and broker account movements
 remain open.
+
+## 439. The bot's decisions since the veto regime; the 4h pins priced by the live rule
+
+Check and repair, not a lever. `scripts/live_decision_check.py` reads the
+57 journaled signals since 2026-10-01 02:02 UTC (no broker access) and
+tests them against the bot's own rules with tolerances fixed in advance:
+fill within 0.10 R of the signal price, size equal and planned risk within
+2 % of `calculate_position_size` on the journaled entry and stop, stale
+exit 24 wall-clock hours after entry or at the first close after a
+weekend, realised USD within 0.01 of the recomputed fill-to-exit result.
+
+| decision | n | result |
+|---|---:|---|
+| refused by the ADX gate | 46 | all below 30 as printed; one prints 30.0 (one decimal) |
+| refused at the 3-ATR floor | 7 | 5 of them 4h pins (NZDUSD 2, HK50 3) the replay booked; 2 hourly, refused by the replay too |
+| entered | 4 | fill -0.0724 to +0.0002 R; sizes equal; stale exits at 24 h and after the weekend; realised USD exact |
+| journaled twice | 3 | refusals re-evaluated after the restart of 2026-10-22 05:20 UTC |
+
+The US30 short of 2026-10-16 has a planned risk 6.3 % above the replay's
+at the same size: the bot prices it at the live quote 49 s after the New
+York close, 36.5 points from the bar close.
+
+Repair: `four_hour_stream.daily_terms` set a 4h stop at the 3-ATR floor
+where the bot refuses the signal. It now applies the hourly live rule
+(`trade_terms`: stop 2 ATR, venue minimum, refused below the floor). The
+canonical reference moves from 587 closes, +38.213092 USD, +0.017465
+USD/day, daily SD 1.1174, worst day -6.1142 to 383 closes, +73.793989
+USD, +0.033727 USD/day, daily SD 0.8134, worst day -5.1024 (samples from
+the newest: +0.146881, +0.017228, +0.004737, +0.011426 USD/day) — the
+live-rule arm of section 411 exactly. The 4h pins keep 63 of 268 closes
+(-11.35 instead of -48.93 USD). This corrects what the reference
+measures; the bot already traded under this rule. Open: the replay's own
+signals for 2026-10-01 to 2026-10-22, which need bars after the cache's
+end.

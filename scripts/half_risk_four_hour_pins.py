@@ -32,6 +32,7 @@ os.chdir(_ROOT)
 from app.utils.singletons import database, settings
 settings.load_env()
 from app.spot_trading.autotrade import _min_stop_atr_multiple
+import scripts.efficiency_weighted_selection as ews
 import scripts.four_hour_stream as fhs
 import scripts.pin_eligibility as pe
 from scripts.additional_indices import frames_for
@@ -45,12 +46,12 @@ HALF_RISK_USD = 1.5
 
 def four_hour_trades(frames, meta, floor, extra, target_risk):
     """The live 4h pins' financed trades sized at `target_risk` USD."""
-    saved = fhs.DEFAULT_TARGET_RISK_USD
+    saved = ews.DEFAULT_TARGET_RISK_USD
     try:
-        fhs.DEFAULT_TARGET_RISK_USD = target_risk
+        ews.DEFAULT_TARGET_RISK_USD = target_risk
         raw = fhs.daily_signals(fhs.daily_frames({p: frames[p] for p in {k[1] for k in extra}}), meta, floor)
     finally:
-        fhs.DEFAULT_TARGET_RISK_USD = saved
+        ews.DEFAULT_TARGET_RISK_USD = saved
     return financed(aligned(raw, set(extra)))
 
 
@@ -70,7 +71,7 @@ async def main():
     floor = _min_stop_atr_multiple()
     hourly = all_signals(frames, floor, meta)
     extra = live_four_hour_pins(set(frames), vetoed_strategies)
-    arms = {"current": four_hour_trades(frames, meta, floor, extra, fhs.DEFAULT_TARGET_RISK_USD),
+    arms = {"current": four_hour_trades(frames, meta, floor, extra, ews.DEFAULT_TARGET_RISK_USD),
             "candidate": four_hour_trades(frames, meta, floor, extra, HALF_RISK_USD)}
     end = max(np.datetime64(frame["timestamp"].values[-1], "D") for frame in frames.values())
     days = np.arange(np.datetime64(hourly[0]["ts"], "D") + np.timedelta64(RANK_DAYS, "D"), end)

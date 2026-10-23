@@ -29,13 +29,14 @@ Phase 1, in order (due dates are the checkpoints):
    selected combinations removed (section 438). Still open for 2026-10-29:
    financing from the account's SWAP entries and the broker account
    movements against the journal.
-3. By 2026-10-29: case check of the live trades since 2026-10-01 (3
-   momentum closes, the 4h pin entries and refusals) against the replay,
-   instrument, strategy, direction and signal time, with stated
-   tolerances; unexplained gaps stay open.
+3. Partly done 2026-10-23: the bot's 57 decisions since 2026-10-01
+   checked against its rules with fixed tolerances (section 439). Open
+   for 2026-10-29: the replay's own signals for the same weeks, which
+   need bars after 2026-09-20 — one paced broker fetch on the weekend of
+   2026-10-24, when the markets are shut and the bot is idle.
 4. By 2026-11-05: decision-level parity in one canonical reference, one
-   step each: 4h signals under the 3-ATR floor refused as live; the
-   wall-clock stale exit; the selector's indicator warm-up; the nightly
+   step each: 4h signals under the 3-ATR floor refused as live (done
+   2026-10-23, section 439); the wall-clock stale exit; the selector's indicator warm-up; the nightly
    selection rhythm; then pins, reservations, sizes, limits, financing
    and spread re-checked. Research stays isolated from runtime data and
    the active list.
@@ -11078,3 +11079,29 @@ USD/day) no longer describe the traded book.
   the fixed-rate rows; 0 unconverted closes; new ledger and card tests,
   dashboard and veto suites pass. Bot not restarted (the dashboard runs as
   a subprocess; the bot does not import the ledger). Section 438.
+
+## 2026-10-23 — check and repair: live decisions; 4h pins priced by the live rule (probation, phase 1)
+
+- **Type:** correctness check and repair, not a lever.
+- **Operation:** one watchdog/bot (522543/522547 since 2026-10-22 13:37
+  UTC), runtime checkout clean on `origin/main` (0929646), evaluations
+  failing 0, no HTTP 429; open: NZDUSD donchian_breakout_4h long.
+- **Check:** `scripts/live_decision_check.py` on the 57 journaled signals
+  since 2026-10-01 02:02 UTC: 46 ADX refusals, 7 floor refusals, 4
+  entries; entries within the fixed tolerances (fill, size, stale exit,
+  realised USD); the US30 short's planned risk +6.3 % from the live quote;
+  one ADX 30.0 refusal from one-decimal printing; three refusals
+  journaled twice after a restart. Five refusals were 4h pin signals
+  under the 3-ATR floor that the replay booked with a widened stop.
+- **Repair:** `four_hour_stream.daily_terms` now applies the live entry
+  rule (stop 2 ATR, venue minimum, refused below 3 ATR) — the rule
+  section 411 measured as immaterial and left out. The reference changes
+  from 587 closes, +38.2131 USD, +0.017465 USD/day (daily SD 1.1174,
+  worst day -6.1142) to 383 closes, +73.7940 USD, +0.033727 USD/day
+  (daily SD 0.8134, worst day -5.1024): 4h pins 63 closes, -11.35 USD
+  instead of 268, -48.93. Same result as section 411's live-rule arm,
+  so the change is reproduced; it is a correction of the reference, not
+  a gain of the bot, which already traded this way.
+- **Evidence:** reference rerun; 4h, ledger, dashboard and check suites
+  pass (49 tests); `half_risk_four_hour_pins` now sizes through the
+  shared live pricing. Bot not restarted (replay code only). Section 439.

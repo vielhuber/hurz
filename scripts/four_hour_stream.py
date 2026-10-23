@@ -47,12 +47,8 @@ from app.strategies import add_indicators, get_strategy
 from app.spot_trading.regime import gate
 from app.spot_trading.trading_blocks import direction_blocked
 from app.spot_trading.autotrade import _min_stop_atr_multiple, _CORRELATION_CLUSTERS
-from scripts.spot_backtest import _fee_for
-from app.spot_trading.position_sizing import (
-    calculate_position_size, DEFAULT_TARGET_RISK_USD, DEFAULT_NOTIONAL_CAP_USD,
-)
 from scripts.efficiency_weighted_selection import (
-    load_history, to_frame, t_stat, RANK_DAYS, META_CACHE, STRATS, RR, HOLD, PLAT,
+    load_history, to_frame, t_stat, RANK_DAYS, META_CACHE, STRATS, RR, HOLD, PLAT, trade_terms,
 )
 
 YEARS = [(0, 365), (366, 1095), (1096, 1825), (1826, 2555)]
@@ -86,23 +82,12 @@ def daily_frames(frames):
 
 
 def daily_terms(df, e, pair, meta, floor):
-    A = df["atr_14"].values; C = df["close"].values
-    atr = A[e]
-    if not np.isfinite(atr) or atr <= 0: return None
-    entry = float(C[e]); stop_d = max(floor * atr, 0.0105 * entry)
-    fee = _fee_for(PLAT, pair)
-    cost_r = 2.0 * fee * entry / stop_d
-    if cost_r > 0.10: return None
-    m = meta.get(pair)
-    if m is None: return None
-    rate = m["rate"]
-    sized = calculate_position_size(
-        entry_price=entry, stop_loss=entry - stop_d,
-        target_risk=DEFAULT_TARGET_RISK_USD / rate,
-        notional_cap=DEFAULT_NOTIONAL_CAP_USD / rate,
-        size_increment=m["step"], min_size=m["min"], max_size=m["max"])
-    if sized.size is None: return None
-    return entry, stop_d, cost_r, sized.planned_risk * rate
+    """The live entry rule on a 4h bar (EDGE_FINDINGS 439): stop 2 ATR,
+    widened to the venue minimum, refused below the ATR floor.
+
+    The 4h pins used to set the stop at the floor instead, which booked
+    signals the bot refuses (five between 2026-10-01 and 2026-10-22)."""
+    return trade_terms(df, e, pair, meta, floor)
 
 
 def book(O, H, L, C, e, d, entry, stop_d, cost_r, n):
