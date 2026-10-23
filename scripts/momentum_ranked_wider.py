@@ -52,6 +52,11 @@ RANKING_FLOOR = 25.0
 COLD_BARS = 500
 SLICE_BARS = 700
 BASE_COLUMNS = ["timestamp", "open", "high", "low", "close"]
+WEEKLY = np.timedelta64(7, "D")
+# The bot's scheduler refreshes the list every night at 05:30 UTC
+# (EDGE_FINDINGS 442).
+NIGHTLY = np.timedelta64(1, "D")
+NIGHTLY_REFRESH = np.timedelta64(330, "m")
 
 
 def cold_start(frames, start, cut, floor, meta, strategies):
@@ -83,17 +88,19 @@ def with_cold_start(training, cold, start):
     return sorted(kept + added, key=lambda trade: trade["ts"])
 
 
-def replay(ranking, traded, four_hour, pins, reserved, pin_order, days, extra, cold=None):
-    """`four_hour_pin_calibration.replay` with the weekly list ranked on `ranking`.
+def replay(ranking, traded, four_hour, pins, reserved, pin_order, days, extra, cold=None,
+           step=WEEKLY, offset=np.timedelta64(0, "m")):
+    """`four_hour_pin_calibration.replay` with the list re-ranked on `ranking` every `step`.
 
-    `cold(start, cut)` returns `cold_start` for a window, to rank as the
-    live selector does; without it the ranking reads warm indicators."""
+    Cuts fall at `offset` past midnight. `cold(start, cut)` returns
+    `cold_start` for a window, to rank as the live selector does; without
+    it the ranking reads warm indicators."""
     signals = sorted(traded + four_hour, key=lambda trade: trade["ts"])
     timestamps = np.array([trade["ts"] for trade in signals])
     ranking_ts = np.array([trade["ts"] for trade in ranking])
-    booked, state, cut = [], {"open": {}, "pair": {}}, days[0]
+    booked, state, cut = [], {"open": {}, "pair": {}}, days[0] + offset
     while cut < days[-1] + np.timedelta64(1, "D"):
-        following = cut + np.timedelta64(7, "D")
+        following = cut + step
         start = cut - np.timedelta64(ews.RANK_DAYS, "D")
         low = int(np.searchsorted(ranking_ts, start))
         high = int(np.searchsorted(ranking_ts, cut))

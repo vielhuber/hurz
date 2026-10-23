@@ -11161,3 +11161,25 @@ USD/day) no longer describe the traded book.
   and E[R] for three instruments).
 - **Evidence:** reference rerun; new cold-start test; replay suites pass.
   Bot not restarted (replay code only). Section 441.
+
+## 2026-10-23 (evening) — repair: the replay re-ranks every night like the scheduler (probation, phase 1)
+
+- **Type:** repair, not a lever.
+- **Operation:** one watchdog/bot (522543/522547), runtime checkout clean
+  on `origin/main` (7e42324), evaluations failing 0, no HTTP 429; open:
+  NZDUSD donchian_breakout_4h long; one ADX refusal (US30) today.
+- **Deviation:** the scheduler refreshes the list every night at 05:30 UTC
+  (log: "armed for 05:30 UTC", "refresh complete"); the replay re-ranked
+  every seven days.
+- **Repair:** `momentum_ranked_wider.replay(..., step=, offset=)`; the
+  reference re-ranks daily at 05:30 UTC (`NIGHTLY`, `NIGHTLY_REFRESH`),
+  with the cold-started ranking of section 441 at every cut.
+- **Impact:** reference from 388 closes, +105.0435 USD, +0.048009 USD/day
+  (daily SD 0.7604, worst day -4.7624) to 388 closes, +99.0500 USD,
+  +0.045270 USD/day (daily SD 0.7577, worst day -4.7624); momentum
+  +114.67 -> +108.67 USD, 4h pins unchanged (-9.62). The first correction
+  of the probation that lowers the figure. Tolerance: the list takes
+  effect at 05:30 UTC sharp; live it lands when the refresh's backtests
+  finish, minutes later.
+- **Evidence:** reference rerun; nightly-cut test; replay suites pass.
+  Bot not restarted (replay code only). Section 442.

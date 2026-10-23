@@ -37,7 +37,7 @@ from scripts.additional_indices import frames_for
 from scripts.four_hour_pin_calibration import aligned, live_four_hour_pins
 from scripts.four_hour_pins_reference import financed
 from scripts.four_hour_stream import daily_frames, daily_signals
-from scripts.momentum_ranked_wider import cold_start, replay
+from scripts.momentum_ranked_wider import NIGHTLY, NIGHTLY_REFRESH, cold_start, replay
 from scripts.rank_holding_time import daily_series
 
 CANDIDATE_DAYS = 730
@@ -83,7 +83,7 @@ async def main():
     series = {}
     for arm, window in (("365", ews.RANK_DAYS), ("730", CANDIDATE_DAYS)):
         closed = [t for t in ranked_replay(window, hourly, traded, four_hour, pins, reserved, pin_order, days, extra,
-                                           cold=cold)
+                                           cold=cold, step=NIGHTLY, offset=NIGHTLY_REFRESH)
                   if np.datetime64(t["exit_ts"], "D") < end]
         series[arm] = daily_series(closed, days)
         momentum = [t for t in closed if t["strat"] == "momentum"]

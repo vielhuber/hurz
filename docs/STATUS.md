@@ -24,8 +24,9 @@ new order.
   US100, EU50, UK100 and ETHUSD (pinned); donchian_breakout_4h SILVER and
   NZDUSD, turtle_breakout_4h HK50, momentum_4h COPPER and CHFJPY.
 - Selection: nightly refresh at 05:30 UTC over donchian_breakout,
-  momentum and turtle_breakout, ranked on two years of history since
-  2026-10-13 (commit 6fe17ae; section 401, the last adopted lever).
+  momentum and turtle_breakout (the retired two are dropped by the veto),
+  ranked on two years of history since 2026-10-13 (commit 6fe17ae;
+  section 401, the last adopted lever).
 - Retired strategies: donchian_breakout (2026-09-25), turtle_breakout
   (2026-10-01 02:02 UTC) and the mean-reversion and keltner strategies.
   Since 2026-10-22 the strategy veto sums in USD; all seven earlier
@@ -38,20 +39,19 @@ new order.
 
 ## Reference (research data, not an untouched test)
 
-Canonical since 2026-10-23 (sections 439-441): section 401's book with
+Canonical since 2026-10-23 (sections 439-442): section 401's book with
 the bot's 4h entry rule (refused under 3 ATR), the bot's wall-clock stale
 exits (hourly 24 h, 4h pins 96 h after the order) and the selector's
 ranking (bar-booked trades, indicators cold-started on the ranking
-window as the live selector computes them), on the bar cache of
-2026-10-12, OOS 2020-09-23 to 2026-09-20 (2,188 calendar days), weekly
-re-ranking: 388 closes, +105.0435 USD, +0.048009 USD/day, daily SD
-0.7604, worst day -4.7624 (momentum 323 closes +114.67 USD, 4h pins 65
-closes -9.62 USD). Reproduced by `scripts/momentum_two_year_ranking.py`
-(the 730-day arm). Earlier figures: +0.017465 USD/day (section 401),
-+0.033727 (439), +0.044397 (440). Each correction so far raised the
-figure; that is what the bot's rules give on this history, not evidence
-of an edge. This history has been searched over 430 times; it is
-research data.
+window, re-ranked every night at 05:30 UTC as the scheduler does), on the
+bar cache of 2026-10-12, OOS 2020-09-23 to 2026-09-20 (2,188 calendar
+days): 388 closes, +99.0500 USD, +0.045270 USD/day, daily SD 0.7577,
+worst day -4.7624 (momentum 323 closes +108.67 USD, 4h pins 65 closes
+-9.62 USD). Reproduced by `scripts/momentum_two_year_ranking.py` (the
+730-day arm). Earlier figures: +0.017465 USD/day (section 401), +0.033727
+(439), +0.044397 (440), +0.048009 (441). These corrections describe the
+bot's rules on searched history, not evidence of an edge. This history
+has been searched over 430 times; it is research data.
 
 ## Journal (realised USD, opening balance of 2026-10-22, section 438)
 
@@ -85,7 +85,7 @@ units) and is superseded.
 | 4h signal below the 3-ATR floor | refused | stop set to the floor | fixed 2026-10-23 (section 439) |
 | stale exit | 24 wall-clock hours (4h: 96) | 24 bars | fixed 2026-10-23 (section 440) |
 | indicator warm-up | selector cold-starts on its window | cache warm-up | fixed 2026-10-23 (section 441) |
-| selection rhythm | nightly | weekly | open |
+| selection rhythm | nightly 05:30 UTC | weekly | fixed 2026-10-23 (section 442) |
 | financing | broker SWAP | modelled per night | open (section 337) |
 | journal vs dashboard totals | — | — | fixed 2026-10-22 (section 438) |
 

@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
@@ -22,3 +23,17 @@ class SelectorColdStartTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NightlyRefreshTest(unittest.TestCase):
+    def test_the_list_is_re_ranked_every_night_at_the_scheduler_time(self):
+        import scripts.momentum_ranked_wider as mrw
+        seen = []
+        days = np.arange(np.datetime64("2026-10-19"), np.datetime64("2026-10-22"))
+        with patch.object(mrw, "active_order", lambda training, pins, reserved, order: {}), \
+                patch.object(mrw, "admit", lambda *args: None), \
+                patch.object(mrw, "prioritize", lambda window, order, flag: window):
+            mrw.replay([], [], [], set(), set(), [], days, [],
+                       cold=lambda start, cut: seen.append(cut) or {}, step=mrw.NIGHTLY, offset=mrw.NIGHTLY_REFRESH)
+        self.assertEqual([np.datetime64("2026-10-19T05:30"), np.datetime64("2026-10-20T05:30"),
+                          np.datetime64("2026-10-21T05:30")], seen)

@@ -15425,3 +15425,25 @@ an approximation of the selector's computation over its whole window.
 Each correction since section 437 raised the reference (+0.017465 ->
 +0.048009 USD/day); that describes the bot's rules on searched history,
 not an edge. The bot is unchanged.
+
+## 442. The replay re-ranks every night like the scheduler
+
+Repair, not a lever. The bot's scheduler refreshes the active list every
+night at 05:30 UTC; the replay re-ranked every seven days.
+`momentum_ranked_wider.replay` takes a `step` and an `offset`; the
+canonical reference cuts daily at 05:30 UTC and ranks each cut on the
+cold-started 730-day window of section 441.
+
+| reference | closes | momentum | 4h pins | USD | USD/calendar day | daily SD | worst day |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| section 441 (weekly) | 388 | 323 (+114.67) | 65 (-9.62) | +105.0435 | +0.048009 | 0.7604 | -4.7624 |
+| nightly at 05:30 UTC | 388 | 323 (+108.67) | 65 (-9.62) | +99.0500 | +0.045270 | 0.7577 | -4.7624 |
+
+By sample from the newest: +0.149434, +0.040278, +0.013697, +0.014063
+USD/day. OOS 2020-09-23 to 2026-09-20, bar cache of 2026-10-12.
+Tolerance: the list takes effect at 05:30 UTC; live it lands when the
+refresh finishes, minutes later. The reference after sections 437-442
+models the bot's entry rule, leash, selector warm-up and rhythm; still
+open are financing against the broker's SWAP entries and the case check
+of the replay's own signals for 2026-10-01 to 2026-10-22. The bot is
+unchanged.
