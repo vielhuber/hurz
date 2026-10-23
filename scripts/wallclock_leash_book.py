@@ -39,8 +39,6 @@ os.chdir(_ROOT)
 from app.utils.singletons import database, settings
 settings.load_env()
 from app.spot_trading.autotrade import _min_stop_atr_multiple
-from app.spot_trading.trading_blocks import direction_blocked
-from app.strategies import get_strategy
 import scripts.efficiency_weighted_selection as ews
 import scripts.pin_eligibility as pe
 from scripts.additional_indices import frames_for
@@ -50,46 +48,8 @@ from scripts.four_hour_stream import daily_frames, daily_signals
 from scripts.momentum_two_year_ranking import CANDIDATE_DAYS, ranked_replay
 from scripts.rank_holding_time import daily_series
 
-DEADLINE = np.timedelta64(25, "h")
-
-
-def book_wallclock(O, H, L, C, ts, e, d, entry, stop_d, cost_r, n):
-    """`ews.book` with the live stale exit: the open of the first bar at or after the signal bar's open + 25 h."""
-    sl = entry - d * stop_d; tp = entry + d * ews.RR * stop_d
-    deadline = ts[e] + DEADLINE
-    for b in range(e + 1, n):
-        if ts[b] >= deadline:
-            return (float(O[b]) - entry) * d / stop_d - cost_r, b
-        gap = (O[b] - entry) * d
-        if gap <= -stop_d: return gap / stop_d - cost_r, b
-        adverse = L[b] if d == 1 else H[b]; favor = H[b] if d == 1 else L[b]
-        if (d == 1 and adverse <= sl) or (d == -1 and adverse >= sl): return -1.0 - cost_r, b
-        if (d == 1 and favor >= tp) or (d == -1 and favor <= tp): return ews.RR - cost_r, b
-    return None, None
-
-
-def wallclock_signals(frames, floor, meta, book=book_wallclock):
-    """`ews.all_signals` booked with the live wall-clock leash."""
-    out = []
-    for pair, df in frames.items():
-        n = len(df); ts = df["timestamp"].values
-        O = df["open"].values; H = df["high"].values; L = df["low"].values; C = df["close"].values
-        for s in ews.STRATS:
-            for x in get_strategy(s)(df, {}):
-                if ews.gate(s, df, x.index).blocked: continue
-                if direction_blocked(pair, x.direction): continue
-                terms = ews.trade_terms(df, x.index, pair, meta, floor)
-                if terms is None: continue
-                entry, stop_d, cost_r, risk_usd = terms
-                r, xb = book(O, H, L, C, ts, x.index, x.direction, entry, stop_d, cost_r, n)
-                if r is None: continue
-                if ews.CHARGE_FINANCING:
-                    r -= ews.night_charge(pair, x.direction, entry, stop_d) * ews.rollovers(
-                        ts[x.index] + ews.HOUR, ts[xb] + ews.HOUR)
-                out.append({"ts": ts[x.index], "exit_ts": ts[xb], "pair": pair, "dir": x.direction,
-                            "strat": s, "r": r, "usd": r * risk_usd, "risk": risk_usd})
-    out.sort(key=lambda trade: trade["ts"])
-    return out
+book_wallclock = ews.book_wallclock
+wallclock_signals = ews.wallclock_signals
 
 
 async def main():

@@ -49,6 +49,7 @@ from app.spot_trading.trading_blocks import direction_blocked
 from app.spot_trading.autotrade import _min_stop_atr_multiple, _CORRELATION_CLUSTERS
 from scripts.efficiency_weighted_selection import (
     load_history, to_frame, t_stat, RANK_DAYS, META_CACHE, STRATS, RR, HOLD, PLAT, trade_terms,
+    book_wallclock,
 )
 
 YEARS = [(0, 365), (366, 1095), (1096, 1825), (1826, 2555)]
@@ -90,19 +91,6 @@ def daily_terms(df, e, pair, meta, floor):
     return trade_terms(df, e, pair, meta, floor)
 
 
-def book(O, H, L, C, e, d, entry, stop_d, cost_r, n):
-    sl = entry - d * stop_d; tp = entry + d * RR * stop_d
-    for b in range(e + 1, e + HOLD + 1):
-        if b >= n: break
-        gap = (O[b] - entry) * d
-        if gap <= -stop_d: return gap / stop_d - cost_r, b
-        adverse = L[b] if d == 1 else H[b]; favor = H[b] if d == 1 else L[b]
-        if (d == 1 and adverse <= sl) or (d == -1 and adverse >= sl): return -1.0 - cost_r, b
-        if (d == 1 and favor >= tp) or (d == -1 and favor <= tp): return RR - cost_r, b
-    if e + HOLD < n: return (float(C[e + HOLD]) - entry) * d / stop_d - cost_r, e + HOLD
-    return None, None
-
-
 def daily_signals(frames, meta, floor):
     out = []
     for pair, df in frames.items():
@@ -116,7 +104,10 @@ def daily_signals(frames, meta, floor):
                 terms = daily_terms(df, x.index, pair, meta, floor)
                 if terms is None: continue
                 entry, stop_d, cost_r, risk_usd = terms
-                r, xb = book(O, H, L, C, x.index, x.direction, entry, stop_d, cost_r, n)
+                # The bot's 4h leash is HOLD bars of wall clock after the order
+                # at the signal bar's close (EDGE_FINDINGS 440).
+                r, xb = book_wallclock(O, H, L, C, ts, x.index, x.direction, entry, stop_d, cost_r, n,
+                                       leash=np.timedelta64(4 * (HOLD + 1), "h"))
                 if r is None: continue
                 out.append({"ts": ts[x.index], "exit_ts": ts[xb], "pair": pair,
                             "dir": x.direction, "strat": s + "_4h", "r": r,

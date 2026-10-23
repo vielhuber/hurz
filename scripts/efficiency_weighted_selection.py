@@ -205,6 +205,52 @@ def all_signals(frames, atr_floor, meta):
     return out
 
 
+# The bot closes a stale position 24 wall-clock hours after its order at
+# the signal bar's close, waiting through closed markets (holding_period).
+LIVE_LEASH=np.timedelta64(25,"h")
+
+
+def book_wallclock(O,H,L,C,ts,e,d,entry,stop_d,cost_r,n,leash=LIVE_LEASH):
+    """`book` with the live stale exit: the open of the first bar at or after the signal bar's open + `leash`."""
+    sl=entry-d*stop_d; tp=entry+d*RR*stop_d
+    deadline=ts[e]+leash
+    for b in range(e+1,n):
+        if ts[b]>=deadline:
+            return (float(O[b])-entry)*d/stop_d-cost_r, b
+        gap=(O[b]-entry)*d
+        if gap<=-stop_d: return gap/stop_d-cost_r, b
+        adverse=L[b] if d==1 else H[b]; favor=H[b] if d==1 else L[b]
+        if (d==1 and adverse<=sl) or (d==-1 and adverse>=sl): return -1.0-cost_r, b
+        if (d==1 and favor>=tp) or (d==-1 and favor<=tp): return RR-cost_r, b
+    return None, None
+
+
+def wallclock_signals(frames, atr_floor, meta, book=book_wallclock):
+    """`all_signals` booked with the live wall-clock leash: what the bot trades.
+
+    The selector ranks on its own backtest, which counts bars, so the
+    ranking window keeps reading `all_signals`."""
+    out=[]
+    for pair, df in frames.items():
+        n=len(df); ts=df["timestamp"].values
+        O=df["open"].values; H=df["high"].values; L=df["low"].values; C=df["close"].values
+        for s in STRATS:
+            for x in get_strategy(s)(df,{}):
+                if gate(s,df,x.index).blocked: continue
+                if direction_blocked(pair,x.direction): continue
+                terms=trade_terms(df,x.index,pair,meta,atr_floor)
+                if terms is None: continue
+                entry,stop_d,cost_r,risk_usd=terms
+                r,xb=book(O,H,L,C,ts,x.index,x.direction,entry,stop_d,cost_r,n)
+                if r is None: continue
+                if CHARGE_FINANCING:
+                    r-=night_charge(pair,x.direction,entry,stop_d)*rollovers(ts[x.index]+HOUR,ts[xb]+HOUR)
+                out.append({"ts":ts[x.index],"exit_ts":ts[xb],"pair":pair,"dir":x.direction,
+                            "strat":s,"r":r,"usd":r*risk_usd,"risk":risk_usd})
+    out.sort(key=lambda z: z["ts"])
+    return out
+
+
 def rank(window, weighted):
     """Top-N combinations by the live composite score, optionally in USD.
 

@@ -34,19 +34,21 @@ new order.
 - Risk per trade 3 USD target, stop at least 3 ATR and the venue
   minimum, cost ceiling 10 % of risk, at most 8 open positions, three per
   cluster and direction, one per instrument, 24-hour wall-clock stale
-  exit (4h strategies: 24 four-hour bars).
+  exit (4h strategies: 96 hours), waiting through closed markets.
 
 ## Reference (research data, not an untouched test)
 
-Canonical since 2026-10-23 (section 439): section 401's book with the 4h
-pins priced by the live entry rule, on the bar cache of 2026-10-12, OOS
-2020-09-23 to 2026-09-20 (2,188 calendar days), weekly re-ranking: 383
-closes, +73.7940 USD, +0.033727 USD/day, daily SD 0.8134, worst day
--5.1024 (momentum 320 closes +85.15 USD, 4h pins 63 closes -11.35 USD).
-Reproduced by `scripts/momentum_two_year_ranking.py` (the 730-day arm).
-The previous figure (+0.017465 USD/day, 587 closes) booked 4h signals the
-bot refuses. This history has been searched over 430 times; it is
-research data.
+Canonical since 2026-10-23 (sections 439, 440): section 401's book with
+the bot's 4h entry rule (refused under 3 ATR) and the bot's wall-clock
+stale exits (hourly 24 h, 4h pins 96 h after the order; the ranking still
+reads bar-booked signals, as the selector's backtest does), on the bar
+cache of 2026-10-12, OOS 2020-09-23 to 2026-09-20 (2,188 calendar days),
+weekly re-ranking: 388 closes, +97.1406 USD, +0.044397 USD/day, daily SD
+0.7678, worst day -5.1024 (momentum 323 closes +106.76 USD, 4h pins 65
+closes -9.62 USD). Reproduced by `scripts/momentum_two_year_ranking.py`
+(the 730-day arm). Earlier figures: +0.017465 USD/day (section 401, 4h
+stops at the floor, bar leashes), +0.033727 (section 439). This history
+has been searched over 430 times; it is research data.
 
 ## Journal (realised USD, opening balance of 2026-10-22, section 438)
 
@@ -78,7 +80,7 @@ units) and is superseded.
 |---|---|---|---|
 | strategy veto units | quote currency summed across instruments | follows the bot | fixed 2026-10-22 (section 437) |
 | 4h signal below the 3-ATR floor | refused | stop set to the floor | fixed 2026-10-23 (section 439) |
-| stale exit | 24 wall-clock hours | 24 bars | open (section 424: wall clock +0.0098 USD/day) |
+| stale exit | 24 wall-clock hours (4h: 96) | 24 bars | fixed 2026-10-23 (section 440) |
 | indicator warm-up | selector warm-up | cache warm-up | open (sections 404, 406) |
 | selection rhythm | nightly | weekly | open |
 | financing | broker SWAP | modelled per night | open (section 337) |

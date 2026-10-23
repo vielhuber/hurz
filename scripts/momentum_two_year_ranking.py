@@ -68,6 +68,7 @@ async def main():
         pin_order = [(row["strategy"], row["pair"]) for row in json.load(handle)["combos"]]
     floor = _min_stop_atr_multiple()
     hourly = ews.all_signals(frames, floor, meta)
+    traded = ews.wallclock_signals(frames, floor, meta)
     extra = live_four_hour_pins(set(frames), vetoed_strategies)
     four_hour = financed(aligned(daily_signals(daily_frames({p: frames[p] for p in {k[1] for k in extra}}),
                                                meta, floor), set(extra)))
@@ -77,7 +78,7 @@ async def main():
     print(f"instruments={len(frames)} live_4h_pins={extra} OOS=[{start}, {end}) calendar_days={len(days)}")
     series = {}
     for arm, window in (("365", ews.RANK_DAYS), ("730", CANDIDATE_DAYS)):
-        closed = [t for t in ranked_replay(window, hourly, hourly, four_hour, pins, reserved, pin_order, days, extra)
+        closed = [t for t in ranked_replay(window, hourly, traded, four_hour, pins, reserved, pin_order, days, extra)
                   if np.datetime64(t["exit_ts"], "D") < end]
         series[arm] = daily_series(closed, days)
         momentum = [t for t in closed if t["strat"] == "momentum"]

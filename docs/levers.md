@@ -36,7 +36,8 @@ Phase 1, in order (due dates are the checkpoints):
    2026-10-24, when the markets are shut and the bot is idle.
 4. By 2026-11-05: decision-level parity in one canonical reference, one
    step each: 4h signals under the 3-ATR floor refused as live (done
-   2026-10-23, section 439); the wall-clock stale exit; the selector's indicator warm-up; the nightly
+   2026-10-23, section 439); the wall-clock stale exit (done 2026-10-23,
+   section 440); the selector's indicator warm-up; the nightly
    selection rhythm; then pins, reservations, sizes, limits, financing
    and spread re-checked. Research stays isolated from runtime data and
    the active list.
@@ -11105,3 +11106,31 @@ USD/day) no longer describe the traded book.
 - **Evidence:** reference rerun; 4h, ledger, dashboard and check suites
   pass (49 tests); `half_risk_four_hour_pins` now sizes through the
   shared live pricing. Bot not restarted (replay code only). Section 439.
+
+## 2026-10-23 (morning) — repair: the replay's stale exits on the wall clock (probation, phase 1)
+
+- **Type:** repair, not a lever.
+- **Operation:** one watchdog/bot (522543/522547), runtime checkout clean
+  on `origin/main` (bd22d1b), evaluations failing 0, no HTTP 429; open:
+  NZDUSD donchian_breakout_4h long.
+- **Deviation:** the bot closes a stale position 24 wall-clock hours
+  after its order (4h strategies 96 hours), waiting through closed
+  markets; the replay counted 24 bars, which over a weekend means a later
+  exit (US30 short of 2026-10-16: bot Sunday 22:00 UTC, replay Monday).
+- **Repair:** `ews.book_wallclock` / `ews.wallclock_signals` (section 424's
+  measured leash, moved into the shared module) book the trades the
+  replay takes; the ranking keeps the bar-booked signals as the selector's
+  backtest does. `four_hour_stream.daily_signals` books the 4h pins with a
+  leash of `HOLD + 1` four-hour bars of wall clock from the signal bar;
+  its bar-count `book` is removed.
+- **Impact:** reference from 383 closes, +73.7940 USD, +0.033727 USD/day
+  (daily SD 0.8134, worst day -5.1024) to 388 closes, +97.1406 USD,
+  +0.044397 USD/day (daily SD 0.7678, worst day -5.1024); momentum 320
+  closes +85.15 -> 323 closes +106.76 USD; 4h pins 63 closes -11.35 ->
+  65 closes -9.62 USD. A correction of what the reference measures; the
+  bot already exits this way. Tolerance: a 4h exit at a bar's open is
+  timed at that bar's last hour (up to 3 h late for occupancy and the
+  rollover count).
+- **Evidence:** reference rerun; new leash tests (24 h, weekend reopen),
+  4h and replay suites pass (55 tests); the 4h leash test now expects the
+  wall-clock exit. Bot not restarted (replay code only). Section 440.

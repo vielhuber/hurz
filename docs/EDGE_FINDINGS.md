@@ -15373,3 +15373,29 @@ live-rule arm of section 411 exactly. The 4h pins keep 63 of 268 closes
 measures; the bot already traded under this rule. Open: the replay's own
 signals for 2026-10-01 to 2026-10-22, which need bars after the cache's
 end.
+
+## 440. The replay's stale exits on the wall clock
+
+Repair, not a lever. The bot closes a stale position 24 wall-clock hours
+after its order at the signal bar's close (4h strategies: 96 hours),
+suspended while the market is shut and executed at the reopen; the
+replay counted 24 bars. Section 424 measured the hourly wall-clock leash
+(+0.0098 USD/day, |t| 1.48) and kept bars as the conservative reference;
+under the probation order the deviation is corrected instead.
+`ews.book_wallclock` closes at the open of the first bar at or after the
+signal bar's open + 25 h (4h: + 4 x (HOLD + 1) h = 100 h); `ews.
+wallclock_signals` books the trades the replay takes, while the ranking
+window keeps reading the bar-booked `all_signals`, as the selector's own
+backtest does. `four_hour_stream.daily_signals` uses the same leash.
+
+| reference | closes | momentum | 4h pins | USD | USD/calendar day | daily SD | worst day |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| section 439 (bar leashes) | 383 | 320 (+85.15) | 63 (-11.35) | +73.7940 | +0.033727 | 0.8134 | -5.1024 |
+| wall-clock leashes | 388 | 323 (+106.76) | 65 (-9.62) | +97.1406 | +0.044397 | 0.7678 | -5.1024 |
+
+By sample from the newest: +0.146864, +0.038535, +0.013031, +0.016231
+USD/day. OOS 2020-09-23 to 2026-09-20, bar cache of 2026-10-12. Known
+tolerance: a 4h exit at a bar's open carries that bar's last-hour
+timestamp after alignment, up to three hours late for occupancy and the
+rollover count. This corrects what the reference measures; the bot is
+unchanged.
