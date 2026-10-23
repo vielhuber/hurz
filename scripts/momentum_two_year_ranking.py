@@ -37,18 +37,18 @@ from scripts.additional_indices import frames_for
 from scripts.four_hour_pin_calibration import aligned, live_four_hour_pins
 from scripts.four_hour_pins_reference import financed
 from scripts.four_hour_stream import daily_frames, daily_signals
-from scripts.momentum_ranked_wider import replay
+from scripts.momentum_ranked_wider import cold_start, replay
 from scripts.rank_holding_time import daily_series
 
 CANDIDATE_DAYS = 730
 
 
-def ranked_replay(window_days, *args):
+def ranked_replay(window_days, *args, **kwargs):
     """`momentum_ranked_wider.replay` with the ranking window set to `window_days`."""
     original = ews.RANK_DAYS
     ews.RANK_DAYS = window_days
     try:
-        return replay(*args)
+        return replay(*args, **kwargs)
     finally:
         ews.RANK_DAYS = original
 
@@ -69,6 +69,10 @@ async def main():
     floor = _min_stop_atr_multiple()
     hourly = ews.all_signals(frames, floor, meta)
     traded = ews.wallclock_signals(frames, floor, meta)
+    ranked = [s for s in ews.STRATS if s not in vetoed_strategies]
+
+    def cold(start, cut):
+        return cold_start(frames, start, cut, floor, meta, ranked)
     extra = live_four_hour_pins(set(frames), vetoed_strategies)
     four_hour = financed(aligned(daily_signals(daily_frames({p: frames[p] for p in {k[1] for k in extra}}),
                                                meta, floor), set(extra)))
@@ -78,7 +82,8 @@ async def main():
     print(f"instruments={len(frames)} live_4h_pins={extra} OOS=[{start}, {end}) calendar_days={len(days)}")
     series = {}
     for arm, window in (("365", ews.RANK_DAYS), ("730", CANDIDATE_DAYS)):
-        closed = [t for t in ranked_replay(window, hourly, traded, four_hour, pins, reserved, pin_order, days, extra)
+        closed = [t for t in ranked_replay(window, hourly, traded, four_hour, pins, reserved, pin_order, days, extra,
+                                           cold=cold)
                   if np.datetime64(t["exit_ts"], "D") < end]
         series[arm] = daily_series(closed, days)
         momentum = [t for t in closed if t["strat"] == "momentum"]

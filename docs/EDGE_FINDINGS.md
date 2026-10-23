@@ -15399,3 +15399,29 @@ tolerance: a 4h exit at a bar's open carries that bar's last-hour
 timestamp after alignment, up to three hours late for occupancy and the
 rollover count. This corrects what the reference measures; the bot is
 unchanged.
+
+## 441. The replay ranks on the selector's cold-started indicators
+
+Repair, not a lever. The live selector computes ADX and the EMAs on its
+730-day ranking window alone (section 404); section 406 measured that
+cold start on the book and kept the warm replay as a conservative
+reference (-0.0034 USD/day, |t| 2.05 the other way). Under the probation
+order the replay follows the selector instead: `momentum_ranked_wider.
+cold_start` recomputes, at each weekly cut, the trades of the window's
+first 500 bars per instrument on indicators cold-started on the window's
+first 700 bars, for the strategies not vetoed (momentum), and
+`with_cold_start` swaps them into the ranking window. The traded signals
+are unchanged.
+
+| reference | closes | momentum | 4h pins | USD | USD/calendar day | daily SD | worst day |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| section 440 (warm ranking) | 388 | 323 (+106.76) | 65 (-9.62) | +97.1406 | +0.044397 | 0.7678 | -5.1024 |
+| cold-started ranking | 388 | 323 (+114.67) | 65 (-9.62) | +105.0435 | +0.048009 | 0.7604 | -4.7624 |
+
+By sample from the newest: +0.153555, +0.038776, +0.020271, +0.016231
+USD/day. OOS 2020-09-23 to 2026-09-20, bar cache of 2026-10-12.
+Tolerance: the cold start is computed on 700 bars and ends after 500,
+an approximation of the selector's computation over its whole window.
+Each correction since section 437 raised the reference (+0.017465 ->
++0.048009 USD/day); that describes the bot's rules on searched history,
+not an edge. The bot is unchanged.

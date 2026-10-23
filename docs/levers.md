@@ -37,7 +37,8 @@ Phase 1, in order (due dates are the checkpoints):
 4. By 2026-11-05: decision-level parity in one canonical reference, one
    step each: 4h signals under the 3-ATR floor refused as live (done
    2026-10-23, section 439); the wall-clock stale exit (done 2026-10-23,
-   section 440); the selector's indicator warm-up; the nightly
+   section 440); the selector's indicator warm-up (done 2026-10-23,
+   section 441); the nightly
    selection rhythm; then pins, reservations, sizes, limits, financing
    and spread re-checked. Research stays isolated from runtime data and
    the active list.
@@ -11134,3 +11135,29 @@ USD/day) no longer describe the traded book.
 - **Evidence:** reference rerun; new leash tests (24 h, weekend reopen),
   4h and replay suites pass (55 tests); the 4h leash test now expects the
   wall-clock exit. Bot not restarted (replay code only). Section 440.
+
+## 2026-10-23 (afternoon) — repair: the replay ranks on the selector's cold-started indicators (probation, phase 1)
+
+- **Type:** repair, not a lever.
+- **Operation:** one watchdog/bot (522543/522547), runtime checkout clean
+  on `origin/main` (5f6a80d), evaluations failing 0, no HTTP 429; open:
+  NZDUSD donchian_breakout_4h long.
+- **Deviation:** the live selector computes ADX and EMAs on its 730-day
+  window alone, so the window's first bars rank on cold indicators
+  (section 404: FR40's winner of 2024-10-15 read ADX 51.2 cold, 30.8 warm);
+  the replay ranked on warm indicators.
+- **Repair:** `momentum_ranked_wider.cold_start` / `with_cold_start`
+  (section 406's measured procedure, moved into the shared replay): at
+  each weekly cut the trades of the window's first 500 bars per
+  instrument are replaced by those a cold start on the window's first
+  700 bars produces, for the strategies not vetoed; `replay(..., cold=)`
+  and the reference script use it.
+- **Impact:** reference from 388 closes, +97.1406 USD, +0.044397 USD/day
+  (daily SD 0.7678, worst day -5.1024) to 388 closes, +105.0435 USD,
+  +0.048009 USD/day (daily SD 0.7604, worst day -4.7624); momentum +106.76
+  -> +114.67 USD, 4h pins unchanged (-9.62). Tolerance: indicators are
+  cold-started on 700 bars and treated as warm after 500, an approximation
+  of the selector's full-window computation (section 404 reproduced its n
+  and E[R] for three instruments).
+- **Evidence:** reference rerun; new cold-start test; replay suites pass.
+  Bot not restarted (replay code only). Section 441.

@@ -35,7 +35,6 @@ os.chdir(_ROOT)
 from app.utils.singletons import database, settings
 settings.load_env()
 from app.spot_trading.autotrade import _min_stop_atr_multiple
-from app.strategies import add_indicators
 import scripts.efficiency_weighted_selection as ews
 import scripts.pin_eligibility as pe
 from scripts.additional_indices import frames_for
@@ -45,39 +44,11 @@ from scripts.cluster_rotate_worst import admit
 from scripts.four_hour_pin_calibration import aligned, live_four_hour_pins
 from scripts.four_hour_pins_reference import financed
 from scripts.four_hour_stream import daily_frames, daily_signals
+from scripts.momentum_ranked_wider import cold_start as shared_cold_start, with_cold_start
 from scripts.momentum_two_year_ranking import CANDIDATE_DAYS
 from scripts.rank_holding_time import daily_series
 
 STRATEGY = "momentum"
-COLD_BARS = 500
-SLICE_BARS = 700
-BASE_COLUMNS = ["timestamp", "open", "high", "low", "close"]
-
-
-def cold_start(frames, start, cut, floor, meta):
-    """Per instrument: the boundary of the cold span and its momentum trades."""
-    out = {}
-    for pair, frame in frames.items():
-        ts = frame["timestamp"].values
-        first = int(np.searchsorted(ts, start))
-        if first + COLD_BARS >= len(ts):
-            continue
-        part = add_indicators(frame.iloc[first:first + SLICE_BARS][BASE_COLUMNS].reset_index(drop=True))
-        boundary = ts[first + COLD_BARS]
-        trades = [t for t in ews.all_signals({pair: part}, floor, meta)
-                  if t["ts"] < boundary and t["exit_ts"] < cut]
-        out[pair] = (boundary, trades)
-    return out
-
-
-def with_cold_start(training, cold, start):
-    """`training` with each instrument's cold span replaced by its cold-started trades."""
-    kept = [t for t in training
-            if not (t["pair"] in cold and start <= t["ts"] < cold[t["pair"]][0])]
-    added = [t for _, trades in cold.values() for t in trades]
-    return sorted(kept + added, key=lambda trade: trade["ts"])
-
-
 def replay(hourly, four_hour, pins, reserved, pin_order, days, extra, cold=None):
     """`momentum_ranked_wider.replay` on 730 days, the training optionally cold-started."""
     signals = sorted(hourly + four_hour, key=lambda trade: trade["ts"])
@@ -128,7 +99,7 @@ async def main():
     swapped = []
 
     def cold(window_start, cut):
-        result = cold_start(frames, window_start, cut, floor, meta)
+        result = shared_cold_start(frames, window_start, cut, floor, meta, [STRATEGY])
         swapped.append(sum(len(trades) for _, trades in result.values()))
         return result
 

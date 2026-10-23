@@ -312,11 +312,11 @@ def _render_chart(series: list, width: int = 920, height: int = 340) -> str:
     return "".join(parts) + "".join(leg)
 
 
-# The canonical walk-forward reference (sections 439, 440: section 401's
-# book with the bot's 4h entry rule and wall-clock leashes) on the bar
-# cache of 2026-10-12:
+# The canonical walk-forward reference (sections 439-441: section 401's
+# book with the bot's 4h entry rule, wall-clock leashes and the selector's
+# cold-started ranking) on the bar cache of 2026-10-12:
 # research data searched many times, not an untouched test (docs/STATUS.md).
-_REFERENCE_USD_PER_DAY = 0.044397
+_REFERENCE_USD_PER_DAY = 0.048009
 
 
 def _cohort_row(label: str, result: dict, start: Optional[str] = None) -> str:

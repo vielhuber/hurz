@@ -34,6 +34,7 @@ from app.spot_trading.autotrade import _min_stop_atr_multiple
 import scripts.efficiency_weighted_selection as ews
 import scripts.pin_eligibility as pe
 from scripts.additional_indices import frames_for
+from app.strategies import add_indicators
 from scripts.burst_adx_priority import prioritize
 from scripts.burst_cost_priority import active_order
 from scripts.cluster_rotate_worst import admit
@@ -45,19 +46,60 @@ from scripts.rank_holding_time import daily_series
 
 STRATEGY = "momentum"
 RANKING_FLOOR = 25.0
+# The live selector computes ADX and EMAs on its ranking window alone
+# (EDGE_FINDINGS 404, 441): trades in a window's first COLD_BARS bars are
+# ranked as a cold start produces them, from the window's first SLICE_BARS.
+COLD_BARS = 500
+SLICE_BARS = 700
+BASE_COLUMNS = ["timestamp", "open", "high", "low", "close"]
 
 
-def replay(ranking, traded, four_hour, pins, reserved, pin_order, days, extra):
-    """`four_hour_pin_calibration.replay` with the weekly list ranked on `ranking`."""
+def cold_start(frames, start, cut, floor, meta, strategies):
+    """Per instrument: the end of the window's cold span and the trades `strategies` book in it."""
+    out = {}
+    saved = ews.STRATS
+    ews.STRATS = list(strategies)
+    try:
+        for pair, frame in frames.items():
+            ts = frame["timestamp"].values
+            first = int(np.searchsorted(ts, start))
+            if first + COLD_BARS >= len(ts):
+                continue
+            part = add_indicators(frame.iloc[first:first + SLICE_BARS][BASE_COLUMNS].reset_index(drop=True))
+            boundary = ts[first + COLD_BARS]
+            trades = [t for t in ews.all_signals({pair: part}, floor, meta)
+                      if t["ts"] < boundary and t["exit_ts"] < cut]
+            out[pair] = (boundary, trades)
+    finally:
+        ews.STRATS = saved
+    return out
+
+
+def with_cold_start(training, cold, start):
+    """`training` with each instrument's cold span replaced by its cold-started trades."""
+    kept = [t for t in training
+            if not (t["pair"] in cold and start <= t["ts"] < cold[t["pair"]][0])]
+    added = [t for _, trades in cold.values() for t in trades]
+    return sorted(kept + added, key=lambda trade: trade["ts"])
+
+
+def replay(ranking, traded, four_hour, pins, reserved, pin_order, days, extra, cold=None):
+    """`four_hour_pin_calibration.replay` with the weekly list ranked on `ranking`.
+
+    `cold(start, cut)` returns `cold_start` for a window, to rank as the
+    live selector does; without it the ranking reads warm indicators."""
     signals = sorted(traded + four_hour, key=lambda trade: trade["ts"])
     timestamps = np.array([trade["ts"] for trade in signals])
     ranking_ts = np.array([trade["ts"] for trade in ranking])
     booked, state, cut = [], {"open": {}, "pair": {}}, days[0]
     while cut < days[-1] + np.timedelta64(1, "D"):
         following = cut + np.timedelta64(7, "D")
-        low = int(np.searchsorted(ranking_ts, cut - np.timedelta64(ews.RANK_DAYS, "D")))
+        start = cut - np.timedelta64(ews.RANK_DAYS, "D")
+        low = int(np.searchsorted(ranking_ts, start))
         high = int(np.searchsorted(ranking_ts, cut))
         training = [trade for trade in ranking[low:high] if trade["exit_ts"] < cut]
+        if cold is not None:
+            training = with_cold_start(training, cold(start, cut), start)
         order = active_order(training, pins, reserved, pin_order)
         for key in extra:
             order.setdefault(key, len(order))

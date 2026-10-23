@@ -38,17 +38,20 @@ new order.
 
 ## Reference (research data, not an untouched test)
 
-Canonical since 2026-10-23 (sections 439, 440): section 401's book with
-the bot's 4h entry rule (refused under 3 ATR) and the bot's wall-clock
-stale exits (hourly 24 h, 4h pins 96 h after the order; the ranking still
-reads bar-booked signals, as the selector's backtest does), on the bar
-cache of 2026-10-12, OOS 2020-09-23 to 2026-09-20 (2,188 calendar days),
-weekly re-ranking: 388 closes, +97.1406 USD, +0.044397 USD/day, daily SD
-0.7678, worst day -5.1024 (momentum 323 closes +106.76 USD, 4h pins 65
+Canonical since 2026-10-23 (sections 439-441): section 401's book with
+the bot's 4h entry rule (refused under 3 ATR), the bot's wall-clock stale
+exits (hourly 24 h, 4h pins 96 h after the order) and the selector's
+ranking (bar-booked trades, indicators cold-started on the ranking
+window as the live selector computes them), on the bar cache of
+2026-10-12, OOS 2020-09-23 to 2026-09-20 (2,188 calendar days), weekly
+re-ranking: 388 closes, +105.0435 USD, +0.048009 USD/day, daily SD
+0.7604, worst day -4.7624 (momentum 323 closes +114.67 USD, 4h pins 65
 closes -9.62 USD). Reproduced by `scripts/momentum_two_year_ranking.py`
-(the 730-day arm). Earlier figures: +0.017465 USD/day (section 401, 4h
-stops at the floor, bar leashes), +0.033727 (section 439). This history
-has been searched over 430 times; it is research data.
+(the 730-day arm). Earlier figures: +0.017465 USD/day (section 401),
++0.033727 (439), +0.044397 (440). Each correction so far raised the
+figure; that is what the bot's rules give on this history, not evidence
+of an edge. This history has been searched over 430 times; it is
+research data.
 
 ## Journal (realised USD, opening balance of 2026-10-22, section 438)
 
@@ -81,7 +84,7 @@ units) and is superseded.
 | strategy veto units | quote currency summed across instruments | follows the bot | fixed 2026-10-22 (section 437) |
 | 4h signal below the 3-ATR floor | refused | stop set to the floor | fixed 2026-10-23 (section 439) |
 | stale exit | 24 wall-clock hours (4h: 96) | 24 bars | fixed 2026-10-23 (section 440) |
-| indicator warm-up | selector warm-up | cache warm-up | open (sections 404, 406) |
+| indicator warm-up | selector cold-starts on its window | cache warm-up | fixed 2026-10-23 (section 441) |
 | selection rhythm | nightly | weekly | open |
 | financing | broker SWAP | modelled per night | open (section 337) |
 | journal vs dashboard totals | — | — | fixed 2026-10-22 (section 438) |
