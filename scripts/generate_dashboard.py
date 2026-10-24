@@ -361,7 +361,8 @@ def _broker_rows(broker: list) -> str:
                 f'Swap {_fmt_money(parts["SWAP"])} · Sonstiges {_fmt_money(other)})</span>'
                 f'<b class="{_money_class(total)}">{_fmt_money(total)}</b></div>')
     since = [row for row in broker if str(row["date_utc"]) >= VETO_REGIME_FROM]
-    return (line("Broker-Konto seit 01.10.", since) + line("Broker-Konto seit 08.05.", broker)
+    return (line("Broker-Buchungen seit 01.10. (auch ältere Positionen)", since)
+            + line("Broker-Konto seit 08.05.", broker)
             + f'<div class="sub">Broker-Buchungen bis {str(broker[-1]["date_utc"])[:16]} UTC, EUR zu 1,14866</div>')
 
 

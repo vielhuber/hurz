@@ -79,8 +79,12 @@ Broker account against the journal (2026-10-24, section 444; EUR at
 actions -0.28 USD, whole account -526.36 USD against the journal's
 -458.96. Current bot: journal +1.37, broker TRADE +1.32, SWAP 0.00 USD
 (5 entries) — in line. The history differs by up to 41 USD per cohort and
-is not reworked. The dashboard does not show the broker side yet; the bot
-does not import SWAP entries (open).
+is not reworked. Since 2026-10-24 the scheduler imports the account's
+transactions nightly into `broker_transactions` (first import: 1,122
+entries, TRADE -439.78 EUR, SWAP -18.21 EUR, corporate actions -0.24
+EUR); the dashboard shows them beside the journal (section 447). Booked
+since 2026-10-01 02:02 UTC: TRADE +2.07 EUR over 6 closes (3 of them
+turtle positions opened before), SWAP -0.06 EUR over 8 entries.
 
 Open: NZDUSD donchian_breakout_4h long since 2026-10-21 20:00 UTC. The figure -196.67 USD given
 earlier on 2026-10-22 read `realized_pnl` as booked (signal price, quote
@@ -95,7 +99,7 @@ units) and is superseded.
 | stale exit | 24 wall-clock hours (4h: 96) | 24 bars | fixed 2026-10-23 (section 440) |
 | indicator warm-up | selector cold-starts on its window | cache warm-up | fixed 2026-10-23 (section 441) |
 | selection rhythm | nightly, list lands ~06:05 UTC | weekly | fixed 2026-10-23/24 (sections 442, 445) |
-| financing | broker SWAP | modelled per night | current bot 0.00 USD over 5 entries (section 444); model check open (section 337) |
+| financing | broker SWAP, imported nightly (section 447) | modelled per night | current bot 0.00 USD over 5 entries (section 444); model check open (section 337) |
 | journal vs dashboard totals | — | — | fixed 2026-10-22 (section 438) |
 | 4h bars | broker 4h bars | hourly bars resampled (ATR 0-2.5 % low) | fixed 2026-10-24: native 4h bars (section 446) |
 | list history | overwritten nightly | — | archived since 2026-10-24 (section 443) |

@@ -34,8 +34,8 @@ Phase 1, in order (due dates are the checkpoints):
    signal (section 443: 50 of 53 the same, 1 within tolerance); broker
    account movements and SWAP against the journal and native against
    resampled 4h bars (section 444, 2026-10-24); the replay's 4h pins on
-   native 4h bars (section 446, 2026-10-24). Open for 2026-10-29: the
-   broker side on the dashboard.
+   native 4h bars (section 446, 2026-10-24); broker transactions imported
+   nightly and shown on the dashboard (section 447, 2026-10-24).
 4. By 2026-11-05: decision-level parity in one canonical reference, one
    step each: 4h signals under the 3-ATR floor refused as live (done
    2026-10-23, section 439); the wall-clock stale exit (done 2026-10-23,
@@ -44,7 +44,10 @@ Phase 1, in order (due dates are the checkpoints):
    selection rhythm; then pins, reservations, sizes, limits, financing
    and spread re-checked. Research stays isolated from runtime data and
    the active list.
-5. 2026-11-05: measurement base accepted or "not accepted"; freeze the
+5. 2026-10-29: parity status and opening balance for the checkpoint;
+   remaining open: the replay's financing model against the imported SWAP
+   entries, three unexplained signals without a bot log (section 443).
+6. 2026-11-05: measurement base accepted or "not accepted"; freeze the
    corrected reference (cost model, data state) before any phase-2 work.
 
 Alpha research of the last five runs before the probation (compact):
@@ -11256,3 +11259,20 @@ USD/day) no longer describe the traded book.
   closes -11.49 USD; momentum 321 closes +109.13 -> 323 closes +108.39.
 - **Evidence:** reference rerun; native-frame test; 4h suites pass.
   Bot not restarted (replay code only). Section 446.
+
+## 2026-10-24 (evening) — repair: broker transactions imported nightly and shown (probation, phase 1)
+
+- **Type:** repair (measurement infrastructure), not a lever; no trading
+  effect.
+- **Change:** table `broker_transactions`; `scripts/import_broker_
+  transactions.py` (own session, from a day before the newest entry,
+  capped pages halved, duplicates ignored); the scheduler runs it after
+  the nightly refresh; the dashboard shows trades, swap and the rest since
+  2026-10-01 and since 2026-05-08 beside the journal; `broker_ledger`
+  shares the fetch.
+- **Evidence:** first import 1,122 entries (40 corporate actions, 503
+  SWAP, 579 TRADE), the same count as the research fetch of section 444;
+  import, page-splitting, dashboard and schema tests pass (30 tests). Bot
+  restarted for the scheduler change (1833144/1833152), one instance,
+  evaluations failing 0; the import session raised no bot error.
+  Section 447.

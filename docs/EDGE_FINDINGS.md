@@ -15562,3 +15562,19 @@ them where the hourly cache ends. The reference books the pins on them.
 
 By sample from the newest: +0.151251, +0.036752, +0.013785, +0.013226
 USD/day. OOS 2020-09-23 to 2026-09-20. The bot is unchanged.
+
+## 447. Broker transactions imported nightly
+
+Repair (measurement infrastructure), not a lever. The journal holds
+neither financing nor corporate actions. `scripts/import_broker_
+transactions.py` stores the account's transactions in `broker_
+transactions` (fetched from a day before the newest stored entry, pages
+the endpoint caps at 100 fetched again in halves, duplicates ignored by a
+unique key); the scheduler runs it after the nightly list refresh in its
+own session, as it runs the backtests. First import on 2026-10-24 21:0x
+UTC: 1,122 entries — 579 TRADE (-439.78 EUR), 503 SWAP (-18.21 EUR), 40
+CORPORATE_ACTION (-0.24 EUR) — the same count as section 444's fetch.
+Since 2026-10-01 02:02 UTC the account booked TRADE +2.07 EUR over 6
+closes (three of them turtle positions opened on 2026-09-30) and SWAP
+-0.06 EUR over 8 entries. The dashboard lists trades, swap and the rest
+beside the journal, EUR at the ledger's fixed 1.14866.
