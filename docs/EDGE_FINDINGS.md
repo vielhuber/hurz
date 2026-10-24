@@ -15447,3 +15447,43 @@ models the bot's entry rule, leash, selector warm-up and rhythm; still
 open are financing against the broker's SWAP entries and the case check
 of the replay's own signals for 2026-10-01 to 2026-10-22. The bot is
 unchanged.
+
+## 443. The replay's decisions against the bot's, signal by signal
+
+Check, not a lever. `scripts/replay_signal_case_check.py` extended the bar
+cache past 2026-09-20 for the twelve instruments the bot's combinations
+trade (one paced session on Saturday 2026-10-24 02:15 UTC, markets shut;
+the bot's log shows no error, 401 or 429 during or after it; bars to
+2026-10-23 20:00 UTC, ETHUSD to 2026-10-24 02:00) into the isolated
+`HURZ_EXTENDED_CACHE`, and let the replay's rules decide every signal of
+the journal's combinations plus today's list on bars from 2026-10-01
+03:00 to 2026-10-22 08:00 UTC. Tolerances fixed in advance: a decision
+that differs only with the ADX within 1.0 of the gate (the bot computes
+it on its last 240 bars) is explained; entry within 0.05 % of the
+journal's signal price.
+
+| result | n |
+|---|---:|
+| journal signals in the window | 53 |
+| replay signals in the window | 71 |
+| same decision and price | 50 |
+| explained by the ADX tolerance (CHFJPY 4h, 2026-10-02 00:00: 28.6 live, 30.3 replay) | 1 |
+| differing decision (NZDUSD 4h, 2026-10-01 04:00: bot refused at the 3-ATR floor, replay enters at the same price) | 1 |
+| replay only | 19 |
+| journal only (US100 momentum, 2026-10-20 17:00, ADX refusal) | 1 |
+
+Of the 19 replay-only signals 17 are ADX refusals and 2 floor or cost
+refusals, so none would have traded. 13 fall before the two-year list of
+2026-10-13 on combinations with no journal row in that period (US100,
+DE40, EU50, FR40, UK100), and FR40's two of 2026-10-20 and 2026-10-22
+fall after FR40 left the list on 2026-10-18; whether the combinations
+were listed is not recorded, so these stay attributed to list membership,
+not verified. Unexplained and open: NZDUSD 4h of 2026-10-01 04:00 (the
+bot's 4h ATR comes from broker 4h bars, the replay's from hourly bars
+resampled — not compared yet), ETHUSD momentum of 2026-10-12 17:00 and
+FR40 of 2026-10-13 07:00 and 2026-10-16 19:00 (no journal row; the
+bot's log of those days is gone), US100 of 2026-10-20 17:00 (journal
+only). No difference among the 53 changes an entry the bot made; all four
+entries match. Repair from this check: the selector now archives every
+persisted list under `data/active_pairs_history/<platform>/` (section
+443), so list membership can be verified from now on.

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import json
+import os
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -14,6 +17,12 @@ class PersistWithoutRankingTest(unittest.TestCase):
     whole ranking while leaving tradeable pins. Returning early there
     froze the previous active list in place — the bot kept trading a
     stale basket no matter what the configuration said."""
+
+    def setUp(self):
+        self.history = tempfile.mkdtemp()
+        patcher = patch.object(select_pairs, "LIST_HISTORY_DIR", self.history)
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def _run(self, ranked):
         argv = [
@@ -32,6 +41,16 @@ class PersistWithoutRankingTest(unittest.TestCase):
         persist.assert_called_once()
         self.assertEqual("capital_com", persist.call_args.kwargs["platform"])
         self.assertEqual([], persist.call_args.args[0])
+
+    def test_each_persisted_list_is_archived_under_its_time(self):
+        argv = ["select_pairs.py", "--platform", "capital_com", "--top", "40"]
+        with patch.object(sys, "argv", argv), \
+                patch.object(select_pairs, "rank_pairs", return_value=[]), \
+                patch.object(select_pairs, "persist_active_pairs",
+                             return_value={"generated_at": "2026-10-24T05:31:00Z", "pairs": [{"pair": "US30"}]}):
+            select_pairs.main()
+        path = os.path.join(self.history, "capital_com", "2026-10-24T053100Z.json")
+        self.assertEqual([{"pair": "US30"}], json.load(open(path))["pairs"])
 
     def test_no_persist_flag_is_respected_when_ranking_is_empty(self):
         argv = [

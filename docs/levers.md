@@ -29,11 +29,12 @@ Phase 1, in order (due dates are the checkpoints):
    selected combinations removed (section 438). Still open for 2026-10-29:
    financing from the account's SWAP entries and the broker account
    movements against the journal.
-3. Partly done 2026-10-23: the bot's 57 decisions since 2026-10-01
-   checked against its rules with fixed tolerances (section 439). Open
-   for 2026-10-29: the replay's own signals for the same weeks, which
-   need bars after 2026-09-20 — one paced broker fetch on the weekend of
-   2026-10-24, when the markets are shut and the bot is idle.
+3. Done 2026-10-24: the bot's 57 decisions checked against its rules
+   (section 439) and the replay's decisions against the bot's, signal by
+   signal (section 443: 50 of 53 the same, 1 within tolerance). Open for
+   2026-10-29: the 4h ATR of broker 4h bars against resampled hourly bars
+   (NZDUSD 2026-10-01), the account's SWAP entries and the broker account
+   movements.
 4. By 2026-11-05: decision-level parity in one canonical reference, one
    step each: 4h signals under the 3-ATR floor refused as live (done
    2026-10-23, section 439); the wall-clock stale exit (done 2026-10-23,
@@ -11183,3 +11184,22 @@ USD/day) no longer describe the traded book.
   finish, minutes later.
 - **Evidence:** reference rerun; nightly-cut test; replay suites pass.
   Bot not restarted (replay code only). Section 442.
+
+## 2026-10-24 — check: the replay's decisions against the bot's; list archive (probation, phase 1)
+
+- **Type:** check and repair, not a lever.
+- **Operation:** one watchdog/bot (522543/522547), runtime checkout clean
+  on `origin/main` (18975a0), evaluations failing 0, no HTTP 429; open:
+  NZDUSD donchian_breakout_4h long. One paced broker session at 02:15 UTC
+  (markets shut) fetched bars for twelve instruments into the isolated
+  extended cache; the bot logged no error during or after it.
+- **Check:** `scripts/replay_signal_case_check.py`: 53 journal signals,
+  50 same decision and price, 1 within the ADX tolerance, 1 different
+  (NZDUSD 4h floor), 1 journal only; 19 replay-only refusals, 15 of them
+  attributable to list membership that was not recorded.
+- **Repair:** `scripts/select_pairs.py` archives every persisted list
+  under `data/active_pairs_history/<platform>/<generated_at>.json`; the
+  selector runs as a subprocess, so the next refresh (05:30 UTC) uses it
+  without a restart.
+- **Evidence:** decision-order test, archive test (temporary directory),
+  selector suite passes. Section 443.

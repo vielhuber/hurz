@@ -13,6 +13,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
+import json
 import os
 import sys
 
@@ -93,6 +95,11 @@ def main() -> None:
         _persist(args, scores)
 
 
+# Every persisted list is kept, so a later check can tell which
+# combinations were live on a given day (EDGE_FINDINGS 443).
+LIST_HISTORY_DIR = "data/active_pairs_history"
+
+
 def _persist(args, scores) -> None:
     """Write the active-pairs file for this run.
 
@@ -115,6 +122,11 @@ def _persist(args, scores) -> None:
         # the safe failure.
         print(f"\u26d4 {exc} \u2014 active list left unchanged")
         raise SystemExit(1)
+    stamp = payload.get("generated_at") or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    history = os.path.join(LIST_HISTORY_DIR, args.platform or "default")
+    os.makedirs(history, exist_ok=True)
+    with open(os.path.join(history, stamp.replace(":", "") + ".json"), "w") as handle:
+        json.dump(payload, handle)
     pinned_n = sum(1 for p in payload["pairs"] if p.get("pinned"))
     print()
     print(f"✓ persisted top-{args.top} to {out_path} "

@@ -88,6 +88,8 @@ units) and is superseded.
 | selection rhythm | nightly 05:30 UTC | weekly | fixed 2026-10-23 (section 442) |
 | financing | broker SWAP | modelled per night | open (section 337) |
 | journal vs dashboard totals | — | — | fixed 2026-10-22 (section 438) |
+| 4h bars | broker 4h bars | hourly bars resampled | open (section 443, NZDUSD 2026-10-01) |
+| list history | overwritten nightly | — | archived since 2026-10-24 (section 443) |
 
 ## Case check of the live decisions (2026-10-23, section 439)
 
@@ -100,9 +102,15 @@ size, stale exit and realised USD; planned risk of the US30 short of
 live quote 49 s after the cash close, not at the bar close (same size).
 One refusal reads ADX 30.0 at a floor of 30: the reason prints one
 decimal. After the restart of 2026-10-22 05:20 UTC three refusals were
-journaled twice. Open: the replay's own signals for these weeks need bars
-after 2026-09-20 (broker fetch, planned for the weekend when the bot is
-idle).
+journaled twice.
+
+Replay against bot, signal by signal (2026-10-24, section 443): of 53
+journal signals between 2026-10-01 03:00 and 2026-10-22 08:00 UTC, 50 have
+the same decision and price, 1 differs within the ADX tolerance, 1
+differs (NZDUSD 4h floor refusal the replay enters; 4h ATR source not yet
+compared) and 1 is journal-only; 19 replay-only signals are refusals,
+mostly on combinations probably not listed then. List history was not
+recorded before 2026-10-24; the selector archives every list since.
 
 ## Test suite
 
