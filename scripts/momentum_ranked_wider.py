@@ -53,10 +53,11 @@ COLD_BARS = 500
 SLICE_BARS = 700
 BASE_COLUMNS = ["timestamp", "open", "high", "low", "close"]
 WEEKLY = np.timedelta64(7, "D")
-# The bot's scheduler refreshes the list every night at 05:30 UTC
-# (EDGE_FINDINGS 442).
+# The bot's scheduler starts the nightly refresh at 05:30 UTC; the new
+# list lands when its backtests finish, about 06:05 UTC (EDGE_FINDINGS
+# 442, 445: written 06:06 on 2026-10-22, 06:04 on 2026-10-24).
 NIGHTLY = np.timedelta64(1, "D")
-NIGHTLY_REFRESH = np.timedelta64(330, "m")
+NIGHTLY_REFRESH = np.timedelta64(365, "m")
 
 
 def cold_start(frames, start, cut, floor, meta, strategies):

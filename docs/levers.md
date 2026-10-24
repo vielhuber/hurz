@@ -11221,3 +11221,17 @@ USD/day) no longer describe the traded book.
   lands at about 06:04 UTC, not 05:30 (the refresh runs ~34 minutes).
 - **Evidence:** `scripts/broker_ledger.py` with a reconciliation test
   (synthetic transactions). Section 444.
+
+## 2026-10-24 (midday) — repair: the nightly list takes effect when it lands (probation, phase 1)
+
+- **Type:** repair, not a lever.
+- **Deviation:** the scheduler starts the refresh at 05:30 UTC but the
+  list is written when its three backtests finish: 06:06:08 UTC on
+  2026-10-22, 06:04:04 UTC on 2026-10-24 (the archive's first file).
+- **Repair:** `NIGHTLY_REFRESH` 05:30 -> 06:05 UTC.
+- **Impact:** reference from 388 closes, +99.0500 USD, +0.045270 USD/day
+  (daily SD 0.7577) to 386 closes, +99.5067 USD, +0.045478 USD/day (daily
+  SD 0.7572, worst day -4.7624 unchanged); momentum 323 -> 321 closes,
+  +108.67 -> +109.13 USD. Tolerance: the landing time varies by minutes.
+- **Evidence:** reference rerun; nightly-cut test updated to 06:05.
+  Section 445.

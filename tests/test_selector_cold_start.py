@@ -35,5 +35,5 @@ class NightlyRefreshTest(unittest.TestCase):
                 patch.object(mrw, "prioritize", lambda window, order, flag: window):
             mrw.replay([], [], [], set(), set(), [], days, [],
                        cold=lambda start, cut: seen.append(cut) or {}, step=mrw.NIGHTLY, offset=mrw.NIGHTLY_REFRESH)
-        self.assertEqual([np.datetime64("2026-10-19T05:30"), np.datetime64("2026-10-20T05:30"),
-                          np.datetime64("2026-10-21T05:30")], seen)
+        self.assertEqual([np.datetime64("2026-10-19T06:05"), np.datetime64("2026-10-20T06:05"),
+                          np.datetime64("2026-10-21T06:05")], seen)

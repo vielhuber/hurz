@@ -15527,3 +15527,19 @@ further (high up to +0.00019, low down to -0.00046): the hourly bars miss
 part of the 4h range, so the resampled ATR runs 0-2.5 % low. Open: the
 replay's 4h pins on native 4h bars, which needs their history back to
 2019.
+
+## 445. The nightly list takes effect when it lands
+
+Repair, not a lever. Section 442 cut the replay's list at 05:30 UTC, when
+the scheduler starts the refresh. The list is written when the refresh's
+backtests finish: 06:06:08 UTC on 2026-10-22 (`generated_at` of the
+active list) and 06:04:04 UTC on 2026-10-24 (the first archived list).
+`NIGHTLY_REFRESH` is now 06:05 UTC.
+
+| reference | closes | momentum | USD | USD/calendar day | daily SD | worst day |
+|---|---:|---:|---:|---:|---:|---:|
+| section 442 (05:30 UTC) | 388 | 323 (+108.67) | +99.0500 | +0.045270 | 0.7577 | -4.7624 |
+| 06:05 UTC | 386 | 321 (+109.13) | +99.5067 | +0.045478 | 0.7572 | -4.7624 |
+
+By sample from the newest: +0.153417, +0.038824, +0.013785, +0.014063
+USD/day; 4h pins unchanged (65 closes, -9.62 USD). The bot is unchanged.
