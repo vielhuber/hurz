@@ -23,6 +23,7 @@ import sqlite3
 import sys
 
 import numpy as np
+import pandas as pd
 
 _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_ROOT))
@@ -36,7 +37,7 @@ import scripts.pin_eligibility as pe
 from scripts.additional_indices import frames_for
 from scripts.four_hour_pin_calibration import aligned, live_four_hour_pins
 from scripts.four_hour_pins_reference import financed
-from scripts.four_hour_stream import daily_frames, daily_signals
+from scripts.four_hour_stream import daily_signals, fetch_native_4h, native_frames
 from scripts.momentum_ranked_wider import NIGHTLY, NIGHTLY_REFRESH, cold_start, replay
 from scripts.rank_holding_time import daily_series
 
@@ -74,8 +75,12 @@ async def main():
     def cold(start, cut):
         return cold_start(frames, start, cut, floor, meta, ranked)
     extra = live_four_hour_pins(set(frames), vetoed_strategies)
-    four_hour = financed(aligned(daily_signals(daily_frames({p: frames[p] for p in {k[1] for k in extra}}),
-                                               meta, floor), set(extra)))
+    pin_pairs = sorted({k[1] for k in extra})
+    first = min(frames[p]["timestamp"].values[0] for p in pin_pairs)
+    last = max(frames[p]["timestamp"].values[-1] for p in pin_pairs) + np.timedelta64(1, "h")
+    await fetch_native_4h(pin_pairs, pd.Timestamp(first).tz_localize("UTC").to_pydatetime(),
+                          pd.Timestamp(last).tz_localize("UTC").to_pydatetime())
+    four_hour = financed(aligned(daily_signals(native_frames(pin_pairs, last), meta, floor), set(extra)))
     end = max(np.datetime64(frame["timestamp"].values[-1], "D") for frame in frames.values())
     start = np.datetime64(hourly[0]["ts"], "D") + np.timedelta64(ews.RANK_DAYS, "D")
     days = np.arange(start, end)

@@ -33,9 +33,9 @@ Phase 1, in order (due dates are the checkpoints):
    (section 439) and the replay's decisions against the bot's, signal by
    signal (section 443: 50 of 53 the same, 1 within tolerance); broker
    account movements and SWAP against the journal and native against
-   resampled 4h bars (section 444, 2026-10-24). Open for 2026-10-29: the
-   replay's 4h pins on native 4h bars (history back to 2019, fetched on
-   the weekend) and the broker side on the dashboard.
+   resampled 4h bars (section 444, 2026-10-24); the replay's 4h pins on
+   native 4h bars (section 446, 2026-10-24). Open for 2026-10-29: the
+   broker side on the dashboard.
 4. By 2026-11-05: decision-level parity in one canonical reference, one
    step each: 4h signals under the 3-ATR floor refused as live (done
    2026-10-23, section 439); the wall-clock stale exit (done 2026-10-23,
@@ -11235,3 +11235,24 @@ USD/day) no longer describe the traded book.
   +108.67 -> +109.13 USD. Tolerance: the landing time varies by minutes.
 - **Evidence:** reference rerun; nightly-cut test updated to 06:05.
   Section 445.
+
+## 2026-10-24 (afternoon) — repair: the replay's 4h pins on the broker's native 4h bars (probation, phase 1)
+
+- **Type:** repair, not a lever.
+- **Operation:** one watchdog/bot (522543/522547), runtime checkout clean
+  on `origin/main` (b53cb28), evaluations failing 0, no HTTP 429; open:
+  NZDUSD donchian_breakout_4h long. One paced broker session at 14:4x UTC
+  (markets shut) fetched the native 4h history; the bot logged no error.
+- **Deviation:** the bot evaluates the 4h pins on the broker's 4h bars;
+  the replay resampled hourly bars, whose ATR runs 0-2.5 % low (section
+  444, NZDUSD of 2026-10-01).
+- **Repair:** `four_hour_stream.fetch_native_4h` / `native_frames`
+  (broker 4h bars from 2019-09-22, 10,215-11,259 bars per pin, cached in
+  `tmp/eff_bars_4h`, cut where the hourly cache ends); the reference books
+  the pins on them.
+- **Impact:** reference from 386 closes, +99.5067 USD, +0.045478 USD/day
+  (daily SD 0.7572) to 387 closes, +96.8999 USD, +0.044287 USD/day (daily
+  SD 0.7590, worst day -4.7624 unchanged); 4h pins 65 closes -9.62 -> 64
+  closes -11.49 USD; momentum 321 closes +109.13 -> 323 closes +108.39.
+- **Evidence:** reference rerun; native-frame test; 4h suites pass.
+  Bot not restarted (replay code only). Section 446.

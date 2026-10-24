@@ -82,6 +82,42 @@ def daily_frames(frames):
     return out
 
 
+# The bot evaluates the 4h pins on the broker's own 4h bars; hourly bars
+# resampled miss part of the 4h range (EDGE_FINDINGS 444, 446).
+NATIVE_4H_CACHE = os.path.join(_ROOT, "tmp", "eff_bars_4h")
+
+
+async def fetch_native_4h(pairs, start, end):
+    """The broker's 4h bars of `pairs` into NATIVE_4H_CACHE, one paced session, missing files only."""
+    from app.platforms import get_platform
+    from app.platforms.registry import clear_cache
+    os.makedirs(NATIVE_4H_CACHE, exist_ok=True)
+    missing = [p for p in pairs if not os.path.exists(os.path.join(NATIVE_4H_CACHE, f"{p}.json"))]
+    if not missing:
+        return
+    clear_cache(); platform = get_platform(PLAT); await platform.connect()
+    try:
+        for pair in missing:
+            bars = await platform.fetch_history(pair, from_ts=start, to_ts=end, resolution="4h")
+            json.dump([[b.timestamp.isoformat(), b.open, b.high, b.low, b.close] for b in bars],
+                      open(os.path.join(NATIVE_4H_CACHE, f"{pair}.json"), "w"))
+            print(f"{pair}: {len(bars)} native 4h bars", flush=True)
+    finally:
+        await platform.disconnect()
+
+
+def native_frames(pairs, end):
+    """The broker's 4h bars of `pairs` that open before `end`, with indicators."""
+    out = {}
+    for pair in pairs:
+        rows = json.load(open(os.path.join(NATIVE_4H_CACHE, f"{pair}.json")))
+        d = pd.DataFrame(rows, columns=["timestamp", "open", "high", "low", "close"])
+        d["timestamp"] = pd.to_datetime(d["timestamp"], utc=True).dt.tz_localize(None)
+        d = d[d["timestamp"] < pd.Timestamp(end)].drop_duplicates("timestamp").reset_index(drop=True)
+        out[pair] = add_indicators(d)
+    return out
+
+
 def daily_terms(df, e, pair, meta, floor):
     """The live entry rule on a 4h bar (EDGE_FINDINGS 439): stop 2 ATR,
     widened to the venue minimum, refused below the ATR floor.

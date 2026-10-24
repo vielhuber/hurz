@@ -15543,3 +15543,22 @@ active list) and 06:04:04 UTC on 2026-10-24 (the first archived list).
 
 By sample from the newest: +0.153417, +0.038824, +0.013785, +0.014063
 USD/day; 4h pins unchanged (65 closes, -9.62 USD). The bot is unchanged.
+
+## 446. The replay's 4h pins on the broker's native 4h bars
+
+Repair, not a lever. Section 444 traced section 443's differing NZDUSD
+decision to the replay's 4h bars: resampled from hourly bars they miss
+part of the 4h range, and their ATR runs 0-2.5 % low. `four_hour_stream.
+fetch_native_4h` fetched, in one paced session on Saturday 2026-10-24
+(markets shut, no bot error), the broker's 4h bars of the five pins from
+2019-09-22 (CHFJPY 11,259, COPPER 11,179, HK50 10,215, NZDUSD 11,253,
+SILVER 11,182 bars), cached in `tmp/eff_bars_4h`; `native_frames` cuts
+them where the hourly cache ends. The reference books the pins on them.
+
+| reference | closes | momentum | 4h pins | USD | USD/calendar day | daily SD | worst day |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| section 445 (resampled 4h) | 386 | 321 (+109.13) | 65 (-9.62) | +99.5067 | +0.045478 | 0.7572 | -4.7624 |
+| native 4h | 387 | 323 (+108.39) | 64 (-11.49) | +96.8999 | +0.044287 | 0.7590 | -4.7624 |
+
+By sample from the newest: +0.151251, +0.036752, +0.013785, +0.013226
+USD/day. OOS 2020-09-23 to 2026-09-20. The bot is unchanged.

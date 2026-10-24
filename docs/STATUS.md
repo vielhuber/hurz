@@ -39,21 +39,22 @@ new order.
 
 ## Reference (research data, not an untouched test)
 
-Canonical since 2026-10-24 (sections 439-442, 445): section 401's book
-with the bot's 4h entry rule (refused under 3 ATR), the bot's wall-clock
-stale exits (hourly 24 h, 4h pins 96 h after the order) and the selector's
-ranking (bar-booked trades, indicators cold-started on the ranking
-window, re-ranked every night, effective 06:05 UTC when the scheduler's
-refresh lands), on the bar cache of 2026-10-12, OOS 2020-09-23 to
-2026-09-20 (2,188 calendar days): 386 closes, +99.5067 USD, +0.045478
-USD/day, daily SD 0.7572, worst day -4.7624 (momentum 321 closes +109.13
-USD, 4h pins 65 closes -9.62 USD). Reproduced by
+Canonical since 2026-10-24 (sections 439-442, 445, 446): section 401's
+book with the bot's 4h entry rule (refused under 3 ATR) on the broker's
+native 4h bars, the bot's wall-clock stale exits (hourly 24 h, 4h pins
+96 h after the order) and the selector's ranking (bar-booked trades,
+indicators cold-started on the ranking window, re-ranked every night,
+effective 06:05 UTC when the scheduler's refresh lands), on the bar cache
+of 2026-10-12 (hourly) and the native 4h bars fetched 2026-10-24, OOS
+2020-09-23 to 2026-09-20 (2,188 calendar days): 387 closes, +96.8999
+USD, +0.044287 USD/day, daily SD 0.7590, worst day -4.7624 (momentum 323
+closes +108.39 USD, 4h pins 64 closes -11.49 USD). Reproduced by
 `scripts/momentum_two_year_ranking.py` (the 730-day arm). Earlier
 figures: +0.017465 USD/day (section 401), +0.033727 (439), +0.044397
-(440), +0.048009 (441), +0.045270 (442). Not modelled yet: 4h pins on
-the broker's native 4h bars (section 444). These corrections describe the
-bot's rules on searched history, not evidence of an edge. This history
-has been searched over 430 times; it is research data.
+(440), +0.048009 (441), +0.045270 (442), +0.045478 (445). These
+corrections describe the bot's rules on searched history, not evidence of
+an edge. This history has been searched over 430 times; it is research
+data.
 
 ## Journal (realised USD, opening balance of 2026-10-22, section 438)
 
@@ -96,7 +97,7 @@ units) and is superseded.
 | selection rhythm | nightly, list lands ~06:05 UTC | weekly | fixed 2026-10-23/24 (sections 442, 445) |
 | financing | broker SWAP | modelled per night | current bot 0.00 USD over 5 entries (section 444); model check open (section 337) |
 | journal vs dashboard totals | — | — | fixed 2026-10-22 (section 438) |
-| 4h bars | broker 4h bars | hourly bars resampled (ATR 0-2.5 % low) | explained (section 444); native 4h history for the replay open |
+| 4h bars | broker 4h bars | hourly bars resampled (ATR 0-2.5 % low) | fixed 2026-10-24: native 4h bars (section 446) |
 | list history | overwritten nightly | — | archived since 2026-10-24 (section 443) |
 
 ## Case check of the live decisions (2026-10-23, section 439)
