@@ -178,6 +178,22 @@ class Database:
                     signal_confidence REAL
                 )
             """,
+            # The broker account's own movements, imported nightly by
+            # scripts/import_broker_transactions.py: trades, financing
+            # (SWAP) and corporate actions in the account currency.
+            "broker_transactions": """
+                CREATE TABLE IF NOT EXISTS broker_transactions (
+                    platform TEXT NOT NULL,
+                    date_utc TIMESTAMP NOT NULL,
+                    transaction_type TEXT NOT NULL,
+                    instrument TEXT NOT NULL DEFAULT '',
+                    amount REAL NOT NULL,
+                    currency TEXT,
+                    reference TEXT NOT NULL DEFAULT '',
+                    note TEXT,
+                    UNIQUE (platform, date_utc, transaction_type, instrument, reference, amount)
+                )
+            """,
         }
         indexes = (
             "CREATE INDEX IF NOT EXISTS idx_trading_data_platform_asset_timestamp "

@@ -49,7 +49,7 @@ _PNL = ("(CASE WHEN exit_time >= '" + _USD_BOOKING_FROM + "' "
         "THEN (exit_price - fill_price) * direction * size "
         "ELSE realized_pnl END)")
 from app.spot_trading.journal_ledger import (
-    PROBATION_FROM, TWO_YEAR_RANKING_FROM, VETO_REGIME_FROM, balance, ledger,
+    FIXED_USD_PER_QUOTE, PROBATION_FROM, TWO_YEAR_RANKING_FROM, VETO_REGIME_FROM, balance, ledger,
 )
 from app.spot_trading.holding_period import stale_exit_after_seconds
 
@@ -132,6 +132,13 @@ def _fetch(days) -> dict:
     cur = conn.cursor()
     try:
         rows = ledger(conn)
+        try:
+            broker = _rows(cur, """
+                SELECT date_utc, transaction_type, amount, currency FROM broker_transactions
+                WHERE platform = 'capital_com' ORDER BY date_utc
+            """)
+        except sqlite3.OperationalError:
+            broker = []
         open_pos = _rows(cur, """
             SELECT platform, pair, strategy, direction, entry_price, created_at
             FROM spot_trades
@@ -159,7 +166,7 @@ def _fetch(days) -> dict:
         if cutoff is not None and exit_time.replace(tzinfo=timezone.utc).timestamp() < cutoff:
             continue
         closed.append({"platform": row["platform"], "exit_time": exit_time, "realized_pnl": row["usd"]})
-    return {"closed": closed, "ledger": rows, "open": open_pos, "recent": recent,
+    return {"closed": closed, "ledger": rows, "broker": broker, "open": open_pos, "recent": recent,
             "by_strategy": _by_strategy(capital), "by_combo": _by_combo(capital)}
 
 
@@ -333,7 +340,32 @@ def _cohort_row(label: str, result: dict, start: Optional[str] = None) -> str:
     return (f'<div class="row"><span>{label} ({closes} Trades{rate})</span>{value}</div>')
 
 
-def _render_cards(rows: list, open_pos: list) -> str:
+def _broker_rows(broker: list) -> str:
+    """The account's own movements: trades, financing and the rest, since the current bot and in total."""
+    if not broker:
+        return '<div class="row"><span>Broker-Konto</span><b class="dim">noch keine Buchungen importiert</b></div>'
+
+    def usd(row):
+        return float(row["amount"]) * (FIXED_USD_PER_QUOTE["EUR"] if row["currency"] == "EUR" else 1.0)
+
+    def line(label, selected):
+        parts = {"TRADE": 0.0, "SWAP": 0.0}
+        other = 0.0
+        for row in selected:
+            if row["transaction_type"] in parts:
+                parts[row["transaction_type"]] += usd(row)
+            else:
+                other += usd(row)
+        total = parts["TRADE"] + parts["SWAP"] + other
+        return (f'<div class="row"><span>{label} (Trades {_fmt_money(parts["TRADE"])} · '
+                f'Swap {_fmt_money(parts["SWAP"])} · Sonstiges {_fmt_money(other)})</span>'
+                f'<b class="{_money_class(total)}">{_fmt_money(total)}</b></div>')
+    since = [row for row in broker if str(row["date_utc"]) >= VETO_REGIME_FROM]
+    return (line("Broker-Konto seit 01.10.", since) + line("Broker-Konto seit 08.05.", broker)
+            + f'<div class="sub">Broker-Buchungen bis {str(broker[-1]["date_utc"])[:16]} UTC, EUR zu 1,14866</div>')
+
+
+def _render_cards(rows: list, open_pos: list, broker: Optional[list] = None) -> str:
     """Realised USD by evidence phase; old cohorts are history, not the current bot's record."""
     capital = [row for row in rows if row["platform"] == "capital_com"]
     current = [row for row in capital if row["cohort"] == "current bot"]
@@ -353,7 +385,7 @@ def _render_cards(rows: list, open_pos: list) -> str:
           <div class="row"><span>Offen</span><b>{open_count}</b></div>
           <div class="row"><span>Backtest-Referenz (Forschungsdaten)</span>
             <b class="{_money_class(_REFERENCE_USD_PER_DAY)}">{_REFERENCE_USD_PER_DAY:+.4f} USD/T.</b></div>
-          <div class="row"><span>Finanzierung (Swap)</span><b class="dim">nicht im Journal – offen</b></div>
+          {_broker_rows(broker or [])}
           <div class="sub" style="margin-top:10px">Historie (kein Nachweis für den aktuellen Bot)</div>
           {_cohort_row("aktuelle Strategien vor 01.10.", balance(c for c in capital if c["cohort"] == "current strategies before the veto regime"))}
           {_cohort_row("stillgelegte Strategien", balance(c for c in capital if c["cohort"] == "retired strategies"))}
@@ -751,7 +783,7 @@ def _render_html(data: dict, days) -> str:
         "vetoes_24h": veto24,
     }
     status = _render_status(stats)
-    cards = _render_cards(data["ledger"], data["open"])
+    cards = _render_cards(data["ledger"], data["open"], data.get("broker"))
     open_rows = _render_open(data["open"])
     recent_rows = _render_recent(data["recent"])
     strategy_perf = _render_strategy_perf(

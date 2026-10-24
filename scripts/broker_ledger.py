@@ -38,6 +38,7 @@ from app.platforms import get_platform
 from app.platforms.registry import clear_cache
 from app.spot_trading.journal_ledger import FIXED_USD_PER_QUOTE, ledger
 from app.strategies import add_indicators
+from scripts.import_broker_transactions import fetch_transactions
 import scripts.efficiency_weighted_selection as ews
 from scripts.four_hour_stream import daily_frames
 from scripts.rule_period_calibration import EXTENDED_CACHE
@@ -46,7 +47,6 @@ CACHE = os.environ.get("HURZ_BROKER_CACHE", "/tmp/hurz-broker")
 START = datetime(2026, 5, 8, tzinfo=timezone.utc)
 BARS_START = datetime(2026, 9, 1, tzinfo=timezone.utc)
 PINS = ["NZDUSD", "SILVER", "HK50", "COPPER", "CHFJPY"]
-PAGE_DAYS = 5
 MATCH = timedelta(minutes=90)
 
 
@@ -59,24 +59,7 @@ async def fetch():
     now = datetime.now(timezone.utc)
     clear_cache(); platform = get_platform(ews.PLAT); await platform.connect()
     try:
-        rows, cursor, span = [], START, timedelta(days=PAGE_DAYS)
-        while cursor < now:
-            upper = min(cursor + span, now)
-            data = await platform._raw_request(
-                "GET", f"/api/v1/history/transactions?from={cursor:%Y-%m-%dT%H:%M:%S}"
-                f"&to={upper:%Y-%m-%dT%H:%M:%S}&detailed=true", auth=True)
-            page = data.get("transactions") or []
-            await asyncio.sleep(ews.PAGE_PAUSE)
-            # The endpoint returns at most 100 entries: a full page is
-            # fetched again in halves rather than truncated.
-            if len(page) >= 100:
-                if span <= timedelta(hours=1):
-                    raise RuntimeError(f"transaction page {cursor:%Y-%m-%d %H:%M} capped at 100 entries")
-                span /= 2
-                continue
-            rows.extend(page)
-            cursor = upper
-            span = timedelta(days=PAGE_DAYS)
+        rows = await fetch_transactions(platform, START, now, ews.PAGE_PAUSE)
         for pair in PINS:
             bars = await platform.fetch_history(pair, from_ts=BARS_START, to_ts=now, resolution="4h")
             json.dump([[b.timestamp.isoformat(), b.open, b.high, b.low, b.close] for b in bars],

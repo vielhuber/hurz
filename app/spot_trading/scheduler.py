@@ -275,6 +275,21 @@ async def nightly_spot_scheduler(
                 utils.print(
                     f"⚠️ [spot_scheduler] pair-selector refresh failed.", 0
                 )
+            # The account's trades, financing and corporate actions, beside
+            # the journal (EDGE_FINDINGS 447). Own session, like the
+            # backtests; a failure only delays the import to the next night.
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            proc = await asyncio.create_subprocess_exec(
+                sys.executable, os.path.join(project_root, "scripts", "import_broker_transactions.py"),
+                "--platform", platform, cwd=project_root,
+                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+            )
+            out, err = await asyncio.wait_for(proc.communicate(), timeout=600)
+            tail = (out or err or b"").decode("utf-8", "replace").strip().splitlines()[-1:]
+            utils.print(
+                f"{'✅' if proc.returncode == 0 else '⚠️'} [spot_scheduler] broker transactions: "
+                f"{tail[0] if tail else proc.returncode}", 0,
+            )
         except Exception as e:
             utils.print(
                 f"❌ [spot_scheduler] fire crashed: {type(e).__name__}: {e}", 0

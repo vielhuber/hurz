@@ -86,8 +86,18 @@ class DashboardCohortCardTest(unittest.TestCase):
         self.assertIn("+$0.76", html)
         self.assertIn("stillgelegte Strategien (1 Trades)", html)
         self.assertIn("kein Nachweis für den aktuellen Bot", html)
-        self.assertIn("nicht im Journal", html)
+        self.assertIn("noch keine Buchungen importiert", html)
         self.assertIn("Bewährungsfrist seit 22.10.2026 (0 Trades", html)
+
+    def test_the_broker_side_is_shown_beside_the_journal(self):
+        broker = [{"date_utc": "2026-09-20 21:00:00", "transaction_type": "SWAP", "amount": -0.5, "currency": "EUR"},
+                  {"date_utc": "2026-10-14 18:00:30", "transaction_type": "TRADE", "amount": 0.65, "currency": "EUR"},
+                  {"date_utc": "2026-10-14 21:00:00", "transaction_type": "SWAP", "amount": -0.02, "currency": "EUR"}]
+        html = generate_dashboard._render_cards([], [], broker)
+        rate = journal_ledger.FIXED_USD_PER_QUOTE["EUR"]
+        self.assertIn(f"Trades +${0.65 * rate:,.2f}", html)
+        self.assertIn(f"Swap −${0.02 * rate:,.2f}", html)
+        self.assertIn("Broker-Konto seit 08.05.", html)
 
     def test_no_projection_of_selected_combinations(self):
         self.assertFalse(hasattr(generate_dashboard, "_render_projection"))
