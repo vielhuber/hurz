@@ -31,10 +31,11 @@ Phase 1, in order (due dates are the checkpoints):
    movements against the journal.
 3. Done 2026-10-24: the bot's 57 decisions checked against its rules
    (section 439) and the replay's decisions against the bot's, signal by
-   signal (section 443: 50 of 53 the same, 1 within tolerance). Open for
-   2026-10-29: the 4h ATR of broker 4h bars against resampled hourly bars
-   (NZDUSD 2026-10-01), the account's SWAP entries and the broker account
-   movements.
+   signal (section 443: 50 of 53 the same, 1 within tolerance); broker
+   account movements and SWAP against the journal and native against
+   resampled 4h bars (section 444, 2026-10-24). Open for 2026-10-29: the
+   replay's 4h pins on native 4h bars (history back to 2019, fetched on
+   the weekend) and the broker side on the dashboard.
 4. By 2026-11-05: decision-level parity in one canonical reference, one
    step each: 4h signals under the 3-ATR floor refused as live (done
    2026-10-23, section 439); the wall-clock stale exit (done 2026-10-23,
@@ -11203,3 +11204,20 @@ USD/day) no longer describe the traded book.
   without a restart.
 - **Evidence:** decision-order test, archive test (temporary directory),
   selector suite passes. Section 443.
+
+## 2026-10-24 (morning) — check: broker account movements; native 4h bars (probation, phase 1)
+
+- **Type:** check, not a lever.
+- **Operation:** one watchdog/bot (522543/522547), runtime checkout clean
+  on `origin/main` (f45b845), evaluations failing 0, no HTTP 429; the
+  nightly refresh of 06:04 UTC wrote the first archived list. One paced
+  broker session at 08:21 UTC (markets shut), no bot error.
+- **Result:** account since 2026-05-08: TRADE -505.16, SWAP -20.92,
+  corporate actions -0.28 USD (-526.36 against the journal's -458.96).
+  Current bot in line: journal +1.37, broker +1.32, SWAP 0.00 USD. 4h:
+  native and resampled bars agree on 20 of 21 pin decisions; the NZDUSD
+  case of 2026-10-01 comes from the resampled ATR (0-2.5 % low because
+  hourly bars miss part of the 4h range). Also seen: the nightly list
+  lands at about 06:04 UTC, not 05:30 (the refresh runs ~34 minutes).
+- **Evidence:** `scripts/broker_ledger.py` with a reconciliation test
+  (synthetic transactions). Section 444.

@@ -71,9 +71,15 @@ in EUR, GBP, JPY, CHF, HKD, AUD, CAD instruments; 0 unconverted).
 | whole history Capital.com since 2026-05-08 | 582 | -458.96 |
 | Kraken Futures research (retired) | 19 | -10.62 |
 
-Open: NZDUSD donchian_breakout_4h long since 2026-10-21 20:00 UTC.
-Financing (account SWAP entries) is not in the journal; broker account
-movements are not reconciled yet — both open. The figure -196.67 USD given
+Broker account against the journal (2026-10-24, section 444; EUR at
+1.14866): since 2026-05-08 TRADE -505.16 USD, SWAP -20.92 USD, corporate
+actions -0.28 USD, whole account -526.36 USD against the journal's
+-458.96. Current bot: journal +1.37, broker TRADE +1.32, SWAP 0.00 USD
+(5 entries) — in line. The history differs by up to 41 USD per cohort and
+is not reworked. The dashboard does not show the broker side yet; the bot
+does not import SWAP entries (open).
+
+Open: NZDUSD donchian_breakout_4h long since 2026-10-21 20:00 UTC. The figure -196.67 USD given
 earlier on 2026-10-22 read `realized_pnl` as booked (signal price, quote
 units) and is superseded.
 
@@ -86,9 +92,9 @@ units) and is superseded.
 | stale exit | 24 wall-clock hours (4h: 96) | 24 bars | fixed 2026-10-23 (section 440) |
 | indicator warm-up | selector cold-starts on its window | cache warm-up | fixed 2026-10-23 (section 441) |
 | selection rhythm | nightly 05:30 UTC | weekly | fixed 2026-10-23 (section 442) |
-| financing | broker SWAP | modelled per night | open (section 337) |
+| financing | broker SWAP | modelled per night | current bot 0.00 USD over 5 entries (section 444); model check open (section 337) |
 | journal vs dashboard totals | — | — | fixed 2026-10-22 (section 438) |
-| 4h bars | broker 4h bars | hourly bars resampled | open (section 443, NZDUSD 2026-10-01) |
+| 4h bars | broker 4h bars | hourly bars resampled (ATR 0-2.5 % low) | explained (section 444); native 4h history for the replay open |
 | list history | overwritten nightly | — | archived since 2026-10-24 (section 443) |
 
 ## Case check of the live decisions (2026-10-23, section 439)
@@ -107,8 +113,8 @@ journaled twice.
 Replay against bot, signal by signal (2026-10-24, section 443): of 53
 journal signals between 2026-10-01 03:00 and 2026-10-22 08:00 UTC, 50 have
 the same decision and price, 1 differs within the ADX tolerance, 1
-differs (NZDUSD 4h floor refusal the replay enters; 4h ATR source not yet
-compared) and 1 is journal-only; 19 replay-only signals are refusals,
+differs (NZDUSD 4h floor refusal the replay enters; explained by the
+resampled 4h ATR, section 444) and 1 is journal-only; 19 replay-only signals are refusals,
 mostly on combinations probably not listed then. List history was not
 recorded before 2026-10-24; the selector archives every list since.
 

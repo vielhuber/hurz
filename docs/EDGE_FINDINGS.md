@@ -15487,3 +15487,43 @@ only). No difference among the 53 changes an entry the bot made; all four
 entries match. Repair from this check: the selector now archives every
 persisted list under `data/active_pairs_history/<platform>/` (section
 443), so list membership can be verified from now on.
+
+## 444. Broker account movements against the journal; native 4h bars against resampled ones
+
+Check, not a lever. `scripts/broker_ledger.py` fetched, in one paced
+session on Saturday 2026-10-24 08:21 UTC (markets shut; the bot logged no
+error, 401 or 429), every account transaction since 2026-05-08 and the
+broker's native 4h bars of the five 4h pin instruments since 2026-09-01
+into `HURZ_BROKER_CACHE` (outside the runtime data). Pages the endpoint
+caps at 100 entries are fetched again in halves. EUR amounts at the
+ledger's fixed 1.14866.
+
+Account since 2026-05-08: TRADE 579 entries -505.16 USD, SWAP 503 entries
+-20.92 USD, CORPORATE_ACTION 40 entries -0.28 USD.
+
+| journal cohort | closes | journal USD | matched TRADE | broker TRADE USD | SWAP entries | SWAP USD |
+|---|---:|---:|---:|---:|---:|---:|
+| current bot since 2026-10-01 | 3 | +1.37 | 3 | +1.32 | 5 | +0.00 |
+| current strategies before 2026-10-01 | 31 | +27.53 | 31 | +38.97 | 40 | -0.20 |
+| retired strategies | 548 | -487.87 | 541 | -528.58 | 455 | -20.65 |
+
+Unmatched: 7 journal closes without a TRADE entry (+10.59 USD), 4 TRADE
+entries without a close (-16.87 USD), 3 SWAP entries without a journal
+position (-0.07 USD). For the current bot journal and account agree
+within 0.05 USD (the fixed EUR rate against the rates of the days) and its
+financing so far is nil; the history differs by up to 41 USD per cohort
+(the legacy rows' recomputation and missing closes) and is not reworked:
+it is not evidence for the current bot. Whole account since 2026-05-08:
+-526.36 USD (trades -505.16, financing -20.92, corporate actions -0.28)
+against the journal's -458.96 USD.
+
+4h bars: on the 21 4h pin signals journaled since 2026-10-01 the broker's
+4h bars and the replay's resampled hourly bars give the same entry-rule
+decision 20 times; NZDUSD of 2026-10-01 04:00 is refused on native bars
+(ATR 0.001975, as the bot did) and entered on resampled ones (0.001931),
+which explains section 443's differing case. Over 56 NZDUSD bars from
+2026-09-20 opens and closes are identical, but 13 native bars reach
+further (high up to +0.00019, low down to -0.00046): the hourly bars miss
+part of the 4h range, so the resampled ATR runs 0-2.5 % low. Open: the
+replay's 4h pins on native 4h bars, which needs their history back to
+2019.
