@@ -15649,3 +15649,43 @@ The European indices quote two to three times the snapshot, but their
 stops (at least 1.05 % of the price) keep the cost near 0.01 to 0.02 R a
 close. The snapshot stays; the reference at the live medians would read
 +0.04352 USD a day against +0.044287.
+
+## 451. The replay's nightly list against the lists the selector wrote
+
+Correctness check, not a lever. The selector archives each list it
+writes since 2026-10-24 (section 443); the replay builds its own at every
+nightly cut (`active_order` on the cold-started 730-day ranking, today's
+pins, reservations and vetoes, plus the live 4h pins).
+`scripts/list_parity_check.py` extends the replay's 27 instruments' bars
+to 2026-10-25 15:00 UTC (one paced session, research cache only) and
+builds the replay's list at each archived `generated_at`. Fixed before
+the run: "same" when the sets of (strategy, pair) are equal; a
+difference is explained only at the ten-trade floor (9 to 11 trades) or
+outside the replay's universe.
+
+| cut (UTC) | live | replay | verdict |
+|---|---:|---:|---|
+| 2026-10-24 06:04 | 11 | 11 | same |
+| 2026-10-25 06:00 | 12 | 12 | same |
+
+Both lists hold momentum on US30, DE40, EU50, US100, UK100 and the pinned
+ETHUSD (FR40 added on 2026-10-25 on both sides) and the five 4h pins.
+Per momentum combination on 2026-10-25:
+
+| instrument | trades replay / selector | E[R] replay | E[R] selector |
+|---|---:|---:|---:|
+| US30 | 23 / 23 | +0.344 | +0.355 |
+| DE40 | 18 / 18 | +0.268 | +0.284 |
+| US100 | 16 / 16 | +0.159 | +0.163 |
+| UK100 | 15 / 15 | +0.055 | +0.068 |
+| EU50 | 14 / 14 | +0.207 | +0.224 |
+| FR40 | 13 / 13 | +0.002 | +0.011 |
+
+The replay's expectancy reads 0.004 to 0.017 R lower; it charges
+financing per rollover in its ranking trades, which the selector's
+backtest does not, and the order is unchanged by it. Two structural
+deviations stay documented: the selector ranks 55 instruments against
+the replay's 27, and it does not cap the profit factor at 5 in the score;
+neither changed a list on these two nights. The position limits (8 open,
+3 per cluster and direction, 1 per instrument) refused no live signal
+since 2026-10-01.

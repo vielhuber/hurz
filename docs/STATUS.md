@@ -103,6 +103,8 @@ units) and is superseded.
 | journal vs dashboard totals | — | — | fixed 2026-10-22 (section 438) |
 | 4h bars | broker 4h bars | hourly bars resampled (ATR 0-2.5 % low) | fixed 2026-10-24: native 4h bars (section 446) |
 | list history | overwritten nightly | — | archived since 2026-10-24 (section 443) |
+| list, pins, reservations | selector over 55 instruments, PF uncapped in the score | `active_order` over 27, PF capped at 5 | checked 2026-10-25: both archived lists (2026-10-24, 2026-10-25) identical, trade counts identical (section 451) |
+| limits | max 8 open, 3 per cluster and direction, 1 per instrument | the same caps | not reached live since 2026-10-01 (59 decisions, none refused by a cap) |
 | spread | live quote at the order | snapshot of 2026-09-04 per instrument | checked 2026-10-25: the reference's 387 closes cost 10.12 USD, 11.80 at the medians of 16,934 live quotes (+1.68 USD, 1.7 % of the result; section 450) |
 | size | fill risk at the live quote | planned at the bar close | checked 2026-10-23: four entries within tolerance (section 439) |
 | session log | truncated on every start | — | kept, last 60 runs, since 2026-10-25 (section 449) |

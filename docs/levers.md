@@ -48,8 +48,9 @@ Phase 1, in order (due dates are the checkpoints):
    Done 2026-10-25: the replay's financing model against the imported
    SWAP entries, consistent (section 448); the session log kept across
    restarts (section 449); the reference's spread against the live quotes,
-   within tolerance (section 450). Next: pins, reservations and limits
-   against the bot's journal;
+   within tolerance (section 450); the replay's nightly list against both
+   archived live lists, identical (section 451). Next: the parity status
+   and opening balance written up for 2026-10-29;
    still open: three unexplained signals without a bot log (section 443).
 6. 2026-11-05: measurement base accepted or "not accepted"; freeze the
    corrected reference (cost model, data state) before any phase-2 work.
@@ -11332,3 +11333,22 @@ USD/day) no longer describe the traded book.
   (+0.45), NZDUSD (+0.43), UK100 (+0.41); cheaper: CADJPY (-0.90).
 - **Decision:** within tolerance; the snapshot stays, the reference is
   unchanged (+0.044287 USD/day; at the live medians +0.04352). Section 450.
+
+## 2026-10-25 (afternoon) — correctness check: the replay's list against the live selector's (probation, phase 1)
+
+- **Type:** correctness check, not a lever; no code change in the bot or
+  the replay.
+- **Measurement:** `scripts/list_parity_check.py` extends the replay's
+  bars to now (one paced session on a Sunday, into the research cache)
+  and builds the replay's list at the moment each archived live list was
+  written (730-day ranking, cold start, today's pins, reservations and
+  vetoes, live 4h pins). Fixed before the run: "same" when the sets of
+  (strategy, pair) match; differences explained only at the ten-trade
+  floor or outside the replay's universe.
+- **Result:** 2026-10-24 06:04 UTC: 11 of 11 the same; 2026-10-25 06:00
+  UTC: 12 of 12 the same (FR40 momentum added on both sides). For the
+  seven momentum combinations the trade counts match exactly; the
+  replay's expectancy is 0.004 to 0.017 R lower.
+- **Decision:** list parity holds; the selector's wider universe (55
+  instruments against 27) and its uncapped profit factor changed nothing
+  on either night and stay documented deviations. Section 451.
