@@ -807,17 +807,26 @@ class CapitalComPlatform(Platform):
         matching close can be located.
         """
         self.require_auth()
-        # Capital's `from` param is ISO without zone suffix.
-        frm = since.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
-        try:
-            data = await self._raw_request(
-                "GET",
-                f"/api/v1/history/activity?from={frm}&detailed=true",
-                auth=True,
-            )
-        except PlatformAPIError:
-            return None
-        acts = data.get("activities") or []
+        # Given only `from`, the activity log answers with about one day
+        # after it, so a position held longer never found its close and
+        # was booked at the last bar's close (EDGE_FINDINGS 452). Walk
+        # the span in one-day windows; `from`/`to` are ISO without zone.
+        acts: List[Dict[str, Any]] = []
+        cursor = since.astimezone(timezone.utc)
+        now = datetime.now(timezone.utc)
+        while cursor < now:
+            upper = min(cursor + timedelta(days=1), now)
+            try:
+                data = await self._raw_request(
+                    "GET",
+                    f"/api/v1/history/activity?from={cursor:%Y-%m-%dT%H:%M:%S}"
+                    f"&to={upper:%Y-%m-%dT%H:%M:%S}&detailed=true",
+                    auth=True,
+                )
+            except PlatformAPIError:
+                return None
+            acts.extend(data.get("activities") or [])
+            cursor = upper
         # The opening POSITION activity has its details.workingOrderId
         # equal to the dealId we stored at order time. From that we
         # learn the position's own dealId, which both open and close

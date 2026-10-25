@@ -71,6 +71,31 @@ class RealizedPnlTest(IsolatedAsyncioTestCase):
             fill["close_time"],
         )
 
+    async def test_close_fill_is_found_after_a_multi_day_hold(self):
+        opened = {"dateUTC": "2026-10-21T20:00:41.430", "type": "POSITION", "source": "USER",
+                  "dealId": "position-deal", "details": {"workingOrderId": "order-deal", "level": 0.57038}}
+        closed = {"dateUTC": "2026-10-25T21:05:16.947", "type": "POSITION", "source": "USER",
+                  "dealId": "position-deal", "details": {"level": 0.56944, "openPrice": 0.57038}}
+        platform = CapitalComPlatform(credentials={"api_key": "test", "identifier": "test", "password": "test"})
+        platform.require_auth = lambda: None
+        seen = []
+
+        async def one_day_only(method, path, **kwargs):
+            start = datetime.fromisoformat(path.split("from=")[1].split("&")[0])
+            seen.append(path)
+            return {"activities": [a for a in (opened, closed)
+                                   if start <= datetime.fromisoformat(a["dateUTC"]) < start + timedelta(days=1)]}
+
+        platform._raw_request = one_day_only
+        with patch("app.platforms.capital_com.datetime") as clock:
+            clock.now.return_value = datetime(2026, 10, 25, 21, 6, tzinfo=timezone.utc)
+            clock.fromisoformat = datetime.fromisoformat
+            fill = await platform.fetch_close_fill("order-deal", datetime(2026, 10, 21, 16, tzinfo=timezone.utc))
+
+        self.assertEqual(0.56944, fill["close_level"])
+        self.assertEqual(datetime(2026, 10, 25, 21, 5, 16, 947000, tzinfo=timezone.utc), fill["close_time"])
+        self.assertTrue(all("&to=" in path for path in seen))
+
     async def test_take_profit_persists_actual_intrabar_close_time(self):
         entry_time = datetime(2026, 8, 22, 1, tzinfo=timezone.utc)
         bar_time = datetime(2026, 8, 22, 2, tzinfo=timezone.utc)
