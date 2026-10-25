@@ -66,7 +66,11 @@ async def main() -> int:
                 return fill
             platform.fetch_close_fill = known
             try:
-                payload = await _resolve_closed_trade(platform, row)
+                # Rows journaled without a fill keep their PnL against the
+                # entry price, as they were booked.
+                priced = {**row, "fill_price": row["fill_price"] if row["fill_price"] is not None
+                          else row["entry_price"]}
+                payload = await _resolve_closed_trade(platform, priced)
             finally:
                 platform.fetch_close_fill = lookup
             found += 1

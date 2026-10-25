@@ -1,6 +1,6 @@
 # Hurz — canonical status
 
-Updated 2026-10-25. Short and current; history lives in `levers.md` and
+Updated 2026-10-25 (evening). Short and current; history lives in `levers.md` and
 `EDGE_FINDINGS.md`.
 
 ## Probation period
@@ -66,19 +66,25 @@ in EUR, GBP, JPY, CHF, HKD, AUD, CAD instruments; 0 unconverted).
 
 | cohort | closes | USD |
 |---|---:|---:|
-| current bot since the veto regime 2026-10-01 02:02 UTC | 3 | +1.37 |
-| of it since the two-year ranking 2026-10-12 22:25 UTC | 3 | +1.37 |
+| current bot since the veto regime 2026-10-01 02:02 UTC | 4 | +0.91 |
+| of it since the two-year ranking 2026-10-12 22:25 UTC | 4 | +0.91 |
 | of it since the probation start 2026-10-22 | 0 | 0 |
-| current strategies before 2026-10-01 (history) | 31 | +27.53 |
-| retired strategies (history) | 548 | -487.87 |
-| whole history Capital.com since 2026-05-08 | 582 | -458.96 |
+| current strategies before 2026-10-01 (history) | 31 | +26.10 |
+| retired strategies (history) | 548 | -490.20 |
+| whole history Capital.com since 2026-05-08 | 583 | -463.18 |
 | Kraken Futures research (retired) | 19 | -10.62 |
+
+Rebooked 2026-10-25 (section 452): 71 exits had been booked at the last
+hourly bar's close because the close lookup missed positions held over a
+day; they now carry the broker's fill and close time (before: current
+bot +1.12 over 4, history -459.22 over 583). Three closes from June and
+July are not in the broker's log and stay as booked.
 
 Broker account against the journal (2026-10-24, section 444; EUR at
 1.14866): since 2026-05-08 TRADE -505.16 USD, SWAP -20.92 USD, corporate
 actions -0.28 USD, whole account -526.36 USD against the journal's
--458.96. Current bot: journal +1.37, broker TRADE +1.32, SWAP 0.00 USD
-(5 entries) — in line. The history differs by up to 41 USD per cohort and
+-458.96 (then). Current bot: journal +1.37 (+1.29 after section 452's
+rebooking), broker TRADE +1.32, SWAP 0.00 USD (5 entries) — in line. The history differs by up to 41 USD per cohort and
 is not reworked. Since 2026-10-24 the scheduler imports the account's
 transactions nightly into `broker_transactions` (first import: 1,122
 entries, TRADE -439.78 EUR, SWAP -18.21 EUR, corporate actions -0.24
@@ -86,7 +92,9 @@ EUR); the dashboard shows them beside the journal (section 447). Booked
 since 2026-10-01 02:02 UTC: TRADE +2.07 EUR over 6 closes (3 of them
 turtle positions opened before), SWAP -0.06 EUR over 8 entries.
 
-Open: NZDUSD donchian_breakout_4h long since 2026-10-21 20:00 UTC. The figure -196.67 USD given
+Open: none. NZDUSD donchian_breakout_4h closed 2026-10-25 21:05 UTC at the
+96-hour leash, -0.38 USD (five close orders rejected while the market
+reopened, section 452). The figure -196.67 USD given
 earlier on 2026-10-22 read `realized_pnl` as booked (signal price, quote
 units) and is superseded.
 

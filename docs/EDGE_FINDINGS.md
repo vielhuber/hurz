@@ -15689,3 +15689,46 @@ the replay's 27, and it does not cap the profit factor at 5 in the score;
 neither changed a list on these two nights. The position limits (8 open,
 3 per cluster and direction, 1 per instrument) refused no live signal
 since 2026-10-01.
+
+## 452. Exits of positions held over a day were booked at a bar close
+
+Repair (booking error), not a lever. On 2026-10-25 the NZDUSD 4h pin
+reached its 96-hour leash while the market was closed; at the reopen the
+bot sent a close every minute. The broker's activity log shows five of
+them REJECTED (21:00:04 to 21:04:14 UTC) and the sixth executed at
+21:05:16 at 0.56944; a SWAP was charged at 21:01:35. The bot logged each
+attempt as "closed" (an accepted DELETE is not an executed close) and the
+journal booked 0.56975 at 21:00:00, -0.252 USD instead of -0.376.
+
+Cause: `fetch_close_fill` asked `/history/activity` with only a `from`;
+the broker then answers with about one day after it (probed: from
+2026-10-21 16:00 returned three entries up to 2026-10-21 21:00). A
+position held longer never found its close, and the resolver fell back to
+the last hourly bar's close at the bar's timestamp, labelled "manual".
+That covers every 24-hour stale exit closed a little after the full hour
+and every 4h pin. The lookup now walks the span in one-day windows with
+`from` and `to`.
+
+`scripts/rebook_bar_close_exits.py` re-resolved the rows with outcome
+"manual" and an exit on the full hour (74): 71 closes were found in the
+broker's log and rebooked exactly as the bot resolves a close; 3 (AUDUSD
+2026-06-15, APTUSD 2026-07-08, OIL_BRENT 2026-07-23) were not found and
+stay. OIL_CRUDE of 2026-07-27 has no journaled fill; its PnL stays
+against the entry price (-3.573 USD at the broker's stop fill 83.433;
+before -3.345 at the bar close). One row (BTCUSD 2026-09-11) turned out to
+be a stop fill and is now "loss".
+
+| cohort | before | after |
+|---|---:|---:|
+| current bot since 2026-10-01 (4 closes) | +1.12 | +0.91 |
+| current strategies before 2026-10-01 (31) | +27.53 | +26.10 |
+| retired strategies (548) | -487.87 | -490.20 |
+| whole history Capital.com (583) | -459.22 | -463.18 |
+
+The bar close overstated the realised result by 3.96 USD over 71 closes.
+The current bot's three closes before NZDUSD now read +1.29 USD against
+the broker's TRADE +1.32 USD (section 444; before +1.37). The case
+checks of section 439 compared the stale exits at the bar, so their
+tolerance was read on booked bar closes; the current bot's fills sit 15 to 42
+seconds after the full hour, US30 of 2026-10-18 four minutes (the
+reopen), NZDUSD five.

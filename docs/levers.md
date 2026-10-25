@@ -49,7 +49,8 @@ Phase 1, in order (due dates are the checkpoints):
    SWAP entries, consistent (section 448); the session log kept across
    restarts (section 449); the reference's spread against the live quotes,
    within tolerance (section 450); the replay's nightly list against both
-   archived live lists, identical (section 451). Next: the parity status
+   archived live lists, identical (section 451); exits held over a day
+   rebooked at the broker's fill (section 452). Next: the parity status
    and opening balance written up for 2026-10-29;
    still open: three unexplained signals without a bot log (section 443).
 6. 2026-11-05: measurement base accepted or "not accepted"; freeze the
@@ -11352,3 +11353,27 @@ USD/day) no longer describe the traded book.
 - **Decision:** list parity holds; the selector's wider universe (55
   instruments against 27) and its uncapped profit factor changed nothing
   on either night and stay documented deviations. Section 451.
+
+## 2026-10-25 (night) — repair: exits held over a day booked at the broker's fill (probation, phase 1)
+
+- **Type:** repair (booking error), not a lever; the bot's orders are
+  unchanged.
+- **Observation:** NZDUSD's 96-hour leash closed at 21:05:16 UTC at
+  0.56944 after five close orders the broker rejected while the market
+  reopened; the journal booked 0.56975 at 21:00:00 (-0.25 instead of
+  -0.38 USD). Asked with only a `from`, the activity log answers about one
+  day, so every position held longer fell back to the last bar's close.
+- **Change:** `fetch_close_fill` walks the span in one-day windows with
+  `from` and `to`; `scripts/rebook_bar_close_exits.py` rebooked the
+  affected rows (outcome "manual", exit on the full hour): 74 found, 71
+  closes located and rebooked, 3 (June, July) not in the broker's log.
+  One rebooked row without a fill (OIL_CRUDE 2026-07-27) keeps its PnL
+  against the entry price.
+- **Effect:** current bot +1.12 -> +0.91 USD over 4 closes (the three
+  earlier closes +1.37 -> +1.29 against the broker's +1.32); current
+  strategies before 2026-10-01 +27.53 -> +26.10; retired -487.87 ->
+  -490.20; whole history -459.22 -> -463.18 USD.
+- **Evidence:** a regression test finds a close four days after the open
+  with a one-day activity window and fails on the old adapter; related
+  adapter tests pass (14). Bot restarted for the adapter change (keepalive
+  start 21:50 UTC, one instance, evaluations failing 0). Section 452.
