@@ -15606,3 +15606,15 @@ GBPCAD, small crypto and others, none on today's list) carry -2.17 EUR.
 The model stays as it is and the reference is unchanged; fixed rates
 older than a few months would drift, so the check runs again once the
 current bot has more nights.
+
+## 449. The session log is kept across restarts
+
+Repair (evidence infrastructure), not a lever. `start_paper_session.sh`
+wrote the watchdog's output with `>`, so every start emptied
+`tmp/paper_session.log`. The container restart of 2026-10-25 06:35 UTC
+erased the lines of that morning's list refresh and broker import; earlier
+restarts erased the bot's view of the three signals section 443 could not
+explain (ETHUSD 2026-10-12, FR40 2026-10-13 and 2026-10-16). The start now
+moves a non-empty log to `tmp/session_logs/paper_session-<last write,
+UTC>.log` and keeps the newest 60. Nothing changes in trading; the lost
+lines cannot be recovered, so those three cases stay open.

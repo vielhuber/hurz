@@ -79,6 +79,14 @@ case "$cmd" in
     # `setsid` puts the watchdog into its own session. nohup alone only
     # blocks SIGHUP; a caller whose whole session is torn down (agent run,
     # SSH session, terminal) would still take the bot with it.
+    # Each start used to truncate the log and with it the nightly refresh
+    # and every signal before a restart (EDGE_FINDINGS 443, 449); the last
+    # 60 runs are kept, named by their last write.
+    if [[ -s "$LOG_FILE" ]]; then
+      mkdir -p tmp/session_logs
+      mv "$LOG_FILE" "tmp/session_logs/paper_session-$(date -u -r "$LOG_FILE" +%Y%m%dT%H%M%SZ).log"
+      ls -1t tmp/session_logs/paper_session-*.log | tail -n +61 | xargs -r rm -f
+    fi
     setsid nohup bash scripts/_session_watchdog.sh >"$LOG_FILE" 2>&1 &
     echo $! > "$PID_FILE"
     echo "✓ session started in $mode mode (PID $(cat "$PID_FILE"))"

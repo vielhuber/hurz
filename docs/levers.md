@@ -46,9 +46,10 @@ Phase 1, in order (due dates are the checkpoints):
    the active list.
 5. 2026-10-29: parity status and opening balance for the checkpoint.
    Done 2026-10-25: the replay's financing model against the imported
-   SWAP entries, consistent (section 448). Next: spread and sizes of the
-   live closes against the replay's cost model; still open: three
-   unexplained signals without a bot log (section 443).
+   SWAP entries, consistent (section 448); the session log kept across
+   restarts (section 449). Next: spread and sizes against the replay's
+   cost model in the parity table, then pins, reservations and limits;
+   still open: three unexplained signals without a bot log (section 443).
 6. 2026-11-05: measurement base accepted or "not accepted"; freeze the
    corrected reference (cost model, data state) before any phase-2 work.
 
@@ -11296,3 +11297,21 @@ USD/day) no longer describe the traded book.
   instruments without a fixed rate: -2.17 EUR, none of them listed now.
 - **Decision:** the replay's financing stays as it is; the reference is
   unchanged (+0.044287 USD/day). Section 448.
+
+## 2026-10-25 (morning) — repair: session log kept across restarts (probation, phase 1)
+
+- **Type:** repair (evidence infrastructure), not a lever; no trading
+  effect.
+- **Observation:** the container restarted at 06:35 UTC; the keepalive
+  brought the bot back (PID 3363, one instance, evaluations failing 0), but
+  the start truncated the session log and with it this morning's refresh
+  (list landed 06:00 UTC, FR40 momentum added) and import (1 new entry).
+  The same truncation lost the bot logs behind section 443's three
+  unexplained signals.
+- **Change:** `start_paper_session.sh` moves a non-empty log to
+  `tmp/session_logs/` (named by its last write, newest 60 kept) before
+  starting.
+- **Evidence:** a new test starts the script in a sandbox and finds the
+  old log archived and the new run in the live log; it fails on the old
+  script. Takes effect at the next start; the healthy bot was not
+  restarted. Section 449.

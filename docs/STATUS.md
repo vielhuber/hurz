@@ -103,6 +103,7 @@ units) and is superseded.
 | journal vs dashboard totals | — | — | fixed 2026-10-22 (section 438) |
 | 4h bars | broker 4h bars | hourly bars resampled (ATR 0-2.5 % low) | fixed 2026-10-24: native 4h bars (section 446) |
 | list history | overwritten nightly | — | archived since 2026-10-24 (section 443) |
+| session log | truncated on every start | — | kept, last 60 runs, since 2026-10-25 (section 449) |
 
 ## Case check of the live decisions (2026-10-23, section 439)
 
