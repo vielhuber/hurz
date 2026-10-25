@@ -15618,3 +15618,34 @@ explain (ETHUSD 2026-10-12, FR40 2026-10-13 and 2026-10-16). The start now
 moves a non-empty log to `tmp/session_logs/paper_session-<last write,
 UTC>.log` and keeps the newest 60. Nothing changes in trading; the lost
 lines cannot be recovered, so those three cases stay open.
+
+## 450. The reference's spread against the bot's live quotes
+
+Correctness check, not a lever. The replay charges each instrument the
+per-side cost of the spread snapshot of 2026-09-04; the bot gates on the
+live quote and samples every listed instrument hourly. Sections 347 and
+382 compared the two on older books. `scripts/spread_model_check.py`
+replays the canonical reference (section 446) unchanged and reprices each
+close's booked cost `2 * fee * entry / stop` at the instrument's median
+sampled half-spread (16,934 quotes since 2026-09-08; instruments under 100
+samples keep the snapshot). Fixed before the run: "tolerance" when the
+total difference is at most 5 % of the reference's absolute result.
+
+The reference reproduces exactly: 387 closes, +96.90 USD. Booked spread
+cost 10.12 USD, at the live medians 11.80 USD: +1.68 USD or 1.7 % of the
+result (+0.00077 USD a calendar day) -> tolerance.
+
+| instrument | closes | snapshot % | live median % | booked USD | at median USD |
+|---|---:|---:|---:|---:|---:|
+| DE40 | 33 | 0.0029 | 0.0078 | 0.45 | 1.22 |
+| EU50 | 23 | 0.0116 | 0.0160 | 1.22 | 1.67 |
+| NZDUSD | 53 | 0.0115 | 0.0133 | 2.77 | 3.20 |
+| UK100 | 11 | 0.0045 | 0.0138 | 0.20 | 0.60 |
+| FR40 | 20 | 0.0045 | 0.0080 | 0.33 | 0.58 |
+| CADJPY | 31 | 0.0100 | 0.0032 | 1.31 | 0.41 |
+| 12 others | 216 | | | 3.85 | 4.11 |
+
+The European indices quote two to three times the snapshot, but their
+stops (at least 1.05 % of the price) keep the cost near 0.01 to 0.02 R a
+close. The snapshot stays; the reference at the live medians would read
++0.04352 USD a day against +0.044287.

@@ -47,8 +47,9 @@ Phase 1, in order (due dates are the checkpoints):
 5. 2026-10-29: parity status and opening balance for the checkpoint.
    Done 2026-10-25: the replay's financing model against the imported
    SWAP entries, consistent (section 448); the session log kept across
-   restarts (section 449). Next: spread and sizes against the replay's
-   cost model in the parity table, then pins, reservations and limits;
+   restarts (section 449); the reference's spread against the live quotes,
+   within tolerance (section 450). Next: pins, reservations and limits
+   against the bot's journal;
    still open: three unexplained signals without a bot log (section 443).
 6. 2026-11-05: measurement base accepted or "not accepted"; freeze the
    corrected reference (cost model, data state) before any phase-2 work.
@@ -11315,3 +11316,19 @@ USD/day) no longer describe the traded book.
   old log archived and the new run in the live log; it fails on the old
   script. Takes effect at the next start; the healthy bot was not
   restarted. Section 449.
+
+## 2026-10-25 (midday) — correctness check: the reference's spread against the live quotes (probation, phase 1)
+
+- **Type:** correctness check, not a lever; no code change in the bot or
+  the replay.
+- **Measurement:** `scripts/spread_model_check.py` replays the canonical
+  reference unchanged and prices every close's booked cost at each
+  instrument's median of the bot's live quotes (16,934 samples, at least
+  100 per instrument). Fixed before the run: "tolerance" when the
+  difference is at most 5 % of the reference's result.
+- **Result:** the reference reproduces exactly (387 closes, +96.90 USD).
+  Booked cost 10.12 USD, at the live medians 11.80 USD: +1.68 USD, 1.7 %
+  of the result, +0.00077 USD a day. Dearer live: DE40 (+0.77 USD), EU50
+  (+0.45), NZDUSD (+0.43), UK100 (+0.41); cheaper: CADJPY (-0.90).
+- **Decision:** within tolerance; the snapshot stays, the reference is
+  unchanged (+0.044287 USD/day; at the live medians +0.04352). Section 450.
