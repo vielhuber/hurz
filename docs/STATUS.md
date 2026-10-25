@@ -1,6 +1,6 @@
 # Hurz — canonical status
 
-Updated 2026-10-22. Short and current; history lives in `levers.md` and
+Updated 2026-10-25. Short and current; history lives in `levers.md` and
 `EDGE_FINDINGS.md`.
 
 ## Probation period
@@ -99,7 +99,7 @@ units) and is superseded.
 | stale exit | 24 wall-clock hours (4h: 96) | 24 bars | fixed 2026-10-23 (section 440) |
 | indicator warm-up | selector cold-starts on its window | cache warm-up | fixed 2026-10-23 (section 441) |
 | selection rhythm | nightly, list lands ~06:05 UTC | weekly | fixed 2026-10-23/24 (sections 442, 445) |
-| financing | broker SWAP, imported nightly (section 447) | modelled per night | current bot 0.00 USD over 5 entries (section 444); model check open (section 337) |
+| financing | broker SWAP, imported nightly (section 447) | fixed rates of 2026-09-29 per rollover | checked 2026-10-25: since the rates broker -0.11 EUR, model -0.11 EUR, before -15.93 against -15.13 (section 448) |
 | journal vs dashboard totals | — | — | fixed 2026-10-22 (section 438) |
 | 4h bars | broker 4h bars | hourly bars resampled (ATR 0-2.5 % low) | fixed 2026-10-24: native 4h bars (section 446) |
 | list history | overwritten nightly | — | archived since 2026-10-24 (section 443) |

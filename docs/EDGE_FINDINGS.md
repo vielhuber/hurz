@@ -15578,3 +15578,31 @@ Since 2026-10-01 02:02 UTC the account booked TRADE +2.07 EUR over 6
 closes (three of them turtle positions opened on 2026-09-30) and SWAP
 -0.06 EUR over 8 entries. The dashboard lists trades, swap and the rest
 beside the journal, EUR at the ledger's fixed 1.14866.
+
+## 448. The replay's financing against the broker's SWAP entries
+
+Correctness check, not a lever. The replay charges every 21:00 UTC
+rollover at the fixed overnight rates read on 2026-09-29; the broker books
+one SWAP entry a night in EUR, rounded to the cent (section 447).
+`scripts/financing_model_check.py` attributes each entry once to the
+journal position on that instrument held over the rollover (section 444's
+rule; open positions up to the newest imported entry) and prices the
+replay's nights at fill price times size, to EUR at 1.14866, rounded to
+the cent. Fixed before the run: "consistent" when |broker - model| <=
+max(0.10 EUR, 25 % of the broker's amount), per window.
+
+| window | positions (with a rate) | nights matching | broker EUR | model EUR | verdict |
+|---|---:|---:|---:|---:|---|
+| before 2026-09-29 | 574 (363) | 555 | -15.93 | -15.13 | consistent |
+| since 2026-09-29 | 9 (8) | 9 | -0.11 | -0.11 | consistent |
+
+All 503 entries are attributed. Of the 19 night-count differences, 14
+are seven positions journaled as two rows whose entries all land on the
+first row, and 5 are nights without an entry (crypto in June to August,
+HK50 on 2026-09-10). Single instruments drift with the rates over the
+months (USDJPY -0.36 against -0.01 EUR, ETHUSD -6.61 against -6.12, BTCUSD
+-4.42 against -4.45); instruments without a fixed rate (GBPUSD, AUDUSD,
+GBPCAD, small crypto and others, none on today's list) carry -2.17 EUR.
+The model stays as it is and the reference is unchanged; fixed rates
+older than a few months would drift, so the check runs again once the
+current bot has more nights.

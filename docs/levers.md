@@ -40,13 +40,15 @@ Phase 1, in order (due dates are the checkpoints):
    step each: 4h signals under the 3-ATR floor refused as live (done
    2026-10-23, section 439); the wall-clock stale exit (done 2026-10-23,
    section 440); the selector's indicator warm-up (done 2026-10-23,
-   section 441); the nightly
-   selection rhythm; then pins, reservations, sizes, limits, financing
-   and spread re-checked. Research stays isolated from runtime data and
+   section 441); the nightly selection rhythm (done 2026-10-24, sections
+   442, 445); financing (done 2026-10-25, section 448); then pins,
+   reservations, sizes, limits and spread re-checked. Research stays isolated from runtime data and
    the active list.
-5. 2026-10-29: parity status and opening balance for the checkpoint;
-   remaining open: the replay's financing model against the imported SWAP
-   entries, three unexplained signals without a bot log (section 443).
+5. 2026-10-29: parity status and opening balance for the checkpoint.
+   Done 2026-10-25: the replay's financing model against the imported
+   SWAP entries, consistent (section 448). Next: spread and sizes of the
+   live closes against the replay's cost model; still open: three
+   unexplained signals without a bot log (section 443).
 6. 2026-11-05: measurement base accepted or "not accepted"; freeze the
    corrected reference (cost model, data state) before any phase-2 work.
 
@@ -11276,3 +11278,21 @@ USD/day) no longer describe the traded book.
   restarted for the scheduler change (1833144/1833152), one instance,
   evaluations failing 0; the import session raised no bot error.
   Section 447.
+
+## 2026-10-25 — correctness check: replay financing against the broker's SWAP entries (probation, phase 1)
+
+- **Type:** correctness check, not a lever; no code change in the bot or
+  the replay.
+- **Measurement:** `scripts/financing_model_check.py`, criteria fixed in
+  its docstring before the run: each SWAP entry attributed once to the
+  position held over the rollover; the replay's rollover count and its
+  fixed rates of 2026-09-29 in EUR, rounded to the cent; "consistent"
+  when the gap is at most max(0.10 EUR, 25 %).
+- **Result:** 503 entries, all attributed. Before 2026-09-29 (363
+  positions with a rate): broker -15.93 EUR, model -15.13 EUR (5 % less),
+  consistent. Since then (9 positions, current bot included): broker
+  -0.11 EUR, model -0.11 EUR, nights 9 of 9. Single instruments drift with
+  the rates (USDJPY -0.36 against -0.01, ETHUSD -6.61 against -6.12);
+  instruments without a fixed rate: -2.17 EUR, none of them listed now.
+- **Decision:** the replay's financing stays as it is; the reference is
+  unchanged (+0.044287 USD/day). Section 448.
