@@ -15762,3 +15762,32 @@ Momentum 306 closes +105.00 USD (before 323, +108.39), 4h pins 60 closes
 2026-10-12 17:00, unexplained in section 443, fell inside the pause and
 is explained; two of section 443's cases stay open (FR40 2026-10-13 07:00
 and 2026-10-16 19:00, no journal row, bot log lost).
+
+## 454. Replay against bot, signal by signal, on the current replay rules
+
+Correctness check, not a lever. Section 443 compared the replay's
+decisions with the journal on resampled 4h bars and without the bank-
+holiday pause. `scripts/replay_signal_case_check.py` now builds the 4h
+pins on the broker's native 4h bars (fetched once into a research cache)
+and marks a signal ordered on a guarded holiday as "holiday pause"; the
+window runs to 2026-10-24 00:00 UTC. Tolerances unchanged from section
+443: a decision differing only with the ADX within 1.0 of the gate is
+explained; prices match within 0.05 %.
+
+| outcome | signals |
+|---|---:|
+| journal signals | 55 |
+| same decision and price (all four entries among them) | 53 |
+| replay signal in the holiday pause of 2026-10-12 (US100 09:00, ETHUSD 17:00) | 2 |
+| replay only (16 ADX refusals, 1 floor refusal) | 17 |
+| journal only (US100 2026-10-20 17:00, ADX refusal) | 1 |
+| same decision, price gap 0.08 % (US30 2026-10-23 09:00, ADX refusal) | 1 |
+
+Section 443's NZDUSD 4h difference of 2026-10-01 is gone on native 4h
+bars, and the CHFJPY case inside the ADX tolerance now matches. The 17
+replay-only refusals fall on combinations whose list membership before
+2026-10-24 was not recorded: 13 before the two-year list of 2026-10-13,
+FR40 on 2026-10-13 and 2026-10-16 and after it left the list on
+2026-10-20 and 2026-10-22; none would have traded. The journal-only
+US100 refusal and the US30 price gap stay unexplained; both are
+refusals. No difference changes an entry the bot made.

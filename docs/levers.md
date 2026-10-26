@@ -11432,3 +11432,20 @@ USD/day) no longer describe the traded book.
 - **Evidence:** three new tests (calendar, deferred leash, booked exit);
   every test touching the replay modules passes (one fixture moved off
   Columbus Day). Bot unchanged, no restart. Section 453.
+
+## 2026-10-27 — correctness check: replay against bot, signal by signal, on the current rules (probation, phase 1)
+
+- **Type:** correctness check, not a lever; no trading effect.
+- **Measurement:** `scripts/replay_signal_case_check.py` with section
+  443's tolerances (ADX within 1.0 of the gate, price within 0.05 %), now
+  on native 4h bars and with the holiday pause; window extended to
+  2026-10-24 00:00 UTC. The script opens a broker session only for
+  missing bars (a second login in quick succession was refused with 429;
+  the bot was unaffected).
+- **Result:** 55 journal signals: 53 the same (before 50 of 53), 2 replay
+  signals in the holiday pause; unexplained: 17 replay-only refusals on
+  combinations with unrecorded list membership, 1 journal-only refusal,
+  1 same-decision refusal with a 0.08 % price gap. No difference touches
+  an entry; all four entries match.
+- **Decision:** decision parity holds within the tolerances; the open
+  cases stay listed. Section 454.

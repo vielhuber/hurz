@@ -29,8 +29,9 @@ new order.
 - Limits: never bound live; the bot's order path refuses the fourth
   same-direction index in the risk-on cluster (test), and the replay uses
   the bot's clusters, cap and concurrent limit (parity test, 2026-10-26).
-- Open gaps: two signals without a bot log (FR40 2026-10-13 07:00 and
-  2026-10-16 19:00; ETHUSD 2026-10-12 fell on the holiday pause); the selector ranks 55 instruments against
+- Open gaps: replay-only refusals on combinations whose list membership
+  before 2026-10-24 is not recorded (section 454: 17, none would have
+  traded), one journal-only refusal (US100 2026-10-20 17:00); the selector ranks 55 instruments against
   the replay's 27 (no list differed).
 
 ## Live configuration
@@ -153,13 +154,16 @@ One refusal reads ADX 30.0 at a floor of 30: the reason prints one
 decimal. After the restart of 2026-10-22 05:20 UTC three refusals were
 journaled twice.
 
-Replay against bot, signal by signal (2026-10-24, section 443): of 53
-journal signals between 2026-10-01 03:00 and 2026-10-22 08:00 UTC, 50 have
-the same decision and price, 1 differs within the ADX tolerance, 1
-differs (NZDUSD 4h floor refusal the replay enters; explained by the
-resampled 4h ATR, section 444) and 1 is journal-only; 19 replay-only signals are refusals,
-mostly on combinations probably not listed then. List history was not
-recorded before 2026-10-24; the selector archives every list since.
+Replay against bot, signal by signal (2026-10-27, section 454, on the
+current replay rules: native 4h bars, holiday pause): of 55 journal
+signals between 2026-10-01 03:00 and 2026-10-24 00:00 UTC, 53 have the
+same decision and price (all four entries among them); 2 replay signals
+fell on the bank-holiday pause of 2026-10-12. Unexplained and without
+trading consequence: 17 replay-only refusals on combinations whose list
+membership was not yet archived (13 before the two-year list, four on
+FR40), one journal-only refusal (US100 2026-10-20 17:00) and one refusal
+with the same decision but a 0.08 % price gap (US30 2026-10-23 09:00).
+Section 443's NZDUSD 4h difference is gone on native 4h bars.
 
 ## Test suite
 
