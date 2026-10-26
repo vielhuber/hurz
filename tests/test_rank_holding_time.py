@@ -8,10 +8,12 @@ from scripts import rank_holding_time as experiment
 
 class HoldingTimeRankingTest(TestCase):
     def trades(self, pair, hours, returns=None):
+        # One position at a time, as the sequential ranking counts them.
         start = np.datetime64("2025-01-01T00:00")
         return [dict(strat="donchian_breakout", pair=pair, r=value,
-                     ts=start, exit_ts=start + np.timedelta64(hours, "h"))
-                for value in (returns or [1.5, -1.0] * 5)]
+                     ts=start + np.timedelta64(48 * i, "h"),
+                     exit_ts=start + np.timedelta64(48 * i + hours, "h"))
+                for i, value in enumerate(returns or [1.5, -1.0] * 5)]
 
     def test_equal_duration_matches_existing_ranking(self):
         trades = self.trades("AAA", 24) + self.trades("ZZZ", 24)
