@@ -44,7 +44,7 @@ from scripts.four_hour_pins_reference import financed
 from scripts.four_hour_stream import daily_frames, daily_signals
 from scripts.momentum_two_year_ranking import CANDIDATE_DAYS, ranked_replay
 from scripts.rank_holding_time import daily_series
-from scripts.wallclock_leash_book import DEADLINE, wallclock_signals
+from scripts.efficiency_weighted_selection import LIVE_LEASH as DEADLINE, wallclock_signals
 
 HOUR = np.timedelta64(1, "h")
 
