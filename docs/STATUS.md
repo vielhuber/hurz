@@ -154,7 +154,7 @@ One refusal reads ADX 30.0 at a floor of 30: the reason prints one
 decimal. After the restart of 2026-10-22 05:20 UTC three refusals were
 journaled twice.
 
-Replay against bot, signal by signal (2026-10-27, section 454, on the
+Replay against bot, signal by signal (2026-10-26, section 454, on the
 current replay rules: native 4h bars, holiday pause): of 55 journal
 signals between 2026-10-01 03:00 and 2026-10-24 00:00 UTC, 53 have the
 same decision and price (all four entries among them); 2 replay signals

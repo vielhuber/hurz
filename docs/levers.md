@@ -11433,7 +11433,7 @@ USD/day) no longer describe the traded book.
   every test touching the replay modules passes (one fixture moved off
   Columbus Day). Bot unchanged, no restart. Section 453.
 
-## 2026-10-27 — correctness check: replay against bot, signal by signal, on the current rules (probation, phase 1)
+## 2026-10-26 (night) — correctness check: replay against bot, signal by signal, on the current rules (probation, phase 1)
 
 - **Type:** correctness check, not a lever; no trading effect.
 - **Measurement:** `scripts/replay_signal_case_check.py` with section
