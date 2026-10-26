@@ -126,13 +126,15 @@ class RuntimeGuardWiringTest(IsolatedAsyncioTestCase):
         self.assertIn("max_concurrent=1", record.call_args.args[1].error)
 
     async def test_cluster_cap_journals_the_blocked_signal(self):
+        # Only three crypto instruments are still tradeable, so the cap is
+        # exercised on the indices the live list holds.
         platform, record = await self._run([
-            "BTCUSD", "ETHUSD", "ARBUSD", "NEARUSD",
+            "US30", "DE40", "EU50", "US100",
         ])
 
         self.assertEqual(3, len(platform.orders))
         self.assertEqual(4, record.call_count)
-        self.assertIn("cluster 'crypto'", record.call_args.args[1].error)
+        self.assertIn("cluster 'risk_on'", record.call_args.args[1].error)
 
     async def test_default_concurrent_cap_is_active(self):
         platform, record = await self._run([

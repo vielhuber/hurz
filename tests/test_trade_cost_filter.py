@@ -12,7 +12,7 @@ from app.platforms import OrderResult, PreparedOrder
 from app.platforms.capital_com import CapitalComPlatform
 from app.spot_trading import autotrade, journal, pair_selector
 from app.spot_trading.autotrade import TradeIntent
-from app.spot_trading.risk_guard import DailyLoss
+from app.spot_trading.risk_guard import DailyLoss, StopOutCooldown
 from scripts.spot_backtest import _simulate_trades
 
 
@@ -138,6 +138,8 @@ class LiveTradeCostFilterTest(IsolatedAsyncioTestCase):
                 patch.object(autotrade, "evaluate_pair", return_value=intent), \
                 patch("app.spot_trading.risk_guard.daily_loss",
                       return_value=DailyLoss(0.0, 6.0, False, 0)), \
+                patch("app.spot_trading.risk_guard.stop_out_cooldown",
+                      return_value=StopOutCooldown(False, None, 6.0)), \
                 patch.object(autotrade.subprocess, "Popen", lambda *args, **kwargs: None):
             await autotrade.run_loop(
                 platform_name="capital_com",
