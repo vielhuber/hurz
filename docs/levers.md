@@ -11394,3 +11394,19 @@ USD/day) no longer describe the traded book.
   `from scripts.… import` in scripts and tests finds no other missing
   name.
 - **Checkpoint 2026-10-29:** written into `STATUS.md`.
+
+## 2026-10-26 (morning) — correctness checks: test suite and position limits (probation, phase 1)
+
+- **Type:** test repairs and a parity test, not levers; no trading
+  effect, no restart.
+- **Test suite:** all 180 modules run one by one with a 120-second
+  limit; none hangs. The order-path tests (duplicate entries, cost
+  filter, guard wiring) failed because the stop-out cooldown, fail-closed
+  without a journal, refused every order, and the cluster-cap test used
+  ARBUSD, blocked since bf29bed; the guard is now patched as in the other
+  guard tests and the cap is exercised on US30, DE40, EU50 and US100 (the
+  fourth long is refused with "cluster 'risk_on'"). The holding-time
+  fixture opened all trades at once, which the sequential ranking counts
+  as one. Two modules need the runtime files and pass with them.
+- **Limits:** a new test pins the replay's concurrent limit, clusters and
+  cluster cap to the bot's. Limits never bound live since 2026-10-01.

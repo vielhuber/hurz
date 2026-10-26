@@ -26,11 +26,12 @@ new order.
   financing (448), spread (450), sizes (439), list, pins and reservations
   (451) checked; the canonical reference reproduces (387 closes, +0.044287
   USD/day, research data).
+- Limits: never bound live; the bot's order path refuses the fourth
+  same-direction index in the risk-on cluster (test), and the replay uses
+  the bot's clusters, cap and concurrent limit (parity test, 2026-10-26).
 - Open gaps: three signals without a bot log (ETHUSD 2026-10-12, FR40
-  2026-10-13 and 2026-10-16); position limits never bound live, so they
-  are untested against the bot; the selector ranks 55 instruments against
-  the replay's 27 (no list differed); five test modules hang or error
-  (pre-existing).
+  2026-10-13 and 2026-10-16); the selector ranks 55 instruments against
+  the replay's 27 (no list differed).
 
 ## Live configuration
 
@@ -158,8 +159,11 @@ recorded before 2026-10-24; the selector archives every list since.
 
 ## Test suite
 
-`tests.test_runtime_guard_wiring.test_cluster_cap_journals_the_blocked_signal`
-errors (TypeError) and `test_duplicate_instrument_entries`,
-`test_reconcile_adoption`, `test_trade_cost_filter` and
-`test_stale_exit_market_status` do not finish within 90 s — identical on
-commit c7d172b, so not caused by the 2026-10-22 changes; open.
+Checked 2026-10-26, each of the 180 modules on its own with a 120-second
+limit: none hangs, 177 pass in the working checkout. The five modules
+reported as hanging since 2026-10-22 finish in about a second; three of
+them failed because the stop-out guard (fail-closed without a journal)
+refused every order and a fixture pair (ARBUSD) is blocked since commit
+bf29bed; both fixed in the tests. Two modules need the runtime files
+(`tmp/`, the active list) and pass with them; one research fixture was
+stale and is fixed.
