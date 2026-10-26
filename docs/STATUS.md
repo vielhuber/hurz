@@ -14,6 +14,24 @@ accepted or not), 2026-11-12 (research and forward phase), 2026-11-21
 (final grade A/B/C). No autonomous research after 2026-11-21 without a
 new order.
 
+## Checkpoint 2026-10-29 (written 2026-10-26)
+
+- Opening balance: one USD ledger (section 438), rebooked at the broker's
+  fills (section 452); table below. Current bot since 2026-10-01: 4 closes,
+  +0.91 USD; since the probation start: none.
+- Unit fix: the strategy veto sums in USD, all seven earlier retirements
+  kept explicitly (section 437).
+- Parity: decisions (sections 439, 443), 4h floor (439), wall-clock leash
+  (440), warm-up (441), nightly rhythm (442, 445), native 4h bars (446),
+  financing (448), spread (450), sizes (439), list, pins and reservations
+  (451) checked; the canonical reference reproduces (387 closes, +0.044287
+  USD/day, research data).
+- Open gaps: three signals without a bot log (ETHUSD 2026-10-12, FR40
+  2026-10-13 and 2026-10-16); position limits never bound live, so they
+  are untested against the bot; the selector ranks 55 instruments against
+  the replay's 27 (no list differed); five test modules hang or error
+  (pre-existing).
+
 ## Live configuration
 
 - Demo account on Capital.com, one bot instance from `/host/data/hurz`

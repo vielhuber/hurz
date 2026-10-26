@@ -50,8 +50,9 @@ Phase 1, in order (due dates are the checkpoints):
    restarts (section 449); the reference's spread against the live quotes,
    within tolerance (section 450); the replay's nightly list against both
    archived live lists, identical (section 451); exits held over a day
-   rebooked at the broker's fill (section 452). Next: the parity status
-   and opening balance written up for 2026-10-29;
+   rebooked at the broker's fill (section 452); checkpoint written up in
+   `STATUS.md` (2026-10-26). Next: the acceptance review for 2026-11-05
+   against the phase-1 criteria;
    still open: three unexplained signals without a bot log (section 443).
 6. 2026-11-05: measurement base accepted or "not accepted"; freeze the
    corrected reference (cost model, data state) before any phase-2 work.
@@ -11377,3 +11378,19 @@ USD/day) no longer describe the traded book.
   with a one-day activity window and fails on the old adapter; related
   adapter tests pass (14). Bot restarted for the adapter change (keepalive
   start 21:50 UTC, one instance, evaluations failing 0). Section 452.
+
+## 2026-10-26 — repairs: exit logs and a broken research import (probation, phase 1)
+
+- **Type:** two repairs, not levers; no trading effect.
+- **Exit logs:** stale, regime and trail exits logged an accepted close
+  order as "closed"; on 2026-10-25 five such lines preceded the real close
+  (section 452). They now read "close sent"; "📕 closed" stays the
+  confirmation. Bot restarted with no open position (04:10 UTC, one
+  instance).
+- **Import:** commit 5f6a80d moved the wall-clock leash into
+  `efficiency_weighted_selection` and left `reopen_stale_exit.py`
+  importing the removed `DEADLINE`; its test failed to load. It now
+  imports `LIVE_LEASH` (the same 25 hours). A static scan of every
+  `from scripts.… import` in scripts and tests finds no other missing
+  name.
+- **Checkpoint 2026-10-29:** written into `STATUS.md`.
