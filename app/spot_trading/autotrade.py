@@ -1346,10 +1346,13 @@ async def run_loop(
                         )
                         continue
                     if close_res.accepted:
+                        # Accepted is not executed: the broker can still
+                        # reject the order (a market just reopening), and
+                        # the next cycle retries; "📕 closed" confirms it.
                         stale_exit_attempts.pop(journal_deal_id, None)
                         _safe_log(
                             f"⏲ stale-exit {pair_name} ({close_target}) "
-                            f"closed after {age_h:.1f}h "
+                            f"close sent after {age_h:.1f}h "
                             f"(> {max_hold_seconds / 3600:.0f}h)"
                         )
                     else:
@@ -1417,7 +1420,7 @@ async def run_loop(
                     if close_res.accepted:
                         stale_exit_attempts.pop(journal_deal_id, None)
                         _safe_log(
-                            f"🔀 regime-exit {pair_name} {strat} closed "
+                            f"🔀 regime-exit {pair_name} {strat} close sent "
                             f"(ADX={adx:.1f} >= {flip_adx:.0f}, range ended)"
                         )
                     else:
@@ -1507,7 +1510,7 @@ async def run_loop(
                     stale_exit_attempts.pop(journal_deal_id, None)
                     locked_r = (close_px - entry_px) * d / risk
                     _safe_log(
-                        f"📉 trail-exit {pair_name} donchian_trail closed "
+                        f"📉 trail-exit {pair_name} donchian_trail close sent "
                         f"@ {close_px:.5f} (locked {locked_r:+.2f}R)"
                     )
                 else:
