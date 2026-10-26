@@ -38,6 +38,7 @@ re-run costs no API calls.
 """
 import asyncio, os, sys, json, math
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 import numpy as np
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, _ROOT); os.chdir(_ROOT)
@@ -54,6 +55,7 @@ from app.spot_trading.position_sizing import (
     calculate_position_size, DEFAULT_TARGET_RISK_USD, DEFAULT_NOTIONAL_CAP_USD,
 )
 from app.spot_trading.regime import gate
+from app.utils.holiday_window import holidays_for
 from scripts.spot_backtest import _fee_for
 from scripts.walk_forward import _bars_to_df
 
@@ -209,11 +211,34 @@ def all_signals(frames, atr_floor, meta):
 # the signal bar's close, waiting through closed markets (holding_period).
 LIVE_LEASH=np.timedelta64(25,"h")
 
+# The bot stands still for the whole Europe/Berlin day of every DE, US, GB
+# or CH (Zurich) bank holiday (app/utils/holiday_window.py): no entries,
+# no stale exits, no nightly refresh (EDGE_FINDINGS 398, 453).
+_HOLIDAY_ZONE=ZoneInfo("Europe/Berlin")
+_holiday_days={}
+
+
+def guarded_day(moment):
+    """Whether the bot idles at UTC instant `moment` (numpy datetime64)."""
+    local=datetime.fromtimestamp(int(moment.astype("datetime64[s]").astype("int64")),_HOLIDAY_ZONE).date()
+    if local not in _holiday_days:
+        _holiday_days[local]=bool(holidays_for(local))
+    return _holiday_days[local]
+
+
+def live_deadline(deadline):
+    """`deadline` moved past any guarded holiday it falls on, to the bot's restart at local midnight."""
+    while guarded_day(deadline):
+        local=datetime.fromtimestamp(int(deadline.astype("datetime64[s]").astype("int64")),_HOLIDAY_ZONE)
+        restart=datetime.combine(local.date()+timedelta(days=1),datetime.min.time(),_HOLIDAY_ZONE)
+        deadline=np.datetime64(restart.astimezone(timezone.utc).replace(tzinfo=None),"s").astype(deadline.dtype)
+    return deadline
+
 
 def book_wallclock(O,H,L,C,ts,e,d,entry,stop_d,cost_r,n,leash=LIVE_LEASH):
     """`book` with the live stale exit: the open of the first bar at or after the signal bar's open + `leash`."""
     sl=entry-d*stop_d; tp=entry+d*RR*stop_d
-    deadline=ts[e]+leash
+    deadline=live_deadline(ts[e]+leash)
     for b in range(e+1,n):
         if ts[b]>=deadline:
             return (float(O[b])-entry)*d/stop_d-cost_r, b
@@ -238,6 +263,7 @@ def wallclock_signals(frames, atr_floor, meta, book=book_wallclock):
             for x in get_strategy(s)(df,{}):
                 if gate(s,df,x.index).blocked: continue
                 if direction_blocked(pair,x.direction): continue
+                if guarded_day(ts[x.index]+HOUR): continue
                 terms=trade_terms(df,x.index,pair,meta,atr_floor)
                 if terms is None: continue
                 entry,stop_d,cost_r,risk_usd=terms

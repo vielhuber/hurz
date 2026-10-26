@@ -99,18 +99,21 @@ def replay(ranking, traded, four_hour, pins, reserved, pin_order, days, extra, c
     signals = sorted(traded + four_hour, key=lambda trade: trade["ts"])
     timestamps = np.array([trade["ts"] for trade in signals])
     ranking_ts = np.array([trade["ts"] for trade in ranking])
-    booked, state, cut = [], {"open": {}, "pair": {}}, days[0] + offset
+    booked, state, cut, order = [], {"open": {}, "pair": {}}, days[0] + offset, None
     while cut < days[-1] + np.timedelta64(1, "D"):
         following = cut + step
-        start = cut - np.timedelta64(ews.RANK_DAYS, "D")
-        low = int(np.searchsorted(ranking_ts, start))
-        high = int(np.searchsorted(ranking_ts, cut))
-        training = [trade for trade in ranking[low:high] if trade["exit_ts"] < cut]
-        if cold is not None:
-            training = with_cold_start(training, cold(start, cut), start)
-        order = active_order(training, pins, reserved, pin_order)
-        for key in extra:
-            order.setdefault(key, len(order))
+        # On a guarded holiday the bot idles and the scheduler does not
+        # refresh, so the previous list stays (EDGE_FINDINGS 453).
+        if order is None or not ews.guarded_day(cut):
+            start = cut - np.timedelta64(ews.RANK_DAYS, "D")
+            low = int(np.searchsorted(ranking_ts, start))
+            high = int(np.searchsorted(ranking_ts, cut))
+            training = [trade for trade in ranking[low:high] if trade["exit_ts"] < cut]
+            if cold is not None:
+                training = with_cold_start(training, cold(start, cut), start)
+            order = active_order(training, pins, reserved, pin_order)
+            for key in extra:
+                order.setdefault(key, len(order))
         window = signals[int(np.searchsorted(timestamps, cut)):int(np.searchsorted(timestamps, following))]
         admit(prioritize(window, order, False), set(order), "live", None, state, booked, [])
         cut = following

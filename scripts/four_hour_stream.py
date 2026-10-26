@@ -50,6 +50,7 @@ from app.spot_trading.autotrade import _min_stop_atr_multiple, _CORRELATION_CLUS
 from scripts.efficiency_weighted_selection import (
     load_history, to_frame, t_stat, RANK_DAYS, META_CACHE, STRATS, RR, HOLD, PLAT, trade_terms,
     book_wallclock,
+    guarded_day,
 )
 
 YEARS = [(0, 365), (366, 1095), (1096, 1825), (1826, 2555)]
@@ -137,6 +138,7 @@ def daily_signals(frames, meta, floor):
             for x in get_strategy(s)(df, {}):
                 if gate(s, df, x.index).blocked: continue
                 if direction_blocked(pair, x.direction): continue
+                if guarded_day(ts[x.index] + np.timedelta64(4, "h")): continue
                 terms = daily_terms(df, x.index, pair, meta, floor)
                 if terms is None: continue
                 entry, stop_d, cost_r, risk_usd = terms

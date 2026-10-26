@@ -10,7 +10,7 @@ import scripts.four_hour_stream as fhs
 
 class FourHourPinsShortLeashTest(TestCase):
     def test_a_4h_trade_is_closed_twelve_bars_after_its_order_and_the_default_leash_restored(self):
-        stamps = pd.date_range("2026-10-12 00:00", periods=40, freq="4h").values
+        stamps = pd.date_range("2026-10-14 00:00", periods=40, freq="4h").values
         close = np.linspace(100.0, 101.0, len(stamps))
         df = pd.DataFrame({"timestamp": stamps, "open": close, "high": close + 0.05,
                            "low": close - 0.05, "close": close})
