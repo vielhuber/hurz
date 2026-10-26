@@ -15732,3 +15732,33 @@ checks of section 439 compared the stale exits at the bar, so their
 tolerance was read on booked bar closes; the current bot's fills sit 15 to 42
 seconds after the full hour, US30 of 2026-10-18 four minutes (the
 reopen), NZDUSD five.
+
+## 453. The bank-holiday pause in the canonical reference
+
+Repair (decision parity), not a lever. The bot stands still on every DE,
+US, GB or CH (Zurich) bank holiday for the whole Europe/Berlin day: the
+holiday watchdog stops the loop at local midnight and the start guard
+idles until the day is over (`app/utils/holiday_window.py`). The app log
+shows it on 2026-10-03 (German Unity Day) and 2026-10-12 (Columbus Day).
+No entry is evaluated, no stale exit fires and the scheduler's nightly
+refresh does not run; stops and targets sit at the broker. Section 398
+measured the pause as a candidate (-0.002937 USD/day, inside noise) and
+left the replay without it; the probation order fixes such gaps without a
+gain threshold.
+
+The replay now refuses an entry whose order (the signal bar's close)
+falls on a guarded Berlin date, hourly and 4h; moves a stale-exit
+deadline falling on one to the restart at the next local midnight; and
+keeps the previous list when a nightly cut falls on one. The ranking
+still reads every signal, as the selector's backtest does.
+
+| canonical reference | closes | USD | USD/day | daily SD | worst day |
+|---|---:|---:|---:|---:|---:|
+| section 446 | 387 | +96.8999 | +0.044287 | 0.7590 | -4.7624 |
+| with the holiday pause | 366 | +96.3649 | +0.044042 | 0.7433 | -4.7624 |
+
+Momentum 306 closes +105.00 USD (before 323, +108.39), 4h pins 60 closes
+-8.63 USD (before 64, -11.49). The replay's ETHUSD momentum signal of
+2026-10-12 17:00, unexplained in section 443, fell inside the pause and
+is explained; two of section 443's cases stay open (FR40 2026-10-13 07:00
+and 2026-10-16 19:00, no journal row, bot log lost).

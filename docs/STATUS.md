@@ -24,13 +24,13 @@ new order.
 - Parity: decisions (sections 439, 443), 4h floor (439), wall-clock leash
   (440), warm-up (441), nightly rhythm (442, 445), native 4h bars (446),
   financing (448), spread (450), sizes (439), list, pins and reservations
-  (451) checked; the canonical reference reproduces (387 closes, +0.044287
-  USD/day, research data).
+  (451) checked, the bank-holiday pause modelled (453); the canonical
+  reference reads 366 closes, +0.044042 USD/day (research data).
 - Limits: never bound live; the bot's order path refuses the fourth
   same-direction index in the risk-on cluster (test), and the replay uses
   the bot's clusters, cap and concurrent limit (parity test, 2026-10-26).
-- Open gaps: three signals without a bot log (ETHUSD 2026-10-12, FR40
-  2026-10-13 and 2026-10-16); the selector ranks 55 instruments against
+- Open gaps: two signals without a bot log (FR40 2026-10-13 07:00 and
+  2026-10-16 19:00; ETHUSD 2026-10-12 fell on the holiday pause); the selector ranks 55 instruments against
   the replay's 27 (no list differed).
 
 ## Live configuration
@@ -58,19 +58,22 @@ new order.
 
 ## Reference (research data, not an untouched test)
 
-Canonical since 2026-10-24 (sections 439-442, 445, 446): section 401's
-book with the bot's 4h entry rule (refused under 3 ATR) on the broker's
-native 4h bars, the bot's wall-clock stale exits (hourly 24 h, 4h pins
-96 h after the order) and the selector's ranking (bar-booked trades,
+Canonical since 2026-10-26 (sections 439-442, 445, 446, 453): section
+401's book with the bot's 4h entry rule (refused under 3 ATR) on the
+broker's native 4h bars, the bot's wall-clock stale exits (hourly 24 h,
+4h pins 96 h after the order), the bot's bank-holiday pause (no entries,
+no stale exit and no nightly refresh on a DE, US, GB or CH-Zurich holiday,
+Europe/Berlin date) and the selector's ranking (bar-booked trades,
 indicators cold-started on the ranking window, re-ranked every night,
 effective 06:05 UTC when the scheduler's refresh lands), on the bar cache
 of 2026-10-12 (hourly) and the native 4h bars fetched 2026-10-24, OOS
-2020-09-23 to 2026-09-20 (2,188 calendar days): 387 closes, +96.8999
-USD, +0.044287 USD/day, daily SD 0.7590, worst day -4.7624 (momentum 323
-closes +108.39 USD, 4h pins 64 closes -11.49 USD). Reproduced by
+2020-09-23 to 2026-09-20 (2,188 calendar days): 366 closes, +96.3649
+USD, +0.044042 USD/day, daily SD 0.7433, worst day -4.7624 (momentum 306
+closes +105.00 USD, 4h pins 60 closes -8.63 USD). Reproduced by
 `scripts/momentum_two_year_ranking.py` (the 730-day arm). Earlier
 figures: +0.017465 USD/day (section 401), +0.033727 (439), +0.044397
-(440), +0.048009 (441), +0.045270 (442), +0.045478 (445). These
+(440), +0.048009 (441), +0.045270 (442), +0.045478 (445), +0.044287
+(446). These
 corrections describe the bot's rules on searched history, not evidence of
 an edge. This history has been searched over 430 times; it is research
 data.
@@ -134,6 +137,7 @@ units) and is superseded.
 | limits | max 8 open, 3 per cluster and direction, 1 per instrument | the same caps | not reached live since 2026-10-01 (59 decisions, none refused by a cap) |
 | spread | live quote at the order | snapshot of 2026-09-04 per instrument | checked 2026-10-25: the reference's 387 closes cost 10.12 USD, 11.80 at the medians of 16,934 live quotes (+1.68 USD, 1.7 % of the result; section 450) |
 | size | fill risk at the live quote | planned at the bar close | checked 2026-10-23: four entries within tolerance (section 439) |
+| bank holidays | idles the whole Berlin day (no entries, exits, refresh) | traded through | fixed 2026-10-26: modelled (section 453; explains ETHUSD 2026-10-12) |
 | session log | truncated on every start | — | kept, last 60 runs, since 2026-10-25 (section 449) |
 
 ## Case check of the live decisions (2026-10-23, section 439)

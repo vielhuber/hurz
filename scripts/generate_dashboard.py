@@ -323,7 +323,7 @@ def _render_chart(series: list, width: int = 920, height: int = 340) -> str:
 # book with the bot's 4h entry rule, wall-clock leashes and the selector's
 # cold-started nightly ranking) on the bar cache of 2026-10-12:
 # research data searched many times, not an untouched test (docs/STATUS.md).
-_REFERENCE_USD_PER_DAY = 0.044287
+_REFERENCE_USD_PER_DAY = 0.044042
 
 
 def _cohort_row(label: str, result: dict, start: Optional[str] = None) -> str:

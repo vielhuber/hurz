@@ -11410,3 +11410,25 @@ USD/day) no longer describe the traded book.
   as one. Two modules need the runtime files and pass with them.
 - **Limits:** a new test pins the replay's concurrent limit, clusters and
   cluster cap to the bot's. Limits never bound live since 2026-10-01.
+
+## 2026-10-26 (afternoon) — repair: the bank-holiday pause in the canonical reference (probation, phase 1)
+
+- **Type:** repair (decision parity), not a lever. Section 398 measured
+  the pause as a candidate and kept the replay without it for lack of
+  significance; under the probation order a known modelling gap is fixed
+  without a gain threshold.
+- **Observation:** the app log shows the bot shutting down at 00:00
+  Berlin on 2026-10-03 and 2026-10-12 and restarting a day later; the
+  replay's ETHUSD signal of 2026-10-12 17:00 (section 443, unexplained)
+  fell inside that pause.
+- **Change:** the replay refuses entries ordered on a guarded holiday
+  (Berlin date of the bar close, the bot's calendar), defers a stale exit
+  falling on one to the restart at local midnight, and keeps the previous
+  list when the nightly refresh falls on one.
+- **Result:** 366 closes, +96.3649 USD, +0.044042 USD/day, daily SD
+  0.7433, worst day -4.7624 (before 387, +96.8999, +0.044287): -21
+  closes, -0.000245 USD/day. Momentum 306 closes +105.00 USD, pins 60
+  closes -8.63 USD.
+- **Evidence:** three new tests (calendar, deferred leash, booked exit);
+  every test touching the replay modules passes (one fixture moved off
+  Columbus Day). Bot unchanged, no restart. Section 453.
