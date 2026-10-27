@@ -38,6 +38,15 @@ snapshot of 2026-09-04; overnight rates of 2026-09-29; today's vetoes and
 pins. Forward evidence is the live bot: since 2026-10-13 (two-year
 ranking) for the strategy, since 2026-10-22 for the probation.
 
+## Minimum economic benefit (fixed 2026-10-27, section 456)
+
+At unchanged risk (3 USD per trade, 8 positions, 6 R daily stop): at
+least +1.00 USD net per calendar day after spread and financing, with the
+lower end of a 95 % block-bootstrap interval of the daily mean above zero
+and above the simple reference. The goal of 50 EUR a day (57.43 USD, 19.1
+R a day) is not reachable within these limits. Running costs (container,
+agent runs) are not booked to the project and stay missing.
+
 ## Checkpoint 2026-10-29 (written 2026-10-26)
 
 - Opening balance: one USD ledger (section 438), rebooked at the broker's

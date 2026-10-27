@@ -15831,3 +15831,38 @@ state (commit 4fea143, hourly cache of 2026-10-12, native 4h bars of
 trade is no edge evidence and no economic result; phase 2 first fixes the
 minimum economic benefit and judges the frozen book against zero and a
 simple reference.
+
+## 456. The minimum economic benefit, fixed before the next result is read
+
+Phase 2, step 1, written and committed before the frozen reference is
+judged (section 457). Inputs:
+
+- The user's goal: 50 EUR a day, 57.43 USD at the ledger's 1.14866.
+- The allowed risk budget, unchanged: 3 USD risk per trade, at most 8
+  open positions (24 USD at risk), at most 3 per cluster and direction,
+  a daily loss stop at 6 R (18 USD), 250 USD notional cap per trade.
+- Running costs: the account is a demo account (no commissions beyond
+  the spread, financing booked by the broker); the bot shares the Charly
+  container and its agent runs; neither cost is booked to the project, so
+  running costs are named as missing, not as zero.
+
+Incompatibility, stated before any result: 57.43 USD a day at 3 USD risk
+per trade is 19.1 R a day. The frozen reference closes 0.17 trades a
+calendar day, so the goal would need about 115 R per trade; with eight
+positions always open it would still need about 2.4 R per position per
+day. The goal is not reachable within the risk limits; reaching it would
+need a risk increase, which only the user can authorise.
+
+Fixed minimum economic benefit at unchanged risk, not to be lowered after
+any result:
+
+1. at least +1.00 USD net per calendar day (about 30 USD a month, a third
+   of an R per day; 1.7 % of the goal), after spread and financing as
+   booked, on the frozen reference and on the forward journal alike;
+2. and the lower end of a 95 % interval of the daily mean above zero
+   (block bootstrap over 20-day blocks, 10,000 draws, fixed seed);
+3. and better than the simple reference fixed in section 457 by the same
+   interval.
+
+A book below 1 USD a day stays economically irrelevant at this risk,
+however significant; a book above it that fails 2 or 3 is unproven.
