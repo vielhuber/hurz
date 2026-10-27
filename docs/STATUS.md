@@ -47,6 +47,12 @@ and above the simple reference. The goal of 50 EUR a day (57.43 USD, 19.1
 R a day) is not reachable within these limits. Running costs (container,
 agent runs) are not booked to the project and stay missing.
 
+Judged 2026-10-27 (section 457): the frozen reference earns +0.044042 USD
+a calendar day, 95 % interval [+0.0125, +0.0784], above random timing by
++0.054 USD a day [+0.022, +0.090]; maximum drawdown 20.29 USD; spread
+9.59 and financing 8.18 USD paid. Minimum not met (4.4 % of it). No
+hypothesis registered; the bot runs on unchanged as the forward phase.
+
 ## Checkpoint 2026-10-29 (written 2026-10-26)
 
 - Opening balance: one USD ledger (section 438), rebooked at the broker's

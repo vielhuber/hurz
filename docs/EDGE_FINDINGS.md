@@ -15866,3 +15866,46 @@ any result:
 
 A book below 1 USD a day stays economically irrelevant at this risk,
 however significant; a book above it that fails 2 or 3 is unproven.
+
+## 457. The frozen reference against zero, random timing and the minimum
+
+Phase 2, step 1. `scripts/reference_net_expectancy.py`, committed with
+its criteria (97f6e89) after the minimum of section 456 and before it
+ran, measures the frozen canonical book on its OOS history (2020-09-23
+to 2026-09-20, 2,188 calendar days) and a simple reference that keeps
+every close's instrument, timeframe, direction, terms, leash, spread and
+financing but enters at a random bar within 15 days of the signal (20
+books, the timing is all that differs).
+
+| measure | frozen reference | random timing |
+|---|---:|---:|
+| closes | 366 (0.167 a day) | 366 per book |
+| USD a calendar day | +0.044042 | -0.010102 |
+| 95 % interval (20-day blocks) | [+0.012502, +0.078445] | [-0.020513, -0.001247] |
+| daily SD | 0.7433 | 0.2055 |
+| worst day | -4.7624 | |
+| maximum drawdown | 20.29 USD | |
+| t of the daily mean | +2.77 | |
+| spread paid | 9.59 USD | |
+| financing paid | 8.18 USD | |
+
+Reference minus random timing: +0.054145 USD a day, interval [+0.022122,
++0.089721]. Net +96.36 USD over six years after 17.77 USD of spread and
+financing; 0.26 USD (0.088 R) a close.
+
+Verdict against section 456: above zero (yes) and above the simple
+reference (yes) on research data, but the minimum of +1.00 USD a day is
+not met: the book reaches 4.4 % of it, and would need 22.7 times its
+result at the same risk (about 6 USD, 2 R, net per close at today's
+frequency). The intervals do not account for the more than 430 searches
+of this history; they are optimistic. The forward journal adds 4 closes,
++0.91 USD since 2026-10-01, too few to say anything.
+
+Research decision: no hypothesis is registered. A candidate would have
+to lift a book that earns 0.088 R a close to about 2 R a close, or
+multiply its frequency twenty-fold, at the same risk; nothing observed in
+the journal or the history supports such a mechanism, and timing,
+ranking and exit variants of this book have failed over 100 times. The
+probation continues as a forward observation of the unchanged bot; its
+grade on 2026-11-21 can only be B (technical repair, no economic
+evidence) unless the forward phase shows something the history does not.

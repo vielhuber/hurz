@@ -54,14 +54,15 @@ Phase 1, in order (due dates are the checkpoints):
    `STATUS.md` (2026-10-26).
 6. Done 2026-10-27: measurement base accepted (section 455); reference
    frozen at commit 4fea143 with its cost model and data state.
-7. Phase 2, step 1, before any hypothesis: fix the minimum economic
-   benefit from the user's goal, the allowed risk budget and the running
-   costs; then judge the frozen reference's net expectancy against zero
-   and a simple reference (USD per calendar day, trades, uncertainty,
-   costs, drawdown, daily SD, worst day). No hypothesis is pre-registered
-   yet; at most two in the period, one active at a time.
-8. 2026-11-12: evaluate the research, if any, and the forward phase with
-   its uncertainty.
+7. Done 2026-10-27: minimum economic benefit fixed (+1.00 USD a calendar
+   day at unchanged risk, section 456); the frozen reference judged:
+   above zero and above random timing, minimum not met (4.4 %, section
+   457). No hypothesis registered: none observed could close a 22.7-fold
+   gap at the same risk.
+8. 2026-11-12: evaluate the forward phase (the unchanged bot since
+   2026-10-13 and since 2026-10-22) with its uncertainty against the
+   fixed minimum; a hypothesis only on a new observation with a
+   mechanism, registered in full before it is measured.
 
 Alpha research of the last five runs before the probation (compact):
 4h pin leash at 12 bars (434, -7.3 %, rejected), concurrent cap at 6
@@ -11467,3 +11468,19 @@ USD/day) no longer describe the traded book.
   deadline; the criteria and the residual tolerances are in section 455
   and `STATUS.md`. Any new deviation found reopens it. No trading
   change; bot untouched.
+
+## 2026-10-27 — research decision: the frozen reference against zero and the minimum (probation, phase 2)
+
+- **Type:** documented research decision, not a lever; no trading
+  change.
+- **Fixed first** (commit 4d230e8): minimum economic benefit +1.00 USD a
+  calendar day at 3 USD risk per trade, interval above zero and above a
+  simple reference; the 50 EUR goal (19.1 R a day) is not reachable
+  within the limits. Then the check with its criteria (commit 97f6e89).
+- **Result:** +0.044042 USD a day [+0.0125, +0.0784]; random timing
+  -0.0101 [-0.0205, -0.0012]; difference +0.054 [+0.022, +0.090];
+  drawdown 20.29 USD, worst day -4.76, daily SD 0.74; spread 9.59 and
+  financing 8.18 USD paid over 366 closes. Optimistic intervals: the
+  history was searched over 430 times.
+- **Decision:** minimum not met (4.4 %). No hypothesis registered. The
+  dashboard shows the fixed minimum beside the reference. Section 457.
