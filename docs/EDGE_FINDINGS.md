@@ -15909,3 +15909,21 @@ ranking and exit variants of this book have failed over 100 times. The
 probation continues as a forward observation of the unchanged bot; its
 grade on 2026-11-21 can only be B (technical repair, no economic
 evidence) unless the forward phase shows something the history does not.
+
+## 458. The forward evaluation of 2026-11-12, fixed before its data
+
+Pre-registration, not a lever. `scripts/forward_phase_check.py` judges the
+unchanged bot on 2026-11-12: the current bot's closes ordered since the
+two-year ranking (2026-10-12 22:25 UTC) and since the probation start
+(2026-10-21 22:00 UTC), realised USD by exit day over every calendar day
+(zero without a close), the broker's TRADE and SWAP entries beside it; a
+95 % block-bootstrap interval of the daily mean (5-day blocks); verdicts
+only from 20 days and one close: "minimum met" (+1.00 USD a day, interval
+above zero), "below the reference" (interval below +0.044042), otherwise
+"consistent with the reference", which is no edge evidence.
+
+Interim reading on 2026-10-27, not the evaluation: since the two-year
+ranking 16 days, 4 closes, +0.91 USD, +0.057 USD a day, interval [-0.071,
++0.179] (broker +0.82 USD, +0.051 a day); since the probation start 7
+days without a close of an order placed in it. The upper end already
+sits far below the minimum of +1.00 USD a day.

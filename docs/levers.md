@@ -60,8 +60,8 @@ Phase 1, in order (due dates are the checkpoints):
    457). No hypothesis registered: none observed could close a 22.7-fold
    gap at the same risk.
 8. 2026-11-12: evaluate the forward phase (the unchanged bot since
-   2026-10-13 and since 2026-10-22) with its uncertainty against the
-   fixed minimum; a hypothesis only on a new observation with a
+   2026-10-13 and since 2026-10-22) with `scripts/forward_phase_check.py`,
+   criteria fixed 2026-10-27 (section 458), against the fixed minimum; a hypothesis only on a new observation with a
    mechanism, registered in full before it is measured.
 
 Alpha research of the last five runs before the probation (compact):
@@ -11484,3 +11484,13 @@ USD/day) no longer describe the traded book.
   history was searched over 430 times.
 - **Decision:** minimum not met (4.4 %). No hypothesis registered. The
   dashboard shows the fixed minimum beside the reference. Section 457.
+
+## 2026-10-27 (evening) — pre-registration: the forward evaluation of 2026-11-12 (probation, phase 2)
+
+- **Type:** evaluation protocol, not a lever; no trading change.
+- **Fixed:** cohorts, daily series, broker side, 95 % block-bootstrap
+  interval (5-day blocks), verdict rules and a 20-day minimum window;
+  `scripts/forward_phase_check.py` with tests. Section 458.
+- **Interim (not the evaluation):** since 2026-10-13 4 closes, +0.91 USD,
+  +0.057 USD a day [-0.071, +0.179]; since 2026-10-22 no close of an order
+  placed in the probation.
