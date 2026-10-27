@@ -324,6 +324,8 @@ def _render_chart(series: list, width: int = 920, height: int = 340) -> str:
 # cold-started nightly ranking) on the bar cache of 2026-10-12:
 # research data searched many times, not an untouched test (docs/STATUS.md).
 _REFERENCE_USD_PER_DAY = 0.044042
+# Fixed before the reference was judged (EDGE_FINDINGS 456); never lowered.
+_MINIMUM_USD_PER_DAY = 1.00
 
 
 def _cohort_row(label: str, result: dict, start: Optional[str] = None) -> str:
@@ -386,6 +388,8 @@ def _render_cards(rows: list, open_pos: list, broker: Optional[list] = None) -> 
           <div class="row"><span>Offen</span><b>{open_count}</b></div>
           <div class="row"><span>Backtest-Referenz (Forschungsdaten)</span>
             <b class="{_money_class(_REFERENCE_USD_PER_DAY)}">{_REFERENCE_USD_PER_DAY:+.4f} USD/T.</b></div>
+          <div class="row"><span>Wirtschaftlicher Mindestnutzen (fest)</span>
+            <b>{_MINIMUM_USD_PER_DAY:+.2f} USD/T.</b></div>
           {_broker_rows(broker or [])}
           <div class="sub" style="margin-top:10px">Historie (kein Nachweis für den aktuellen Bot)</div>
           {_cohort_row("aktuelle Strategien vor 01.10.", balance(c for c in capital if c["cohort"] == "current strategies before the veto regime"))}

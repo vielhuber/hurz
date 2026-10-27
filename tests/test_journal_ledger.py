@@ -88,6 +88,7 @@ class DashboardCohortCardTest(unittest.TestCase):
         self.assertIn("kein Nachweis für den aktuellen Bot", html)
         self.assertIn("noch keine Buchungen importiert", html)
         self.assertIn("Bewährungsfrist seit 22.10.2026 (0 Trades", html)
+        self.assertIn("Wirtschaftlicher Mindestnutzen (fest)</span>\n            <b>+1.00 USD/T.", html)
 
     def test_the_broker_side_is_shown_beside_the_journal(self):
         broker = [{"date_utc": "2026-09-20 21:00:00", "transaction_type": "SWAP", "amount": -0.5, "currency": "EUR"},
