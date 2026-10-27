@@ -15791,3 +15791,43 @@ FR40 on 2026-10-13 and 2026-10-16 and after it left the list on
 2026-10-20 and 2026-10-22; none would have traded. The journal-only
 US100 refusal and the US30 price gap stay unexplained; both are
 refusals. No difference changes an entry the bot made.
+
+## 455. The measurement base is accepted
+
+Acceptance decision of the probation's phase 1, not a lever. The order
+of 2026-10-22 names five criteria; the evidence, all on the live journal
+and the canonical replay:
+
+- Units: the strategy veto sums in USD with the seven retirements kept
+  (437); one USD ledger (438), rebooked at the broker's fills (452); the
+  current bot's four closes read +0.91 USD in the journal and +0.93 USD
+  in the broker's TRADE entries (EUR at the fixed 1.14866).
+- Decisions: 53 of 55 journal signals carry the same decision and price,
+  all four entries among them, and 2 replay signals fall in the bot's
+  holiday pause (454); the replay's nightly list equals both archived
+  live lists (451); the replay books with the bot's position limits
+  (test). The 4h floor (439), wall-clock leash (440), warm-up (441),
+  nightly rhythm (442, 445), native 4h bars (446) and holiday pause (453)
+  are modelled.
+- Tolerances: ADX within 1.0 of the gate and prices within 0.05 % (443,
+  454); spread at the live medians +1.7 % of the result (450); financing
+  within 5 % of the broker's SWAP (448).
+- Reproduction: the canonical reference run twice from commit 4fea143
+  gives the same 366 closes, +96.364882 USD, +0.044042 USD a calendar
+  day, daily SD 0.7433, worst day -4.7624 and the same four samples.
+- Deployment and bot: the runtime checkout sits on origin/main, one
+  healthy instance.
+
+Residuals without trading consequence stay listed: 17 replay-only
+refusals on combinations with unrecorded list membership before
+2026-10-24, one journal-only refusal (US100 2026-10-20 17:00), one
+refusal with a 0.08 % price gap (US30 2026-10-23 09:00), and the
+selector's 55 instruments against the replay's 27. A new deviation
+reopens the acceptance. The reference is frozen with its data and cost
+state (commit 4fea143, hourly cache of 2026-10-12, native 4h bars of
+2026-10-24, spread snapshot of 2026-09-04, overnight rates of
+2026-09-29). It is research data: this history has been searched over
+430 times and is no untouched test. +0.044042 USD a day on 3 USD risk per
+trade is no edge evidence and no economic result; phase 2 first fixes the
+minimum economic benefit and judges the frozen book against zero and a
+simple reference.

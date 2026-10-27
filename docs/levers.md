@@ -51,11 +51,17 @@ Phase 1, in order (due dates are the checkpoints):
    within tolerance (section 450); the replay's nightly list against both
    archived live lists, identical (section 451); exits held over a day
    rebooked at the broker's fill (section 452); checkpoint written up in
-   `STATUS.md` (2026-10-26). Next: the acceptance review for 2026-11-05
-   against the phase-1 criteria;
-   still open: three unexplained signals without a bot log (section 443).
-6. 2026-11-05: measurement base accepted or "not accepted"; freeze the
-   corrected reference (cost model, data state) before any phase-2 work.
+   `STATUS.md` (2026-10-26).
+6. Done 2026-10-27: measurement base accepted (section 455); reference
+   frozen at commit 4fea143 with its cost model and data state.
+7. Phase 2, step 1, before any hypothesis: fix the minimum economic
+   benefit from the user's goal, the allowed risk budget and the running
+   costs; then judge the frozen reference's net expectancy against zero
+   and a simple reference (USD per calendar day, trades, uncertainty,
+   costs, drawdown, daily SD, worst day). No hypothesis is pre-registered
+   yet; at most two in the period, one active at a time.
+8. 2026-11-12: evaluate the research, if any, and the forward phase with
+   its uncertainty.
 
 Alpha research of the last five runs before the probation (compact):
 4h pin leash at 12 bars (434, -7.3 %, rejected), concurrent cap at 6
@@ -11449,3 +11455,15 @@ USD/day) no longer describe the traded book.
   an entry; all four entries match.
 - **Decision:** decision parity holds within the tolerances; the open
   cases stay listed. Section 454.
+
+## 2026-10-27 — acceptance of the measurement base (probation, phase 1)
+
+- **Type:** acceptance decision, not a lever.
+- **Reproduction:** the canonical reference run again from the published
+  commit 4fea143: identical to the first run (366 closes, +96.364882 USD,
+  +0.044042 USD/day, daily SD 0.7433, worst day -4.7624, all four
+  samples equal).
+- **Decision:** phase 1 accepted on 2026-10-27, ahead of the 2026-11-05
+  deadline; the criteria and the residual tolerances are in section 455
+  and `STATUS.md`. Any new deviation found reopens it. No trading
+  change; bot untouched.

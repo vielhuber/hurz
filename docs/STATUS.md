@@ -1,6 +1,6 @@
 # Hurz — canonical status
 
-Updated 2026-10-25 (evening). Short and current; history lives in `levers.md` and
+Updated 2026-10-27. Short and current; history lives in `levers.md` and
 `EDGE_FINDINGS.md`.
 
 ## Probation period
@@ -13,6 +13,30 @@ strategy hypotheses) only after its acceptance. Checkpoints: 2026-10-29
 accepted or not), 2026-11-12 (research and forward phase), 2026-11-21
 (final grade A/B/C). No autonomous research after 2026-11-21 without a
 new order.
+
+## Phase 1 accepted (2026-10-27, section 455)
+
+| criterion | evidence |
+|---|---|
+| unit correctness | strategy veto in USD, retirements kept (437); one USD ledger (438) rebooked at broker fills (452); current bot journal +0.91 USD against broker TRADE +0.93 USD |
+| decision correctness | 53 of 55 journal signals the same, all four entries, 2 in the holiday pause (454); lists, pins and reservations identical on both archived nights (451); limits shared by code (test) |
+| explained tolerances | ADX within 1.0 of the gate, price within 0.05 % (443, 454); spread +1.7 % of the result (450); financing within 5 % (448); fixed FX rates for 56 legacy closes (438) |
+| reproducible reference | two runs from commit 4fea143 identical: 366 closes, +0.044042 USD/day |
+| deployment and bot | runtime checkout on origin/main, one healthy instance |
+
+Residuals, without trading consequence and listed rather than explained:
+17 replay-only refusals on combinations whose list membership before
+2026-10-24 was not recorded, one journal-only refusal (US100 2026-10-20
+17:00), one refusal with a 0.08 % price gap (US30 2026-10-23 09:00), the
+selector's 55-instrument universe against the replay's 27 (no list
+differed). A new deviation reopens the acceptance.
+
+Frozen reference (research data, searched over 430 times, not an
+untouched test): code commit 4fea143; hourly bar cache of 2026-10-12, OOS
+2020-09-23 to 2026-09-20; native 4h bars fetched 2026-10-24; spread
+snapshot of 2026-09-04; overnight rates of 2026-09-29; today's vetoes and
+pins. Forward evidence is the live bot: since 2026-10-13 (two-year
+ranking) for the strategy, since 2026-10-22 for the probation.
 
 ## Checkpoint 2026-10-29 (written 2026-10-26)
 
